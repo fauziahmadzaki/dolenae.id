@@ -1,0 +1,47 @@
+# Dependencies
+node_modules/
+.pnpm-store/
+
+# Build outputs
+dist/
+build/
+.next/
+out/
+
+# Flutter
+apps/mobile/build/
+apps/mobile/.dart_tool/
+apps/mobile/.flutter-plugins*
+apps/mobile/ios/Pods/
+apps/mobile/ios/.symlinks/
+apps/mobile/.packages
+
+# Env & secrets
+.env
+.env.*
+!.env.example
+
+# Editor / OS
+.vscode/*
+!.vscode/extensions.json
+.idea/
+.DS_Store
+Thumbs.db
+
+# AI / editor tooling (lokal)
+.cursor/
+.opencode/
+.github/
+
+# Scratch / working files
+.tmp/
+reports/
+
+# Script bantu sementara (root, tidak dipakai runtime)
+/*.mjs
+/*.js
+
+# Logs
+*.log
+npm-debug.log*
+pnpm-debug.log*

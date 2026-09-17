@@ -1,0 +1,18 @@
+{
+  "name": "dolenae",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Dolenae.id - travel discovery & trip preparation platform",
+  "scripts": {
+    "dev:web": "pnpm --filter @dolenae/web dev",
+    "dev:server": "pnpm --filter @dolenae/server dev",
+    "dev:mobile": "echo \"see apps/mobile - run with Flutter tools\"",
+    "build": "pnpm -r build",
+    "typecheck": "pnpm -r typecheck",
+    "lint": "pnpm -r lint"
+  },
+  "devDependencies": {
+    "typescript": "^5.7.3"
+  },
+  "packageManager": "pnpm@12.4.2"
+}
