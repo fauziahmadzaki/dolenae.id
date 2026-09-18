@@ -17,7 +17,8 @@ Destinasi alam (gunung, bukit, danau, air terjun, dsb).
 **Field inti:**
 - identitas: `id`, `name`, `slug`, `tagline`, `description`
 - klasifikasi: `terrain[]`, `activities[]`, `difficulty`, `bestSeason[]`, `tags[]`
-- geografi: `location` (provinsi, kabupaten, koordinat)
+- geografi: `location` (provinsi, kabupaten, koordinat, serta `accessPoint?`
+  berupa basecamp/titik akses terdekat — dipakai untuk peta lokasi)
 - `access`: deskripsi akses, moda transportasi, estimasi waktu, jarak
 - `facilities`: toilet, warung, mushola, parkir, homestay dekat, dll
 - ekonomi: `entryFee`, `elevationMeters`

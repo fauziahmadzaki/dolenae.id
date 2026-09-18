@@ -177,6 +177,11 @@ Untuk menjaga fokus produk, Dolenae **bukan**:
 
 > **Dolenae membantu pengguna dari tahap "ingin pergi ke mana?" sampai "apa yang harus aku siapkan?", bukan menjadi pihak yang menyediakan seluruh layanan perjalanan tersebut.**
 
+> Catatan: menampilkan **peta lokasi informatif** (posisi destinasi/basecamp,
+> `accessPoint`, jarak, dan tombol "Buka di peta") **diperbolehkan**. Yang berada
+> di luar scope adalah **navigasi/GPS**: ruting turn-by-turn, panduan suara, dan
+> pelacakan lokasi langsung.
+
 ---
 
 ## 10. User Roles / User Types
