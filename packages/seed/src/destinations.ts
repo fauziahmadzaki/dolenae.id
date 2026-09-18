@@ -15,6 +15,10 @@ export function destinations() {
         province: "Jawa Timur",
         regency: "Probolinggo",
         coordinate: { latitude: -7.9425, longitude: 112.9531 },
+        accessPoint: {
+          name: "Cemoro Lawang",
+          coordinate: { latitude: -7.9228, longitude: 112.9765 },
+        },
       },
       access: {
         description:
@@ -54,6 +58,10 @@ export function destinations() {
         province: "Jawa Barat",
         regency: "Garut",
         coordinate: { latitude: -7.3244, longitude: 107.7335 },
+        accessPoint: {
+          name: "Basecamp Cisurupan",
+          coordinate: { latitude: -7.3195, longitude: 107.786 },
+        },
       },
       access: {
         description:
@@ -93,6 +101,10 @@ export function destinations() {
         province: "Jawa Barat",
         regency: "Bandung Barat",
         coordinate: { latitude: -6.8456, longitude: 107.6231 },
+        accessPoint: {
+          name: "Cimenyan",
+          coordinate: { latitude: -6.869, longitude: 107.64 },
+        },
       },
       access: {
         description:
@@ -132,6 +144,10 @@ export function destinations() {
         province: "Jawa Tengah",
         regency: "Wonosobo",
         coordinate: { latitude: -7.2256, longitude: 109.9933 },
+        accessPoint: {
+          name: "Patak Banteng",
+          coordinate: { latitude: -7.171, longitude: 109.96 },
+        },
       },
       access: {
         description:

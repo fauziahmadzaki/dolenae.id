@@ -26,6 +26,15 @@ export type DestinationCondition =
   | "sulit"
   | "butuh-lokal-guide";
 
+export interface AccessPoint {
+  /** Nama basecamp / titik akses terdekat */
+  name: string;
+  coordinate: {
+    latitude: number;
+    longitude: number;
+  };
+}
+
 export interface LocationInfo {
   province: string;
   regency: string;
@@ -33,6 +42,8 @@ export interface LocationInfo {
     latitude: number;
     longitude: number;
   };
+  /** Basecamp / titik akses terdekat menuju destinasi */
+  accessPoint?: AccessPoint;
 }
 
 export interface AccessInfo {
