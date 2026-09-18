@@ -16,6 +16,16 @@ dari `design-system-hifi.md`.
 | Layar | Node | Ukuran | Posisi |
 | --- | --- | --- | --- |
 | `Hi-Fi - Beranda (Mobile)` | `56:9996` | 390×1866 | 0,0 |
+| `Hi-Fi - Detail Destinasi (Mobile)` | `65:215` | 390×1425 | 520,0 |
+| `Hi-Fi - Jelajah (Mobile)` | `65:389` | 390×763 | 1040,0 |
+| `Hi-Fi - AI Preferensi (Mobile)` | `68:651` | 390×1210 | 1560,0 |
+| `Hi-Fi - AI Hasil (Mobile)` | `68:771` | 390×1056 | 2080,0 |
+| `Hi-Fi - Rencana Perjalanan (Mobile)` | `68:1182` | 390×1045 | 2600,0 |
+| `Hi-Fi - Checklist Persiapan (Mobile)` | `68:1036` | 390×736 | 3120,0 |
+| `Hi-Fi - Fasilitas Sekitar (Mobile)` | `69:1427` | 390×630 | 3640,0 |
+| `Hi-Fi - Detail Fasilitas - Penginapan (Mobile)` | `69:1517` | 390×1012 | 4160,0 |
+| `Hi-Fi - Detail Fasilitas - Transport (Mobile)` | `69:1597` | 390×1032 | 4680,0 |
+| `Hi-Fi - Detail Fasilitas - Makanan (Mobile)` | `69:1679` | 390×986 | 5200,0 |
 
 Struktur Beranda (7 section, `gap 12`, bg `canvas`):
 
@@ -25,7 +35,7 @@ Struktur Beranda (7 section, `gap 12`, bg `canvas`):
 | Search | 90 | heading `display-md` "Mau ke mana?"; field `canvas-subtle` 48px + tombol filter 32px |
 | Chips | 34 | kategori; chip pertama state **aktif** (`primary`), lain `canvas-subtle` |
 | AI | 180 | **kartu `primary` (pine)** + `shadow/md`: bulatan `accent` + sparkles, eyebrow `overline`, judul `on-primary`, body `canvas-subtle`, CTA `accent` full-width 44px |
-| Popular | 616 | header seksi + "Lihat semua"; 2 kartu `canvas-subtle` + `shadow/sm`, media **356×180** berisi foto (lihat §3) |
+| Popular | 616 | header seksi + "Lihat semua"; 2 kartu `canvas-subtle` + `shadow/sm`, media **356×180** berisi foto (lihat §7) |
 | Activities | 128 | 4 tile `canvas-subtle`, ikon dalam bulatan `canvas` |
 | Fasilitas sekitar | 190 | **rail horizontal** (358px, `clip`) berisi 3 `SupportCard` (200×136, `canvas-subtle` + `shadow/sm`); kartu ke-3 terpotong sebagai petunjuk scroll; + "Lihat semua" |
 | Bantuan | 220 | kartu `canvas-subtle`: 3 baris `MenuRow` (ikon + label + chevron) dipisah hairline |
@@ -102,16 +112,136 @@ meta.
 
 ---
 
-## 3. Gambar (placeholder sementara)
+## 3. Detail Destinasi & Jelajah (batch 1)
+
+### `Hi-Fi - Detail Destinasi (Mobile)` (`65:215`, 390×1425)
+AppBar 56 · Hero 200 · Title 84 · Specs 140 · Akses 193 · Lokasi 264 · Fasilitas 102 · Supports 208 · CTA 82
+
+- Hero, peta, dan media lain masih placeholder X (belum dipasang foto).
+- **Specs** = grid 2×2 (Tiket masuk, Ketinggian, Guide, Musim terbaik) dari seed Bromo.
+- **Akses** = deskripsi + `FacilityTag` (Mobil/Jeep/Motor) + estimasi `≈4 jam` + `140 km`.
+- **Lokasi** = peta placeholder + `SectionHeader` "Lokasi" dengan aksi "Buka di peta" + titik akses Cemoro Lawang.
+- **Supports** = 2 baris support (Bromo Jeep Tour, Homestay Cemoro Indah) + `shadow/sm` + `SectionHeader` "Lihat semua".
+- **CTA bawah** = dua aksi berbeda intent: "Checklist" (outline) dan "Tambah ke rencana" (`primary`).
+- Tanpa BottomNav (halaman detail memakai CTA bawah, mengikuti lo-fi).
+
+### `Hi-Fi - Jelajah (Mobile)` (`65:389`, 390×763)
+AppBar 56 · Search 48 · Filters 32 · Meta 16 · List 492 · BottomNav 59
+
+- `AppBar` varian Halaman (judul saja), filter `Chip` (Semuanya aktif), meta "24 destinasi · Urutkan: Populer".
+- **List** = 4 kartu horizontal 358×114 (media 114 + konten) dari seed: Bromo, Papandayan, Bukit Moko, Gunung Prau; badge kesulitan + provinsi · elevasi (1 middle-dot per baris).
+- BottomNav dengan tab "Jelajah" aktif.
+
+## 4. Menu AI (batch 2)
+
+### `Hi-Fi - AI Preferensi (Mobile)` (`68:651`, 390×1210)
+AppBar 56 · Prompt 252 · Form1 278 · Form2 228 · Form3 254 · CTA 82
+
+- **Prompt jadi hero**: heading "Ceritakan rencanamu" + sub, lalu **`PromptInput`**
+  (ikon `sparkles` accent, placeholder "Mis. pengen ke gunung buat sunrise, 2 hari,
+  budget 500rb", tombol kirim bulat di kanan). Di bawahnya chip saran
+  (Sunrise 2 hari / Ramah pemula / Budget 500rb / Camping).
+- **Atur manual** (form tetap ada, dipisah label): Wilayah · Aktivitas · Medan ·
+  Tingkat kesulitan · Durasi (semua `Chip`) · Budget per orang (`Input`) ·
+  Kebutuhan (2 baris label + `Switch`, "Butuh penginapan" aktif) · Catatan bebas
+  (composer kedua dengan placeholder berbeda).
+- Bar CTA bawah "Cari rekomendasi" (`primary` + ikon sparkles). Tanpa BottomNav,
+  mengikuti lo-fi (alur dengan AppBar kembali).
+
+### `Hi-Fi - AI Hasil (Mobile)` (`68:771`, 390×1056)
+AppBar 56 · Recap 158 · Summary 94 · Results 618 · CTA 82
+
+- **Recap prompt**: kartu berisi prompt pengguna (label `overline` "PROMPTMU") +
+  chip preferensi hasil parsing (Jawa Barat · Hiking · 2-3 hari · Menengah) +
+  "rule-based · 3 destinasi".
+- Ringkasan AI (ikon `sparkles` accent) + 3 × `RecommendationCard` **Lengkap**
+  (peringkat, nama, meta, pill **Skor** accent, tagline, blok "Mengapa cocok?",
+  aksi "Lihat detail" + "Tambah"). Skor & alasan mengikuti lo-fi (placeholder).
+- Bar CTA: "Ubah preferensi" (outline) + "Tanya lagi" (`primary`).
+
+> Prompt bebas bukan tambahan di luar rencana produk: `Preference.rawText`
+> ("teks natural") sudah ada di `packages/types/src/ai.ts`.
+
+## 5. Rencana & Checklist (batch 3)
+
+### `Hi-Fi - Rencana Perjalanan (Mobile)` (`68:1182`, 390×1045)
+AppBar 56 · Summary 114 · Briefing 180 · Steps 588 · BottomNav 59
+
+- `AppBar Tipe=Halaman` (tab root, tanpa tombol kembali) + `BottomNav` dengan tab
+  **Rencana** aktif.
+- **Summary**: kartu `canvas-subtle` berisi "Trip Dieng", tanggal + jumlah
+  destinasi (`12-14 Jul 2026 · 3 destinasi`, satu middle-dot), dan "Estimasi
+  budget" → `Rp1.250.000`. Ada aksi "Ubah" di kanan.
+- **Briefing AI** (`BriefingCard (Alam)` varian Lengkap): eyebrow `overline`
+  "BRIEFING AI" + aksi ghost "Perbarui", paragraf 3-4 baris tentang kondisi
+  perjalanan dan urutan hari, lalu caption "Disusun dari 3 destinasi dan
+  preferensi tersimpan". Isi briefing **placeholder Figma** (mengacu seed); di
+  PRD ini masuk bagian "rekomendasi kondisi perjalanan".
+- **Steps**: 3 baris `rail nomor + PlanCard` (Hari 1 Prau, Hari 2 Bromo, Hari 3
+  Moko). PlanCard kini punya **baris meta destinasi**
+  (`2.565 mdpl · akses Patak Banteng, naik 3-4 jam` — sengaja hanya satu
+  middle-dot per baris). Rail hari terakhir tanpa garis lanjutan; garis rail
+  disamakan dengan tinggi kartu (168px). Baris terakhir "Tambah destinasi"
+  (outline + ikon plus).
+
+### `Hi-Fi - Checklist Persiapan (Mobile)` (`68:1036`, 390×736)
+AppBar 56 · Progress 88 · Tabs 32 · Group 210 · Group 148 · Add 48 · CTA 82
+
+- `AppBar Tipe=Kembali`; tanpa BottomNav (ikut lo-fi).
+- **Progress**: kartu konteks "Gunung Bromo" + `5/12 siap` (accent) + bar 8px +
+  caption "5 dari 12 item selesai".
+- Tab filter `Chip` (Semua aktif, Perlengkapan, Kesehatan, Konservasi) — baris
+  di-`clip` supaya chip terakhir terpotong sebagai petunjuk scroll.
+- 3 grup (label `overline` + kartu berisi baris checklist): PERLENGKAPAN
+  (Selesai/Selesai/Belum), KESEHATAN (Belum/Selesai), ADMINISTRASI (**Cek lagi**
+  = state `Warning`).
+- Aksi "Tambah item" (outline) dan bar CTA "Tandai siap" (`primary`).
+
+## 6. Fasilitas (batch 4)
+
+### `Hi-Fi - Fasilitas Sekitar (Mobile)` (`69:1427`, 390×630)
+AppBar 56 · Context 52 · Segmented 44 · Filters 32 · Groups 338 · Add 48
+
+- Konteks "Gunung Bromo" + "4 fasilitas di sekitar destinasi".
+- **`Segmented (Alam)`** (tab Semua aktif) + filter `Chip` (Terverifikasi aktif,
+  Ekonomis, Kurang dari 2 km).
+- 3 grup (label `overline` + `SupportRow`): PENGINAPAN, TRANSPORTASI, TEMPAT
+  MAKAN. Baris memuat ikon, nama, meta, badge terverifikasi, dan harga.
+- "Usulkan fasilitas" (outline + ikon plus). Tanpa BottomNav, ikut lo-fi.
+
+### Detail Fasilitas ×3 (`69:1517` / `69:1597` / `69:1679`)
+Satu template, tinggi 390×1012 / 1032 / 986: AppBar · Hero 220 · Body1 · Body2 · CTA 82.
+
+- **Hero** berisi foto (lihat §7).
+- **Body1** = Header (nama + badge verifikasi + jenis + harga/unit) · Info 2×2
+  (field per jenis) · chip (label "Fasilitas"/"Termasuk"/"Tersedia") · Deskripsi.
+- **Body2** = Kontak (baris WhatsApp/Telepon/Instagram, nilai rata kanan) ·
+  Destinasi terkait (kartu mini + chevron).
+- **CTA** = "Simpan" (outline) + "Hubungi via WhatsApp" (`primary`).
+- Perbedaan per jenis: Penginapan (Kapasitas/Jarak/Harga/Tipe, fasilitas air
+  hangat), Transport (Moda/Kapasitas/Rute/Harga, termasuk driver), Makanan
+  (Masakan/Rentang/Lokasi/Status, belum terverifikasi).
+
+## 7. Gambar (placeholder sementara)
 
 Kartu destinasi memakai foto asli dari Wikimedia Commons. **Status: placeholder
 sementara — wajib diganti foto milik sendiri/berlisensi sebelum rilis**, karena
 kedua file berlisensi **CC BY-SA 4.0** (atribusi + share-alike).
 
-| Kartu | File Commons | Author | Lisensi | Ukuran asli |
+| Untuk | File Commons | Author | Lisensi | Ukuran asli |
 | --- | --- | --- | --- | --- |
-| Gunung Bromo | `Smoking Gunung Bromo sunrise - Indonesia.jpg` | Thomas Fuhrmann | CC BY-SA 4.0 | 5581×3721 |
-| Gunung Prau | `Gunung Prau, Dataran Tinggi Dieng, Wonosobo.jpg` | Faaizul yahya | CC BY-SA 4.0 | 4928×3264 |
+| Gunung Bromo (Beranda, Detail hero, kartu Jelajah, media komponen) | `Smoking Gunung Bromo sunrise - Indonesia.jpg` | Thomas Fuhrmann | CC BY-SA 4.0 | 5581×3721 |
+| Gunung Prau (Beranda, kartu Jelajah, media komponen) | `Gunung Prau, Dataran Tinggi Dieng, Wonosobo.jpg` | Faaizul yahya | CC BY-SA 4.0 | 4928×3264 |
+| Gunung Papandayan (kartu Jelajah) | `Kabut dan Savana Tegal Alun, Gunung Papandayan, Garut.jpg` | Hugo Rio Aditya | CC BY-SA 4.0 | 5184×3456 |
+| **Bukit Moko — stand-in** (kartu Jelajah) | `Tebing Keraton, Bandung, Jawa Barat, Indonesia, 27052017.jpg` | Aswaralif | CC BY-SA 4.0 | 3590×2012 |
+| Detail Transport — hero | `Lautan Pasir Bromo.jpg` (jeep di lautan pasir) | Ake Widyastomo Putro | CC BY-SA 4.0 | 4000×2250 |
+| Detail Penginapan — hero (stand-in) | `Bromo Cottages Java 462.jpg` | Arabsalam | CC BY-SA 4.0 | 2592×1944 |
+| Detail Makanan — hero (stand-in) | `Warung Makan Sederhana Jl.Mangga Kebumen 2.jpg` | SATELIT BM | CC BY-SA 4.0 | 2560×1440 |
+
+> **Penting:** Commons **tidak memiliki** foto Bukit Moko. Kartu Bukit Moko memakai
+> foto Tebing Keraton (kawasan Cimenyan/Dago Pakar, satu punggung bukit dan akses
+> yang sama) sebagai **stand-in**. Ganti dengan foto Bukit Moko asli saat foto
+> sendiri sudah tersedia.
 
 - Diambil via `https://commons.wikimedia.org/wiki/Special:FilePath/<Nama_File>?width=1400`
   (server-side resize, ±340–460 KB), dipasang sebagai **IMAGE fill** dengan
@@ -121,17 +251,31 @@ kedua file berlisensi **CC BY-SA 4.0** (atribusi + share-alike).
 - Cara impor (karena `figma-cli create image` di file ini lapor sukses tapi tidak
   membuat node): unduh dengan `curl` → serve lokal dengan header
   `Access-Control-Allow-Origin: *` → `fetch` + `figma.createImage()` lewat `eval`.
-- Komponen `DestinationCard (Alam)` belum ikut (media masih 320×160, placeholder
-  X); propagasi menyusul.
+- **Sebaran foto (10 target):** `Ph:bromo`+`Ph:prau` (Beranda), `Ph:hero` (Detail),
+  `Ph:l1`–`Ph:l4` (Jelajah), plus media komponen `DestinationCard (Alam)`
+  (`Ph:card-v` ← Bromo, `Ph:card-h` ← Prau). Foto Bromo/Prau **dipakai ulang
+  lewat `imageHash` yang sama**, jadi tidak ada duplikasi data gambar di file.
+- **Peta Detail bukan gambar.** `Ph:map-detail` diganti frame `Map` (358×200) yang
+  dirakit dari primitif: 4 garis grid `border-strong`, 3 pin, kontrol zoom
+  in/out + recenter, dan chip label "Cemoro Lawang". Bebas lisensi, tanpa aset
+  eksternal.
 
 ---
 
-## 4. Verifikasi
+## 8. Verifikasi
 
-- `verify --measure`: 390×1866; tinggi frame = jumlah tinggi anak + gap.
-- Audit: IMAGE fill 2; fill ter-bind 45 / raw 0; stroke raw 0; 0 node collapse;
-  0 teks salah rata; 43 teks memakai text style; 15 label emphasis Inter Semi
-  Bold/Medium eksplisit; 0 em-dash; 0 baris multi middle-dot.
+- `verify --measure`: 11 layar — Beranda 390×1866, Detail Destinasi 390×1425,
+  Jelajah 390×763, AI Preferensi 390×1210, AI Hasil 390×1056, Rencana 390×1045,
+  Checklist 390×736, Fasilitas Sekitar 390×630, Detail Penginapan 390×1012,
+  Detail Transport 390×1032, Detail Makanan 390×986; tinggi tiap frame = jumlah
+  tinggi anak + gap.
+- Audit page (11 layar): **IMAGE fill 10**; fill ter-bind 294 / raw 0; stroke raw 0;
+  0 node collapse; 245 teks memakai text style; 154 label emphasis Inter Semi
+  Bold/Medium eksplisit; 0 em-dash; 0 baris multi middle-dot. Empat belas teks
+  yang terdeteksi "uncentered" semuanya memang tidak di tengah: 11 judul AppBar,
+  placeholder `Input`, dan 3 nilai kontak yang sengaja rata kanan.
+- Cek pixel: hero Detail 3952 warna unik (foto Bromo), kartu Jelajah 467–719
+  warna unik (foto), area peta 64 warna (struktur grid/pin, bukan foto).
 - Cek warna section baru: band CTA `#1E3B2E`, tombol CTA `#F4F1E9`, kartu
   bantuan & kartu rail `#E8E4D8`; rail `clip` menampilkan 1 kartu penuh + kartu
   ke-2 sebagian (petunjuk scroll).

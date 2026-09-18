@@ -10,7 +10,7 @@ Fokus komponen saat ini: **mobile** (web menyusul).
 
 ## 1. Struktur page di Figma
 
-Page **`Design System (Alam)`** (`41:1195`) berisi 6 sheet dokumentasi + 11
+Page **`Design System (Alam)`** (`41:1195`) berisi 6 sheet dokumentasi + 23
 component set. Node id dapat berubah setelah edit; **nama node adalah acuan**.
 
 Layar aplikasi hi-fi berada di page **`Hi-Fi (Mobile)`** (`53:9544`); inventarisnya
@@ -93,9 +93,21 @@ radius memakai `radius-*`.
 | `PreparationChecklistItem (Alam)` | `53:9247` | 3 | State (Pending, Done, Warning) |
 | `TripPlanStep (Alam)` | `53:9313` | 6 | Posisi (Pertama, Tengah, Terakhir) × State (Default, Selesai) |
 | `AIRecommendCard (Alam)` | `53:9249` | 2 | Varian (Ringkas, Lengkap) |
-| `DestinationCard (Alam)` | `53:9543` | 2 | Layout (Vertical, Horizontal) |
+| `DestinationCard (Alam)` | `53:9543` | 2 | Layout (Vertical, Horizontal) — media kini berisi foto (lihat `ui-ux-hifi-mobile.md` §4) |
 | `SupportCard (Alam)` | `64:58` | 3 | Tipe (Penginapan, Transport, Makanan) |
 | `MenuRow (Alam)` | `64:81` | 2 | Posisi (Tengah, Terakhir) |
+| `AppBar (Alam)` | `65:212` | 3 | Tipe (Kembali, KembaliAksi, Halaman) |
+| `Chip (Alam)` | `65:213` | 2 | State (Default, Aktif) |
+| `SectionHeader (Alam)` | `65:214` | 2 | Aksi (Tidak, Ya) |
+| `PromptInput (Alam)` | `67:602` | 3 | State (Kosong, Terisi, Fokus) |
+| `RecommendationCard (Alam)` | `67:633` | 2 | Varian (Ringkas, Lengkap) |
+| `Input (Alam)` | `68:643` | 3 | State (Default, Fokus, Terisi) |
+| `Switch (Alam)` | `68:650` | 2 | State (Aktif, Nonaktif) |
+| `PlanCard (Alam)` | `68:1181` | 2 | Varian (DenganSupport, TanpaSupport) — ada baris meta destinasi |
+| `BriefingCard (Alam)` | `68:1144` | 2 | Varian (Ringkas, Lengkap) |
+| `Segmented (Alam)` | `69:1794` | 4 | Aktif (Semua, Penginapan, Transport, Makanan) |
+| `SupportRow (Alam)` | `69:1850` | 3 | Tipe (Penginapan, Transport, Makanan) |
+| `ProgressHeader (Alam)` | `68:908` | 2 | Ukuran (Halaman, Kartu) |
 
 Konvensi warna komponen:
 
@@ -192,21 +204,22 @@ sudah terwujud sebagai `SupportCard (Alam)`.
 
 Audit terakhir (seluruh page `Design System (Alam)` — sheet + component set):
 
-- fill ter-bind **202** / raw **0** · stroke ter-bind **186** / raw **0**.
+- fill ter-bind **259** / raw **0** · stroke ter-bind **208** / raw **0**.
 - 0 node collapse; semua teks di container center sudah `textAlignHorizontal`
   `CENTER`.
 - Sheet `Tokens — Warna` kembali 720×597 dengan baris 322px setelah diurutkan
   ulang; 16 baris + 32 teks-nya ter-bind ke variabel.
 - Koleksi: 1 × `Dolenae (Alam)` (34 var), 165 binding dari sheet lama berhasil
   dipindahkan, 2 koleksi mati dihapus.
-- 11 component set dengan total 69 varian; semua fill/stroke ter-bind.
+- 23 component set dengan total 99 varian; semua fill/stroke ter-bind.
 
 Audit page `Hi-Fi (Mobile)` (layar Beranda):
 
-- 390×1866; IMAGE fill 2 (foto kartu destinasi); fill ter-bind 45 / raw 0;
-  stroke raw 0; 0 collapse; 0 teks salah rata.
-- 43 teks memakai text style, 15 label emphasis memakai Inter Semi Bold/Medium
-eksplisit.
+- 11 layar (lihat `ui-ux-hifi-mobile.md` §1).
+- Page: fill ter-bind 294 / raw 0; IMAGE fill 10; 0 collapse; 0 em-dash;
+  0 baris multi middle-dot.
+- 245 teks memakai text style, 154 label emphasis memakai Inter Semi Bold/Medium
+  eksplisit.
 - 0 em-dash, 0 baris dengan middle-dot lebih dari satu.
 
 Perintah yang dipakai:

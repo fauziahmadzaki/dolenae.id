@@ -211,8 +211,22 @@ figma-cli variants from "<id1,id2,id3>" -p Variant -v A,B,C -n "Button"
 - **Auto-split sisa.** Setelah `variants from`, cek page target dan hapus node
   nyasar (FRAME hasil split, `Nested Frame` 24×3, dll). Pernah ada 16 node sisa
   yang ikut terhitung sebagai "anak page".
+- **Varian yang terlepas bukan "orphan biasa".** Sebuah varian bisa muncul sebagai
+  `COMPONENT` top-level bernama `"<NamaSet>/<Varian>"` (mis.
+  `AIRecommendCard (Alam)/Lengkap`). Ia **terlihat** seperti node nyasar, tetapi
+  menghapusnya = menghapus varian itu dari layanan (pernah kejadian: set
+  `AIRecommendCard (Alam)` tinggal 1 varian). Sebelum menghapus, bandingkan
+  `set.children.length` dengan jumlah `variantOptions`. Pemulihan: render ulang
+  JSX varian (`name="Prop=Value"`) → `--as-component` → lalu
+  `set.appendChild(component)`; axis-nya otomatis terdaftar kembali.
 - Menghapus **`COMPONENT_SET`** otomatis menghapus komponen varian di dalamnya
   (delete satu id `COMPONENT_SET` saja).
+- **Verifikasi persistensi setelah `variants from`.** Pernah kejadian: CLI
+  melaporkan "Created Variant Set" + pengecekan langsung menunjukkan 23 set,
+  tetapi beberapa perintah kemudian set-nya **hilang** (kemungkinan dokumen
+  Figma reload/sync dan perubahan belum tersimpan). Setelah membuat set, lakukan
+  pembacaan **terpisah** (`find`/`eval` daftar `COMPONENT_SET`) sebelum
+  melanjutkan; kalau hilang, render ulang varian dan bikin set lagi.
 - Setelah set jadi, komponen anak tetap bisa dibaca via `eval`.
 - Pola nama yang sudah dipakai di project: `Button (Low-Fi)` (Tipe × Ukuran),
   `Input (Low-Fi)` (Ukuran × State), `Image Placeholder (Low-Fi)` (Aspek).
