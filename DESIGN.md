@@ -170,6 +170,13 @@ perjalanan gunung" yang tenang, tegas, dan meyakinkan — bukan SaaS pastel.
 | `BottomNav (mobile)` | Home · Explore · AI · Plan · Profile | 5 tab, icon lucide, label caption |
 | `Header/Nav (web)` | logo, "Destinasi", "Inspirasi AI", "Rencana", login | sticky, bg surface, hairline bawah |
 
+> **Status implementasi Figma** (page `Design System (Alam)`): `Button`,
+> `FacilityTag`, `DifficultyBadge`, `SearchBar`, `BottomNav`,
+> `PreparationChecklistItem`, `TripPlanStep`, dan `AIRecommendCard` sudah
+> tersedia sebagai **component set** ber-variant (fokus mobile).
+> `DestinationCard`, `SupportListItem`, dan `Header/Nav (web)` masih berupa
+> dokumentasi visual. Detail: `docs/specs/design-system-hifi.md`.
+
 ---
 
 ## 7. Aturan Penggunaan
@@ -198,7 +205,12 @@ perjalanan gunung" yang tenang, tegas, dan meyakinkan — bukan SaaS pastel.
 
 - Import ke Figma: `figma-cli import DESIGN.md` — warna, radius, dan tipografi
   menjadi Figma variable pada koleksi bernama sesuai sistem.
-- Untuk berpindah tema/brand: `figma-cli use <collection>`.
+- **Koleksi resmi saat ini: `Dolenae (Alam)`** (16 warna + 5 radius + 10 spacing
+  + 3 width = 34 variabel), dilengkapi 9 text style dan 3 effect style
+  (`shadow/sm|md|lg`). Jangan biarkan `import` memunculkan koleksi duplikat —
+  cek `figma-cli col list` setelah import.
+- Untuk berpindah tema/brand: `figma-cli use <collection> --all` (hanya berlaku
+  untuk page yang sedang aktif).
 - Komponen yang sering dipakai dijaga satu sumber (web `apps/web/src/` dan
   komponen Flutter `apps/mobile/lib/features/`) agar web & mobile konsisten.
 
@@ -266,7 +278,11 @@ perjalanan gunung" yang tenang, tegas, dan meyakinkan — bukan SaaS pastel.
     "caption": { "fontFamily": "Inter", "fontSize": 12, "fontWeight": 500, "lineHeight": 16 },
     "overline": { "fontFamily": "Inter", "fontSize": 11, "fontWeight": 600, "lineHeight": 14 }
   },
-  "shadow": {},
+  "shadow": {
+    "shadow-sm": "0 1px 2px rgba(23,27,20,.05), 0 1px 4px rgba(23,27,20,.04)",
+    "shadow-md": "0 4px 12px rgba(23,27,20,.07), 0 2px 6px rgba(23,27,20,.04)",
+    "shadow-lg": "0 12px 32px rgba(23,27,20,.12), 0 4px 12px rgba(23,27,20,.07)"
+  },
   "fonts": ["Poppins", "Inter"]
 }
 ```
