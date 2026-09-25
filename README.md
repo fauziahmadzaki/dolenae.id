@@ -154,6 +154,9 @@ PBL/
 - `docs/specs/architecture.md` — struktur monorepo & arsitektur.
 - `docs/specs/data-model.md` — entitas domain.
 - `docs/specs/ui-ux-low-fi-system.md` — sistem desain low-fi.
+- `docs/specs/design-system-hifi.md` — design system hi-fi "Alam" di Figma.
+- `docs/specs/ui-ux-hifi-mobile.md` — layar hi-fi mobile.
+- `docs/specs/ui-ux-hifi-web.md` — layar hi-fi web publik (1440px).
 - `DESIGN.md` — token warna, tipografi, spacing, radius, komponen.
 - `docs/skills/` — skill lokal (mis. `figma-cli`, `design-taste-frontend`).
 - `AGENTS.md` — aturan kerja untuk agent (konvensi, verifikasi, alur Figma).

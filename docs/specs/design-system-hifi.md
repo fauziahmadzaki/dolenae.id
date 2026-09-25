@@ -10,8 +10,8 @@ Fokus komponen saat ini: **mobile** (web menyusul).
 
 ## 1. Struktur page di Figma
 
-Page **`Design System (Alam)`** (`41:1195`) berisi 6 sheet dokumentasi + 35
-component set. Node id dapat berubah setelah edit; **nama node adalah acuan**.
+Page **`Design System (Alam)`** (`41:1195`) berisi 6 sheet dokumentasi + 39
+component set (mobile + 4 set web). Node id dapat berubah setelah edit; **nama node adalah acuan**.
 
 Layar aplikasi hi-fi berada di page **`Hi-Fi (Mobile)`** (`53:9544`); inventarisnya
 ada di `docs/specs/ui-ux-hifi-mobile.md`.
@@ -120,6 +120,10 @@ radius memakai `radius-*`.
 | `EmptyState (Alam)` | `86:1683` | 3 | Tipe (Tanpa hasil, Belum ada data, Gagal) |
 | `NotificationItem (Alam)` | `86:1684` | 2 | State (Belum dibaca, Dibaca) |
 | `BottomSheet (Alam)` | `86:2185` | 2 | Tipe (Menu, Filter) |
+| `WebHeader (Alam)` | `87:2689` | 2 | State (Default, Scrolled) |
+| `WebFooter (Alam)` | `87:2690` | 2 | Layout (Lengkap, Ringkas) |
+| `AICard (Alam)` | `87:2691` | 2 | Layout (Split, Stack) |
+| `TestimonialCard (Alam)` | `87:2692` | 2 | Varian (DenganFoto, TanpaFoto) |
 
 Konvensi warna komponen:
 
@@ -223,7 +227,7 @@ Audit terakhir (seluruh page `Design System (Alam)` — sheet + component set):
   ulang; 16 baris + 32 teks-nya ter-bind ke variabel.
 - Koleksi: 1 × `Dolenae (Alam)` (34 var), 165 binding dari sheet lama berhasil
   dipindahkan, 2 koleksi mati dihapus.
-- 35 component set dengan total 127 varian; semua fill/stroke ter-bind.
+- 39 component set dengan total 135 varian; semua fill/stroke ter-bind.
 - 3 set auth (`AuthTabs`, `PasswordField`, `OtpInput`): 44 fill ter-bind /
   0 raw, 29 stroke ter-bind / 0 raw, 0 node collapse. Dipakai layar
   Auth & Onboarding (`ui-ux-hifi-mobile.md` §7).
@@ -243,6 +247,10 @@ Audit terakhir (seluruh page `Design System (Alam)` — sheet + component set):
 - 1 set sheet (`BottomSheet`): 2 varian (Menu, Filter) — shell `surface`
   rounded 24 + handle; Filter dipakai layar Filter Dialog
   (`ui-ux-hifi-mobile.md` §11).
+- 4 set web (`WebHeader`, `WebFooter`, `AICard`, `TestimonialCard`): 8 varian;
+  dipakai layar web publik (`ui-ux-hifi-web.md`). Header `surface` + hairline
+  bawah (Scrolled + `shadow`), footer band `primary`. Kontainer web: lebar
+  1440 dengan padding kiri/kanan 120.
 
 Audit page `Hi-Fi (Mobile)` (51 layar — seluruh layar lo-fi mobile sudah hi-fi):
 
