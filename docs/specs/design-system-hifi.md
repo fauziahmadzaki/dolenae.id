@@ -10,7 +10,7 @@ Fokus komponen saat ini: **mobile** (web menyusul).
 
 ## 1. Struktur page di Figma
 
-Page **`Design System (Alam)`** (`41:1195`) berisi 6 sheet dokumentasi + 31
+Page **`Design System (Alam)`** (`41:1195`) berisi 6 sheet dokumentasi + 32
 component set. Node id dapat berubah setelah edit; **nama node adalah acuan**.
 
 Layar aplikasi hi-fi berada di page **`Hi-Fi (Mobile)`** (`53:9544`); inventarisnya
@@ -116,6 +116,7 @@ radius memakai `radius-*`.
 | `SelectableRow (Alam)` | `83:1174` | 2 | State (Kosong, Terpilih) |
 | `DateField (Alam)` | `83:1175` | 2 | State (Default, Terisi) |
 | `Stepper (Alam)` | `83:1176` | 2 | State (Default, Disabled) |
+| `Toast (Alam)` | `86:1512` | 3 | Tipe (Sukses, Info, Gagal) |
 
 Konvensi warna komponen:
 
@@ -219,7 +220,7 @@ Audit terakhir (seluruh page `Design System (Alam)` — sheet + component set):
   ulang; 16 baris + 32 teks-nya ter-bind ke variabel.
 - Koleksi: 1 × `Dolenae (Alam)` (34 var), 165 binding dari sheet lama berhasil
   dipindahkan, 2 koleksi mati dihapus.
-- 31 component set dengan total 117 varian; semua fill/stroke ter-bind.
+- 32 component set dengan total 120 varian; semua fill/stroke ter-bind.
 - 3 set auth (`AuthTabs`, `PasswordField`, `OtpInput`): 44 fill ter-bind /
   0 raw, 29 stroke ter-bind / 0 raw, 0 node collapse. Dipakai layar
   Auth & Onboarding (`ui-ux-hifi-mobile.md` §7).
@@ -229,6 +230,9 @@ Audit terakhir (seluruh page `Design System (Alam)` — sheet + component set):
 - 3 set rencana (`SelectableRow`, `DateField`, `Stepper`): 6 varian; dipakai
   layar Rencana CRUD (`ui-ux-hifi-mobile.md` §9). `SelectableRow` terpilih
   memakai stroke `primary` 2px + kotak centang `primary`.
+- 1 set notifikasi (`Toast`): 3 varian (Sukses `success`, Info `ink`, Gagal
+  `danger`; teks `surface`/`canvas`). Dipakai layar Checklist & Usulan
+  (`ui-ux-hifi-mobile.md` §10).
 
 Audit page `Hi-Fi (Mobile)` (layar Beranda):
 

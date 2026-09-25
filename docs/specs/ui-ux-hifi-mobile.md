@@ -49,6 +49,10 @@ dari `design-system-hifi.md`.
 | `Hi-Fi - Rencana Sukses (Mobile)` | `85:1386` | 390×844 | 520,6500 |
 | `Hi-Fi - Tambah Rencana - Pilih (Mobile)` | `85:1408` | 390×420 | 1040,6500 |
 | `Hi-Fi - Tambah Rencana - Atur (Mobile)` | `85:1439` | 390×660 | 1560,6500 |
+| `Hi-Fi - Tambah Item Checklist (Mobile)` | `86:1513` | 390×844 | 0,7500 |
+| `Hi-Fi - Checklist Selesai (Mobile)` | `86:1544` | 390×844 | 520,7500 |
+| `Hi-Fi - Usulkan Fasilitas (Mobile)` | `86:1562` | 390×732 | 1040,7500 |
+| `Hi-Fi - Usulan Sukses (Mobile)` | `86:1609` | 390×844 | 1560,7500 |
 
 Struktur Beranda (7 section, `gap 12`, bg `canvas`):
 
@@ -329,7 +333,19 @@ Tour Probolinggo, Warung Edelweiss Basecamp).
 | `Hi-Fi - Tambah Rencana - Pilih (Mobile)` (`85:1408`) | Bottom sheet `surface` di atas latar `ink`: handle + judul + 3 pilihan (Pilih destinasi/fasilitas, Buat rencana baru) + Batal |
 | `Hi-Fi - Tambah Rencana - Atur (Mobile)` (`85:1439`) | Nama, Tanggal, Jumlah hari & orang (`Stepper`), Estimasi budget, Catatan, CTA "Simpan rencana" |
 
-## 10. Gambar (placeholder sementara)
+## 10. Checklist & Usulan (batch 8)
+
+Memakai `Toast (Alam)` + primitif yang sama. Kategori checklist mengikuti
+`packages/types` (Perlengkapan, Kesehatan, Konservasi).
+
+| Layar | Isi |
+| --- | --- |
+| `Hi-Fi - Tambah Item Checklist (Mobile)` (`86:1513`) | Nama item, Kategori (chip Perlengkapan aktif), toggle "Tandai sebagai wajib", Catatan, CTA "Tambah item" |
+| `Hi-Fi - Checklist Selesai (Mobile)` (`86:1544`) | Toast `success` "Checklist tersimpan" di atas, bulatan centang `primary`, judul `display-md` "Checklist lengkap!", CTA "Kembali ke rencana" + ghost |
+| `Hi-Fi - Usulkan Fasilitas (Mobile)` (`86:1562`) | Nama fasilitas, Tipe (chip Penginapan aktif), Destinasi terdekat (baris pilih), Alamat, tombol outline "Tambah foto", Catatan, CTA "Kirim usulan" |
+| `Hi-Fi - Usulan Sukses (Mobile)` (`86:1609`) | Bulatan centang, judul "Usulan terkirim", ringkasan (Fasilitas/Tipe/Status) + badge `warning` "Menunggu tinjauan", CTA + ghost |
+
+## 11. Gambar (placeholder sementara)
 
 Kartu destinasi memakai foto asli dari Wikimedia Commons. **Status: placeholder
 sementara — wajib diganti foto milik sendiri/berlisensi sebelum rilis**, karena
@@ -369,9 +385,9 @@ kedua file berlisensi **CC BY-SA 4.0** (atribusi + share-alike).
 
 ---
 
-## 11. Verifikasi
+## 12. Verifikasi
 
-- `verify --measure`: 34 layar — Beranda 390×1866, Detail Destinasi 390×1425,
+- `verify --measure`: 38 layar — Beranda 390×1866, Detail Destinasi 390×1425,
   Jelajah 390×763, AI Preferensi 390×1210, AI Hasil 390×1056, Rencana 390×1045,
   Checklist 390×736, Fasilitas Sekitar 390×630, Detail Penginapan 390×1012,
   Detail Transport 390×1032, Detail Makanan 390×986, Onboarding 390×888,
@@ -382,7 +398,12 @@ kedua file berlisensi **CC BY-SA 4.0** (atribusi + share-alike).
   Keluar Konfirmasi 390×844, Buat Rencana Baru 390×476, Pilih Destinasi
   390×524, Pilih Fasilitas 390×444, Detail Item Rencana 390×483, Konfirmasi
   Hapus Item 390×844, Rencana Sukses 390×844, Tambah Rencana - Pilih 390×420,
-  Tambah Rencana - Atur 390×660; tinggi tiap frame = jumlah tinggi anak + gap.
+  Tambah Rencana - Atur 390×660, Tambah Item Checklist 390×844, Checklist
+  Selesai 390×844, Usulkan Fasilitas 390×732, Usulan Sukses 390×844; tinggi
+  tiap frame = jumlah tinggi anak + gap.
+- Audit 4 layar Checklist & Usulan (batch 8): fill ter-bind 70 / raw 0; stroke
+  ter-bind 24 / raw 0; 0 node collapse; 30 teks memakai text style, 12 label
+  emphasis eksplisit.
 - Audit 8 layar Rencana CRUD (batch 7): fill ter-bind 153 / raw 0; stroke
   ter-bind 89 / raw 0; 0 node collapse; 49 teks memakai text style, 29 label
   emphasis eksplisit.
@@ -410,5 +431,5 @@ kedua file berlisensi **CC BY-SA 4.0** (atribusi + share-alike).
 - BottomNav: 5 item 73×41, hanya tab aktif yang indikatornya `primary`, semua
   label center (`cx` = `itemCenter`).
 
-Layar berikutnya menyusul (Checklist & Usulan, Pencarian/Filter/Notifikasi,
-Tersimpan/empty state) memakai komponen hi-fi yang sama.
+Layar berikutnya menyusul (Pencarian/Filter/Notifikasi, Tersimpan/empty state)
+memakai komponen hi-fi yang sama.
