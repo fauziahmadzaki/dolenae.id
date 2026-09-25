@@ -57,6 +57,14 @@ dari `design-system-hifi.md`.
 | `Hi-Fi - Pencarian Kosong (Mobile)` | `86:1864` | 390×844 | 520,8500 |
 | `Hi-Fi - Filter dan Urutkan (Mobile)` | `86:1759` | 390×620 | 1040,8500 |
 | `Hi-Fi - Notifikasi (Mobile)` | `86:1808` | 390×844 | 1560,8500 |
+| `Hi-Fi - Destinasi Tersimpan (Mobile)` | `86:1897` | 390×844 | 0,9500 |
+| `Hi-Fi - Destinasi Tersimpan Kosong (Mobile)` | `86:1948` | 390×844 | 520,9500 |
+| `Hi-Fi - Daftar Rencana (Mobile)` | `86:1962` | 390×844 | 1040,9500 |
+| `Hi-Fi - Daftar Rencana Kosong (Mobile)` | `86:1986` | 390×844 | 1560,9500 |
+| `Hi-Fi - Checklist Tersimpan (Mobile)` | `86:2003` | 390×844 | 0,10500 |
+| `Hi-Fi - Checklist Tersimpan Kosong (Mobile)` | `86:2051` | 390×844 | 520,10500 |
+| `Hi-Fi - Fasilitas Diusulkan (Mobile)` | `86:2067` | 390×844 | 1040,10500 |
+| `Hi-Fi - Fasilitas Diusulkan Kosong (Mobile)` | `86:2104` | 390×844 | 1560,10500 |
 
 Struktur Beranda (7 section, `gap 12`, bg `canvas`):
 
@@ -362,7 +370,27 @@ placeholder (belum memasang foto baru).
 | `Hi-Fi - Filter dan Urutkan (Mobile)` (`86:1759`) | Urutkan (4 opsi radio, "Paling populer" terpilih), Tingkat kesulitan (chip "Menengah" aktif), Fasilitas (chip "Area camping" aktif), CTA "Terapkan filter", aksi "Reset" di AppBar |
 | `Hi-Fi - Notifikasi (Mobile)` (`86:1808`) | Grup HARI INI (2 item belum dibaca, titik `primary`) + SEBELUMNYA (2 item dibaca), aksi "Tandai dibaca" di AppBar |
 
-## 12. Gambar (placeholder sementara)
+## 12. Tersimpan & Empty state (batch 10)
+
+Layar daftar tersimpan + varian kosongnya. Memakai `EmptyState (Alam)`,
+komponen kartu yang sudah ada, dan badge status. Semua bebas data (kosong) atau
+memakai nama dari `packages/seed`.
+
+| Layar | Isi |
+| --- | --- |
+| `Hi-Fi - Destinasi Tersimpan (Mobile)` (`86:1897`) | 3 kartu horizontal (media ikon + nama/meta + badge kesulitan + ikon `bookmark-check` `primary`) |
+| `Hi-Fi - Destinasi Tersimpan Kosong (Mobile)` (`86:1948`) | `EmptyState` "Belum ada destinasi" + CTA "Jelajahi destinasi" |
+| `Hi-Fi - Daftar Rencana (Mobile)` (`86:1962`) | 2 kartu rencana (Trip Bromo "Aktif" + progress bar, Trip Dieng "Arsip" selesai) |
+| `Hi-Fi - Daftar Rencana Kosong (Mobile)` (`86:1986`) | `EmptyState` "Belum ada rencana" + CTA "Buat rencana" |
+| `Hi-Fi - Checklist Tersimpan (Mobile)` (`86:2003`) | 3 kartu checklist (Bromo 5/12, Prau 8/10, Papandayan selesai `success`) + progress bar |
+| `Hi-Fi - Checklist Tersimpan Kosong (Mobile)` (`86:2051`) | `EmptyState` "Belum ada checklist" + CTA "Susun checklist" |
+| `Hi-Fi - Fasilitas Diusulkan (Mobile)` (`86:2067`) | 3 baris usulan (badge `Menunggu` warning, `Terverifikasi` success, `Ditolak` danger) |
+| `Hi-Fi - Fasilitas Diusulkan Kosong (Mobile)` (`86:2104`) | `EmptyState` "Belum ada usulan" + CTA "Usulkan fasilitas" |
+
+> Dengan batch ini **seluruh 50 layar lo-fi mobile sudah punya versi hi-fi**.
+> Berikutnya: hi-fi web (landing + dashboard) di `docs/specs/` terpisah.
+
+## 13. Gambar (placeholder sementara)
 
 Kartu destinasi memakai foto asli dari Wikimedia Commons. **Status: placeholder
 sementara — wajib diganti foto milik sendiri/berlisensi sebelum rilis**, karena
@@ -402,23 +430,27 @@ kedua file berlisensi **CC BY-SA 4.0** (atribusi + share-alike).
 
 ---
 
-## 13. Verifikasi
+## 14. Verifikasi
 
-- `verify --measure`: 42 layar — Beranda 390×1866, Detail Destinasi 390×1425,
-  Jelajah 390×763, AI Preferensi 390×1210, AI Hasil 390×1056, Rencana 390×1045,
-  Checklist 390×736, Fasilitas Sekitar 390×630, Detail Penginapan 390×1012,
-  Detail Transport 390×1032, Detail Makanan 390×986, Onboarding 390×888,
-  Masuk dan Daftar 390×844, Lupa Kata Sandi 390×340, Verifikasi OTP 390×844,
-  Ubah Kata Sandi 390×468, Profil 390×996, Pengaturan 390×741, Akun 390×642,
-  Setelan Notifikasi 390×467, Tema dan Bahasa 390×467, Privasi dan Keamanan
-  390×588, Bantuan FAQ 390×641, Kirim Masukan 390×508, Edit Profil 390×737,
-  Keluar Konfirmasi 390×844, Buat Rencana Baru 390×476, Pilih Destinasi
-  390×524, Pilih Fasilitas 390×444, Detail Item Rencana 390×483, Konfirmasi
-  Hapus Item 390×844, Rencana Sukses 390×844, Tambah Rencana - Pilih 390×420,
-  Tambah Rencana - Atur 390×660, Tambah Item Checklist 390×844, Checklist
-  Selesai 390×844, Usulkan Fasilitas 390×732, Usulan Sukses 390×844, Pencarian
-  Hasil 390×844, Pencarian Kosong 390×844, Filter dan Urutkan 390×620,
-  Notifikasi 390×844; tinggi tiap frame = jumlah tinggi anak + gap.
+- `verify --measure`: 50 layar — 11 layar awal (Beranda 390×1866 … Detail
+  Makanan 390×986) + 39 layar lanjutan: Onboarding 390×888, Masuk dan Daftar
+  390×844, Lupa Kata Sandi 390×340, Verifikasi OTP 390×844, Ubah Kata Sandi
+  390×468, Profil 390×996, Pengaturan 390×741, Akun 390×642, Setelan Notifikasi
+  390×467, Tema dan Bahasa 390×467, Privasi dan Keamanan 390×588, Bantuan FAQ
+  390×641, Kirim Masukan 390×508, Edit Profil 390×737, Keluar Konfirmasi
+  390×844, Buat Rencana Baru 390×476, Pilih Destinasi 390×524, Pilih Fasilitas
+  390×444, Detail Item Rencana 390×483, Konfirmasi Hapus Item 390×844, Rencana
+  Sukses 390×844, Tambah Rencana - Pilih 390×420, Tambah Rencana - Atur
+  390×660, Tambah Item Checklist 390×844, Checklist Selesai 390×844, Usulkan
+  Fasilitas 390×732, Usulan Sukses 390×844, Pencarian Hasil 390×844, Pencarian
+  Kosong 390×844, Filter dan Urutkan 390×620, Notifikasi 390×844, Destinasi
+  Tersimpan 390×844, Destinasi Tersimpan Kosong 390×844, Daftar Rencana
+  390×844, Daftar Rencana Kosong 390×844, Checklist Tersimpan 390×844,
+  Checklist Tersimpan Kosong 390×844, Fasilitas Diusulkan 390×844, Fasilitas
+  Diusulkan Kosong 390×844; tinggi tiap frame = jumlah tinggi anak + gap.
+- Audit 8 layar Tersimpan/empty state (batch 10): fill ter-bind 106 / raw 0;
+  stroke ter-bind 62 / raw 0; 0 node collapse; 37 teks memakai text style,
+  15 label emphasis eksplisit.
 - Audit 4 layar Pencarian/Filter/Notifikasi (batch 9): fill ter-bind 106 / raw 0;
   stroke ter-bind 61 / raw 0; 0 node collapse; 45 teks memakai text style,
   13 label emphasis eksplisit.
@@ -452,5 +484,5 @@ kedua file berlisensi **CC BY-SA 4.0** (atribusi + share-alike).
 - BottomNav: 5 item 73×41, hanya tab aktif yang indikatornya `primary`, semua
   label center (`cx` = `itemCenter`).
 
-Layar berikutnya menyusul (Tersimpan/empty state) memakai komponen hi-fi yang
-sama.
+Seluruh **50 layar lo-fi mobile** sudah memiliki versi hi-fi. Langkah berikutnya
+adalah hi-fi **web** (landing + dashboard) memakai token & komponen yang sama.

@@ -240,14 +240,18 @@ Audit terakhir (seluruh page `Design System (Alam)` — sheet + component set):
   Gagal memakai ikon `danger` + tombol "Coba lagi"; `NotificationItem`
   Belum dibaca punya titik `primary` + latar `canvas-subtle`.
 
-Audit page `Hi-Fi (Mobile)` (layar Beranda):
+Audit page `Hi-Fi (Mobile)` (50 layar — seluruh layar lo-fi mobile sudah hi-fi):
 
-- 11 layar (lihat `ui-ux-hifi-mobile.md` §1).
-- Page: fill ter-bind 294 / raw 0; IMAGE fill 10; 0 collapse; 0 em-dash;
-  0 baris multi middle-dot.
-- 245 teks memakai text style, 154 label emphasis memakai Inter Semi Bold/Medium
-  eksplisit.
-- 0 em-dash, 0 baris dengan middle-dot lebih dari satu.
+- Page: SOLID fill ter-bind **1092** / raw 0 (294 dari 11 layar awal + 798 dari
+  39 layar lanjutan); **IMAGE fill 10**; stroke 39 layar lanjutan ter-bind
+  **438** / raw 0; **0 node collapse** (vektor degenerat di dalam ikon Lucide
+  tidak dihitung); 0 em-dash; 0 baris multi middle-dot.
+- **532 teks** memakai text style; **266 label emphasis** memakai Inter Semi
+  Bold/Medium eksplisit.
+- 11 layar awal (Beranda … Detail Makanan) + 39 layar lanjutan (Auth 5,
+  Profil/Pengaturan 10, Rencana 8, Checklist/Usulan 4, Pencarian/Filter/
+  Notifikasi 4, Tersimpan/empty state 8) memakai koleksi `Dolenae (Alam)` +
+  component set yang sama. Inventaris: `ui-ux-hifi-mobile.md` §1.
 
 Perintah yang dipakai:
 
