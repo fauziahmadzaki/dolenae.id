@@ -41,6 +41,14 @@ dari `design-system-hifi.md`.
 | `Hi-Fi - Kirim Masukan (Mobile)` | `81:791` | 390×508 | 1040,4300 |
 | `Hi-Fi - Edit Profil (Mobile)` | `81:824` | 390×737 | 1560,4300 |
 | `Hi-Fi - Keluar Konfirmasi (Mobile)` | `81:864` | 390×844 | 2080,4300 |
+| `Hi-Fi - Buat Rencana Baru (Mobile)` | `84:1177` | 390×476 | 0,5500 |
+| `Hi-Fi - Pilih Destinasi (Mobile)` | `84:1221` | 390×524 | 520,5500 |
+| `Hi-Fi - Pilih Fasilitas (Mobile)` | `84:1280` | 390×444 | 1040,5500 |
+| `Hi-Fi - Detail Item Rencana (Mobile)` | `84:1326` | 390×483 | 1560,5500 |
+| `Hi-Fi - Konfirmasi Hapus Item (Mobile)` | `85:1373` | 390×844 | 0,6500 |
+| `Hi-Fi - Rencana Sukses (Mobile)` | `85:1386` | 390×844 | 520,6500 |
+| `Hi-Fi - Tambah Rencana - Pilih (Mobile)` | `85:1408` | 390×420 | 1040,6500 |
+| `Hi-Fi - Tambah Rencana - Atur (Mobile)` | `85:1439` | 390×660 | 1560,6500 |
 
 Struktur Beranda (7 section, `gap 12`, bg `canvas`):
 
@@ -303,7 +311,25 @@ berisi baris setinggi 56px (ikon dalam bulatan 32px `canvas` + label + chevron /
 > Profil yang merupakan tab root. Angka stat di Profil adalah placeholder desain
 > (mengacu seed), bukan data baru di `packages/`.
 
-## 9. Gambar (placeholder sementara)
+## 9. Rencana CRUD (batch 7)
+
+Memakai komponen `SelectableRow (Alam)`, `DateField (Alam)`, `Stepper (Alam)`,
+`Dialog (Alam)` + primitif yang sama. Isi dari `packages/seed` (Gunung Bromo,
+Gunung Prau, Gunung Papandayan, Bukit Moko; Homestay Cemoro Indah, Bromo Jeep
+Tour Probolinggo, Warung Edelweiss Basecamp).
+
+| Layar | Isi |
+| --- | --- |
+| `Hi-Fi - Buat Rencana Baru (Mobile)` (`84:1177`) | Nama rencana, Destinasi (baris pilih + chevron), Tanggal (`DateField` terisi), Jumlah orang (`Stepper`), CTA "Buat rencana" |
+| `Hi-Fi - Pilih Destinasi (Mobile)` (`84:1221`) | Field cari + 4 `SelectableRow` (Bromo & Prau terpilih), CTA "Tambahkan 2 destinasi" |
+| `Hi-Fi - Pilih Fasilitas (Mobile)` (`84:1280`) | Segmented (Penginapan aktif) + 3 baris fasilitas (Homestay terpilih), CTA "Tambahkan 1 fasilitas" |
+| `Hi-Fi - Detail Item Rencana (Mobile)` (`84:1326`) | Kartu item (nama, meta, chip "Hari 1" + "Menengah" `warning`), catatan, fasilitas terkait, aksi outline "Ubah urutan" + "Hapus item" (`danger`) |
+| `Hi-Fi - Konfirmasi Hapus Item (Mobile)` (`85:1373`) | Layar konfirmasi: latar `ink` + `Dialog (Alam)` Destruktif (Batal + Hapus `danger`) |
+| `Hi-Fi - Rencana Sukses (Mobile)` (`85:1386`) | Bulatan centang `primary`, judul `display-md`, ringkasan kartu (Rencana/Tanggal/Destinasi), CTA "Lihat rencana" + ghost "Kembali ke beranda" |
+| `Hi-Fi - Tambah Rencana - Pilih (Mobile)` (`85:1408`) | Bottom sheet `surface` di atas latar `ink`: handle + judul + 3 pilihan (Pilih destinasi/fasilitas, Buat rencana baru) + Batal |
+| `Hi-Fi - Tambah Rencana - Atur (Mobile)` (`85:1439`) | Nama, Tanggal, Jumlah hari & orang (`Stepper`), Estimasi budget, Catatan, CTA "Simpan rencana" |
+
+## 10. Gambar (placeholder sementara)
 
 Kartu destinasi memakai foto asli dari Wikimedia Commons. **Status: placeholder
 sementara — wajib diganti foto milik sendiri/berlisensi sebelum rilis**, karena
@@ -343,9 +369,9 @@ kedua file berlisensi **CC BY-SA 4.0** (atribusi + share-alike).
 
 ---
 
-## 10. Verifikasi
+## 11. Verifikasi
 
-- `verify --measure`: 26 layar — Beranda 390×1866, Detail Destinasi 390×1425,
+- `verify --measure`: 34 layar — Beranda 390×1866, Detail Destinasi 390×1425,
   Jelajah 390×763, AI Preferensi 390×1210, AI Hasil 390×1056, Rencana 390×1045,
   Checklist 390×736, Fasilitas Sekitar 390×630, Detail Penginapan 390×1012,
   Detail Transport 390×1032, Detail Makanan 390×986, Onboarding 390×888,
@@ -353,7 +379,13 @@ kedua file berlisensi **CC BY-SA 4.0** (atribusi + share-alike).
   Ubah Kata Sandi 390×468, Profil 390×996, Pengaturan 390×741, Akun 390×642,
   Setelan Notifikasi 390×467, Tema dan Bahasa 390×467, Privasi dan Keamanan
   390×588, Bantuan FAQ 390×641, Kirim Masukan 390×508, Edit Profil 390×737,
-  Keluar Konfirmasi 390×844; tinggi tiap frame = jumlah tinggi anak + gap.
+  Keluar Konfirmasi 390×844, Buat Rencana Baru 390×476, Pilih Destinasi
+  390×524, Pilih Fasilitas 390×444, Detail Item Rencana 390×483, Konfirmasi
+  Hapus Item 390×844, Rencana Sukses 390×844, Tambah Rencana - Pilih 390×420,
+  Tambah Rencana - Atur 390×660; tinggi tiap frame = jumlah tinggi anak + gap.
+- Audit 8 layar Rencana CRUD (batch 7): fill ter-bind 153 / raw 0; stroke
+  ter-bind 89 / raw 0; 0 node collapse; 49 teks memakai text style, 29 label
+  emphasis eksplisit.
 - Audit 10 layar Profil & Pengaturan (batch 6): fill ter-bind 288 / raw 0;
   stroke ter-bind 169 / raw 0; 0 node collapse (vektor degenerat di dalam
   ikon Lucide `info`/`smartphone` diganti `file-text`/`monitor-smartphone`);
@@ -378,5 +410,5 @@ kedua file berlisensi **CC BY-SA 4.0** (atribusi + share-alike).
 - BottomNav: 5 item 73×41, hanya tab aktif yang indikatornya `primary`, semua
   label center (`cx` = `itemCenter`).
 
-Layar berikutnya menyusul (Pencarian/Filter/Notifikasi, Rencana CRUD,
-Checklist & Usulan, Tersimpan/empty state) memakai komponen hi-fi yang sama.
+Layar berikutnya menyusul (Checklist & Usulan, Pencarian/Filter/Notifikasi,
+Tersimpan/empty state) memakai komponen hi-fi yang sama.
