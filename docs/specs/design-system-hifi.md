@@ -10,7 +10,7 @@ Fokus komponen saat ini: **mobile** (web menyusul).
 
 ## 1. Struktur page di Figma
 
-Page **`Design System (Alam)`** (`41:1195`) berisi 6 sheet dokumentasi + 23
+Page **`Design System (Alam)`** (`41:1195`) berisi 6 sheet dokumentasi + 26
 component set. Node id dapat berubah setelah edit; **nama node adalah acuan**.
 
 Layar aplikasi hi-fi berada di page **`Hi-Fi (Mobile)`** (`53:9544`); inventarisnya
@@ -108,6 +108,9 @@ radius memakai `radius-*`.
 | `Segmented (Alam)` | `69:1794` | 4 | Aktif (Semua, Penginapan, Transport, Makanan) |
 | `SupportRow (Alam)` | `69:1850` | 3 | Tipe (Penginapan, Transport, Makanan) |
 | `ProgressHeader (Alam)` | `68:908` | 2 | Ukuran (Halaman, Kartu) |
+| `AuthTabs (Alam)` | `80:71` | 2 | Aktif (Masuk, Daftar) |
+| `PasswordField (Alam)` | `80:72` | 3 | State (Default, Fokus, Terisi) |
+| `OtpInput (Alam)` | `80:73` | 3 | State (Kosong, Terisi, Error) |
 
 Konvensi warna komponen:
 
@@ -211,7 +214,10 @@ Audit terakhir (seluruh page `Design System (Alam)` — sheet + component set):
   ulang; 16 baris + 32 teks-nya ter-bind ke variabel.
 - Koleksi: 1 × `Dolenae (Alam)` (34 var), 165 binding dari sheet lama berhasil
   dipindahkan, 2 koleksi mati dihapus.
-- 23 component set dengan total 99 varian; semua fill/stroke ter-bind.
+- 26 component set dengan total 107 varian; semua fill/stroke ter-bind.
+- 3 set auth (`AuthTabs`, `PasswordField`, `OtpInput`): 44 fill ter-bind /
+  0 raw, 29 stroke ter-bind / 0 raw, 0 node collapse. Dipakai layar
+  Auth & Onboarding (`ui-ux-hifi-mobile.md` §7).
 
 Audit page `Hi-Fi (Mobile)` (layar Beranda):
 

@@ -26,6 +26,11 @@ dari `design-system-hifi.md`.
 | `Hi-Fi - Detail Fasilitas - Penginapan (Mobile)` | `69:1517` | 390×1012 | 4160,0 |
 | `Hi-Fi - Detail Fasilitas - Transport (Mobile)` | `69:1597` | 390×1032 | 4680,0 |
 | `Hi-Fi - Detail Fasilitas - Makanan (Mobile)` | `69:1679` | 390×986 | 5200,0 |
+| `Hi-Fi - Onboarding (Mobile)` | `80:74` | 390×888 | 0,2100 |
+| `Hi-Fi - Masuk dan Daftar (Mobile)` | `80:96` | 390×844 | 520,2100 |
+| `Hi-Fi - Lupa Kata Sandi (Mobile)` | `80:203` | 390×340 | 1040,2100 |
+| `Hi-Fi - Verifikasi OTP (Mobile)` | `80:144` | 390×844 | 1560,2100 |
+| `Hi-Fi - Ubah Kata Sandi (Mobile)` | `80:169` | 390×468 | 2080,2100 |
 
 Struktur Beranda (7 section, `gap 12`, bg `canvas`):
 
@@ -222,7 +227,49 @@ Satu template, tinggi 390×1012 / 1032 / 986: AppBar · Hero 220 · Body1 · Bod
   hangat), Transport (Moda/Kapasitas/Rute/Harga, termasuk driver), Makanan
   (Masakan/Rentang/Lokasi/Status, belum terverifikasi).
 
-## 7. Gambar (placeholder sementara)
+## 7. Auth & Onboarding (batch 5)
+
+Deret baru `y=2100`, memakai komponen `AuthTabs (Alam)`, `PasswordField (Alam)`,
+`OtpInput (Alam)` + `AppBar (Alam)`/`Input (Alam)`/`Button (Alam)`.
+
+### `Hi-Fi - Onboarding (Mobile)` (`80:74`, 390×888)
+Hero 420 · Content 326 · Actions 142 (gap 0). Hero pine `primary` berisi bulatan
+`primary-hover` + ikon `mountain-snow`, wordmark `Dolenae.id` (`title`), dan
+tagline `on-primary`. Content: eyebrow `overline`, heading `display-lg`
+"Temukan gunungmu, siapkan perjalanannya", sub `body-lg`, indikator 3 slide
+(aktif `primary`, lain `hairline`). Actions: CTA `primary` "Mulai Jelajah" +
+ghost "Lewati".
+
+### `Hi-Fi - Masuk dan Daftar (Mobile)` (`80:96`, 390×844)
+Head 216 (logo pine, judul `display-md` "Selamat datang", sub `body-sm`) · Form
+368 · Spacer fill · Footer 68. Form: `AuthTabs` (Masuk aktif), input Email +
+`PasswordField` (meniru `Input (Alam)` 48px), baris "Ingat saya" (kotak centang
+`primary` + centang) dan tautan `primary` "Lupa kata sandi?", CTA `primary`,
+divider "atau lanjut dengan", tombol sekunder `surface` + stroke `border-strong`
++ ikon `lucide:chrome`. Footer "Belum punya akun? Daftar" rata tengah.
+
+### `Hi-Fi - Lupa Kata Sandi (Mobile)` (`80:203`, 390×340)
+AppBar Kembali (pine) · Content 196 · Actions 88. Heading `display-md`
+"Atur ulang kata sandi", sub `body-sm`, input Email, CTA `primary`
+"Kirim tautan".
+
+### `Hi-Fi - Verifikasi OTP (Mobile)` (`80:144`, 390×844)
+AppBar Kembali · Content 220 · Spacer fill · Actions 88. Heading "Masukkan kode",
+sub `body-sm` (email disamarkan `d***@mail.com`), enam kotak OTP 48px (3 terisi,
+kotak ke-4 fokus `border-strong` 2px), baris "Tidak menerima kode? Kirim ulang
+(0:45)" (`primary`), CTA `primary` "Verifikasi".
+
+### `Hi-Fi - Ubah Kata Sandi (Mobile)` (`80:169`, 390×468)
+AppBar Kembali · Content 324 · Actions 88. Tiga `PasswordField`
+(saat ini/baru/konfirmasi) dengan label `caption`, hint `caption`
+"Minimal 8 karakter, kombinasi huruf dan angka.", CTA `primary`
+"Simpan kata sandi".
+
+> Form auth memakai placeholder sebagai label (mengikuti komponen `Input (Alam)`);
+> layar Ubah Kata Sandi menambah label di atas field karena ada tiga field
+> sejenis yang perlu dibedakan.
+
+## 8. Gambar (placeholder sementara)
 
 Kartu destinasi memakai foto asli dari Wikimedia Commons. **Status: placeholder
 sementara — wajib diganti foto milik sendiri/berlisensi sebelum rilis**, karena
@@ -262,13 +309,18 @@ kedua file berlisensi **CC BY-SA 4.0** (atribusi + share-alike).
 
 ---
 
-## 8. Verifikasi
+## 9. Verifikasi
 
-- `verify --measure`: 11 layar — Beranda 390×1866, Detail Destinasi 390×1425,
+- `verify --measure`: 16 layar — Beranda 390×1866, Detail Destinasi 390×1425,
   Jelajah 390×763, AI Preferensi 390×1210, AI Hasil 390×1056, Rencana 390×1045,
   Checklist 390×736, Fasilitas Sekitar 390×630, Detail Penginapan 390×1012,
-  Detail Transport 390×1032, Detail Makanan 390×986; tinggi tiap frame = jumlah
-  tinggi anak + gap.
+  Detail Transport 390×1032, Detail Makanan 390×986, Onboarding 390×888,
+  Masuk dan Daftar 390×844, Lupa Kata Sandi 390×340, Verifikasi OTP 390×844,
+  Ubah Kata Sandi 390×468; tinggi tiap frame = jumlah tinggi anak + gap.
+- Audit 5 layar auth (batch 5): fill ter-bind 75 / raw 0; stroke ter-bind 33 /
+  raw 0; 0 node collapse; 28 teks memakai text style, 15 label emphasis eksplisit;
+  semua label kontrol kecil (CTA/tab/divider) rata tengah, teks input tetap
+  `LEFT`.
 - Audit page (11 layar): **IMAGE fill 10**; fill ter-bind 294 / raw 0; stroke raw 0;
   0 node collapse; 245 teks memakai text style; 154 label emphasis Inter Semi
   Bold/Medium eksplisit; 0 em-dash; 0 baris multi middle-dot. Empat belas teks
@@ -285,5 +337,5 @@ kedua file berlisensi **CC BY-SA 4.0** (atribusi + share-alike).
 - BottomNav: 5 item 73×41, hanya tab aktif yang indikatornya `primary`, semua
   label center (`cx` = `itemCenter`).
 
-Layar berikutnya menyusul (Detail Destinasi, Jelajah, AI, Rencana, Checklist,
-Fasilitas Sekitar, Profil) memakai komponen hi-fi yang sama.
+Layar berikutnya menyusul (Profil & Pengaturan, Pencarian/Filter, Rencana CRUD,
+Checklist & Usulan, Tersimpan/empty state) memakai komponen hi-fi yang sama.
