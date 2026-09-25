@@ -10,7 +10,7 @@ Fokus komponen saat ini: **mobile** (web menyusul).
 
 ## 1. Struktur page di Figma
 
-Page **`Design System (Alam)`** (`41:1195`) berisi 6 sheet dokumentasi + 34
+Page **`Design System (Alam)`** (`41:1195`) berisi 6 sheet dokumentasi + 35
 component set. Node id dapat berubah setelah edit; **nama node adalah acuan**.
 
 Layar aplikasi hi-fi berada di page **`Hi-Fi (Mobile)`** (`53:9544`); inventarisnya
@@ -119,6 +119,7 @@ radius memakai `radius-*`.
 | `Toast (Alam)` | `86:1512` | 3 | Tipe (Sukses, Info, Gagal) |
 | `EmptyState (Alam)` | `86:1683` | 3 | Tipe (Tanpa hasil, Belum ada data, Gagal) |
 | `NotificationItem (Alam)` | `86:1684` | 2 | State (Belum dibaca, Dibaca) |
+| `BottomSheet (Alam)` | `86:2185` | 2 | Tipe (Menu, Filter) |
 
 Konvensi warna komponen:
 
@@ -222,7 +223,7 @@ Audit terakhir (seluruh page `Design System (Alam)` — sheet + component set):
   ulang; 16 baris + 32 teks-nya ter-bind ke variabel.
 - Koleksi: 1 × `Dolenae (Alam)` (34 var), 165 binding dari sheet lama berhasil
   dipindahkan, 2 koleksi mati dihapus.
-- 34 component set dengan total 125 varian; semua fill/stroke ter-bind.
+- 35 component set dengan total 127 varian; semua fill/stroke ter-bind.
 - 3 set auth (`AuthTabs`, `PasswordField`, `OtpInput`): 44 fill ter-bind /
   0 raw, 29 stroke ter-bind / 0 raw, 0 node collapse. Dipakai layar
   Auth & Onboarding (`ui-ux-hifi-mobile.md` §7).
@@ -239,18 +240,21 @@ Audit terakhir (seluruh page `Design System (Alam)` — sheet + component set):
   Pencarian/Filter/Notifikasi (`ui-ux-hifi-mobile.md` §11). `EmptyState`
   Gagal memakai ikon `danger` + tombol "Coba lagi"; `NotificationItem`
   Belum dibaca punya titik `primary` + latar `canvas-subtle`.
+- 1 set sheet (`BottomSheet`): 2 varian (Menu, Filter) — shell `surface`
+  rounded 24 + handle; Filter dipakai layar Filter Dialog
+  (`ui-ux-hifi-mobile.md` §11).
 
-Audit page `Hi-Fi (Mobile)` (50 layar — seluruh layar lo-fi mobile sudah hi-fi):
+Audit page `Hi-Fi (Mobile)` (51 layar — seluruh layar lo-fi mobile sudah hi-fi):
 
-- Page: SOLID fill ter-bind **1092** / raw 0 (294 dari 11 layar awal + 798 dari
-  39 layar lanjutan); **IMAGE fill 10**; stroke 39 layar lanjutan ter-bind
-  **438** / raw 0; **0 node collapse** (vektor degenerat di dalam ikon Lucide
+- Page: SOLID fill ter-bind **1158** / raw 0 (294 dari 11 layar awal + 864 dari
+  40 layar lanjutan); **IMAGE fill 10**; stroke 40 layar lanjutan ter-bind
+  **496** / raw 0; **0 node collapse** (vektor degenerat di dalam ikon Lucide
   tidak dihitung); 0 em-dash; 0 baris multi middle-dot.
-- **532 teks** memakai text style; **266 label emphasis** memakai Inter Semi
+- **553 teks** memakai text style; **278 label emphasis** memakai Inter Semi
   Bold/Medium eksplisit.
-- 11 layar awal (Beranda … Detail Makanan) + 39 layar lanjutan (Auth 5,
+- 11 layar awal (Beranda … Detail Makanan) + 40 layar lanjutan (Auth 5,
   Profil/Pengaturan 10, Rencana 8, Checklist/Usulan 4, Pencarian/Filter/
-  Notifikasi 4, Tersimpan/empty state 8) memakai koleksi `Dolenae (Alam)` +
+  Notifikasi 5, Tersimpan/empty state 8) memakai koleksi `Dolenae (Alam)` +
   component set yang sama. Inventaris: `ui-ux-hifi-mobile.md` §1.
 
 Perintah yang dipakai:

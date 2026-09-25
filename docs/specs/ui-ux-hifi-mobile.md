@@ -53,9 +53,10 @@ dari `design-system-hifi.md`.
 | `Hi-Fi - Checklist Selesai (Mobile)` | `86:1544` | 390×844 | 520,7500 |
 | `Hi-Fi - Usulkan Fasilitas (Mobile)` | `86:1562` | 390×732 | 1040,7500 |
 | `Hi-Fi - Usulan Sukses (Mobile)` | `86:1609` | 390×844 | 1560,7500 |
-| `Hi-Fi - Pencarian Hasil (Mobile)` | `86:1685` | 390×844 | 0,8500 |
-| `Hi-Fi - Pencarian Kosong (Mobile)` | `86:1864` | 390×844 | 520,8500 |
-| `Hi-Fi - Filter dan Urutkan (Mobile)` | `86:1759` | 390×620 | 1040,8500 |
+| `Hi-Fi - Pencarian Rekomendasi (Mobile)` | `86:2186` | 390×844 | 0,11500 |
+| `Hi-Fi - Pencarian Hasil (Mobile)` | `86:2306` | 390×844 | 520,11500 |
+| `Hi-Fi - Pencarian Kosong (Mobile)` | `86:2417` | 390×844 | 1040,11500 |
+| `Hi-Fi - Filter Dialog (Mobile)` | `86:2485` | 390×844 | 1560,11500 |
 | `Hi-Fi - Notifikasi (Mobile)` | `86:1808` | 390×844 | 1560,8500 |
 | `Hi-Fi - Destinasi Tersimpan (Mobile)` | `86:1897` | 390×844 | 0,9500 |
 | `Hi-Fi - Destinasi Tersimpan Kosong (Mobile)` | `86:1948` | 390×844 | 520,9500 |
@@ -359,16 +360,26 @@ Memakai `Toast (Alam)` + primitif yang sama. Kategori checklist mengikuti
 
 ## 11. Pencarian, Filter, Notifikasi (batch 9)
 
-Memakai `EmptyState (Alam)` + `NotificationItem (Alam)` + primitif yang sama.
-Media kartu pencarian memakai ikon `mountain-snow` di atas `canvas` sebagai
-placeholder (belum memasang foto baru).
+**Pencarian satu halaman.** Tidak ada layar "Pencarian" terpisah dengan tombol
+kembali: field cari duduk di bawah AppBar **Jelajahi** dan isi di bawahnya
+berganti sesuai state (rekomendasi → hasil → kosong), sehingga terasa berada di
+halaman yang sama. Tombol filter `sliders-horizontal` di ujung kanan field jadi
+pemicu membuka **bottom sheet** filter (bukan navigasi layar).
+
+Memakai `EmptyState (Alam)`, `NotificationItem (Alam)`, `BottomSheet (Alam)` +
+primitif yang sama. Media kartu pencarian memakai ikon `mountain-snow` di atas
+`canvas` sebagai placeholder (belum memasang foto baru).
 
 | Layar | Isi |
 | --- | --- |
-| `Hi-Fi - Pencarian Hasil (Mobile)` (`86:1685`) | Field cari terisi "bromo" (`border-strong`), chip "Semua" aktif, meta "5 hasil · Urutkan: Relevan", 4 kartu horizontal (media ikon 96 + nama/meta + badge kesulitan) |
-| `Hi-Fi - Pencarian Kosong (Mobile)` (`86:1864`) | Field cari + `EmptyState` "Tidak ada hasil" di tengah + chip kata kunci populer (Bromo, Prau, Papandayan) |
-| `Hi-Fi - Filter dan Urutkan (Mobile)` (`86:1759`) | Urutkan (4 opsi radio, "Paling populer" terpilih), Tingkat kesulitan (chip "Menengah" aktif), Fasilitas (chip "Area camping" aktif), CTA "Terapkan filter", aksi "Reset" di AppBar |
+| `Hi-Fi - Pencarian Rekomendasi (Mobile)` (`86:2186`) | State fokus: AppBar "Jelajahi" + field `border-strong` placeholder "Mau ke mana?" + clear `x`; panel **RIWAYAT PENCARIAN** (2 baris + "Hapus riwayat"), **PENCARIAN POPULER** (chip Bromo/Prau/Papandayan/Camping), **DESTINASI DISARANKAN** (3 baris); BottomNav "Jelajah" |
+| `Hi-Fi - Pencarian Hasil (Mobile)` (`86:2306`) | State hasil: header Jelajahi (tanpa back) + field terisi "bromo" + tombol filter `primary`; chip "Semua" aktif, meta "5 hasil · Urutkan: Relevan", 4 kartu horizontal (media ikon 96 + nama/meta + badge kesulitan); BottomNav "Jelajah" |
+| `Hi-Fi - Pencarian Kosong (Mobile)` (`86:2417`) | State kosong: header Jelajahi + field "gunung misterius"; `EmptyState` "Tidak ada hasil" di tengah + chip kata kunci populer; BottomNav "Jelajah" |
+| `Hi-Fi - Filter Dialog (Mobile)` (`86:2485`) | Bottom sheet `surface` di atas latar `ink`: handle + "Filter & urutkan" + close; Urutkan (4 radio, "Paling populer"), Tingkat kesulitan (chip "Menengah"), Fasilitas (chip "Area camping"), footer Reset + "Terapkan filter" |
 | `Hi-Fi - Notifikasi (Mobile)` (`86:1808`) | Grup HARI INI (2 item belum dibaca, titik `primary`) + SEBELUMNYA (2 item dibaca), aksi "Tandai dibaca" di AppBar |
+
+> Layar `Hi-Fi - Filter dan Urutkan` lama (layar penuh) **digantikan** oleh
+> `BottomSheet (Alam)` varian Filter di atas.
 
 ## 12. Tersimpan & Empty state (batch 10)
 
@@ -432,8 +443,8 @@ kedua file berlisensi **CC BY-SA 4.0** (atribusi + share-alike).
 
 ## 14. Verifikasi
 
-- `verify --measure`: 50 layar — 11 layar awal (Beranda 390×1866 … Detail
-  Makanan 390×986) + 39 layar lanjutan: Onboarding 390×888, Masuk dan Daftar
+- `verify --measure`: 51 layar — 11 layar awal (Beranda 390×1866 … Detail
+  Makanan 390×986) + 40 layar lanjutan: Onboarding 390×888, Masuk dan Daftar
   390×844, Lupa Kata Sandi 390×340, Verifikasi OTP 390×844, Ubah Kata Sandi
   390×468, Profil 390×996, Pengaturan 390×741, Akun 390×642, Setelan Notifikasi
   390×467, Tema dan Bahasa 390×467, Privasi dan Keamanan 390×588, Bantuan FAQ
@@ -442,8 +453,9 @@ kedua file berlisensi **CC BY-SA 4.0** (atribusi + share-alike).
   390×444, Detail Item Rencana 390×483, Konfirmasi Hapus Item 390×844, Rencana
   Sukses 390×844, Tambah Rencana - Pilih 390×420, Tambah Rencana - Atur
   390×660, Tambah Item Checklist 390×844, Checklist Selesai 390×844, Usulkan
-  Fasilitas 390×732, Usulan Sukses 390×844, Pencarian Hasil 390×844, Pencarian
-  Kosong 390×844, Filter dan Urutkan 390×620, Notifikasi 390×844, Destinasi
+  Fasilitas 390×732, Usulan Sukses 390×844, Pencarian Rekomendasi 390×844,
+  Pencarian Hasil 390×844, Pencarian Kosong 390×844, Filter Dialog 390×844,
+  Notifikasi 390×844, Destinasi
   Tersimpan 390×844, Destinasi Tersimpan Kosong 390×844, Daftar Rencana
   390×844, Daftar Rencana Kosong 390×844, Checklist Tersimpan 390×844,
   Checklist Tersimpan Kosong 390×844, Fasilitas Diusulkan 390×844, Fasilitas
@@ -451,9 +463,11 @@ kedua file berlisensi **CC BY-SA 4.0** (atribusi + share-alike).
 - Audit 8 layar Tersimpan/empty state (batch 10): fill ter-bind 106 / raw 0;
   stroke ter-bind 62 / raw 0; 0 node collapse; 37 teks memakai text style,
   15 label emphasis eksplisit.
-- Audit 4 layar Pencarian/Filter/Notifikasi (batch 9): fill ter-bind 106 / raw 0;
-  stroke ter-bind 61 / raw 0; 0 node collapse; 45 teks memakai text style,
-  13 label emphasis eksplisit.
+- Audit pencarian/filter/notifikasi (batch 9 revisi): 5 layar — Rekomendasi,
+  Hasil, Kosong, Filter Dialog, Notifikasi. Aggregate fill ter-bind 172 / raw 0;
+  stroke ter-bind 119 / raw 0; 0 node collapse; 66 teks memakai text style,
+  25 label emphasis eksplisit. `Filter dan Urutkan` (layar penuh) dihapus,
+  digantikan `BottomSheet (Alam)` Filter.
 - Audit 4 layar Checklist & Usulan (batch 8): fill ter-bind 70 / raw 0; stroke
   ter-bind 24 / raw 0; 0 node collapse; 30 teks memakai text style, 12 label
   emphasis eksplisit.
@@ -484,5 +498,6 @@ kedua file berlisensi **CC BY-SA 4.0** (atribusi + share-alike).
 - BottomNav: 5 item 73×41, hanya tab aktif yang indikatornya `primary`, semua
   label center (`cx` = `itemCenter`).
 
-Seluruh **50 layar lo-fi mobile** sudah memiliki versi hi-fi. Langkah berikutnya
-adalah hi-fi **web** (landing + dashboard) memakai token & komponen yang sama.
+Seluruh **50 layar lo-fi mobile** tercakup sebagai **51 frame hi-fi** (pencarian
+jadi satu halaman + filter jadi bottom sheet). Langkah berikutnya adalah hi-fi
+**web** (landing + dashboard) memakai token & komponen yang sama.
