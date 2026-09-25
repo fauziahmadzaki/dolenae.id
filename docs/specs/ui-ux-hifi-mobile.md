@@ -31,6 +31,16 @@ dari `design-system-hifi.md`.
 | `Hi-Fi - Lupa Kata Sandi (Mobile)` | `80:203` | 390×340 | 1040,2100 |
 | `Hi-Fi - Verifikasi OTP (Mobile)` | `80:144` | 390×844 | 1560,2100 |
 | `Hi-Fi - Ubah Kata Sandi (Mobile)` | `80:169` | 390×468 | 2080,2100 |
+| `Hi-Fi - Profil (Mobile)` | `81:257` | 390×996 | 0,3200 |
+| `Hi-Fi - Pengaturan (Mobile)` | `81:877` | 390×741 | 520,3200 |
+| `Hi-Fi - Akun (Mobile)` | `81:974` | 390×642 | 1040,3200 |
+| `Hi-Fi - Setelan Notifikasi (Mobile)` | `81:555` | 390×467 | 1560,3200 |
+| `Hi-Fi - Tema dan Bahasa (Mobile)` | `81:617` | 390×467 | 2080,3200 |
+| `Hi-Fi - Privasi dan Keamanan (Mobile)` | `81:1032` | 390×588 | 0,4300 |
+| `Hi-Fi - Bantuan FAQ (Mobile)` | `81:751` | 390×641 | 520,4300 |
+| `Hi-Fi - Kirim Masukan (Mobile)` | `81:791` | 390×508 | 1040,4300 |
+| `Hi-Fi - Edit Profil (Mobile)` | `81:824` | 390×737 | 1560,4300 |
+| `Hi-Fi - Keluar Konfirmasi (Mobile)` | `81:864` | 390×844 | 2080,4300 |
 
 Struktur Beranda (7 section, `gap 12`, bg `canvas`):
 
@@ -269,7 +279,31 @@ AppBar Kembali · Content 324 · Actions 88. Tiga `PasswordField`
 > layar Ubah Kata Sandi menambah label di atas field karena ada tiga field
 > sejenis yang perlu dibedakan.
 
-## 8. Gambar (placeholder sementara)
+## 8. Profil & Pengaturan (batch 6)
+
+Layar akun wisatawan + sub-pengaturan. Pola bersama: **AppBar pine** (Kembali untuk
+sub-layar), grup berlabel `overline`, dan **kartu `canvas-subtle`** + `hairline`
+berisi baris setinggi 56px (ikon dalam bulatan 32px `canvas` + label + chevron /
+`Switch` / kotak pilih). Ikon Lucide.
+
+| Layar | Isi |
+| --- | --- |
+| `Hi-Fi - Profil (Mobile)` (`81:257`) | AppBar tab root + ikon setelan; kartu profil (avatar `primary` inisial D, nama `title`, email, badge Wisatawan, 3 stat, "Ubah profil"); grup AKUN & KEAMANAN, PREFERENSI, BANTUAN; kartu "Keluar" (`danger`); `BottomNav` tab Profil aktif |
+| `Hi-Fi - Pengaturan (Mobile)` (`81:877`) | Grup AKUN, APLIKASI (termasuk toggle "Mode hemat data" off), BANTUAN, LAINNYA ("Keluar" `danger`) |
+| `Hi-Fi - Akun (Mobile)` (`81:974`) | Kartu info (Nama, Email, Peran, Bergabung — nilai rata kanan dari `seedUsers.wisatawanDemo`) + tombol outline; grup KEAMANAN; kartu "Hapus akun" (`danger`) |
+| `Hi-Fi - Setelan Notifikasi (Mobile)` (`81:555`) | Grup AKTIVITAS (3 toggle on) + PROMO (2 toggle off) + catatan `caption` |
+| `Hi-Fi - Tema dan Bahasa (Mobile)` (`81:617`) | Grup TEMA (Terang terpilih, Ikuti sistem, Gelap) + BAHASA (Indonesia terpilih, English) memakai kota pilih centang `primary`; catatan bahwa tema gelap belum tersedia |
+| `Hi-Fi - Privasi dan Keamanan (Mobile)` (`81:1032`) | Grup KEAMANAN AKUN (Kata sandi, Verifikasi dua langkah toggle, Perangkat aktif) + PRIVASI (2 toggle) + DATA SAYA |
+| `Hi-Fi - Bantuan FAQ (Mobile)` (`81:751`) | Field cari + `FaqAccordion` (1 terbuka dari 5) + tombol outline "Masih butuh bantuan? Hubungi kami" |
+| `Hi-Fi - Kirim Masukan (Mobile)` (`81:791`) | Chip kategori (Bug aktif), input Subjek, textarea `120px`, rating 5 bintang `primary` (4 terisi), CTA `primary` |
+| `Hi-Fi - Edit Profil (Mobile)` (`81:824`) | Avatar besar + "Ganti foto"; field Nama/Email/Telepon/Kota terisi dari seed; bio textarea; CTA `primary`; aksi "Simpan" di AppBar |
+| `Hi-Fi - Keluar Konfirmasi (Mobile)` (`81:864`) | Layar konfirmasi: latar `ink` gelap + `Dialog (Alam)` `surface` tengah (Batal outline + Keluar `primary`) |
+
+> Form seting tidak memakai BottomNav (sub-alur dengan AppBar Kembali), kecuali
+> Profil yang merupakan tab root. Angka stat di Profil adalah placeholder desain
+> (mengacu seed), bukan data baru di `packages/`.
+
+## 9. Gambar (placeholder sementara)
 
 Kartu destinasi memakai foto asli dari Wikimedia Commons. **Status: placeholder
 sementara — wajib diganti foto milik sendiri/berlisensi sebelum rilis**, karena
@@ -309,14 +343,21 @@ kedua file berlisensi **CC BY-SA 4.0** (atribusi + share-alike).
 
 ---
 
-## 9. Verifikasi
+## 10. Verifikasi
 
-- `verify --measure`: 16 layar — Beranda 390×1866, Detail Destinasi 390×1425,
+- `verify --measure`: 26 layar — Beranda 390×1866, Detail Destinasi 390×1425,
   Jelajah 390×763, AI Preferensi 390×1210, AI Hasil 390×1056, Rencana 390×1045,
   Checklist 390×736, Fasilitas Sekitar 390×630, Detail Penginapan 390×1012,
   Detail Transport 390×1032, Detail Makanan 390×986, Onboarding 390×888,
   Masuk dan Daftar 390×844, Lupa Kata Sandi 390×340, Verifikasi OTP 390×844,
-  Ubah Kata Sandi 390×468; tinggi tiap frame = jumlah tinggi anak + gap.
+  Ubah Kata Sandi 390×468, Profil 390×996, Pengaturan 390×741, Akun 390×642,
+  Setelan Notifikasi 390×467, Tema dan Bahasa 390×467, Privasi dan Keamanan
+  390×588, Bantuan FAQ 390×641, Kirim Masukan 390×508, Edit Profil 390×737,
+  Keluar Konfirmasi 390×844; tinggi tiap frame = jumlah tinggi anak + gap.
+- Audit 10 layar Profil & Pengaturan (batch 6): fill ter-bind 288 / raw 0;
+  stroke ter-bind 169 / raw 0; 0 node collapse (vektor degenerat di dalam
+  ikon Lucide `info`/`smartphone` diganti `file-text`/`monitor-smartphone`);
+  98 teks memakai text style, 28 label emphasis eksplisit.
 - Audit 5 layar auth (batch 5): fill ter-bind 75 / raw 0; stroke ter-bind 33 /
   raw 0; 0 node collapse; 28 teks memakai text style, 15 label emphasis eksplisit;
   semua label kontrol kecil (CTA/tab/divider) rata tengah, teks input tetap
@@ -337,5 +378,5 @@ kedua file berlisensi **CC BY-SA 4.0** (atribusi + share-alike).
 - BottomNav: 5 item 73×41, hanya tab aktif yang indikatornya `primary`, semua
   label center (`cx` = `itemCenter`).
 
-Layar berikutnya menyusul (Profil & Pengaturan, Pencarian/Filter, Rencana CRUD,
+Layar berikutnya menyusul (Pencarian/Filter/Notifikasi, Rencana CRUD,
 Checklist & Usulan, Tersimpan/empty state) memakai komponen hi-fi yang sama.
