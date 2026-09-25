@@ -53,6 +53,10 @@ dari `design-system-hifi.md`.
 | `Hi-Fi - Checklist Selesai (Mobile)` | `86:1544` | 390×844 | 520,7500 |
 | `Hi-Fi - Usulkan Fasilitas (Mobile)` | `86:1562` | 390×732 | 1040,7500 |
 | `Hi-Fi - Usulan Sukses (Mobile)` | `86:1609` | 390×844 | 1560,7500 |
+| `Hi-Fi - Pencarian Hasil (Mobile)` | `86:1685` | 390×844 | 0,8500 |
+| `Hi-Fi - Pencarian Kosong (Mobile)` | `86:1864` | 390×844 | 520,8500 |
+| `Hi-Fi - Filter dan Urutkan (Mobile)` | `86:1759` | 390×620 | 1040,8500 |
+| `Hi-Fi - Notifikasi (Mobile)` | `86:1808` | 390×844 | 1560,8500 |
 
 Struktur Beranda (7 section, `gap 12`, bg `canvas`):
 
@@ -345,7 +349,20 @@ Memakai `Toast (Alam)` + primitif yang sama. Kategori checklist mengikuti
 | `Hi-Fi - Usulkan Fasilitas (Mobile)` (`86:1562`) | Nama fasilitas, Tipe (chip Penginapan aktif), Destinasi terdekat (baris pilih), Alamat, tombol outline "Tambah foto", Catatan, CTA "Kirim usulan" |
 | `Hi-Fi - Usulan Sukses (Mobile)` (`86:1609`) | Bulatan centang, judul "Usulan terkirim", ringkasan (Fasilitas/Tipe/Status) + badge `warning` "Menunggu tinjauan", CTA + ghost |
 
-## 11. Gambar (placeholder sementara)
+## 11. Pencarian, Filter, Notifikasi (batch 9)
+
+Memakai `EmptyState (Alam)` + `NotificationItem (Alam)` + primitif yang sama.
+Media kartu pencarian memakai ikon `mountain-snow` di atas `canvas` sebagai
+placeholder (belum memasang foto baru).
+
+| Layar | Isi |
+| --- | --- |
+| `Hi-Fi - Pencarian Hasil (Mobile)` (`86:1685`) | Field cari terisi "bromo" (`border-strong`), chip "Semua" aktif, meta "5 hasil · Urutkan: Relevan", 4 kartu horizontal (media ikon 96 + nama/meta + badge kesulitan) |
+| `Hi-Fi - Pencarian Kosong (Mobile)` (`86:1864`) | Field cari + `EmptyState` "Tidak ada hasil" di tengah + chip kata kunci populer (Bromo, Prau, Papandayan) |
+| `Hi-Fi - Filter dan Urutkan (Mobile)` (`86:1759`) | Urutkan (4 opsi radio, "Paling populer" terpilih), Tingkat kesulitan (chip "Menengah" aktif), Fasilitas (chip "Area camping" aktif), CTA "Terapkan filter", aksi "Reset" di AppBar |
+| `Hi-Fi - Notifikasi (Mobile)` (`86:1808`) | Grup HARI INI (2 item belum dibaca, titik `primary`) + SEBELUMNYA (2 item dibaca), aksi "Tandai dibaca" di AppBar |
+
+## 12. Gambar (placeholder sementara)
 
 Kartu destinasi memakai foto asli dari Wikimedia Commons. **Status: placeholder
 sementara — wajib diganti foto milik sendiri/berlisensi sebelum rilis**, karena
@@ -385,9 +402,9 @@ kedua file berlisensi **CC BY-SA 4.0** (atribusi + share-alike).
 
 ---
 
-## 12. Verifikasi
+## 13. Verifikasi
 
-- `verify --measure`: 38 layar — Beranda 390×1866, Detail Destinasi 390×1425,
+- `verify --measure`: 42 layar — Beranda 390×1866, Detail Destinasi 390×1425,
   Jelajah 390×763, AI Preferensi 390×1210, AI Hasil 390×1056, Rencana 390×1045,
   Checklist 390×736, Fasilitas Sekitar 390×630, Detail Penginapan 390×1012,
   Detail Transport 390×1032, Detail Makanan 390×986, Onboarding 390×888,
@@ -399,8 +416,12 @@ kedua file berlisensi **CC BY-SA 4.0** (atribusi + share-alike).
   390×524, Pilih Fasilitas 390×444, Detail Item Rencana 390×483, Konfirmasi
   Hapus Item 390×844, Rencana Sukses 390×844, Tambah Rencana - Pilih 390×420,
   Tambah Rencana - Atur 390×660, Tambah Item Checklist 390×844, Checklist
-  Selesai 390×844, Usulkan Fasilitas 390×732, Usulan Sukses 390×844; tinggi
-  tiap frame = jumlah tinggi anak + gap.
+  Selesai 390×844, Usulkan Fasilitas 390×732, Usulan Sukses 390×844, Pencarian
+  Hasil 390×844, Pencarian Kosong 390×844, Filter dan Urutkan 390×620,
+  Notifikasi 390×844; tinggi tiap frame = jumlah tinggi anak + gap.
+- Audit 4 layar Pencarian/Filter/Notifikasi (batch 9): fill ter-bind 106 / raw 0;
+  stroke ter-bind 61 / raw 0; 0 node collapse; 45 teks memakai text style,
+  13 label emphasis eksplisit.
 - Audit 4 layar Checklist & Usulan (batch 8): fill ter-bind 70 / raw 0; stroke
   ter-bind 24 / raw 0; 0 node collapse; 30 teks memakai text style, 12 label
   emphasis eksplisit.
@@ -431,5 +452,5 @@ kedua file berlisensi **CC BY-SA 4.0** (atribusi + share-alike).
 - BottomNav: 5 item 73×41, hanya tab aktif yang indikatornya `primary`, semua
   label center (`cx` = `itemCenter`).
 
-Layar berikutnya menyusul (Pencarian/Filter/Notifikasi, Tersimpan/empty state)
-memakai komponen hi-fi yang sama.
+Layar berikutnya menyusul (Tersimpan/empty state) memakai komponen hi-fi yang
+sama.
