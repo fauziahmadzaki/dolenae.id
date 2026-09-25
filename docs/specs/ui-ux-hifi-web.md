@@ -17,7 +17,7 @@ text/effect style, dan component set yang sama dengan mobile
 | Layar | Node | Ukuran | Posisi |
 | --- | --- | --- | --- |
 | `Hi-Fi Web - Landing (1440)` | `87:2693` | 1440×3143 | 0,0 |
-| `Hi-Fi Web - Daftar Destinasi (1440)` | `88:3013` | 1440×1164 | 1600,0 |
+| `Hi-Fi Web - Daftar Destinasi (1440)` | `88:3013` | 1440×1208 | 1600,0 |
 | `Hi-Fi Web - Detail Destinasi (1440)` | `88:3186` | 1440×1682 | 3200,0 |
 | `Hi-Fi Web - Masuk (1440)` | `89:3328` | 1440×926 | 4800,0 |
 
@@ -51,9 +51,11 @@ Header · PageHead · FilterRow · Grid 2×3 · Pagination · Footer Ringkas.
 - **PageHead** (`canvas-subtle`): judul `display-lg` "Jelajahi destinasi alam",
   sub, search pill + tombol "Filter & Urutkan" (`sliders-horizontal`).
 - **FilterRow**: chip kategori dengan "Semuanya" aktif.
-- **Grid**: 6 kartu (media ikon 180). Isi: Bromo, Prau, Papandayan, Bukit Moko,
-  **Gunung Merbabu**, **Gunung Sindoro** — dua terakhir adalah **placeholder
-  desain** (belum ada di `packages/seed`).
+- **ResultMeta**: "Menampilkan 6 dari 24 destinasi" + "Urutkan: Populer".
+- **Grid**: 6 kartu (media 180 dengan scene bukit + matahari dari primitif;
+  ikon di atasnya). Isi: Bromo, Prau, Papandayan, Bukit Moko, **Gunung
+  Merbabu**, **Gunung Sindoro** — dua terakhir adalah **placeholder desain**
+  (belum ada di `packages/seed`).
 - **Pagination**: halaman 1 aktif `primary` + 2,3,…,8 + tombol next.
 - Footer Ringkas.
 
@@ -63,14 +65,15 @@ Header · PageHead · FilterRow · Grid 2×3 · Pagination · Footer Ringkas.
 
 Header · Hero 360 · TitleRow · Main (2 kolom) · Footer Ringkas.
 
-- **Hero**: band `primary` 1440×360 berisi ikon vector (belum foto).
+- **Hero**: band `primary` 1440×360 dengan scene bukit (ellipse `primary-hover`)
+  + matahari `canvas-subtle` + ikon vector (belum foto).
 - **TitleRow** (`canvas-subtle`): breadcrumb (Destinasi › Gunung Bromo), judul
   `display-lg`, meta (2.329 mdpl · Probolinggo) + badge kesulitan `warning`.
 - **Main**: konten `760` + sidebar `360`, gap 40.
   - Konten: **Tentang** (paragraf), **Akses** (paragraf + chip Mobil/Jeep/Motor
-    + "≈ 4 jam · 140 km"), **Lokasi** (peta placeholder 760×280 + pin
-    `primary` + label "Cemoro Lawang" + "Buka di peta"), **Fasilitas sekitar**
-    (2 baris support + badge terverifikasi).
+    + "≈ 4 jam · 140 km"), **Lokasi** (peta 760×280: grid `border-strong`,
+    3 pin, kontrol zoom +/−/recenter, label "Cemoro Lawang", "Buka di peta"),
+    **Fasilitas sekitar** (2 baris support + badge terverifikasi).
   - Sidebar: kartu harga (Rp 29.000 + info Ketinggian/Waktu/Guide), CTA
     "Tambah ke rencana" (`primary`) + "Simpan destinasi" (outline); kartu
     bantuan + "Buka panduan".
@@ -84,7 +87,8 @@ Header · Body (split) · Footer Ringkas.
 - **Body** 2 panel: kiri form `720` (bg `canvas`): wordmark, judul `display-lg`,
   segmented Masuk/Daftar, input Email & Kata sandi, "Ingat saya" + "Lupa kata
   sandi?", CTA `primary`, divider, tombol Google `surface`, footer daftar.
-  Kanan media `720` (`primary`) dengan ikon + tagline + deskripsi.
+  Kanan media `720` **penuh tinggi body** (`primary`) dengan ikon + tagline +
+  deskripsi + 3 poin nilai (checklist/akses/rencana).
 - Form mewakili varian Masuk; varian Daftar mengikuti `AuthTabs (Alam)`.
 
 ---
@@ -103,10 +107,13 @@ Header · Body (split) · Footer Ringkas.
 
 ## 7. Verifikasi
 
-- `verify --measure`: Landing 1440×3143, Daftar Destinasi 1440×1164, Detail
+- `verify --measure`: Landing 1440×3143, Daftar Destinasi 1440×1208, Detail
   Destinasi 1440×1682, Masuk 1440×926; tinggi tiap frame = jumlah tinggi anak.
-- Audit 4 layar web: fill ter-bind **378** / raw 0; stroke ter-bind **174** /
-  raw 0; **0 node collapse**; 151 teks memakai text style, 83 label/ukuran
+- Audit 4 layar web: fill ter-bind **412** / raw 0; stroke ter-bind **179** /
+  raw 0; **0 node collapse**; 156 teks memakai text style, 87 label/ukuran
   eksplisit (mis. 28/15/13 yang tidak ada padanan text style).
 - Section "Tiga langkah" memakai bulatan `canvas` + teks `primary` agar `accent`
   tetap eksklusif untuk penanda AI.
+- Polesan: kartu katalog & hero Detail memakai scene bukit+matahari (primitif,
+  bukan foto), peta Detail punya grid + 3 pin + kontrol zoom, panel media
+  Masuk `layoutSizingVertical=FILL` agar mengisi tinggi body.
