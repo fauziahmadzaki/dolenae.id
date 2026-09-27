@@ -101,7 +101,7 @@ radius memakai `radius-*`.
 | `SectionHeader (Alam)` | `65:214` | 2 | Aksi (Tidak, Ya) |
 | `PromptInput (Alam)` | `67:602` | 3 | State (Kosong, Terisi, Fokus) |
 | `RecommendationCard (Alam)` | `67:633` | 2 | Varian (Ringkas, Lengkap) |
-| `Input (Alam)` | `68:643` | 3 | State (Default, Fokus, Terisi) |
+| `Input (Alam)` | `68:643` | 4 | State (Default, Fokus, Terisi, Error) |
 | `Switch (Alam)` | `68:650` | 2 | State (Aktif, Nonaktif) |
 | `PlanCard (Alam)` | `68:1181` | 2 | Varian (DenganSupport, TanpaSupport) — ada baris meta destinasi |
 | `BriefingCard (Alam)` | `68:1144` | 2 | Varian (Ringkas, Lengkap) |
@@ -109,7 +109,7 @@ radius memakai `radius-*`.
 | `SupportRow (Alam)` | `69:1850` | 3 | Tipe (Penginapan, Transport, Makanan) |
 | `ProgressHeader (Alam)` | `68:908` | 2 | Ukuran (Halaman, Kartu) |
 | `AuthTabs (Alam)` | `80:71` | 2 | Aktif (Masuk, Daftar) |
-| `PasswordField (Alam)` | `80:72` | 3 | State (Default, Fokus, Terisi) |
+| `PasswordField (Alam)` | `80:72` | 4 | State (Default, Fokus, Terisi, Error) |
 | `OtpInput (Alam)` | `80:73` | 3 | State (Kosong, Terisi, Error) |
 | `FaqAccordion (Alam)` | `80:255` | 2 | State (Tertutup, Terbuka) |
 | `Dialog (Alam)` | `80:256` | 2 | Tipe (Konfirmasi, Destruktif) |
@@ -117,7 +117,7 @@ radius memakai `radius-*`.
 | `DateField (Alam)` | `83:1175` | 2 | State (Default, Terisi) |
 | `Stepper (Alam)` | `83:1176` | 2 | State (Default, Disabled) |
 | `Toast (Alam)` | `86:1512` | 3 | Tipe (Sukses, Info, Gagal) |
-| `EmptyState (Alam)` | `86:1683` | 3 | Tipe (Tanpa hasil, Belum ada data, Gagal) |
+| `EmptyState (Alam)` | `86:1683` | 5 | Tipe (Tanpa hasil, Belum ada data, Gagal, Offline, Akses ditolak) |
 | `NotificationItem (Alam)` | `86:1684` | 2 | State (Belum dibaca, Dibaca) |
 | `BottomSheet (Alam)` | `86:2185` | 2 | Tipe (Menu, Filter) |
 | `WebHeader (Alam)` | `87:2689` | 2 | State (Default, Scrolled) |
@@ -227,7 +227,7 @@ Audit terakhir (seluruh page `Design System (Alam)` — sheet + component set):
   ulang; 16 baris + 32 teks-nya ter-bind ke variabel.
 - Koleksi: 1 × `Dolenae (Alam)` (34 var), 165 binding dari sheet lama berhasil
   dipindahkan, 2 koleksi mati dihapus.
-- 39 component set dengan total 135 varian; semua fill/stroke ter-bind.
+- 39 component set dengan total 139 varian; semua fill/stroke ter-bind.
 - 3 set auth (`AuthTabs`, `PasswordField`, `OtpInput`): 44 fill ter-bind /
   0 raw, 29 stroke ter-bind / 0 raw, 0 node collapse. Dipakai layar
   Auth & Onboarding (`ui-ux-hifi-mobile.md` §7).
@@ -251,19 +251,24 @@ Audit terakhir (seluruh page `Design System (Alam)` — sheet + component set):
   dipakai layar web publik (`ui-ux-hifi-web.md`). Header `surface` + hairline
   bawah (Scrolled + `shadow`), footer band `primary`. Kontainer web: lebar
   1440 dengan padding kiri/kanan 120.
+- Varian status (batch 11): `Input`/`PasswordField` + `State=Error` (stroke
+  `danger` 2px + ikon `alert-circle`), `EmptyState` + `Tipe=Offline` &
+  `Akses ditolak`. Dipakai layar Error Form & Empty State
+  (`ui-ux-hifi-mobile.md` §15).
 
-Audit page `Hi-Fi (Mobile)` (51 layar — seluruh layar lo-fi mobile sudah hi-fi):
+Audit page `Hi-Fi (Mobile)` (57 layar — seluruh layar lo-fi mobile sudah hi-fi):
 
-- Page: SOLID fill ter-bind **1158** / raw 0 (294 dari 11 layar awal + 864 dari
-  40 layar lanjutan); **IMAGE fill 10**; stroke 40 layar lanjutan ter-bind
-  **496** / raw 0; **0 node collapse** (vektor degenerat di dalam ikon Lucide
+- Page: SOLID fill ter-bind **1329** / raw 0 (294 dari 11 layar awal + 1035 dari
+  46 layar lanjutan); **IMAGE fill 10**; stroke 46 layar lanjutan ter-bind
+  **612** / raw 0; **0 node collapse** (vektor degenerat di dalam ikon Lucide
   tidak dihitung); 0 em-dash; 0 baris multi middle-dot.
-- **553 teks** memakai text style; **278 label emphasis** memakai Inter Semi
+- **598 teks** memakai text style; **329 label emphasis** memakai Inter Semi
   Bold/Medium eksplisit.
-- 11 layar awal (Beranda … Detail Makanan) + 40 layar lanjutan (Auth 5,
+- 11 layar awal (Beranda … Detail Makanan) + 46 layar lanjutan (Auth 5,
   Profil/Pengaturan 10, Rencana 8, Checklist/Usulan 4, Pencarian/Filter/
-  Notifikasi 5, Tersimpan/empty state 8) memakai koleksi `Dolenae (Alam)` +
-  component set yang sama. Inventaris: `ui-ux-hifi-mobile.md` §1.
+  Notifikasi 5, Tersimpan/empty state 8, Error & Empty State 3, Gagal Memuat
+  3) memakai koleksi `Dolenae (Alam)` + component set yang sama.
+  Inventaris: `ui-ux-hifi-mobile.md` §1.
 
 Perintah yang dipakai:
 

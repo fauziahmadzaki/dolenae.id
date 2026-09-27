@@ -66,6 +66,12 @@ dari `design-system-hifi.md`.
 | `Hi-Fi - Checklist Tersimpan Kosong (Mobile)` | `86:2051` | 390×844 | 520,10500 |
 | `Hi-Fi - Fasilitas Diusulkan (Mobile)` | `86:2067` | 390×844 | 1040,10500 |
 | `Hi-Fi - Fasilitas Diusulkan Kosong (Mobile)` | `86:2104` | 390×844 | 1560,10500 |
+| `Hi-Fi - Error Form (Mobile)` | `101:32` | 390×1064 | 0,12500 |
+| `Hi-Fi - Empty State (Mobile)` | `101:141` | 390×1412 | 520,12500 |
+| `Hi-Fi - Error dan Akses State (Mobile)` | `101:200` | 390×1124 | 1040,12500 |
+| `Hi-Fi - Gagal Memuat Beranda (Mobile)` | `101:243` | 390×844 | 0,13500 |
+| `Hi-Fi - Gagal Memuat Katalog (Mobile)` | `101:302` | 390×844 | 520,13500 |
+| `Hi-Fi - Gagal Memuat AI (Mobile)` | `101:358` | 390×844 | 1040,13500 |
 
 Struktur Beranda (7 section, `gap 12`, bg `canvas`):
 
@@ -401,7 +407,28 @@ memakai nama dari `packages/seed`.
 > Dengan batch ini **seluruh 50 layar lo-fi mobile sudah punya versi hi-fi**.
 > Berikutnya: hi-fi web (landing + dashboard) di `docs/specs/` terpisah.
 
-## 13. Gambar (placeholder sementara)
+## 13. Error & Empty State (batch 11)
+
+Layar khusus galeri status: variasi **error formulir** dan **empty state**
+dengan microcopy kontekstual (menyebut konteks + langkah lanjutan), Bahasa
+Indonesia fungsional tanpa em-dash. Memakai varian status baru `Input`/
+`PasswordField` `State=Error` dan `EmptyState` `Tipe=Offline`/`Akses ditolak`.
+
+| Layar | Isi |
+| --- | --- |
+| `Hi-Fi - Error Form (Mobile)` (`101:32`) | Grup MASUK (Email: "Masukkan email yang valid, contoh: nama@email.com"; Kata sandi: "Kata sandi minimal 8 karakter."), DAFTAR (Email: "Email ini sudah terdaftar. Masuk atau gunakan email lain."; Konfirmasi: "Konfirmasi kata sandi tidak cocok."), VERIFIKASI (OTP: "Kode salah atau sudah kedaluwarsa. Minta kode baru."), RENCANA (Tanggal: "Tanggal selesai harus setelah tanggal mulai."). Field stroke `danger` 2px + ikon `alert-circle` + baris pesan `danger`. |
+| `Hi-Fi - Empty State (Mobile)` (`101:141`) | BELUM ADA DATA: destinasi tersimpan, rencana, checklist. TIDAK ADA HASIL: pencarian ("Tidak ada destinasi untuk \"gunung misterius\"…"), fasilitas sekitar. Tiap kartu: ikon, judul, microcopy, CTA outline. |
+| `Hi-Fi - Error dan Akses State (Mobile)` (`101:200`) | GAGAL MEMUAT ("Periksa koneksi internet lalu coba lagi." + "Coba lagi"), OFFLINE (data tersimpan + "Muat ulang"), BUTUH AKSES ("Masuk dulu…" + "Masuk"), NOTIFIKASI (kosong, tanpa CTA). |
+
+**Gagal memuat per layar utama** (full-page, header + BottomNav dengan tab aktif):
+
+| Layar | Isi |
+| --- | --- |
+| `Hi-Fi - Gagal Memuat Beranda (Mobile)` (`101:243`) | Header pine (logo + bell + avatar) + BottomNav "Beranda" aktif; ikon `cloud-off` `danger`, judul "Gagal memuat beranda", body "Kami tidak bisa mengambil destinasi populer dan fasilitas terbaru…", CTA "Coba lagi" + ghost "Muat ulang" |
+| `Hi-Fi - Gagal Memuat Katalog (Mobile)` (`101:302`) | AppBar "Jelajahi" + field cari + BottomNav "Jelajah" aktif; ikon `triangle-alert`, "Gagal memuat katalog", body menyebut muat ulang/periksa filter, CTA "Coba lagi" + ghost "Reset filter" |
+| `Hi-Fi - Gagal Memuat AI (Mobile)` (`101:358`) | AppBar "AI Dolenae" + BottomNav "AI" aktif; "Rekomendasi AI gagal diproses", body "Coba lagi sebentar lagi atau ubah preferensi.", CTA "Coba lagi" + ghost "Ubah preferensi" |
+
+## 14. Gambar (placeholder sementara)
 
 Kartu destinasi memakai foto asli dari Wikimedia Commons. **Status: placeholder
 sementara — wajib diganti foto milik sendiri/berlisensi sebelum rilis**, karena
@@ -441,10 +468,10 @@ kedua file berlisensi **CC BY-SA 4.0** (atribusi + share-alike).
 
 ---
 
-## 14. Verifikasi
+## 15. Verifikasi
 
-- `verify --measure`: 51 layar — 11 layar awal (Beranda 390×1866 … Detail
-  Makanan 390×986) + 40 layar lanjutan: Onboarding 390×888, Masuk dan Daftar
+- `verify --measure`: 57 layar — 11 layar awal (Beranda 390×1866 … Detail
+  Makanan 390×986) + 46 layar lanjutan: Onboarding 390×888, Masuk dan Daftar
   390×844, Lupa Kata Sandi 390×340, Verifikasi OTP 390×844, Ubah Kata Sandi
   390×468, Profil 390×996, Pengaturan 390×741, Akun 390×642, Setelan Notifikasi
   390×467, Tema dan Bahasa 390×467, Privasi dan Keamanan 390×588, Bantuan FAQ
@@ -459,7 +486,16 @@ kedua file berlisensi **CC BY-SA 4.0** (atribusi + share-alike).
   Tersimpan 390×844, Destinasi Tersimpan Kosong 390×844, Daftar Rencana
   390×844, Daftar Rencana Kosong 390×844, Checklist Tersimpan 390×844,
   Checklist Tersimpan Kosong 390×844, Fasilitas Diusulkan 390×844, Fasilitas
-  Diusulkan Kosong 390×844; tinggi tiap frame = jumlah tinggi anak + gap.
+  Diusulkan Kosong 390×844, Error Form 390×1064, Empty State 390×1412,
+  Error dan Akses State 390×1124, Gagal Memuat Beranda 390×844, Gagal Memuat
+  Katalog 390×844, Gagal Memuat AI 390×844; tinggi tiap frame = jumlah tinggi
+  anak + gap.
+- Audit 3 layar Gagal Memuat per layar (batch 11b): fill ter-bind 63 / raw 0;
+  stroke ter-bind 42 / raw 0; 0 node collapse; 13 teks memakai text style,
+  19 label eksplisit.
+- Audit 3 layar Error & Empty State (batch 11): fill ter-bind 108 / raw 0;
+  stroke ter-bind 74 / raw 0; 0 node collapse; 32 teks memakai text style,
+  32 label/ukuran eksplisit (judul kartu 16 semibold, body kartu 13).
 - Audit 8 layar Tersimpan/empty state (batch 10): fill ter-bind 106 / raw 0;
   stroke ter-bind 62 / raw 0; 0 node collapse; 37 teks memakai text style,
   15 label emphasis eksplisit.
