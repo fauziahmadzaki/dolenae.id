@@ -41,6 +41,11 @@ reports/
 /*.mjs
 /*.js
 
+# Figma (aset kerja lokal — jangan di repo)
+figma/
+*.fig
+*.figma
+
 # Logs
 *.log
 npm-debug.log*
