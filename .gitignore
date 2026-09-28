@@ -45,3 +45,6 @@ reports/
 *.log
 npm-debug.log*
 pnpm-debug.log*
+# Android/Kotlin caches
+.kotlin/
+**/.kotlin/
