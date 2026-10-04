@@ -31,9 +31,9 @@ class BerandaScreen extends StatelessWidget {
       case DnTab.ai:
         context.go('/soon?tab=AI');
       case DnTab.rencana:
-        context.go('/soon?tab=Rencana');
+        context.go('/plan');
       case DnTab.profil:
-        context.go('/soon?tab=Profil');
+        context.go('/profile');
     }
   }
 
@@ -49,7 +49,7 @@ class BerandaScreen extends StatelessWidget {
                 children: [
                   const _Header(),
                   _search(context),
-                  _chips(),
+                  _chips(context),
                   Padding(
                     padding: const EdgeInsets.all(AppSpacing.s4),
                     child: DnAiCard(
@@ -59,7 +59,7 @@ class BerandaScreen extends StatelessWidget {
                       onPressed: () => context.go('/soon?tab=AI'),
                     ),
                   ),
-                  _popular(),
+                  _popular(context),
                   _activities(),
                   _supports(),
                   _help(),
@@ -113,7 +113,7 @@ class BerandaScreen extends StatelessWidget {
     );
   }
 
-  Widget _chips() {
+  Widget _chips(BuildContext context) {
     const labels = ['Gunung', 'Bukit', 'Danau', 'Air terjun', 'Camping'];
     return Padding(
       padding: const EdgeInsets.only(top: AppSpacing.s3),
@@ -124,13 +124,17 @@ class BerandaScreen extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: AppSpacing.s4),
           itemCount: labels.length,
           separatorBuilder: (_, _) => const SizedBox(width: AppSpacing.s2),
-          itemBuilder: (_, i) => DnChip(label: labels[i], active: i == 0),
+          itemBuilder: (_, i) => DnChip(
+            label: labels[i],
+            active: i == 0,
+            onTap: () => context.go('/explore'),
+          ),
         ),
       ),
     );
   }
 
-  Widget _popular() {
+  Widget _popular(BuildContext context) {
     final items = SeedData.destinations.take(2).toList();
     return Padding(
       padding: const EdgeInsets.fromLTRB(
@@ -141,13 +145,17 @@ class BerandaScreen extends StatelessWidget {
       ),
       child: Column(
         children: [
-          const DnSectionHeader(
+          DnSectionHeader(
             title: 'Destinasi populer',
             actionLabel: 'Lihat semua',
+            onAction: () => context.go('/explore'),
           ),
           const SizedBox(height: AppSpacing.s3),
           for (final item in items) ...[
-            DnDestinationCard(destination: item),
+            DnDestinationCard(
+              destination: item,
+              onTap: () => context.push('/destination/${item.id}'),
+            ),
             if (item != items.last) const SizedBox(height: AppSpacing.s3),
           ],
         ],
@@ -265,7 +273,7 @@ class BerandaScreen extends StatelessWidget {
             height: 48,
             width: double.infinity,
             child: FilledButton(
-              onPressed: () => context.go('/soon?tab=Rencana'),
+              onPressed: () => context.go('/plan'),
               style: FilledButton.styleFrom(
                 backgroundColor: AppColors.canvas,
                 foregroundColor: AppColors.primary,

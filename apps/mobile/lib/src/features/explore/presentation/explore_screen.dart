@@ -5,34 +5,81 @@ import 'package:dolenae_mobile/src/shared/icons/app_icons.dart';
 import '../../../app/theme/app_colors.dart';
 import '../../../app/theme/app_spacing.dart';
 import '../../../app/theme/app_text_styles.dart';
+import '../../../data/models/destination.dart';
 import '../../../data/seed/seed_data.dart';
 import '../../../shared/widgets/dn_app_bar.dart';
 import '../../../shared/widgets/dn_bottom_nav.dart';
 import '../../../shared/widgets/dn_chip.dart';
 import '../../../shared/widgets/dn_destination_card.dart';
+import '../../../shared/widgets/dn_empty_state.dart';
 import '../../../shared/widgets/dn_search_field.dart';
 
-/// Eksplor / katalog destinasi.
-class ExploreScreen extends StatelessWidget {
+/// Eksplor / katalog destinasi dengan filter kategori interaktif (Node Figma: 65:389).
+class ExploreScreen extends StatefulWidget {
   const ExploreScreen({super.key});
+
+  @override
+  State<ExploreScreen> createState() => _ExploreScreenState();
+}
+
+class _ExploreScreenState extends State<ExploreScreen> {
+  String _selectedCategory = 'Semuanya';
+
+  static const _filterOptions = <String>[
+    'Semuanya',
+    'Ramah Pemula',
+    'Jawa Timur',
+    'Jawa Barat',
+    'Jawa Tengah',
+    'Camping',
+    'Sunrise',
+  ];
+
+  List<Destination> get _filteredDestinations {
+    return SeedData.destinations.where((destination) {
+      switch (_selectedCategory) {
+        case 'Ramah Pemula':
+          return destination.difficulty == DifficultyLevel.pemula;
+        case 'Jawa Timur':
+          return destination.province == 'Jawa Timur';
+        case 'Jawa Barat':
+          return destination.province == 'Jawa Barat';
+        case 'Jawa Tengah':
+          return destination.province == 'Jawa Tengah';
+        case 'Camping':
+          return destination.tagline.toLowerCase().contains('camping') ||
+              (destination.accessDescription?.toLowerCase().contains('camping') ??
+                  false);
+        case 'Sunrise':
+          return destination.tagline.toLowerCase().contains('sunrise') ||
+              (destination.accessDescription?.toLowerCase().contains('sunrise') ??
+                  false);
+        case 'Semuanya':
+        default:
+          return true;
+      }
+    }).toList();
+  }
 
   void _onTab(BuildContext context, DnTab tab) {
     switch (tab) {
       case DnTab.beranda:
         context.go('/home');
       case DnTab.jelajah:
-        context.go('/explore');
+        break;
       case DnTab.ai:
         context.go('/soon?tab=AI');
       case DnTab.rencana:
-        context.go('/soon?tab=Rencana');
+        context.go('/plan');
       case DnTab.profil:
-        context.go('/soon?tab=Profil');
+        context.go('/profile');
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final destinations = _filteredDestinations;
+
     return Scaffold(
       appBar: const DnAppBar(title: 'Jelajahi'),
       body: Column(
@@ -53,7 +100,7 @@ class ExploreScreen extends StatelessWidget {
                       hint: 'Cari destinasi, gunung, atau aktivitas',
                     ),
                   ),
-                  const _Filters(),
+                  _buildFilters(),
                   Padding(
                     padding: const EdgeInsets.fromLTRB(
                       AppSpacing.s4,
@@ -65,7 +112,7 @@ class ExploreScreen extends StatelessWidget {
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Text(
-                          '${SeedData.destinations.length} destinasi',
+                          '${destinations.length} destinasi',
                           style: AppTextStyles.caption,
                         ),
                         Row(
@@ -87,16 +134,37 @@ class ExploreScreen extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: AppSpacing.s3),
-                  for (final destination in SeedData.destinations)
+                  if (destinations.isEmpty) ...[
                     Padding(
-                      padding: const EdgeInsets.fromLTRB(
-                        AppSpacing.s4,
-                        0,
-                        AppSpacing.s4,
-                        AppSpacing.s3,
+                      padding: const EdgeInsets.all(AppSpacing.s6),
+                      child: Center(
+                        child: DnEmptyState(
+                          icon: AppIcons.compass,
+                          title: 'Tidak ada destinasi',
+                          body:
+                              'Belum ada destinasi untuk filter "$_selectedCategory".',
+                          actionLabel: 'Tampilkan semua',
+                          onAction: () =>
+                              setState(() => _selectedCategory = 'Semuanya'),
+                        ),
                       ),
-                      child: DnDestinationListTile(destination: destination),
                     ),
+                  ] else ...[
+                    for (final destination in destinations)
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(
+                          AppSpacing.s4,
+                          0,
+                          AppSpacing.s4,
+                          AppSpacing.s3,
+                        ),
+                        child: DnDestinationListTile(
+                          destination: destination,
+                          onTap: () =>
+                              context.push('/destination/${destination.id}'),
+                        ),
+                      ),
+                  ],
                   const SizedBox(height: AppSpacing.s4),
                 ],
               ),
@@ -110,14 +178,8 @@ class ExploreScreen extends StatelessWidget {
       ),
     );
   }
-}
 
-class _Filters extends StatelessWidget {
-  const _Filters();
-
-  @override
-  Widget build(BuildContext context) {
-    const labels = ['Semuanya', 'Ramah Pemula', 'Camping', 'Sunrise'];
+  Widget _buildFilters() {
     return Padding(
       padding: const EdgeInsets.only(top: AppSpacing.s3),
       child: SizedBox(
@@ -125,9 +187,21 @@ class _Filters extends StatelessWidget {
         child: ListView.separated(
           scrollDirection: Axis.horizontal,
           padding: const EdgeInsets.symmetric(horizontal: AppSpacing.s4),
-          itemCount: labels.length,
+          itemCount: _filterOptions.length,
           separatorBuilder: (_, _) => const SizedBox(width: AppSpacing.s2),
-          itemBuilder: (_, i) => DnChip(label: labels[i], active: i == 0),
+          itemBuilder: (_, i) {
+            final label = _filterOptions[i];
+            final isSelected = label == _selectedCategory;
+            return DnChip(
+              label: label,
+              active: isSelected,
+              onTap: () {
+                setState(() {
+                  _selectedCategory = label;
+                });
+              },
+            );
+          },
         ),
       ),
     );
