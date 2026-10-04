@@ -13,6 +13,19 @@ class Destination {
     required this.province,
     required this.priceFrom,
     required this.difficulty,
+    this.entryFee,
+    this.bestSeason,
+    this.guideRequired,
+    this.accessDescription,
+    this.accessTransportModes = const ['Mobil', 'Jeep', 'Motor'],
+    this.accessTravelTime,
+    this.accessDistance,
+    this.accessPointName,
+    this.facilityToilet = true,
+    this.facilityWarung = true,
+    this.facilityParking = true,
+    this.facilityHomestay = true,
+    this.facilityMushola = false,
   });
 
   final String id;
@@ -24,6 +37,19 @@ class Destination {
   final String province;
   final int priceFrom;
   final DifficultyLevel difficulty;
+  final String? entryFee;
+  final String? bestSeason;
+  final bool? guideRequired;
+  final String? accessDescription;
+  final List<String> accessTransportModes;
+  final String? accessTravelTime;
+  final String? accessDistance;
+  final String? accessPointName;
+  final bool facilityToilet;
+  final bool facilityWarung;
+  final bool facilityParking;
+  final bool facilityHomestay;
+  final bool facilityMushola;
 
   String get locationLabel => '$regency, $province';
 

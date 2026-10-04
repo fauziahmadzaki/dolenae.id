@@ -11,6 +11,7 @@ class DnPrimaryButton extends StatelessWidget {
     this.icon,
     this.height = 48,
     this.expand = true,
+    this.padding,
   });
 
   final String label;
@@ -18,6 +19,7 @@ class DnPrimaryButton extends StatelessWidget {
   final IconData? icon;
   final double height;
   final bool expand;
+  final EdgeInsetsGeometry? padding;
 
   @override
   Widget build(BuildContext context) {
@@ -30,6 +32,7 @@ class DnPrimaryButton extends StatelessWidget {
           backgroundColor: AppColors.primary,
           foregroundColor: AppColors.onPrimary,
           disabledBackgroundColor: AppColors.canvasSubtle,
+          padding: padding ?? const EdgeInsets.symmetric(horizontal: 16),
           shape: const StadiumBorder(),
           textStyle: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
         ),
@@ -43,7 +46,13 @@ class DnPrimaryButton extends StatelessWidget {
     mainAxisSize: MainAxisSize.min,
     mainAxisAlignment: MainAxisAlignment.center,
     children: [
-      Text(label),
+      Flexible(
+        child: Text(
+          label,
+          overflow: TextOverflow.ellipsis,
+          maxLines: 1,
+        ),
+      ),
       if (icon != null) ...[const SizedBox(width: 8), Icon(icon, size: 16)],
     ],
   );
@@ -59,6 +68,7 @@ class DnOutlineButton extends StatelessWidget {
     this.height = 44,
     this.expand = true,
     this.foreground = AppColors.primary,
+    this.padding,
   });
 
   final String label;
@@ -67,6 +77,7 @@ class DnOutlineButton extends StatelessWidget {
   final double height;
   final bool expand;
   final Color foreground;
+  final EdgeInsetsGeometry? padding;
 
   @override
   Widget build(BuildContext context) {
@@ -79,14 +90,22 @@ class DnOutlineButton extends StatelessWidget {
           foregroundColor: foreground,
           backgroundColor: AppColors.canvas,
           side: const BorderSide(color: AppColors.borderStrong),
+          padding: padding ?? const EdgeInsets.symmetric(horizontal: 16),
           shape: const StadiumBorder(),
           textStyle: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
             if (icon != null) ...[Icon(icon, size: 18), const SizedBox(width: 8)],
-            Text(label),
+            Flexible(
+              child: Text(
+                label,
+                overflow: TextOverflow.ellipsis,
+                maxLines: 1,
+              ),
+            ),
           ],
         ),
       ),
