@@ -1,1 +1,29 @@
 @import "tailwindcss";
+
+/* Token tema "Alam" — selaras DESIGN.md & koleksi Figma `Dolenae (Alam)`. */
+@theme {
+  --color-canvas: #f4f1e9;
+  --color-canvas-subtle: #e8e4d8;
+  --color-surface: #ffffff;
+  --color-surface-2: #ece8de;
+  --color-ink: #17211b;
+  --color-body: #4a5149;
+  --color-primary: #1e3b2e;
+  --color-primary-hover: #163026;
+  --color-on-primary: #ffffff;
+  --color-accent: #b85c2a;
+  --color-on-accent: #ffffff;
+  --color-success: #3f6b47;
+  --color-warning: #a9781f;
+  --color-danger: #a3402e;
+  --color-hairline: #e0dbcf;
+  --color-border-strong: #7c8a7e;
+
+  --font-display: "Poppins", ui-sans-serif, system-ui, sans-serif;
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+}
+
+html,
+body {
+  font-family: var(--font-sans);
+}

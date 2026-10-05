@@ -1,12 +1,12 @@
 import type { ReactNode } from "react";
 import {
   HeadContent,
-  Link,
   Outlet,
   Scripts,
   createRootRoute,
 } from "@tanstack/react-router";
 import appCss from "~/styles/app.css?url";
+import { AuthProvider } from "~/features/auth/auth-context";
 
 export const Route = createRootRoute({
   head: () => ({
@@ -20,7 +20,19 @@ export const Route = createRootRoute({
           "Dolenae.id - platform travel discovery dan trip preparation untuk destinasi alam Indonesia.",
       },
     ],
-    links: [{ rel: "stylesheet", href: appCss }],
+    links: [
+      { rel: "stylesheet", href: appCss },
+      { rel: "preconnect", href: "https://fonts.googleapis.com" },
+      {
+        rel: "preconnect",
+        href: "https://fonts.gstatic.com",
+        crossOrigin: "anonymous",
+      },
+      {
+        rel: "stylesheet",
+        href: "https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@600;700;800&display=swap",
+      },
+    ],
   }),
   component: RootComponent,
 });
@@ -28,7 +40,9 @@ export const Route = createRootRoute({
 function RootComponent() {
   return (
     <RootDocument>
-      <Outlet />
+      <AuthProvider>
+        <Outlet />
+      </AuthProvider>
     </RootDocument>
   );
 }
@@ -39,20 +53,7 @@ function RootDocument({ children }: Readonly<{ children: ReactNode }>) {
       <head>
         <HeadContent />
       </head>
-      <body className="bg-slate-50 text-slate-900 antialiased">
-        <header className="border-b border-slate-200 bg-white">
-          <nav className="mx-auto flex max-w-5xl items-center gap-6 px-4 py-3">
-            <Link to="/" className="text-lg font-bold text-emerald-700">
-              Dolenae.id
-            </Link>
-            <Link to="/destinations" className="text-sm hover:text-emerald-700">
-              Destinasi
-            </Link>
-            <Link to="/admin" className="text-sm hover:text-emerald-700">
-              Admin
-            </Link>
-          </nav>
-        </header>
+      <body className="bg-canvas text-ink antialiased">
         <main>{children}</main>
         <Scripts />
       </body>
