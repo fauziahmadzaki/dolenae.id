@@ -9,14 +9,20 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as IndexRouteImport } from './routes/index'
+import { Route as PublicRouteImport } from './routes/_public'
 import { Route as AdminRouteImport } from './routes/admin'
-import { Route as DestinationsRouteImport } from './routes/destinations'
-import { Route as DestinationsSlugRouteImport } from './routes/destinations.$slug'
+import { Route as LoginRouteImport } from './routes/login'
+import { Route as PublicIndexRouteImport } from './routes/_public.index'
+import { Route as PublicDestinationsRouteImport } from './routes/_public.destinations'
+import { Route as AdminIndexRouteImport } from './routes/admin.index'
+import { Route as AdminCategoriesRouteImport } from './routes/admin.categories'
+import { Route as AdminUsersRouteImport } from './routes/admin.users'
+import { Route as PublicDestinationsSlugRouteImport } from './routes/_public.destinations.$slug'
+import { Route as AdminDestinationsNewRouteImport } from './routes/admin.destinations.new'
+import { Route as AdminDestinationsIdEditRouteImport } from './routes/admin.destinations.$id.edit'
 
-const IndexRoute = IndexRouteImport.update({
-  id: '/',
-  path: '/',
+const PublicRoute = PublicRouteImport.update({
+  id: '/_public',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AdminRoute = AdminRouteImport.update({
@@ -24,57 +30,141 @@ const AdminRoute = AdminRouteImport.update({
   path: '/admin',
   getParentRoute: () => rootRouteImport,
 } as any)
-const DestinationsRoute = DestinationsRouteImport.update({
-  id: '/destinations',
-  path: '/destinations',
+const LoginRoute = LoginRouteImport.update({
+  id: '/login',
+  path: '/login',
   getParentRoute: () => rootRouteImport,
 } as any)
-const DestinationsSlugRoute = DestinationsSlugRouteImport.update({
+const PublicIndexRoute = PublicIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => PublicRoute,
+} as any)
+const PublicDestinationsRoute = PublicDestinationsRouteImport.update({
+  id: '/destinations',
+  path: '/destinations',
+  getParentRoute: () => PublicRoute,
+} as any)
+const AdminIndexRoute = AdminIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminCategoriesRoute = AdminCategoriesRouteImport.update({
+  id: '/categories',
+  path: '/categories',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminUsersRoute = AdminUsersRouteImport.update({
+  id: '/users',
+  path: '/users',
+  getParentRoute: () => AdminRoute,
+} as any)
+const PublicDestinationsSlugRoute = PublicDestinationsSlugRouteImport.update({
   id: '/$slug',
   path: '/$slug',
-  getParentRoute: () => DestinationsRoute,
+  getParentRoute: () => PublicDestinationsRoute,
+} as any)
+const AdminDestinationsNewRoute = AdminDestinationsNewRouteImport.update({
+  id: '/destinations/new',
+  path: '/destinations/new',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminDestinationsIdEditRoute = AdminDestinationsIdEditRouteImport.update({
+  id: '/destinations/$id/edit',
+  path: '/destinations/$id/edit',
+  getParentRoute: () => AdminRoute,
 } as any)
 
 export interface FileRoutesByFullPath {
-  '/': typeof IndexRoute
-  '/admin': typeof AdminRoute
-  '/destinations': typeof DestinationsRouteWithChildren
-  '/destinations/$slug': typeof DestinationsSlugRoute
+  '/': typeof PublicIndexRoute
+  '/admin': typeof AdminRouteWithChildren
+  '/login': typeof LoginRoute
+  '/destinations': typeof PublicDestinationsRouteWithChildren
+  '/admin/categories': typeof AdminCategoriesRoute
+  '/admin/users': typeof AdminUsersRoute
+  '/admin/': typeof AdminIndexRoute
+  '/destinations/$slug': typeof PublicDestinationsSlugRoute
+  '/admin/destinations/new': typeof AdminDestinationsNewRoute
+  '/admin/destinations/$id/edit': typeof AdminDestinationsIdEditRoute
 }
 export interface FileRoutesByTo {
-  '/': typeof IndexRoute
-  '/admin': typeof AdminRoute
-  '/destinations': typeof DestinationsRouteWithChildren
-  '/destinations/$slug': typeof DestinationsSlugRoute
+  '/login': typeof LoginRoute
+  '/destinations': typeof PublicDestinationsRouteWithChildren
+  '/admin/categories': typeof AdminCategoriesRoute
+  '/admin/users': typeof AdminUsersRoute
+  '/': typeof PublicIndexRoute
+  '/admin': typeof AdminIndexRoute
+  '/destinations/$slug': typeof PublicDestinationsSlugRoute
+  '/admin/destinations/new': typeof AdminDestinationsNewRoute
+  '/admin/destinations/$id/edit': typeof AdminDestinationsIdEditRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
-  '/': typeof IndexRoute
-  '/admin': typeof AdminRoute
-  '/destinations': typeof DestinationsRouteWithChildren
-  '/destinations/$slug': typeof DestinationsSlugRoute
+  '/_public': typeof PublicRouteWithChildren
+  '/admin': typeof AdminRouteWithChildren
+  '/login': typeof LoginRoute
+  '/_public/destinations': typeof PublicDestinationsRouteWithChildren
+  '/admin/categories': typeof AdminCategoriesRoute
+  '/admin/users': typeof AdminUsersRoute
+  '/_public/': typeof PublicIndexRoute
+  '/admin/': typeof AdminIndexRoute
+  '/_public/destinations/$slug': typeof PublicDestinationsSlugRoute
+  '/admin/destinations/new': typeof AdminDestinationsNewRoute
+  '/admin/destinations/$id/edit': typeof AdminDestinationsIdEditRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/admin' | '/destinations' | '/destinations/$slug'
+  fullPaths:
+    | '/'
+    | '/admin'
+    | '/login'
+    | '/destinations'
+    | '/admin/categories'
+    | '/admin/users'
+    | '/admin/'
+    | '/destinations/$slug'
+    | '/admin/destinations/new'
+    | '/admin/destinations/$id/edit'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/admin' | '/destinations' | '/destinations/$slug'
-  id: '__root__' | '/' | '/admin' | '/destinations' | '/destinations/$slug'
+  to:
+    | '/login'
+    | '/destinations'
+    | '/admin/categories'
+    | '/admin/users'
+    | '/'
+    | '/admin'
+    | '/destinations/$slug'
+    | '/admin/destinations/new'
+    | '/admin/destinations/$id/edit'
+  id:
+    | '__root__'
+    | '/_public'
+    | '/admin'
+    | '/login'
+    | '/_public/destinations'
+    | '/admin/categories'
+    | '/admin/users'
+    | '/_public/'
+    | '/admin/'
+    | '/_public/destinations/$slug'
+    | '/admin/destinations/new'
+    | '/admin/destinations/$id/edit'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
-  IndexRoute: typeof IndexRoute
-  AdminRoute: typeof AdminRoute
-  DestinationsRoute: typeof DestinationsRouteWithChildren
+  PublicRoute: typeof PublicRouteWithChildren
+  AdminRoute: typeof AdminRouteWithChildren
+  LoginRoute: typeof LoginRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/': {
-      id: '/'
-      path: '/'
+    '/_public': {
+      id: '/_public'
+      path: ''
       fullPath: '/'
-      preLoaderRoute: typeof IndexRouteImport
+      preLoaderRoute: typeof PublicRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/admin': {
@@ -84,39 +174,118 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/destinations': {
-      id: '/destinations'
-      path: '/destinations'
-      fullPath: '/destinations'
-      preLoaderRoute: typeof DestinationsRouteImport
+    '/login': {
+      id: '/login'
+      path: '/login'
+      fullPath: '/login'
+      preLoaderRoute: typeof LoginRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/destinations/$slug': {
-      id: '/destinations/$slug'
+    '/_public/': {
+      id: '/_public/'
+      path: '/'
+      fullPath: '/'
+      preLoaderRoute: typeof PublicIndexRouteImport
+      parentRoute: typeof PublicRoute
+    }
+    '/_public/destinations': {
+      id: '/_public/destinations'
+      path: '/destinations'
+      fullPath: '/destinations'
+      preLoaderRoute: typeof PublicDestinationsRouteImport
+      parentRoute: typeof PublicRoute
+    }
+    '/admin/': {
+      id: '/admin/'
+      path: '/'
+      fullPath: '/admin/'
+      preLoaderRoute: typeof AdminIndexRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/categories': {
+      id: '/admin/categories'
+      path: '/categories'
+      fullPath: '/admin/categories'
+      preLoaderRoute: typeof AdminCategoriesRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/users': {
+      id: '/admin/users'
+      path: '/users'
+      fullPath: '/admin/users'
+      preLoaderRoute: typeof AdminUsersRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/_public/destinations/$slug': {
+      id: '/_public/destinations/$slug'
       path: '/$slug'
       fullPath: '/destinations/$slug'
-      preLoaderRoute: typeof DestinationsSlugRouteImport
-      parentRoute: typeof DestinationsRoute
+      preLoaderRoute: typeof PublicDestinationsSlugRouteImport
+      parentRoute: typeof PublicDestinationsRoute
+    }
+    '/admin/destinations/new': {
+      id: '/admin/destinations/new'
+      path: '/destinations/new'
+      fullPath: '/admin/destinations/new'
+      preLoaderRoute: typeof AdminDestinationsNewRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/destinations/$id/edit': {
+      id: '/admin/destinations/$id/edit'
+      path: '/destinations/$id/edit'
+      fullPath: '/admin/destinations/$id/edit'
+      preLoaderRoute: typeof AdminDestinationsIdEditRouteImport
+      parentRoute: typeof AdminRoute
     }
   }
 }
 
-interface DestinationsRouteChildren {
-  DestinationsSlugRoute: typeof DestinationsSlugRoute
+interface PublicDestinationsRouteChildren {
+  PublicDestinationsSlugRoute: typeof PublicDestinationsSlugRoute
 }
 
-const DestinationsRouteChildren: DestinationsRouteChildren = {
-  DestinationsSlugRoute: DestinationsSlugRoute,
+const PublicDestinationsRouteChildren: PublicDestinationsRouteChildren = {
+  PublicDestinationsSlugRoute: PublicDestinationsSlugRoute,
 }
 
-const DestinationsRouteWithChildren = DestinationsRoute._addFileChildren(
-  DestinationsRouteChildren,
-)
+const PublicDestinationsRouteWithChildren =
+  PublicDestinationsRoute._addFileChildren(PublicDestinationsRouteChildren)
+
+interface PublicRouteChildren {
+  PublicDestinationsRoute: typeof PublicDestinationsRouteWithChildren
+  PublicIndexRoute: typeof PublicIndexRoute
+}
+
+const PublicRouteChildren: PublicRouteChildren = {
+  PublicDestinationsRoute: PublicDestinationsRouteWithChildren,
+  PublicIndexRoute: PublicIndexRoute,
+}
+
+const PublicRouteWithChildren =
+  PublicRoute._addFileChildren(PublicRouteChildren)
+
+interface AdminRouteChildren {
+  AdminCategoriesRoute: typeof AdminCategoriesRoute
+  AdminUsersRoute: typeof AdminUsersRoute
+  AdminIndexRoute: typeof AdminIndexRoute
+  AdminDestinationsNewRoute: typeof AdminDestinationsNewRoute
+  AdminDestinationsIdEditRoute: typeof AdminDestinationsIdEditRoute
+}
+
+const AdminRouteChildren: AdminRouteChildren = {
+  AdminCategoriesRoute: AdminCategoriesRoute,
+  AdminUsersRoute: AdminUsersRoute,
+  AdminIndexRoute: AdminIndexRoute,
+  AdminDestinationsNewRoute: AdminDestinationsNewRoute,
+  AdminDestinationsIdEditRoute: AdminDestinationsIdEditRoute,
+}
+
+const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)
 
 const rootRouteChildren: RootRouteChildren = {
-  IndexRoute: IndexRoute,
-  AdminRoute: AdminRoute,
-  DestinationsRoute: DestinationsRouteWithChildren,
+  PublicRoute: PublicRouteWithChildren,
+  AdminRoute: AdminRouteWithChildren,
+  LoginRoute: LoginRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
