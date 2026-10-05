@@ -45,6 +45,13 @@ reports/
 figma/
 *.fig
 *.figma
+design.json
+
+# Upload runtime (object storage dipakai; folder lokal tidak perlu di repo)
+/apps/server/uploads/
+
+# Dataset wilayah hasil generate (regenerate: pnpm --filter @dolenae/regions generate)
+packages/regions/src/data.json
 
 # Logs
 *.log
