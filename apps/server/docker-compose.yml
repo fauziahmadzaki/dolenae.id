@@ -1,0 +1,43 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: dolenae-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: dolenae
+      POSTGRES_PASSWORD: dolenae
+      POSTGRES_DB: dolenae
+    ports:
+      - "5432:5432"
+    volumes:
+      - dolenae-pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U dolenae -d dolenae"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # Catatan: image `minio/minio` ditarik dari Docker Hub (arsip). Mirror resmi
+  # berbasis Alpine dipakai agar tetap bisa `docker compose up`.
+  minio:
+    image: tobi312/minio:latest
+    container_name: dolenae-minio
+    restart: unless-stopped
+    command: ["server", "--address", ":9000", "--console-address", ":9001", "/data"]
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - dolenae-minio:/data
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  dolenae-pgdata:
+  dolenae-minio:

@@ -26,6 +26,23 @@ export type DestinationCondition =
   | "sulit"
   | "butuh-lokal-guide";
 
+/** Status publikasi destinasi. */
+export type DestinationStatus = "draft" | "published";
+
+/** Tipe kategori (menggantikan enum terrain/activities sebagai entitas). */
+export type CategoryType = "terrain" | "activity";
+
+export interface Category {
+  id: ID;
+  name: string;
+  slug: string;
+  type: CategoryType;
+  icon: string;
+  description?: string;
+  createdAt: ISODateString;
+  updatedAt: ISODateString;
+}
+
 export interface AccessPoint {
   /** Nama basecamp / titik akses terdekat */
   name: string;
@@ -38,6 +55,8 @@ export interface AccessPoint {
 export interface LocationInfo {
   province: string;
   regency: string;
+  /** Kecamatan (opsional; terisi otomatis dari reverse geocode). */
+  district?: string;
   coordinate: {
     latitude: number;
     longitude: number;
@@ -75,6 +94,7 @@ export interface Destination {
   terrain: DestinationTerrain[];
   activities: DestinationActivity[];
   difficulty: DestinationCondition;
+  status: DestinationStatus;
   bestSeason: string[];
   location: LocationInfo;
   access: AccessInfo;
@@ -85,6 +105,10 @@ export interface Destination {
   /** Ketinggian mdpl */
   elevationMeters?: number;
   guideRequired: boolean;
+  /** Kategori (many-to-many). */
+  categoryIds: ID[];
+  /** Jumlah `TravelSupport` (proyeksi daftar admin; opsional). */
+  supportsCount?: number;
   createdAt: ISODateString;
   updatedAt: ISODateString;
 }

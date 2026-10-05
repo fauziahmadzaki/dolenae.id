@@ -36,16 +36,22 @@ Monorepo berisi tiga aplikasi dan dua paket bersama:
 
 ### Halaman web yang sudah ada (`apps/web/src/routes`)
 
-`/` landing · `/destinations` katalog · `/destinations/$slug` detail · `/admin`
-placeholder dashboard admin.
+`/` landing · `/destinations` katalog · `/destinations/$slug` detail ·
+`/login` masuk admin · `/admin` dashboard admin (guard) ·
+`/admin/users` daftar pengguna. Lihat `docs/specs/web-admin.md`.
 
 ### Endpoint API (`apps/server`)
 
-`GET /` · `GET /health` · `GET /destinations` · `GET /destinations/:slug` ·
-`GET /supports` (`?destinationId=:id`)
+Semua di bawah `/api`:
 
-> **Fase sekarang: prototype statis.** Data berasal dari `packages/seed`, belum
-> ada auth/DB. Web & Flutter membaca seed; server Hono menyajikan seed via API.
+`GET /api/health` · `POST /api/auth/register` · `POST /api/auth/login` ·
+`GET /api/users/me` · `GET /api/users` (admin) · `GET /api/destinations` ·
+`GET /api/destinations/:slug` · `GET /api/supports`
+
+> **Fondasi backend sudah aktif:** PostgreSQL (Docker) + Drizzle, envelope
+> response seragam, global error handler, pagination, dan JWT auth. Endpoint
+> destinasi/support masih dari `packages/seed` sebagai jembatan. Detail:
+> `docs/specs/backend-setup.md`.
 
 ---
 
@@ -97,8 +103,16 @@ pnpm dev:web
 ### Server API (Hono) — port 3001
 
 ```bash
+# 1) Jalankan Postgres (Docker Desktop aktif)
+cd apps/server && docker compose up -d && cd ../..
+
+# 2) Env + migrasi
+copy apps/server\.env.example apps/server\.env
+pnpm --filter @dolenae/server db:migrate
+
+# 3) Jalankan
 pnpm dev:server
-# API di http://localhost:3001  (cek: http://localhost:3001/health)
+# API di http://localhost:3001  (cek: http://localhost:3001/api/health)
 ```
 
 Port server bisa diubah lewat env `PORT`.
@@ -153,10 +167,16 @@ PBL/
 - `docs/prd/product-overview.md` — product overview (baca dulu sebelum kerja).
 - `docs/specs/architecture.md` — struktur monorepo & arsitektur.
 - `docs/specs/data-model.md` — entitas domain.
+- `docs/specs/backend-setup.md` — backend (Hono + Drizzle + Postgres), kontrak
+  API, pagination, endpoint, cara menjalankan.
+- `docs/specs/web-admin.md` — halaman login & dashboard admin web.
 - `docs/specs/ui-ux-low-fi-system.md` — sistem desain low-fi.
 - `docs/specs/design-system-hifi.md` — design system hi-fi "Alam" di Figma.
 - `docs/specs/ui-ux-hifi-mobile.md` — layar hi-fi mobile.
 - `docs/specs/ui-ux-hifi-web.md` — layar hi-fi web publik (1440px).
+- `docs/specs/route-builder.md` — Route Builder admin (titik, ruas, jalur,
+  profil elevasi); layar Figma di deret `x=18300` page `Hi-Fi Web`.
+- `docs/decisions/` — ADR (mis. `ADR-0001-route-model.md`).
 - `DESIGN.md` — token warna, tipografi, spacing, radius, komponen.
 - `docs/skills/` — skill lokal (mis. `figma-cli`, `design-taste-frontend`).
 - `AGENTS.md` — aturan kerja untuk agent (konvensi, verifikasi, alur Figma).

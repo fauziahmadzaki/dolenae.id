@@ -240,6 +240,8 @@ Struktur page di file Figma:
 | `Lo-Fi Web - Admin Verifikasi (1440)` | `52:8053` | 1440×670 | 1540,4120 |
 | `Lo-Fi Web - Merchant Overview (1440)` | `52:8240` | 1440×987 | 0,5500 |
 | `Lo-Fi Web - Merchant Kelola Layanan (1440)` | `52:8427` | 1440×730 | 1540,5500 |
+| `Lo-Fi Web - Admin Detail Destinasi (1440)` | `165:6715` | 1440×1680 | 3080,4120 |
+| `Lo-Fi Web - Admin Detail Destinasi - Pratinjau (1440)` | `165:7143` | 1440×1479 | 4520,4120 |
 
 > Landing memuat 9 seksi: header, hero (search + CTA), filter bar, trending grid,
 > fasilitas sekitar, AI assistant, cara kerja (3 langkah), testimoni, footer.
@@ -273,3 +275,9 @@ sidebar 256px + topbar 64px + area konten (`padding 32`, `gap 24`).
 > tiap baris tabel) karena `render` gagal (`ReferenceError: frame is not
 > defined`) untuk JSX besar atau frame top-level dengan `w="fill"`. Bagian
 > di-append ke `Main`, lalu `Main` diberi `itemSpacing=24` dan `padding=32`.
+>
+> Layar **Admin Detail Destinasi** (+ Pratinjau) memakai app shell yang sama
+> (sidebar 256 + topbar 64, `Main` padding 32/gap 24, konten 1120) dengan tab
+> `Detail`/`Pratinjau`. Sidebar di-stretch penuh tinggi frame; item `Destinasi`
+> aktif. Pratinjau memuat hero `action-primary` + dua kolom (konten 700 +
+> panel 300) meniru tampilan publik.

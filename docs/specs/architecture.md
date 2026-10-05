@@ -9,6 +9,8 @@ Dokumen ini menjelaskan struktur monorepo dan arsitektur teknis Dolenae.id.
 | Mobile FE | Flutter (Android/iOS) |
 | Web FE | TanStack Start (React 19, TanStack Router, Vite) |
 | Backend | Hono (Node.js) + TypeScript |
+| Database | PostgreSQL 16 (Docker) + Drizzle ORM |
+| Auth | JWT (`hono/jwt`) |
 | Shared | `packages/types` (shared TS types), `packages/seed` (data dummy) |
 | Package manager | pnpm workspace |
 
@@ -55,8 +57,11 @@ PBL/
 
 ## Status Build
 
-- **Fase 1 (sekarang):** scaffold monorepo + shared types + seed + skeleton
-  app (web/server/mobile).
+- **Fase 1:** scaffold monorepo + shared types + seed + skeleton app
+  (web/server/mobile). ✅
+- **Fase 1.5 (sekarang):** fondasi backend — Postgres + Drizzle, envelope API,
+  global error handler, pagination, routing, middleware, JWT auth, service
+  user (register/login/me). Lihat `docs/specs/backend-setup.md`. ✅
 - **Fase 2:** web menyusul (landing, dashboard admin/merchant).
 - **Fase 3:** mobile flow discovery end-to-end.
 - **Fase 4:** AI recommendation (rule-based + adapter LLM opsional).

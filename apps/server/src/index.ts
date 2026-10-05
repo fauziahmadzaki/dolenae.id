@@ -1,71 +1,28 @@
-import { Hono } from "hono";
 import { serve } from "@hono/node-server";
-import { cors } from "hono/cors";
-import { logger } from "hono/logger";
-import {
-  getSeedData,
-  seedDestinations,
-  seedTravelSupports,
-} from "@dolenae/seed";
+import { app } from "./app";
+import { loadEnv } from "./config/env";
+import { closeDatabase, pingDatabase } from "./db/client";
 
-const app = new Hono();
+const env = loadEnv();
 
-app.use("*", logger());
-app.use(
-  "*",
-  cors({
-    origin: "*",
-  }),
-);
-
-app.get("/", (c) =>
-  c.json({
-    service: "Dolenae API",
-    version: "0.1.0",
-    note: "Static prototype - data served from @dolenae/seed",
-    endpoints: [
-      "GET /health",
-      "GET /destinations",
-      "GET /destinations/:slug",
-      "GET /supports",
-      "GET /supports?destinationId=:id",
-    ],
-  }),
-);
-
-app.get("/health", (c) => c.json({ status: "ok" }));
-
-app.get("/destinations", (c) => {
-  const seed = getSeedData();
-  const destinations = Object.values(seed.destinations);
-  return c.json(destinations);
-});
-
-app.get("/destinations/:slug", (c) => {
-  const slug = c.req.param("slug");
-  const destination = Object.values(seedDestinations).find(
-    (d) => d.slug === slug,
-  );
-  if (!destination) return c.json({ error: "Destination not found" }, 404);
-
-  const supports = Object.values(seedTravelSupports).filter(
-    (s) => s.destinationId === destination.id,
-  );
-  return c.json({ ...destination, supports });
-});
-
-app.get("/supports", (c) => {
-  const destinationId = c.req.query("destinationId");
-  let supports = Object.values(seedTravelSupports);
-  if (destinationId) supports = supports.filter((s) => s.destinationId === destinationId);
-  return c.json(supports);
-});
-
-const port = Number(process.env.PORT) || 3001;
-
-serve({
+const server = serve({
   fetch: app.fetch,
-  port,
+  port: env.PORT,
 });
 
-console.log(`Dolenae API running at http://localhost:${port}`);
+console.log(`Dolenae API running at http://localhost:${env.PORT} (${env.NODE_ENV})`);
+
+void pingDatabase().then((ok) => {
+  console.log(ok ? "Database: terhubung" : "Database: TIDAK terhubung (cek DATABASE_URL / docker compose)");
+});
+
+// Shutdown rapi
+const shutdown = async (signal: string) => {
+  console.log(`\n${signal} diterima, menutup server...`);
+  server.close();
+  await closeDatabase();
+  process.exit(0);
+};
+
+process.on("SIGINT", () => void shutdown("SIGINT"));
+process.on("SIGTERM", () => void shutdown("SIGTERM"));

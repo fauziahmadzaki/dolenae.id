@@ -135,6 +135,13 @@ Node   : <Rect .../>, <Ellipse .../>, <Image .../>
 
 **Yang sering bikin bug:**
 
+- **Windows PowerShell menghapus tanda kutip ganda.** Saat `render` dipanggil
+  dari PowerShell, argumen JSX sampai ke `node` dengan `"` hilang, sehingga
+  atribut string (`name="X"`, `flex="row"`, `bg="var:..."`) **diabaikan
+  diam-diam** sementara nilai `{...}` tetap jalan — gejala: frame jadi bernama
+  `Frame` dan semua kolom menumpuk **vertikal**. Solusi: tulis **semua nilai
+  string dengan `{...}`** (`flex={row}`, `bg={var:surface}`, `name={Header}`,
+  `w={fill}`), bukan `="..."`.
 - **Font pakai `font="Inter"`** — BUKAN `fontFamily`. `fontFamily` diabaikan
   diam-diam.
 - **Shadow harus format** `0 y blur #RRGGBBAA` — `rgba(...)` bikin parser JSX
