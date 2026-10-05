@@ -163,6 +163,14 @@ Dengan demikian, Dolenae bukan hanya membantu wisatawan menentukan **"mau ke man
 6. **Trip Planning**  
    Membantu pengguna menyusun dan menyimpan rencana perjalanan berdasarkan destinasi dan kebutuhan yang telah dipilih.
 
+7. **Route & Elevation**  
+   Menyediakan informasi jalur menuju/seputar destinasi dalam bentuk jaringan
+   **titik** (basecamp, pos, puncak) dan **ruas** (kategori permukaan &
+   kecuraman, serta moda yang bisa lewat), beserta **profil elevasi** tiap
+   jalur. Admin mengelola data ini lewat **Route Builder**; pengguna melihat
+   jalur dan grafik elevasi sebagai bagian dari persiapan perjalanan.
+   (Peta tetap informatif — bukan navigasi/GPS.)
+
 ### Out of Scope
 
 Untuk menjaga fokus produk, Dolenae **bukan**:
