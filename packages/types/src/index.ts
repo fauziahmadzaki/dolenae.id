@@ -36,4 +36,31 @@ export type {
   RecommendationKind,
   RuleScore,
 } from "./ai";
+export type { AppNotification, NotificationKind } from "./notification";
+export type {
+  SavedDestination,
+  SavedTripPlan,
+  SavedChecklist,
+  SavedPlanStatus,
+} from "./saved";
+export type { FacilityProposal, ProposalStatus } from "./facility-proposal";
+export type { FaqItem, FaqCategory } from "./faq";
+export type {
+  AppSettings,
+  ThemePreference,
+  LanguagePreference,
+  NotificationPreferences,
+  PrivacySettings,
+  ActiveDevice,
+} from "./settings";
+export type {
+  SearchFilter,
+  SortOption,
+  DifficultyFilter,
+  defaultSearchFilter,
+} from "./search";
+export type {
+  FeedbackSubmission,
+  FeedbackCategory,
+} from "./feedback";
 export type { ID, ISODateString } from "./common";

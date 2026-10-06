@@ -18,10 +18,18 @@ import 'package:dolenae_mobile/src/features/onboarding/presentation/splash_scree
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:provider/provider.dart';
+
+import 'package:dolenae_mobile/src/app/state/dolenae_store.dart';
 
 const _phone = Size(390, 844);
 
-Widget _wrap(Widget child) => MaterialApp(home: child);
+/// Bungkus layar dengan [DolenaeStore] agar layar yang membaca state
+/// lintas layar, misalnya Jelajah dan Beranda, bisa diuji sendirian.
+Widget _wrap(Widget child) => ChangeNotifierProvider<DolenaeStore>(
+  create: (_) => DolenaeStore(),
+  child: MaterialApp(home: child),
+);
 
 void main() {
   setUpAll(() {
@@ -69,8 +77,9 @@ void main() {
     await tester.binding.setSurfaceSize(_phone);
     addTearDown(() => tester.binding.setSurfaceSize(null));
     await tester.pumpWidget(_wrap(const ExploreScreen()));
+    await tester.pumpAndSettle();
     expect(find.text('Jelajahi'), findsOneWidget);
-    expect(find.text('Gunung Bromo'), findsOneWidget);
+    expect(find.text('Gunung Bromo'), findsWidgets);
   });
 
   testWidgets('Detail Destinasi menampilkan spesifikasi dan CTA', (tester) async {

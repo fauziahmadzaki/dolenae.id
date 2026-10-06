@@ -10,6 +10,8 @@ import '../../../data/seed/seed_data.dart';
 import '../../../shared/widgets/dn_activity_tile.dart';
 import '../../../shared/widgets/dn_ai_card.dart';
 import '../../../shared/widgets/dn_bottom_nav.dart';
+import '../../../shared/widgets/dn_buttons.dart';
+import '../../../shared/widgets/dn_empty_state.dart';
 import '../../../shared/widgets/dn_card.dart';
 import '../../../shared/widgets/dn_chip.dart';
 import '../../../shared/widgets/dn_destination_card.dart';
@@ -20,7 +22,19 @@ import '../../../shared/widgets/dn_support_card.dart';
 
 /// Beranda wisatawan.
 class BerandaScreen extends StatelessWidget {
-  const BerandaScreen({super.key});
+  const BerandaScreen({
+    super.key,
+    this.hasError = false,
+    this.onRetry,
+    this.onReload,
+  });
+
+  /// Menampilkan state `Gagal memuat beranda` (`101:243`).
+  final bool hasError;
+
+  /// Aksi CTA "Coba lagi" dan ghost "Muat ulang".
+  final VoidCallback? onRetry;
+  final VoidCallback? onReload;
 
   void _onTab(BuildContext context, DnTab tab) {
     switch (tab) {
@@ -29,7 +43,7 @@ class BerandaScreen extends StatelessWidget {
       case DnTab.jelajah:
         context.go('/explore');
       case DnTab.ai:
-        context.go('/soon?tab=AI');
+        context.go('/ai/preferences');
       case DnTab.rencana:
         context.go('/plan');
       case DnTab.profil:
@@ -48,6 +62,12 @@ class BerandaScreen extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   const _Header(),
+                  if (hasError)
+                    _loadError(
+                      onRetry: onRetry ?? () {},
+                      onReload: onReload ?? () {},
+                    )
+                  else ...[
                   _search(context),
                   _chips(context),
                   Padding(
@@ -56,7 +76,7 @@ class BerandaScreen extends StatelessWidget {
                       title: 'Siapkan perjalananmu dengan AI',
                       body:
                           'Ceritakan rencanamu, Dolenae menyusun checklist dan gambaran kondisi perjalanan.',
-                      onPressed: () => context.go('/soon?tab=AI'),
+                      onPressed: () => context.go('/ai/preferences'),
                     ),
                   ),
                   _popular(context),
@@ -65,6 +85,7 @@ class BerandaScreen extends StatelessWidget {
                   _help(),
                   _ctaBand(context),
                   const SizedBox(height: AppSpacing.s6),
+                  ],
                 ],
               ),
             ),
@@ -73,6 +94,37 @@ class BerandaScreen extends StatelessWidget {
             active: DnTab.beranda,
             onTap: (tab) => _onTab(context, tab),
           ),
+        ],
+      ),
+    );
+  }
+
+  /// State `Gagal memuat beranda` (`101:243`): header pine tetap tampil,
+  /// hanya isi beranda yang diganti panel kegagalan.
+  Widget _loadError({
+    required VoidCallback onRetry,
+    required VoidCallback onReload,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(
+        AppSpacing.s5,
+        AppSpacing.s8,
+        AppSpacing.s5,
+        AppSpacing.s6,
+      ),
+      child: Column(
+        children: [
+          DnEmptyState(
+            icon: AppIcons.cloudOff,
+            iconColor: AppColors.danger,
+            title: 'Gagal memuat beranda',
+            body: 'Kami tidak bisa mengambil destinasi populer dan fasilitas '
+                'terbaru. Periksa koneksi internet lalu coba lagi.',
+            actionLabel: 'Coba lagi',
+            onAction: onRetry,
+          ),
+          const SizedBox(height: AppSpacing.s2),
+          DnGhostButton(label: 'Muat ulang', onPressed: onReload),
         ],
       ),
     );

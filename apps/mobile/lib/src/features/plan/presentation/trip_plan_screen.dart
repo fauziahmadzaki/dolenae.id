@@ -39,7 +39,7 @@ class TripPlanScreen extends StatelessWidget {
       case DnTab.jelajah:
         context.go('/explore');
       case DnTab.ai:
-        context.go('/soon?tab=AI');
+        context.go('/ai/preferences');
       case DnTab.rencana:
         context.go('/plan');
       case DnTab.profil:
@@ -98,7 +98,7 @@ class TripPlanScreen extends StatelessWidget {
               children: [
                 Text(plan.title, style: AppTextStyles.title),
                 InkWell(
-                  onTap: onEditTrip ?? () => context.push('/soon?tab=UbahRencana'),
+                  onTap: onEditTrip ?? () => context.push('/plan/new'),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [

@@ -566,7 +566,7 @@ class DestinationDetailScreen extends StatelessWidget {
           DnSectionHeader(
             title: 'Kebutuhan pendukung',
             actionLabel: 'Lihat semua',
-            onAction: () => context.push('/soon?tab=Fasilitas'),
+            onAction: () => context.push('/facilities'),
           ),
           const SizedBox(height: AppSpacing.s2),
           _buildSupportRow(

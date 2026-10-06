@@ -44,7 +44,7 @@ class ProfileScreen extends StatelessWidget {
       case DnTab.jelajah:
         context.go('/explore');
       case DnTab.ai:
-        context.go('/soon?tab=AI');
+        context.go('/ai/preferences');
       case DnTab.rencana:
         context.go('/plan');
       case DnTab.profil:

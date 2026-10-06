@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../app/theme/app_colors.dart';
 import '../../app/theme/app_radius.dart';
 import '../../app/theme/app_spacing.dart';
+import '../../app/theme/app_text_styles.dart';
 
 /// Chip kategori/tag. `active` memakai `primary` + teks `on-primary`.
 class DnChip extends StatelessWidget {
@@ -46,8 +47,9 @@ class DnChip extends StatelessWidget {
               ],
               Text(
                 label,
-                style: TextStyle(
-                  fontSize: 12,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: AppTextStyles.labelSm.copyWith(
                   fontWeight: active ? FontWeight.w600 : FontWeight.w500,
                   color: fg,
                 ),

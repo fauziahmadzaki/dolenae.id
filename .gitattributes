@@ -1,0 +1,23 @@
+# Normalisasi line ending.
+#
+# Tanpa aturan ini, setiap `git status` di Windows lewat WSL menandai 231 berkas
+# sebagai termodifikasi padahal isinya tidak berubah: index menyimpan LF,
+# working tree berisi CRLF, sehingga diff itu menutupi perubahan yang sebenarnya.
+#
+# `text=auto` membuat git mendeteksi teks vs biner sendiri, jadi font .ttf,
+# gambar, dan .ico tetap utuh. `eol=lf` menyimpan LF di repository dan
+# menulis LF di working tree juga di Windows, supaya diff antar platform tidak
+# pernah muncul sendiri.
+* text=auto eol=lf
+
+# Berkas yang tidak boleh disentuh normalisasi.
+*.ttf binary
+*.otf binary
+*.ico  binary
+*.png  binary
+*.jpg  binary
+*.jpeg binary
+*.webp binary
+*.pdf  binary
+*.zip  binary
+*.jar  binary
