@@ -1,8 +1,0 @@
-packages:
-  - "apps/*"
-  - "packages/*"
-
-allowBuilds:
-  esbuild: true
-  "@tailwindcss/oxide": true
-  "@rolldown/binding-win32-x64-msvc": true
