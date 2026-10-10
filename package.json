@@ -4,12 +4,10 @@
   "private": true,
   "description": "Dolenae.id - travel discovery & trip preparation platform",
   "scripts": {
-    "dev:web": "pnpm --filter @dolenae/frontend dev",
-    "dev:api": "pnpm --filter @dolenae/backend dev",
+    "dev:api": "pnpm -C apps/backend dev",
+    "dev:web": "pnpm -C apps/frontend dev",
     "dev:mobile": "echo \"see apps/mobile - run with Flutter tools\"",
-    "build": "pnpm -r build",
-    "typecheck": "pnpm -r typecheck",
-    "lint": "pnpm -r lint"
+    "typecheck:api": "pnpm -C apps/backend typecheck"
   },
   "devDependencies": {
     "typescript": "^5.7.3"
