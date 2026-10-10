@@ -23,9 +23,17 @@ Autentikasi lengkap (BE + FE) berbasis JWT sebagai pintu masuk area admin.
 
 ## Frontend
 
-- [ ] `app/login/page.tsx` + `login-form`.
-- [ ] `AuthProvider` / `useAuth` + session store (`localStorage`).
-- [ ] Redirect ke `/admin` setelah login berhasil.
+- [x] Slicing "Hi-Fi Web - Masuk (1440)" ke `src/features/auth/` (`api/types/hooks/components/pages`) + route `app/auth/login/page.tsx` → URL `/auth/login` (sesuai tiket SCRUM-8).
+- [x] `useAuth` + session store (`localStorage`; `sessionStorage` bila "Ingat saya" tidak dicentang).
+- [x] Redirect ke `/admin` setelah login berhasil.
+- [ ] Halaman `/auth/register` & `/auth/forgot-password` — menyusul (tab & link sudah mengarah).
+- [ ] Login Google (GSI → `POST /api/auth/google`) — butuh `GOOGLE_CLIENT_ID`; tombol sudah tampil.
+
+> **Catatan (SCRUM-8):** dikerjakan **Adi** (per Jira). `auth/api/login.ts` memakai
+> server action (`"use server"`) sesuai tiket; `auth/hooks` = validasi zod +
+> interaksi; `auth/pages/login-page.tsx` di-export default lalu dipanggil
+> `app/auth/login/page.tsx`. Desain dari file Figma "UI UX Dolenae.id" →
+> page "Hi-Fi Web" → frame "Masuk" (`89:3328`).
 
 ## Rencana Commit
 
