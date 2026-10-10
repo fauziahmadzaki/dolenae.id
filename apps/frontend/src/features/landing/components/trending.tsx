@@ -5,7 +5,7 @@ import { DestinationCard } from "./destination-card";
 
 export function Trending() {
   return (
-    <section className="bg-canvas py-24">
+    <section id="destinations" className="bg-canvas py-24">
       <div className="mx-auto max-w-[1200px] px-6">
         <div className="mb-8 flex items-end justify-between gap-4">
           <div>

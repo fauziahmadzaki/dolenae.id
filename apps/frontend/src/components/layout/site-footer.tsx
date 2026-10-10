@@ -1,4 +1,17 @@
+import Link from "next/link";
 import { Mountain } from "lucide-react";
+
+const publicLinks: Record<string, string> = {
+  "Destinasi": "/#destinations",
+  "Fasilitas Sekitar": "/#support",
+  "Persiapan AI": "/#ai",
+  "Pusat Bantuan": "/bantuan",
+  "Kirim Masukan": "/kontak",
+  "Privasi & Keamanan": "/privasi-keamanan",
+  "Tentang Kami": "/tentang-kami",
+  "Kontak": "/kontak",
+  "Karier": "/karier",
+};
 import { footerColumns } from "~/features/landing/data";
 
 export function SiteFooter() {
@@ -28,9 +41,7 @@ export function SiteFooter() {
             <ul className="flex flex-col gap-2">
               {col.links.map((link) => (
                 <li key={link}>
-                  <span className="text-sm text-on-primary/85 hover:text-on-primary">
-                    {link}
-                  </span>
+                  {publicLinks[link] ? <Link href={publicLinks[link]} className="text-sm text-on-primary/85 hover:text-on-primary hover:underline">{link}</Link> : <span className="text-sm text-on-primary/85" title="Fitur belum tersedia">{link}</span>}
                 </li>
               ))}
             </ul>

@@ -28,14 +28,26 @@ export function SiteHeader() {
         </nav>
 
         <div className="flex items-center gap-2">
+          <details className="relative lg:hidden">
+            <summary className="cursor-pointer rounded-md px-2 py-2 text-sm font-semibold text-primary">Menu</summary>
+            <nav aria-label="Navigasi seluler" className="absolute right-0 top-full z-50 flex w-56 flex-col gap-4 rounded-lg border border-hairline bg-surface p-5 shadow-md">
+              {navItems.map((item) => <Link key={item.label} href={item.href} className="text-sm text-body hover:underline">{item.label}</Link>)}
+              <Link href="/bantuan" className="text-sm text-body">Pusat Bantuan</Link>
+              <Link href="/kontak" className="text-sm text-body">Kontak</Link>
+              <Link href="/karier" className="text-sm text-body">Karier</Link>
+              <Link href="/privasi-keamanan" className="text-sm text-body">Privasi &amp; Keamanan</Link>
+            </nav>
+          </details>
           <Link
             href="/login"
+            prefetch={false}
             className="hidden h-10 items-center px-4 text-sm font-semibold text-primary hover:underline sm:inline-flex"
           >
             Masuk
           </Link>
           <Link
             href="/register"
+            prefetch={false}
             className="inline-flex h-10 items-center rounded-full bg-primary px-5 text-sm font-semibold text-on-primary transition-colors hover:bg-primary-hover"
           >
             Daftar
