@@ -48,10 +48,10 @@ export const userService = {
   },
 
   async list(
-    query: PaginationQuery,
+    query: PaginationQuery & { role?: UserRole },
   ): Promise<{ items: PublicUser[]; meta: ApiMeta }> {
     const pagination = toPagination(query);
-    const { items, total } = await userRepository.list(pagination);
+    const { items, total } = await userRepository.list({ ...pagination, role: query.role });
     const meta = buildMeta(total, query.page, query.limit);
     return { items: items.map(toPublicUser), meta };
   },

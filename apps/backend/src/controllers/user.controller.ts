@@ -5,14 +5,14 @@ import {
   type CreateUserDto,
   type UpdateUserDto,
 } from "../services/user.service";
-import type { PaginationQuery } from "../utils/pagination";
+import type { UserListQuery } from "./user.schema";
 import { ok } from "../utils/response";
 
 export const userController = {
   /** GET /api/users — daftar pengguna dengan pagination & pencarian. */
   list: (async (req, res, next) => {
     try {
-      const query = getValidated<PaginationQuery>(req, "query");
+      const query = getValidated<UserListQuery>(req, "query");
       const result = await userService.list(query);
       return ok(res, result.items, result.meta);
     } catch (err) {
@@ -58,7 +58,7 @@ export const userController = {
   delete: (async (req, res, next) => {
     try {
       const params = getValidated<{ id: string }>(req, "params");
-      const currentUserId = (req as { user?: { id: string } }).user?.id;
+      const currentUserId = req.user?.id;
       const result = await userService.delete(params.id, currentUserId);
       return ok(res, result);
     } catch (err) {

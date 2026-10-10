@@ -1,18 +1,21 @@
 import { Router } from "express";
 import { userController } from "../controllers/user.controller";
 import {
+  userListQuerySchema,
   createUserSchema,
   updateUserSchema,
   userIdParamsSchema,
 } from "../controllers/user.schema";
 import { validate } from "../middleware/validate";
-import { paginationSchema } from "../utils/pagination";
+
+import { authRequired, requireRole } from "../middleware/auth";
 
 export const userRouter = Router();
+userRouter.use(authRequired, requireRole("admin"));
 
 userRouter.get(
   "/",
-  validate({ query: paginationSchema }),
+  validate({ query: userListQuerySchema }),
   userController.list,
 );
 

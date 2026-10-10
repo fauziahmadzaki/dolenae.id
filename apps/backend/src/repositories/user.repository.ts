@@ -1,36 +1,27 @@
 import { and, asc, count, desc, eq, ilike, or, sql } from "drizzle-orm";
 import { getDb } from "../db/client";
-import { users, type NewUserRow, type UserRole, type UserRow } from "../db/schema";
+import { users, type NewUserRow, type UserRow } from "../db/schema";
+
 import type { Pagination } from "../utils/pagination";
+export type UpdateUserInput = UserPatch;
 
-export interface CreateUserInput {
-  name: string;
-  email: string;
-  passwordHash: string;
-  role?: UserRole;
-}
+/** Fields a caller may update after the user exists. */
+export type UserPatch = Partial<
+  Pick<
+    NewUserRow,
+    | "email"
+    | "name"
+    | "passwordHash"
+    | "role"
+    | "provider"
+    | "googleId"
+    | "avatarUrl"
+    | "emailVerifiedAt"
+    | "lastLoginAt"
+  >
+>;
 
-export interface UpdateUserInput {
-  name?: string;
-  email?: string;
-  passwordHash?: string;
-  role?: UserRole;
-}
-
-/** Akses data PostgreSQL via Drizzle untuk entitas `users`. */
 export const userRepository = {
-  async findById(id: string): Promise<UserRow | null> {
-    const db = getDb();
-    const row = await db.query.users.findFirst({ where: eq(users.id, id) });
-    return row ?? null;
-  },
-
-  async findByEmail(email: string): Promise<UserRow | null> {
-    const db = getDb();
-    const row = await db.query.users.findFirst({ where: eq(users.email, email) });
-    return row ?? null;
-  },
-
   async emailExists(email: string): Promise<boolean> {
     const db = getDb();
     const [row] = await db
@@ -41,28 +32,64 @@ export const userRepository = {
     return Boolean(row);
   },
 
-  async create(input: CreateUserInput): Promise<UserRow> {
-    const db = getDb();
-    const values: NewUserRow = {
-      name: input.name,
-      email: input.email,
-      passwordHash: input.passwordHash,
-      role: input.role ?? "wisatawan",
-    };
-    const [row] = await db.insert(users).values(values).returning();
-    if (!row) throw new Error("Gagal membuat user");
+
+  async findByEmail(email: string): Promise<UserRow | undefined> {
+    const [row] = await getDb()
+      .select()
+      .from(users)
+      .where(eq(users.email, email))
+      .limit(1);
     return row;
   },
 
+  async findById(id: string): Promise<UserRow | undefined> {
+    const [row] = await getDb()
+      .select()
+      .from(users)
+      .where(eq(users.id, id))
+      .limit(1);
+    return row;
+  },
+
+  async findByGoogleId(googleId: string): Promise<UserRow | undefined> {
+    const [row] = await getDb()
+      .select()
+      .from(users)
+      .where(eq(users.googleId, googleId))
+      .limit(1);
+    return row;
+  },
+
+  async create(data: NewUserRow): Promise<UserRow> {
+    const [row] = await getDb().insert(users).values(data).returning();
+    return row!;
+  },
+
+  async update(id: string, patch: UserPatch): Promise<UserRow | undefined> {
+    const [row] = await getDb()
+      .update(users)
+      .set({ ...patch, updatedAt: new Date() })
+      .where(eq(users.id, id))
+      .returning();
+    return row;
+  },
+
+  async touchLastLogin(id: string): Promise<void> {
+    await getDb()
+      .update(users)
+      .set({ lastLoginAt: new Date(), updatedAt: new Date() })
+      .where(eq(users.id, id));
+  },
   async list(
-    params: Pagination,
+    params: Pagination & { role?: UserRow["role"] },
   ): Promise<{ items: UserRow[]; total: number }> {
     const db = getDb();
     const { limit, offset, sort, order, search } = params;
 
-    const where = search
-      ? or(ilike(users.name, `%${search}%`), ilike(users.email, `%${search}%`))
-      : undefined;
+    const where = and(
+      search ? or(ilike(users.name, `%${search}%`), ilike(users.email, `%${search}%`)) : undefined,
+      params.role ? eq(users.role, params.role) : undefined,
+    );
 
     const sortable = {
       createdAt: users.createdAt,
@@ -89,23 +116,6 @@ export const userRepository = {
       .where(where ? and(where) : undefined);
 
     return { items: rows, total: Number(totalRow?.value ?? 0) };
-  },
-
-  async update(id: string, input: UpdateUserInput): Promise<UserRow | null> {
-    const db = getDb();
-    const values: Partial<NewUserRow> = {
-      ...(input.name !== undefined && { name: input.name }),
-      ...(input.email !== undefined && { email: input.email }),
-      ...(input.passwordHash !== undefined && { passwordHash: input.passwordHash }),
-      ...(input.role !== undefined && { role: input.role }),
-      updatedAt: new Date(),
-    };
-    const [row] = await db
-      .update(users)
-      .set(values)
-      .where(eq(users.id, id))
-      .returning();
-    return row ?? null;
   },
 
   async delete(id: string): Promise<boolean> {

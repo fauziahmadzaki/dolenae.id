@@ -1,41 +1,39 @@
-import { randomBytes, scrypt as scryptCallback, timingSafeEqual } from "node:crypto";
+import {
+  randomBytes,
+  scrypt as scryptCallback,
+  timingSafeEqual,
+} from "node:crypto";
 import { promisify } from "node:util";
 
-const scrypt = promisify(scryptCallback);
+const scrypt = promisify(scryptCallback) as (
+  password: string | Buffer,
+  salt: string | Buffer,
+  keylen: number,
+) => Promise<Buffer>;
 
+const PREFIX = "scrypt";
 const KEY_LENGTH = 64;
 const SALT_LENGTH = 16;
 
-/**
- * Hash password menggunakan scrypt bawaan node:crypto.
- * Format tersimpan: `scrypt$<salt-hex>$<hash-hex>`.
- */
+/** Hash a plaintext password with scrypt. Format: `scrypt$<saltHex>$<hashHex>`. */
 export async function hashPassword(password: string): Promise<string> {
   const salt = randomBytes(SALT_LENGTH);
-  const derived = (await scrypt(password, salt, KEY_LENGTH)) as Buffer;
-  return `scrypt$${salt.toString("hex")}$${derived.toString("hex")}`;
+  const derived = await scrypt(password, salt, KEY_LENGTH);
+  return `${PREFIX}$${salt.toString("hex")}$${derived.toString("hex")}`;
 }
 
-/**
- * Verifikasi password plain teks terhadap hash scrypt.
- */
+/** Verify a plaintext password against a stored scrypt hash. */
 export async function verifyPassword(
   password: string,
-  storedHash: string,
+  stored: string,
 ): Promise<boolean> {
-  const parts = storedHash.split("$");
-  if (parts.length !== 3 || parts[0] !== "scrypt") {
-    return false;
-  }
-  const [, saltHex, hashHex] = parts;
-  if (!saltHex || !hashHex) return false;
+  const parts = stored.split("$");
+  if (parts.length !== 3 || parts[0] !== PREFIX) return false;
 
-  const salt = Buffer.from(saltHex, "hex");
-  const expected = Buffer.from(hashHex, "hex");
-  const derived = (await scrypt(password, salt, expected.length)) as Buffer;
+  const salt = Buffer.from(parts[1]!, "hex");
+  const expected = Buffer.from(parts[2]!, "hex");
+  if (salt.length === 0 || expected.length !== KEY_LENGTH) return false;
 
-  if (derived.length !== expected.length) {
-    return false;
-  }
-  return timingSafeEqual(derived, expected);
+  const derived = await scrypt(password, salt, expected.length);
+  return derived.length === expected.length && timingSafeEqual(derived, expected);
 }
