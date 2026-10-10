@@ -1,0 +1,37 @@
+// Mocked API UI smoke test. Start frontend on :3000; set PLAYWRIGHT_MODULE to installed Playwright module.
+// Run from a scratch directory: node <repo>/apps/frontend/tests/users.browser.cjs
+const {chromium}=require(process.env.PLAYWRIGHT_MODULE || 'playwright');
+const assert=require('node:assert/strict');
+(async()=>{
+ const browser=await chromium.launch({channel:'chrome',headless:true});
+ const context=await browser.newContext({viewport:{width:1440,height:865}});
+ const page=await context.newPage(); const errors=[];page.on('pageerror',e=>errors.push(e.message));
+ await page.goto('http://localhost:3000/admin/users');await page.waitForURL('**/auth/login');console.log('PASS anonymous redirects login');
+ const admin={id:'87654321-4321-4321-a321-1234567890ab',name:'Test Admin',email:'admin@example.com',role:'admin',provider:'local',avatarUrl:null};
+ await page.evaluate(u=>localStorage.setItem('dolenae.auth.session',JSON.stringify({token:'explicit-mocked-token',user:u})),admin);
+ let users=Array.from({length:7},(_,i)=>({id:`12345678-1234-4234-a234-1234567890a${i}`,name:`User Test ${i}`,email:`user${i}@example.com`,role:i%2?'merchant':'wisatawan',createdAt:'2026-10-10T00:00:00Z',updatedAt:'2026-10-10T00:00:00Z'}));
+ const requests=[];
+ await page.route('http://localhost:3001/api/users**',async route=>{
+  const req=route.request(),url=new URL(req.url());requests.push([req.method(),url.pathname,url.search]);assert.equal(req.headers().authorization,'Bearer explicit-mocked-token');
+  let data,meta,status=200;
+  if(req.method()==='GET'&&url.pathname==='/api/users'){let result=users.filter(u=>(!url.searchParams.get('search')||u.name.includes(url.searchParams.get('search')))&&(!url.searchParams.get('role')||u.role===url.searchParams.get('role')));let p=Number(url.searchParams.get('page'));data=result.slice((p-1)*6,p*6);meta={total:result.length,totalPages:Math.max(1,Math.ceil(result.length/6)),page:p,limit:6};}
+  else if(req.method()==='POST'){const body=req.postDataJSON();if(users.some(u=>u.email===body.email)){await route.fulfill({status:409,json:{success:false,error:{code:'CONFLICT',message:'Email sudah terdaftar'}}});return;}data={...body,id:'99999999-1234-4234-a234-1234567890ab',createdAt:'2026-10-10T00:00:00Z',updatedAt:'2026-10-10T00:00:00Z'};delete data.password;users.push(data);status=201;}
+  else {const id=url.pathname.split('/').pop();data=users.find(u=>u.id===id);if(req.method()==='PATCH')Object.assign(data,req.postDataJSON());if(req.method()==='DELETE'){users=users.filter(u=>u.id!==id);data={id,deleted:true};}}
+  await route.fulfill({status,json:{success:true,data,meta}});
+ });
+ await page.goto('http://localhost:3000/admin/users');await page.getByText('7 pengguna',{exact:true}).waitFor();console.log('PASS list Bearer + total');
+ await page.getByRole('button',{name:'Halaman berikutnya'}).click();await page.getByText('User Test 6',{exact:true}).waitFor();assert.equal(await page.locator('tbody tr').count(),1);console.log('PASS server pagination');
+ await page.getByLabel('Cari pengguna',{exact:true}).fill('User Test 2');await page.getByText('1 pengguna',{exact:true}).waitFor();await page.getByText('User Test 2',{exact:true}).click();await page.getByRole('dialog').getByText('Detail pengguna').waitFor();await page.getByRole('button',{name:'Tutup',exact:true}).click();console.log('PASS search + detail API');
+ await page.getByLabel('Cari pengguna',{exact:true}).fill('');await page.getByLabel('Filter role').selectOption('merchant');await page.getByText('3 pengguna',{exact:true}).waitFor();assert.equal(await page.locator('tbody tr').count(),3);await page.getByLabel('Filter role').selectOption('');console.log('PASS role server filter');
+ await page.getByRole('button',{name:'Tambah pengguna',exact:true}).click();await page.getByRole('button',{name:'Simpan',exact:true}).click();await page.getByText('Nama minimal 2 karakter',{exact:true}).waitFor();console.log('PASS form validation');
+ await page.getByLabel('Nama',{exact:true}).fill('New User');await page.getByLabel('Email',{exact:true}).fill('user0@example.com');await page.getByLabel('Kata sandi',{exact:true}).fill('password123');await page.getByRole('button',{name:'Simpan',exact:true}).click();await page.getByText('Email sudah terdaftar',{exact:true}).waitFor();console.log('PASS API conflict preserves dialog');
+ await page.getByLabel('Email',{exact:true}).fill('new@example.com');await page.getByRole('button',{name:'Simpan',exact:true}).click();await page.getByText('8 pengguna',{exact:true}).waitFor();console.log('PASS create + invalidate');
+ await page.getByLabel('Cari pengguna',{exact:true}).fill('New User');await page.getByRole('button',{name:'Edit New User',exact:true}).click();await page.getByLabel('Nama',{exact:true}).fill('Updated User');await page.getByRole('button',{name:'Simpan',exact:true}).click();await page.getByLabel('Cari pengguna',{exact:true}).fill('Updated User');await page.getByText('Updated User',{exact:true}).waitFor();console.log('PASS update');
+ await page.getByRole('button',{name:'Hapus Updated User',exact:true}).click();await page.getByRole('button',{name:'Batal',exact:true}).click();assert.equal(users.length,8);await page.getByRole('button',{name:'Hapus Updated User',exact:true}).click();await page.getByRole('button',{name:'Hapus permanen',exact:true}).click();await page.getByText('Tidak ada pengguna',{exact:true}).waitFor();assert.equal(users.length,7);console.log('PASS delete cancel + confirm + empty');
+ await page.getByLabel('Cari pengguna',{exact:true}).fill('');await page.getByRole('button',{name:'Card',exact:true}).click();await page.locator('article').first().waitFor();await page.getByRole('button',{name:'Tabel',exact:true}).click();await page.screenshot({path:'scrum11-desktop.png'});console.log('PASS card/table');
+ const missing=await page.locator('img').evaluateAll(imgs=>imgs.filter(i=>!i.complete||!i.naturalWidth).map(i=>i.src));assert.deepEqual(missing,[]);console.log('PASS all local SVG assets loaded');
+ await page.setViewportSize({width:390,height:844});await page.screenshot({path:'scrum11-mobile.png'});assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);console.log('PASS mobile no page overflow');
+ await page.evaluate(u=>localStorage.setItem('dolenae.auth.session',JSON.stringify({token:'explicit-mocked-token',user:{...u,role:'wisatawan'}})),admin);await page.reload();await page.getByRole('heading',{name:'Akses ditolak'}).waitFor();console.log('PASS nonadmin denied');
+ await page.evaluate(u=>localStorage.setItem('dolenae.auth.session',JSON.stringify({token:'explicit-mocked-token',user:u})),admin);await page.unroute('http://localhost:3001/api/users**');await page.route('http://localhost:3001/api/users**',r=>r.fulfill({status:401,json:{success:false,error:{code:'UNAUTHORIZED',message:'Expired'}}}));await page.reload();await page.waitForURL('**/auth/login');assert.equal(await page.evaluate(()=>localStorage.getItem('dolenae.auth.session')),null);console.log('PASS expired auth clears session + redirect');
+ assert.deepEqual(errors,[]);console.log('PASS no runtime errors; mocked API only; requests='+requests.length);await browser.close();
+})().catch(e=>{console.error(e);process.exit(1)});

@@ -10,6 +10,7 @@ export const openApiDocument = {
   tags: [
     { name: "Health", description: "Service and database status" },
     { name: "Meta", description: "Service info" },
+    { name: "Auth", description: "Authentication and account access" },
   ],
   components: {
     securitySchemes: {
@@ -51,6 +52,28 @@ export const openApiDocument = {
           timestamp: { type: "string", format: "date-time" },
         },
       },
+      AuthUser: {
+        type: "object",
+        required: ["id", "name", "email", "role", "provider", "createdAt", "updatedAt"],
+        properties: {
+          id: { type: "string", format: "uuid" },
+          name: { type: "string", example: "Adi Achya" },
+          email: { type: "string", format: "email", example: "adi@dolenae.id" },
+          role: { type: "string", enum: ["wisatawan", "merchant", "admin"] },
+          provider: { type: "string", enum: ["local", "google"] },
+          avatarUrl: { type: ["string", "null"] },
+          createdAt: { type: "string", format: "date-time" },
+          updatedAt: { type: "string", format: "date-time" },
+        },
+      },
+      AuthTokenResponse: {
+        type: "object",
+        required: ["token", "user"],
+        properties: {
+          token: { type: "string", description: "JWT access token" },
+          user: { $ref: "#/components/schemas/AuthUser" },
+        },
+      },
     },
   },
   paths: {
@@ -83,6 +106,179 @@ export const openApiDocument = {
               },
             },
           },
+        },
+      },
+    },
+    "/api/auth/register": {
+      post: {
+        tags: ["Auth"],
+        summary: "Register a new account",
+        requestBody: {
+          required: true,
+          content: {
+            "application/json": {
+              schema: {
+                type: "object",
+                required: ["name", "email", "password"],
+                properties: {
+                  name: { type: "string", example: "Adi Achya" },
+                  email: { type: "string", format: "email" },
+                  password: { type: "string", minLength: 8 },
+                  role: { type: "string", enum: ["wisatawan", "merchant"] },
+                },
+              },
+            },
+          },
+        },
+        responses: {
+          "201": {
+            description: "Account created",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/AuthTokenResponse" },
+              },
+            },
+          },
+          "409": { description: "Email already registered" },
+          "422": { description: "Validation error" },
+        },
+      },
+    },
+    "/api/auth/login": {
+      post: {
+        tags: ["Auth"],
+        summary: "Login with email and password",
+        requestBody: {
+          required: true,
+          content: {
+            "application/json": {
+              schema: {
+                type: "object",
+                required: ["email", "password"],
+                properties: {
+                  email: { type: "string", format: "email" },
+                  password: { type: "string" },
+                },
+              },
+            },
+          },
+        },
+        responses: {
+          "200": {
+            description: "Authenticated",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/AuthTokenResponse" },
+              },
+            },
+          },
+          "401": { description: "Invalid credentials" },
+        },
+      },
+    },
+    "/api/auth/google": {
+      post: {
+        tags: ["Auth"],
+        summary: "Login with a Google ID token",
+        requestBody: {
+          required: true,
+          content: {
+            "application/json": {
+              schema: {
+                type: "object",
+                required: ["idToken"],
+                properties: { idToken: { type: "string" } },
+              },
+            },
+          },
+        },
+        responses: {
+          "200": {
+            description: "Authenticated",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/AuthTokenResponse" },
+              },
+            },
+          },
+          "401": { description: "Invalid Google token" },
+        },
+      },
+    },
+    "/api/auth/forgot-password": {
+      post: {
+        tags: ["Auth"],
+        summary: "Request a password reset link",
+        requestBody: {
+          required: true,
+          content: {
+            "application/json": {
+              schema: {
+                type: "object",
+                required: ["email"],
+                properties: { email: { type: "string", format: "email" } },
+              },
+            },
+          },
+        },
+        responses: {
+          "200": {
+            description: "Generic confirmation (no account enumeration)",
+          },
+        },
+      },
+    },
+    "/api/auth/reset-password": {
+      post: {
+        tags: ["Auth"],
+        summary: "Reset the password with a token",
+        requestBody: {
+          required: true,
+          content: {
+            "application/json": {
+              schema: {
+                type: "object",
+                required: ["token", "password"],
+                properties: {
+                  token: { type: "string" },
+                  password: { type: "string", minLength: 8 },
+                },
+              },
+            },
+          },
+        },
+        responses: {
+          "200": { description: "Password updated" },
+          "400": { description: "Invalid or expired token" },
+        },
+      },
+    },
+    "/api/auth/me": {
+      get: {
+        tags: ["Auth"],
+        summary: "Current authenticated user",
+        security: [{ bearerAuth: [] }],
+        responses: {
+          "200": {
+            description: "Current user",
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  properties: {
+                    success: { type: "boolean", enum: [true] },
+                    data: {
+                      type: "object",
+                      properties: {
+                        user: { $ref: "#/components/schemas/AuthUser" },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+          "401": { description: "Missing or invalid token" },
         },
       },
     },
