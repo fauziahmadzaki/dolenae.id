@@ -8,6 +8,14 @@ const envSchema = z.object({
   CORS_ORIGIN: z.string().default(""),
   JWT_SECRET: z.string().min(1).default("dev-secret-change-me"),
   JWT_EXPIRES_IN: z.string().default("7d"),
+  // Public URL of the web app, used to build links (e.g. password reset).
+  APP_WEB_URL: z.string().url().default("http://localhost:3000"),
+  PASSWORD_RESET_TTL_MINUTES: z.coerce.number().int().positive().default(60),
+  // Email (Resend). Empty key = dev mode, emails are logged instead of sent.
+  RESEND_API_KEY: z.string().default(""),
+  MAIL_FROM: z.string().default("Dolenae <no-reply@dolenae.id>"),
+  // Google sign-in audience (OAuth client id). Empty = endpoint disabled.
+  GOOGLE_CLIENT_ID: z.string().default(""),
   LOG_LEVEL: z
     .enum(["fatal", "error", "warn", "info", "debug", "trace", "silent"])
     .default("info"),
