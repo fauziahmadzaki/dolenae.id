@@ -7,8 +7,8 @@ import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
 import { useToast } from "~/components/ui/toaster";
 import { cn } from "~/lib/cn";
+import { BrandMark } from "~/components/brand-mark";
 import { useLoginForm } from "../hooks/use-login-form";
-import { BrandMark } from "./brand-mark";
 import { LoginTabs } from "./login-tabs";
 
 /** Login form (left column of the "Masuk" frame in Figma). */
