@@ -9,7 +9,7 @@ interface BrandMarkProps {
   className?: string;
 }
 
-/** Dolenae brand tile (mountain glyph on a primary square). */
+/** Dolenae brand tile (mountain glyph on a primary square). Shared by all skins. */
 export function BrandMark({
   size = 36,
   rounded = "rounded-[10px]",

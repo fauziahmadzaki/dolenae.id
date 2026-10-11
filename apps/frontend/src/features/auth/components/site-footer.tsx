@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { BrandMark } from "./brand-mark";
+import { BrandMark } from "~/components/brand-mark";
 
 const FOOTER_LINKS = [
   { label: "Destinasi", href: "/destinasi" },
