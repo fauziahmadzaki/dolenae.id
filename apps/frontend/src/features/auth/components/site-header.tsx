@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { BrandMark } from "./brand-mark";
+import { BrandMark } from "~/components/brand-mark";
 
 const NAV_ITEMS = [
   { label: "Destinasi", href: "/destinasi" },

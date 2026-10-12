@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { USER_ROLES } from "../types/auth";
 
 export const passwordSchema = z
   .string()
@@ -9,8 +10,7 @@ export const registerSchema = z.object({
   name: z.string().trim().min(2, "Nama minimal 2 karakter").max(120),
   email: z.string().trim().email("Email tidak valid").max(255),
   password: passwordSchema,
-  // Admin accounts must be created through the protected users endpoint.
-  role: z.enum(["wisatawan", "merchant"]).optional(),
+  role: z.enum(USER_ROLES).optional(),
 });
 
 export const loginSchema = z.object({

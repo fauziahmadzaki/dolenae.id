@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { authRouter } from "./auth.route";
-import { userRouter } from "./user.route";
 import { healthRouter } from "./health.route";
+import { userRouter } from "./user.route";
 
 /** Main API router, mounted at `/api`. Add domain routes here. */
 export const apiRouter = Router();

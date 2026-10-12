@@ -124,7 +124,7 @@ export const openApiDocument = {
                   name: { type: "string", example: "Adi Achya" },
                   email: { type: "string", format: "email" },
                   password: { type: "string", minLength: 8 },
-                  role: { type: "string", enum: ["wisatawan", "merchant"] },
+                  role: { type: "string", enum: ["wisatawan", "merchant", "admin"] },
                 },
               },
             },

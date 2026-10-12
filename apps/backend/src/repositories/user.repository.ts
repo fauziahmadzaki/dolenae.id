@@ -1,9 +1,7 @@
 import { and, asc, count, desc, eq, ilike, or, sql } from "drizzle-orm";
 import { getDb } from "../db/client";
 import { users, type NewUserRow, type UserRow } from "../db/schema";
-
 import type { Pagination } from "../utils/pagination";
-export type UpdateUserInput = UserPatch;
 
 /** Fields a caller may update after the user exists. */
 export type UserPatch = Partial<
@@ -21,6 +19,9 @@ export type UserPatch = Partial<
   >
 >;
 
+/** Alias kept for the user-management service. */
+export type UpdateUserInput = UserPatch;
+
 export const userRepository = {
   async emailExists(email: string): Promise<boolean> {
     const db = getDb();
@@ -31,7 +32,6 @@ export const userRepository = {
       .limit(1);
     return Boolean(row);
   },
-
 
   async findByEmail(email: string): Promise<UserRow | undefined> {
     const [row] = await getDb()
@@ -80,6 +80,7 @@ export const userRepository = {
       .set({ lastLoginAt: new Date(), updatedAt: new Date() })
       .where(eq(users.id, id));
   },
+
   async list(
     params: Pagination & { role?: UserRow["role"] },
   ): Promise<{ items: UserRow[]; total: number }> {
@@ -87,7 +88,9 @@ export const userRepository = {
     const { limit, offset, sort, order, search } = params;
 
     const where = and(
-      search ? or(ilike(users.name, `%${search}%`), ilike(users.email, `%${search}%`)) : undefined,
+      search
+        ? or(ilike(users.name, `%${search}%`), ilike(users.email, `%${search}%`))
+        : undefined,
       params.role ? eq(users.role, params.role) : undefined,
     );
 
