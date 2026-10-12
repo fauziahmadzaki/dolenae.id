@@ -1,11 +1,13 @@
-import { eq } from "drizzle-orm";
+import { and, asc, count, desc, eq, ilike, or, sql } from "drizzle-orm";
 import { getDb } from "../db/client";
 import { users, type NewUserRow, type UserRow } from "../db/schema";
+import type { Pagination } from "../utils/pagination";
 
 /** Fields a caller may update after the user exists. */
 export type UserPatch = Partial<
   Pick<
     NewUserRow,
+    | "email"
     | "name"
     | "passwordHash"
     | "role"
@@ -17,7 +19,20 @@ export type UserPatch = Partial<
   >
 >;
 
+/** Alias kept for the user-management service. */
+export type UpdateUserInput = UserPatch;
+
 export const userRepository = {
+  async emailExists(email: string): Promise<boolean> {
+    const db = getDb();
+    const [row] = await db
+      .select({ value: sql<number>`1` })
+      .from(users)
+      .where(eq(users.email, email))
+      .limit(1);
+    return Boolean(row);
+  },
+
   async findByEmail(email: string): Promise<UserRow | undefined> {
     const [row] = await getDb()
       .select()
@@ -64,5 +79,54 @@ export const userRepository = {
       .update(users)
       .set({ lastLoginAt: new Date(), updatedAt: new Date() })
       .where(eq(users.id, id));
+  },
+
+  async list(
+    params: Pagination & { role?: UserRow["role"] },
+  ): Promise<{ items: UserRow[]; total: number }> {
+    const db = getDb();
+    const { limit, offset, sort, order, search } = params;
+
+    const where = and(
+      search
+        ? or(ilike(users.name, `%${search}%`), ilike(users.email, `%${search}%`))
+        : undefined,
+      params.role ? eq(users.role, params.role) : undefined,
+    );
+
+    const sortable = {
+      createdAt: users.createdAt,
+      name: users.name,
+      email: users.email,
+    } as const;
+
+    const sortColumn =
+      sort && sort in sortable
+        ? sortable[sort as keyof typeof sortable]
+        : users.createdAt;
+
+    const rows = await db
+      .select()
+      .from(users)
+      .where(where ? and(where) : undefined)
+      .orderBy(order === "asc" ? asc(sortColumn) : desc(sortColumn))
+      .limit(limit)
+      .offset(offset);
+
+    const [totalRow] = await db
+      .select({ value: count() })
+      .from(users)
+      .where(where ? and(where) : undefined);
+
+    return { items: rows, total: Number(totalRow?.value ?? 0) };
+  },
+
+  async delete(id: string): Promise<boolean> {
+    const db = getDb();
+    const [row] = await db
+      .delete(users)
+      .where(eq(users.id, id))
+      .returning({ id: users.id });
+    return Boolean(row);
   },
 };

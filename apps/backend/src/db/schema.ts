@@ -68,3 +68,4 @@ export type NewUserRow = typeof users.$inferInsert;
 export type PasswordResetTokenRow = typeof passwordResetTokens.$inferSelect;
 export type NewPasswordResetTokenRow =
   typeof passwordResetTokens.$inferInsert;
+export type UserRole = typeof users.$inferSelect.role;
