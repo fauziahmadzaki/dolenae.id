@@ -1,5 +1,4 @@
 import { z } from "zod";
-import { USER_ROLES } from "../types/auth";
 
 export const passwordSchema = z
   .string()
@@ -10,7 +9,8 @@ export const registerSchema = z.object({
   name: z.string().trim().min(2, "Nama minimal 2 karakter").max(120),
   email: z.string().trim().email("Email tidak valid").max(255),
   password: passwordSchema,
-  role: z.enum(USER_ROLES).optional(),
+  // Public registration can only create a `wisatawan` (never admin/merchant).
+  role: z.literal("wisatawan").optional(),
 });
 
 export const loginSchema = z.object({
