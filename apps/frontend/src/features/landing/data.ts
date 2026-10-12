@@ -146,7 +146,7 @@ export const testimonials: Testimonial[] = [
 export const footerColumns: { title: string; links: string[] }[] = [
   { title: "JELAJAHI", links: ["Destinasi", "Fasilitas Sekitar", "Persiapan AI", "Rencana"] },
   { title: "BANTUAN", links: ["Pusat Bantuan", "Kirim Masukan", "Privasi & Keamanan"] },
-  { title: "PERUSAHAAN", links: ["Tentang Kami", "Kontak", "Karier"] },
+  { title: "PERUSAHAAN", links: ["Tentang Kami", "Kontak"] },
 ];
 
 export const difficultyStyles: Record<Difficulty, string> = {
