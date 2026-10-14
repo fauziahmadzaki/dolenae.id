@@ -60,3 +60,6 @@ pnpm-debug.log*
 # Android/Kotlin caches
 .kotlin/
 **/.kotlin/
+
+# TS incremental build
+*.tsbuildinfo

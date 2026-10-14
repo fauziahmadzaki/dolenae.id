@@ -13,19 +13,35 @@ Autentikasi lengkap (BE + FE) berbasis JWT sebagai pintu masuk area admin.
 
 ## Backend
 
-- [ ] `utils/jwt.ts` memakai `jose` (issue + verify, HS256).
-- [ ] Middleware `authRequired` & `requireRole`.
-- [ ] `POST /api/auth/register` — registrasi.
-- [ ] `POST /api/auth/login` — login, balas `{ token, user }`.
-- [ ] `GET /api/users/me` — profil dari token.
-- [ ] `GET /api/users` — daftar pengguna (admin).
-- [ ] Service user + hashing password.
+- [x] `utils/jwt.ts` memakai `jose` (issue + verify, HS256).
+- [x] Middleware `authRequired` & `requireRole`.
+- [x] `POST /api/auth/register` — registrasi.
+- [x] `POST /api/auth/login` — login, balas `{ token, user }`.
+- [x] `GET /api/auth/me` — profil dari token.
+- [x] Service auth + hashing password (`scrypt`).
+- [x] `POST /api/auth/google` — verifikasi Google ID token.
+- [x] `POST /api/auth/forgot-password` + `POST /api/auth/reset-password` (email via Resend).
+- [ ] `GET /api/users` — daftar pengguna (admin). _(modul berikutnya)_
+
+> **Catatan (SCRUM-7):** backend auth dikerjakan **Adi** (per Jira), bukan
+> mengikuti pembagian PIC di `docs/prd/01` & index. Endpoint reset memakai path
+> `/api/auth/reset-password` dengan `token` di body (tiket menulis
+> `forgon-password?token=`, kemungkinan typo). Set tabel `users` +
+> `password_reset_tokens` dibuat lewat migrasi `drizzle/0000_parallel_toro.sql`.
 
 ## Frontend
 
-- [ ] `app/login/page.tsx` + `login-form`.
-- [ ] `AuthProvider` / `useAuth` + session store (`localStorage`).
-- [ ] Redirect ke `/admin` setelah login berhasil.
+- [x] Slicing "Hi-Fi Web - Masuk (1440)" ke `src/features/auth/` (`api/types/hooks/components/pages`) + route `app/auth/login/page.tsx` → URL `/auth/login` (sesuai tiket SCRUM-8).
+- [x] `useAuth` + session store (`localStorage`; `sessionStorage` bila "Ingat saya" tidak dicentang).
+- [x] Redirect ke `/admin` setelah login berhasil.
+- [ ] Halaman `/auth/register` & `/auth/forgot-password` — menyusul (tab & link sudah mengarah).
+- [ ] Login Google (GSI → `POST /api/auth/google`) — butuh `GOOGLE_CLIENT_ID`; tombol sudah tampil.
+
+> **Catatan (SCRUM-8):** dikerjakan **Adi** (per Jira). `auth/api/login.ts` memakai
+> server action (`"use server"`) sesuai tiket; `auth/hooks` = validasi zod +
+> interaksi; `auth/pages/login-page.tsx` di-export default lalu dipanggil
+> `app/auth/login/page.tsx`. Desain dari file Figma "UI UX Dolenae.id" →
+> page "Hi-Fi Web" → frame "Masuk" (`89:3328`).
 
 ## Rencana Commit
 

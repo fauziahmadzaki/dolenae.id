@@ -1,0 +1,4 @@
+# pnpm settings for this app (NOT a monorepo — no `packages:`).
+# Allows the esbuild build script so `tsx` works.
+allowBuilds:
+  esbuild: true
