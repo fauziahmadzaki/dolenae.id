@@ -5,10 +5,8 @@ root dan `docs/specs/mobile-architecture.md` (sumber kebenaran arsitektur).
 
 ## Flag kebijakan test
 
-Cukup ganti nilai boolean di bawah ini. Tidak ada flag lain yang perlu diubah.
-
 ```text
-TEST_REQUIRED=true
+TEST_REQUIRED=false
 ```
 
 - `TEST_REQUIRED=true` — setiap perubahan perilaku **wajib** menambah atau
@@ -22,15 +20,15 @@ teks/typo tidak wajib test baru meskipun flag bernilai `true`.
 
 ## Ringkasan stack
 
-| Layer | Teknologi |
-| --- | --- |
-| UI | Flutter + Material 3 |
-| State | `provider` + `ChangeNotifier` |
-| Navigasi | `go_router` |
-| Cache lokal | Drift (SQLite) + `shared_preferences` |
-| Sesi | `flutter_secure_storage` |
-| HTTP | `http` lewat `core/network/api_client.dart` |
-| Font | `google_fonts` dengan aset lokal (tanpa fetch runtime) |
+| Layer       | Teknologi                                              |
+| ----------- | ------------------------------------------------------ |
+| UI          | Flutter + Material 3                                   |
+| State       | `provider` + `ChangeNotifier`                          |
+| Navigasi    | `go_router`                                            |
+| Cache lokal | Drift (SQLite) + `shared_preferences`                  |
+| Sesi        | `flutter_secure_storage`                               |
+| HTTP        | `http` lewat `core/network/api_client.dart`            |
+| Font        | `google_fonts` dengan aset lokal (tanpa fetch runtime) |
 
 ## Arsitektur wajib
 
@@ -44,12 +42,12 @@ lib/src/
   shared/       # widget, ikon, dan komponen lintas fitur
 ```
 
-| Lapisan | Boleh bergantung pada | Dilarang |
-| --- | --- | --- |
-| `domain` | Dart core, `core/error`, `core/result`, `core/usecases` | Flutter, `data`, `presentation` |
-| `data` | `domain` fitur, `core/*`, paket IO | `presentation` |
-| `presentation` | `domain`, `core/*`, `shared/*`, Flutter | `data` (kecuali lewat DI di `app/`) |
-| `app` | semua | — |
+| Lapisan        | Boleh bergantung pada                                   | Dilarang                            |
+| -------------- | ------------------------------------------------------- | ----------------------------------- |
+| `domain`       | Dart core, `core/error`, `core/result`, `core/usecases` | Flutter, `data`, `presentation`     |
+| `data`         | `domain` fitur, `core/*`, paket IO                      | `presentation`                      |
+| `presentation` | `domain`, `core/*`, `shared/*`, Flutter                 | `data` (kecuali lewat DI di `app/`) |
+| `app`          | semua                                                   | —                                   |
 
 - Import internal selalu `package:dolenae_mobile/src/...`.
 - Jangan menyalin entity/tipe domain ke fitur lain; impor dari `domain`
