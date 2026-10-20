@@ -46,7 +46,16 @@ describe("User Management CRUD API (/api/users)", () => {
       expect(Array.isArray(res.body.data)).toBe(true);
       expect(res.body.data[0].id).toBe(mockUserRow.id);
       expect(res.body.data[0].email).toBe(mockUserRow.email);
-      expect(Object.keys(res.body.data[0]).sort()).toEqual(["createdAt", "email", "id", "name", "role", "updatedAt"]);
+      expect(Object.keys(res.body.data[0]).sort()).toEqual([
+        "createdAt",
+        "email",
+        "emailVerifiedAt",
+        "id",
+        "lastLoginAt",
+        "name",
+        "role",
+        "updatedAt",
+      ]);
       expect(res.body.meta).toMatchObject({
         page: 1,
         limit: 10,

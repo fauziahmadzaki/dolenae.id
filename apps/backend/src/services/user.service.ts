@@ -1,4 +1,5 @@
 import type { UserRole, UserRow } from "../db/schema";
+import type { UserStatusFilter } from "../types/auth";
 import { userRepository, type UpdateUserInput } from "../repositories/user.repository";
 import { buildMeta, toPagination, type PaginationQuery } from "../utils/pagination";
 import type { ApiMeta } from "../types/api";
@@ -11,6 +12,10 @@ export interface PublicUser {
   name: string;
   email: string;
   role: UserRole;
+  /** Null until the email is confirmed (drives the derived status). */
+  emailVerifiedAt: string | null;
+  /** Null when the account never signed in. */
+  lastLoginAt: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -35,6 +40,8 @@ export function toPublicUser(row: UserRow): PublicUser {
     name: row.name,
     email: row.email,
     role: row.role,
+    emailVerifiedAt: row.emailVerifiedAt?.toISOString() ?? null,
+    lastLoginAt: row.lastLoginAt?.toISOString() ?? null,
     createdAt: row.createdAt.toISOString(),
     updatedAt: row.updatedAt.toISOString(),
   };
@@ -48,10 +55,14 @@ export const userService = {
   },
 
   async list(
-    query: PaginationQuery & { role?: UserRole },
+    query: PaginationQuery & { role?: UserRole; status?: UserStatusFilter },
   ): Promise<{ items: PublicUser[]; meta: ApiMeta }> {
     const pagination = toPagination(query);
-    const { items, total } = await userRepository.list({ ...pagination, role: query.role });
+    const { items, total } = await userRepository.list({
+      ...pagination,
+      role: query.role,
+      status: query.status,
+    });
     const meta = buildMeta(total, query.page, query.limit);
     return { items: items.map(toPublicUser), meta };
   },
