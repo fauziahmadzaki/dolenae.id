@@ -95,7 +95,8 @@ Bahasa Indonesia yang siap ditampilkan. Controller mengembalikan
 ## Policy usecase
 
 - **Usecase dipakai** untuk aksi dan orchestration: `LoginUseCase`,
-  `RegisterUseCase`, `LogoutUseCase`, `RefreshDestinationsUseCase`,
+  `RegisterUseCase`, `LogoutUseCase`, `VerifySessionUseCase`,
+  `ForgotPasswordUseCase`, `RefreshDestinationsUseCase`,
   `SearchDestinationsUseCase`.
 - **Tanpa usecase** untuk baca state sederhana: controller boleh memanggil
   method repository langsung (mis. `SavedController.toggleSavedDestination`).
@@ -113,6 +114,50 @@ Bahasa Indonesia yang siap ditampilkan. Controller mengembalikan
 - Contoh penting: `DestinationRepositoryImpl.watchCatalog()` memancarkan cache
   Drift dan jatuh ke data seed bila cache masih kosong, sehingga aplikasi tetap
   terisi saat offline.
+
+## Integrasi backend
+
+Base URL diatur lewat `AppConfig.apiBaseUrl`. Default-nya
+`http://10.0.2.2:3001/api` untuk emulator Android dan
+`http://localhost:3001/api` untuk platform lain. Untuk perangkat fisik:
+
+```bash
+flutter run --dart-define=API_BASE_URL=http://<ip-lokal>:3001/api
+```
+
+Semua respons mengikuti envelope backend
+`{ success: true, data, meta? }`; `ApiClient` hanya mengembalikan `data` dan
+mengubah error envelope menjadi `ApiException` dengan pesan dari server.
+
+Endpoint yang dipakai mobile:
+
+| Fitur | Endpoint | Catatan |
+| --- | --- | --- |
+| Auth | `POST /auth/login` | `{ email, password }` → `{ token, user }` |
+| Auth | `POST /auth/register` | selalu mengirim role `wisatawan` |
+| Auth | `GET /auth/me` | validasi token saat aplikasi dibuka |
+| Auth | `POST /auth/forgot-password` | pesan dari backend ditampilkan apa adanya |
+| Destinasi | `GET /destinations?status=published&limit=50` | hasil di-cache ke Drift |
+
+### Alur sesi
+
+1. `main.dart` membaca token dari secure storage, lalu mengisi
+   `ApiClient.token` lewat `AuthRepository.restore()`.
+2. Setelah aplikasi tampil, `AuthController.verifySession()` memanggil
+   `GET /auth/me` di background dan memperbarui profil pengguna.
+3. Token ditolak (`401/403/404`) → sesi lokal dihapus dan router mengarahkan
+   pengguna ke `/login`.
+4. Gangguan jaringan saat verifikasi **tidak** menghapus sesi, supaya aplikasi
+   tetap bisa dibuka offline dengan data tersimpan.
+
+### Alur katalog destinasi
+
+1. `DestinationsController.load()` menjalankan `RefreshDestinationsUseCase`.
+2. `DestinationRemoteDataSource` mengambil destinasi berstatus `published`.
+3. Baris hasil dipetakan ke cache Drift, lalu stream `watchCatalog()`
+   memancarkan daftar baru ke Beranda dan Jelajah tanpa reload manual.
+4. Bila cache kosong (pertama kali buka atau offline), repository memakai
+   `DestinationSeedData` sebagai fallback.
 
 ## State management
 

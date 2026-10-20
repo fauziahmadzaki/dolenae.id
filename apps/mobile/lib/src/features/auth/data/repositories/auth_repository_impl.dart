@@ -29,6 +29,36 @@ class AuthRepositoryImpl implements AuthRepository {
   }
 
   @override
+  Future<Result<AuthSession>> verify() async {
+    final token = _client.token;
+    if (token == null || token.isEmpty) {
+      return const Failure(AuthFailure('Sesi tidak ditemukan.'));
+    }
+
+    try {
+      final user = await _remote.me();
+      final session = AuthSession(token: token, user: user);
+      await _local.save(session);
+      return Success(session);
+    } on ApiException catch (error) {
+      if (_invalidatesSession(error.statusCode)) {
+        // Expired or revoked token: drop it so the router returns to login.
+        _client.token = null;
+        try {
+          await _local.clear();
+        } catch (_) {
+          // Nothing else to clear; the in-memory session is gone anyway.
+        }
+      }
+      return Failure(error.toFailure());
+    } catch (_) {
+      return const Failure(
+        NetworkFailure('Tidak dapat memeriksa sesi. Coba lagi nanti.'),
+      );
+    }
+  }
+
+  @override
   Future<Result<AuthSession>> login({
     required String email,
     required String password,
@@ -47,6 +77,19 @@ class AuthRepositoryImpl implements AuthRepository {
     return _authenticate(
       () => _remote.register(name: name, email: email, password: password),
     );
+  }
+
+  @override
+  Future<Result<String>> forgotPassword({required String email}) async {
+    try {
+      return Success(await _remote.forgotPassword(email: email));
+    } on ApiException catch (error) {
+      return Failure(error.toFailure());
+    } catch (_) {
+      return const Failure(
+        UnknownFailure('Tidak dapat mengirim tautan. Coba lagi.'),
+      );
+    }
   }
 
   @override
@@ -76,4 +119,7 @@ class AuthRepositoryImpl implements AuthRepository {
       );
     }
   }
+
+  bool _invalidatesSession(int? statusCode) =>
+      statusCode == 401 || statusCode == 403 || statusCode == 404;
 }

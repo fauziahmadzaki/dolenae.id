@@ -69,3 +69,31 @@ class RestoreSessionUseCase implements UseCase<AuthSession, NoParams> {
   @override
   Future<Result<AuthSession>> call(NoParams params) => _repository.restore();
 }
+
+/// Checks a restored token against the backend.
+class VerifySessionUseCase implements UseCase<AuthSession, NoParams> {
+  const VerifySessionUseCase(this._repository);
+
+  final AuthRepository _repository;
+
+  @override
+  Future<Result<AuthSession>> call(NoParams params) => _repository.verify();
+}
+
+class ForgotPasswordParams {
+  const ForgotPasswordParams({required this.email});
+
+  final String email;
+}
+
+/// Requests a password-reset link from the backend.
+class ForgotPasswordUseCase implements UseCase<String, ForgotPasswordParams> {
+  const ForgotPasswordUseCase(this._repository);
+
+  final AuthRepository _repository;
+
+  @override
+  Future<Result<String>> call(ForgotPasswordParams params) {
+    return _repository.forgotPassword(email: params.email);
+  }
+}

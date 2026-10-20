@@ -15,11 +15,15 @@ class AuthController extends ChangeNotifier {
   }) : _session = initialSession,
        _login = LoginUseCase(repository),
        _register = RegisterUseCase(repository),
-       _logout = LogoutUseCase(repository);
+       _logout = LogoutUseCase(repository),
+       _verify = VerifySessionUseCase(repository),
+       _forgotPassword = ForgotPasswordUseCase(repository);
 
   final LoginUseCase _login;
   final RegisterUseCase _register;
   final LogoutUseCase _logout;
+  final VerifySessionUseCase _verify;
+  final ForgotPasswordUseCase _forgotPassword;
 
   AuthSession? _session;
 
@@ -48,6 +52,31 @@ class AuthController extends ChangeNotifier {
       RegisterParams(name: name, email: email, password: password),
     );
     return _apply(result);
+  }
+
+  /// Re-checks the restored token after the app starts.
+  ///
+  /// Only an auth failure (expired/revoked token) signs the user out. Network
+  /// errors are ignored so an offline launch keeps the cached session.
+  Future<void> verifySession() async {
+    if (_session == null) return;
+
+    final result = await _verify(const NoParams());
+    switch (result) {
+      case Success(:final value):
+        _session = value;
+        notifyListeners();
+      case Failure(:final failure):
+        if (failure is AuthFailure) {
+          _session = null;
+          notifyListeners();
+        }
+    }
+  }
+
+  /// Sends a reset link and returns the backend message or the failure.
+  Future<Result<String>> requestPasswordReset(String email) {
+    return _forgotPassword(ForgotPasswordParams(email: email));
   }
 
   Future<AppFailure?> logout() async {

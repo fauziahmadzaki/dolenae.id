@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:provider/provider.dart';
 
 import 'package:dolenae_mobile/src/app/theme/app_colors.dart';
 import 'package:dolenae_mobile/src/app/theme/app_spacing.dart';
 import 'package:dolenae_mobile/src/app/theme/app_text_styles.dart';
+import 'package:dolenae_mobile/src/core/result/result.dart';
+import 'package:dolenae_mobile/src/features/auth/presentation/controllers/auth_controller.dart';
 import 'package:dolenae_mobile/src/shared/icons/app_icons.dart';
 import 'package:dolenae_mobile/src/shared/widgets/dn_app_bar.dart';
 import 'package:dolenae_mobile/src/shared/widgets/dn_buttons.dart';
@@ -35,10 +38,11 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
     text: widget.initialEmail,
   );
   String? _errorText;
+  bool _loading = false;
 
-  bool get _canSubmit => _email.text.trim().isNotEmpty;
+  bool get _canSubmit => _email.text.trim().isNotEmpty && !_loading;
 
-  void _submit() {
+  Future<void> _submit() async {
     final email = _email.text.trim();
     if (email.isEmpty) {
       setState(() => _errorText = 'Masukkan email yang valid, contoh: nama@email.com');
@@ -46,16 +50,27 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
     }
     setState(() => _errorText = null);
 
+    // Tests and previews can observe the submitted email directly.
     final onSubmit = widget.onSubmit;
     if (onSubmit != null) {
       onSubmit(email);
       return;
     }
-    showDnToast(
-      context,
-      'Tautan atur ulang sudah dikirim ke $email',
-      type: DnToastType.sukses,
-    );
+
+    final auth = context.read<AuthController?>();
+    if (auth == null) return;
+
+    setState(() => _loading = true);
+    final result = await auth.requestPasswordReset(email);
+    if (!mounted) return;
+    setState(() => _loading = false);
+
+    switch (result) {
+      case Success(:final value):
+        showDnToast(context, value, type: DnToastType.sukses);
+      case Failure(:final failure):
+        setState(() => _errorText = failure.message);
+    }
   }
 
   @override
@@ -121,7 +136,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                 border: Border(top: BorderSide(color: AppColors.hairline)),
               ),
               child: DnPrimaryButton(
-                label: 'Kirim tautan',
+                label: _loading ? 'Mengirim…' : 'Kirim tautan',
                 onPressed: _canSubmit ? _submit : null,
               ),
             ),

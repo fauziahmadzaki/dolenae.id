@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
@@ -72,6 +74,8 @@ class _DolenaeAppState extends State<DolenaeApp> {
     _router = AppRouter.create(_auth);
     // Show cached data first, then sync with the API in the background.
     _destinations.load();
+    // Validate the restored token; a revoked session redirects to /login.
+    unawaited(_auth.verifySession());
   }
 
   @override
