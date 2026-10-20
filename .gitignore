@@ -63,3 +63,6 @@ pnpm-debug.log*
 
 # TS incremental build
 *.tsbuildinfo
+
+# Local usability-testing output (not part of the product docs)
+ut-output/
