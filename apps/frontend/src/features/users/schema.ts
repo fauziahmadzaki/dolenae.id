@@ -6,5 +6,16 @@ export const userFormSchema = z.object({
   password: z.string().max(128).refine((s) => !s || s.length >= 8, "Kata sandi minimal 8 karakter"),
 });
 export type UserForm = z.infer<typeof userFormSchema>;
-export interface ManagedUser { id: string; name: string; email: string; role: UserForm["role"]; createdAt: string; updatedAt: string; }
+export interface ManagedUser { id: string; name: string; email: string; role: UserForm["role"]; emailVerifiedAt: string | null; lastLoginAt: string | null; createdAt: string; updatedAt: string; }
 export const roleLabels = { admin: "Admin", merchant: "Merchant", wisatawan: "Wisatawan" };
+
+/** Opsi role untuk komponen Select. */
+export const roleOptions = Object.entries(roleLabels).map(([value, label]) => ({
+  value,
+  label,
+}));
+
+/** Dialog state for the users page (create, edit, detail, delete). */
+export type UserMode =
+  | { kind: "create" }
+  | { kind: "edit" | "detail" | "delete"; user: ManagedUser };
