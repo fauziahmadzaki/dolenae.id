@@ -67,7 +67,7 @@ class AiResultsScreen extends StatelessWidget {
       appBar: DnAppBar(
         title: 'Rekomendasi',
         showBack: true,
-        onBack: onBack ?? () => context.pop(),
+        onBack: onBack ?? () => _backToPreferences(context),
       ),
       body: SafeArea(
         top: false,

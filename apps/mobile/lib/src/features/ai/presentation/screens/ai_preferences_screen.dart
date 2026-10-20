@@ -105,6 +105,16 @@ class _AiPreferencesScreenState extends State<AiPreferencesScreen> {
     }
   }
 
+  /// Back dari tab AI: tab dibuka dengan `go`, jadi tidak ada stack untuk
+  /// di-pop. Fallback ke Beranda supaya tombol kembali tetap berfungsi.
+  void _back(BuildContext context) {
+    if (context.canPop()) {
+      context.pop();
+    } else {
+      context.go('/home');
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final ai = context.read<AiController>();
@@ -113,7 +123,7 @@ class _AiPreferencesScreenState extends State<AiPreferencesScreen> {
       appBar: DnAppBar(
         title: 'AI Dolenae',
         showBack: true,
-        onBack: widget.onBack ?? () => context.pop(),
+        onBack: widget.onBack ?? () => _back(context),
       ),
       body: SafeArea(
         top: false,

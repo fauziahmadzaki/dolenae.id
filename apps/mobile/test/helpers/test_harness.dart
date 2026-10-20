@@ -162,6 +162,7 @@ Widget wrapScreen(Widget child, {TestStores? store}) {
     initialLocation: '/',
     routes: [
       GoRoute(path: '/', builder: (_, _) => child),
+      GoRoute(path: '/home', builder: (_, _) => const _StubScreen()),
       GoRoute(path: '/susun/:lain', builder: (_, _) => const _StubScreen()),
       GoRoute(
         path: '/destination/:id',

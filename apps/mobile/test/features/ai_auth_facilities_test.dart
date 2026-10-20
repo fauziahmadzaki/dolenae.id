@@ -77,6 +77,19 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.text('Cari rekomendasi'), findsOneWidget);
     });
+
+    testWidgets('tombol kembali membuka beranda saat tab tanpa stack', (
+      tester,
+    ) async {
+      await usePhone(tester);
+      await tester.pumpWidget(wrapScreen(const AiPreferencesScreen()));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byTooltip('Kembali'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Layar lain'), findsOneWidget);
+    });
   });
 
   group('Layar Hasil AI', () {
