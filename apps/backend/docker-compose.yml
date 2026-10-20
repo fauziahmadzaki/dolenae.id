@@ -8,7 +8,8 @@ services:
       POSTGRES_PASSWORD: dolenae
       POSTGRES_DB: dolenae
     ports:
-      - "5432:5432"
+      # POSTGRES_PORT lets a local machine avoid a 5432 conflict (dev only).
+      - "${POSTGRES_PORT:-5432}:5432"
     volumes:
       - dolenae-pgdata:/var/lib/postgresql/data
     healthcheck:
