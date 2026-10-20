@@ -137,7 +137,6 @@ export function LoginForm() {
                 Ingat saya
               </label>
 
-              {/* TODO: forgot-password page */}
               <Link
                 href="/auth/forgot-password"
                 className="text-sm font-semibold text-primary hover:text-primary-hover"
