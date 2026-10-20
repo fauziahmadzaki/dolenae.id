@@ -11,9 +11,9 @@ import {
   DialogTitle,
 } from "~/components/ui/dialog";
 import { Input } from "~/components/ui/input";
-import { del, patch, post } from "~/lib/api/client";
 import { ApiError } from "~/lib/api/types";
 import type { Category, CategoryType } from "~/types/domain";
+import { categoriesApi } from "./api/destinations";
 import { CategoryIcon } from "./category-icon";
 import {
   categoryFormSchema,
@@ -55,7 +55,8 @@ export function CategoryDialog({
 
   const mutation = useMutation({
     mutationFn: async (values?: CategoryForm) => {
-      if (mode.kind === "delete") return del(`/categories/${category!.id}`, { token });
+      if (mode.kind === "delete")
+        return categoriesApi.remove(category!.id, token);
       if (!values) return;
       const payload = {
         name: values.name,
@@ -65,8 +66,8 @@ export function CategoryDialog({
         description: values.description.trim() || null,
       };
       return mode.kind === "create"
-        ? post("/categories", payload, { token })
-        : patch(`/categories/${category!.id}`, payload, { token });
+        ? categoriesApi.create(payload, token)
+        : categoriesApi.update(category!.id, payload, token);
     },
     onSuccess: () =>
       onSaved(
