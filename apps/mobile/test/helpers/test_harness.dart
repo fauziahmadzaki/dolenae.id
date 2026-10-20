@@ -1,10 +1,26 @@
 import 'dart:io';
 
-import 'package:dolenae_mobile/src/app/state/ai_state.dart';
-import 'package:dolenae_mobile/src/app/state/notifications_state.dart';
-import 'package:dolenae_mobile/src/app/state/saved_state.dart';
-import 'package:dolenae_mobile/src/app/state/search_state.dart';
-import 'package:dolenae_mobile/src/app/state/settings_state.dart';
+import 'package:dolenae_mobile/src/core/result/result.dart';
+import 'package:dolenae_mobile/src/features/ai/data/repositories/ai_repository_impl.dart';
+import 'package:dolenae_mobile/src/features/ai/presentation/controllers/ai_controller.dart';
+import 'package:dolenae_mobile/src/features/checklist/data/repositories/checklist_repository_impl.dart';
+import 'package:dolenae_mobile/src/features/checklist/presentation/controllers/checklist_controller.dart';
+import 'package:dolenae_mobile/src/features/destinations/data/data_sources/destination_seed_data_source.dart';
+import 'package:dolenae_mobile/src/features/destinations/domain/entities/destination_catalog.dart';
+import 'package:dolenae_mobile/src/features/destinations/domain/repositories/destination_repository.dart';
+import 'package:dolenae_mobile/src/features/destinations/presentation/controllers/destinations_controller.dart';
+import 'package:dolenae_mobile/src/features/explore/data/repositories/explore_repository_impl.dart';
+import 'package:dolenae_mobile/src/features/explore/presentation/controllers/explore_controller.dart';
+import 'package:dolenae_mobile/src/features/facilities/data/repositories/facility_repository_impl.dart';
+import 'package:dolenae_mobile/src/features/facilities/presentation/controllers/facilities_controller.dart';
+import 'package:dolenae_mobile/src/features/notifications/data/repositories/notification_repository_impl.dart';
+import 'package:dolenae_mobile/src/features/notifications/presentation/controllers/notifications_controller.dart';
+import 'package:dolenae_mobile/src/features/plan/data/repositories/plan_repository_impl.dart';
+import 'package:dolenae_mobile/src/features/plan/presentation/controllers/plan_controller.dart';
+import 'package:dolenae_mobile/src/features/saved/data/repositories/saved_repository_impl.dart';
+import 'package:dolenae_mobile/src/features/saved/presentation/controllers/saved_controller.dart';
+import 'package:dolenae_mobile/src/features/settings/data/repositories/settings_repository_impl.dart';
+import 'package:dolenae_mobile/src/features/settings/presentation/controllers/settings_controller.dart';
 import 'package:dolenae_mobile/src/app/theme/app_theme.dart';
 import 'package:dolenae_mobile/src/shared/widgets/dn_input.dart';
 import 'package:flutter/material.dart';
@@ -89,26 +105,54 @@ ByteData? _readAnyFontBytes() {
   return null;
 }
 
-/// Kumpulan state per-domain untuk diinjeksi ke layar saat pengujian.
+/// Kumpulan controller per-domain untuk diinjeksi ke layar saat pengujian.
 class TestStores {
   TestStores()
-    : notifications = NotificationsState(),
-      saved = SavedState(),
-      ai = AiState(),
-      settings = SettingsState(),
-      search = SearchState();
+    : notifications = NotificationsController(
+        NotificationRepositoryImpl(),
+      ),
+      saved = SavedController(SavedRepositoryImpl()),
+      ai = AiController(repository: const AiRepositoryImpl()),
+      settings = SettingsController(SettingsRepositoryImpl()),
+      search = ExploreController(ExploreRepositoryImpl()),
+      destinations = DestinationsController(
+        repository: const _TestDestinationRepository(),
+        initialItems: DestinationSeedData.items,
+      ),
+      facilities = FacilitiesController(const FacilityRepositoryImpl()),
+      plan = PlanController(const PlanRepositoryImpl()),
+      checklist = ChecklistController(ChecklistRepositoryImpl());
 
-  final NotificationsState notifications;
-  final SavedState saved;
-  final AiState ai;
-  final SettingsState settings;
-  final SearchState search;
+  final NotificationsController notifications;
+  final SavedController saved;
+  final AiController ai;
+  final SettingsController settings;
+  final ExploreController search;
+  final DestinationsController destinations;
+  final FacilitiesController facilities;
+  final PlanController plan;
+  final ChecklistController checklist;
 }
 
-/// Buat state baru untuk assert terhadap perubahan state di layar.
+/// Buat controller baru untuk assert terhadap perubahan state di layar.
 TestStores newStore() => TestStores();
 
-/// Bungkus [child] dengan tema aplikasi, state per-domain, dan router minimal.
+/// Repository destinasi sederhana yang langsung mengembalikan data seed.
+class _TestDestinationRepository implements DestinationRepository {
+  const _TestDestinationRepository();
+
+  @override
+  Stream<DestinationCatalog> watchCatalog() {
+    return Stream.value(
+      const DestinationCatalog(items: DestinationSeedData.items),
+    );
+  }
+
+  @override
+  Future<Result<void>> refresh() async => const Success(null);
+}
+
+/// Bungkus [child] dengan tema aplikasi, controller per-domain, dan router minimal.
 ///
 /// Router dipasang supaya `context.push` maupun `context.pop` di dalam layar
 /// tidak melempar error saat diuji; semua tujuan lain diarahkan ke [_StubScreen].
@@ -132,6 +176,10 @@ Widget wrapScreen(Widget child, {TestStores? store}) {
       ChangeNotifierProvider.value(value: stores.ai),
       ChangeNotifierProvider.value(value: stores.settings),
       ChangeNotifierProvider.value(value: stores.search),
+      ChangeNotifierProvider.value(value: stores.destinations),
+      ChangeNotifierProvider.value(value: stores.facilities),
+      ChangeNotifierProvider.value(value: stores.plan),
+      ChangeNotifierProvider.value(value: stores.checklist),
     ],
     child: MaterialApp.router(
       debugShowCheckedModeBanner: false,

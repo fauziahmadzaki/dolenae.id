@@ -1,45 +1,28 @@
-import 'package:dolenae_mobile/src/data/seed/seed_data.dart';
+import 'package:dolenae_mobile/src/features/destinations/data/data_sources/destination_seed_data_source.dart';
+import 'package:dolenae_mobile/src/features/facilities/data/data_sources/facility_seed_data_source.dart';
 import 'package:dolenae_mobile/src/shared/icons/app_icons.dart';
-import 'package:dolenae_mobile/src/features/auth/presentation/login_screen.dart';
-import 'package:dolenae_mobile/src/features/checklist/presentation/add_checklist_item_screen.dart';
-import 'package:dolenae_mobile/src/features/checklist/presentation/checklist_screen.dart';
-import 'package:dolenae_mobile/src/features/destination/presentation/destination_detail_screen.dart';
-import 'package:dolenae_mobile/src/features/explore/presentation/explore_screen.dart';
-import 'package:dolenae_mobile/src/features/plan/presentation/create_plan_screen.dart';
-import 'package:dolenae_mobile/src/features/plan/presentation/plan_item_detail_screen.dart';
-import 'package:dolenae_mobile/src/features/plan/presentation/select_destination_screen.dart';
-import 'package:dolenae_mobile/src/features/plan/presentation/select_facility_screen.dart';
-import 'package:dolenae_mobile/src/features/plan/presentation/trip_plan_screen.dart';
-import 'package:dolenae_mobile/src/features/profile/presentation/edit_profile_screen.dart';
-import 'package:dolenae_mobile/src/features/profile/presentation/profile_screen.dart';
-import 'package:dolenae_mobile/src/features/home/presentation/beranda_screen.dart';
-import 'package:dolenae_mobile/src/features/onboarding/presentation/onboarding_screen.dart';
-import 'package:dolenae_mobile/src/features/onboarding/presentation/splash_screen.dart';
+import 'package:dolenae_mobile/src/features/auth/presentation/screens/login_screen.dart';
+import 'package:dolenae_mobile/src/features/checklist/presentation/screens/add_checklist_item_screen.dart';
+import 'package:dolenae_mobile/src/features/checklist/presentation/screens/checklist_screen.dart';
+import 'package:dolenae_mobile/src/features/destinations/presentation/screens/destination_detail_screen.dart';
+import 'package:dolenae_mobile/src/features/explore/presentation/screens/explore_screen.dart';
+import 'package:dolenae_mobile/src/features/plan/presentation/screens/create_plan_screen.dart';
+import 'package:dolenae_mobile/src/features/plan/presentation/screens/plan_item_detail_screen.dart';
+import 'package:dolenae_mobile/src/features/plan/presentation/screens/select_destination_screen.dart';
+import 'package:dolenae_mobile/src/features/plan/presentation/screens/select_facility_screen.dart';
+import 'package:dolenae_mobile/src/features/plan/presentation/screens/trip_plan_screen.dart';
+import 'package:dolenae_mobile/src/features/profile/presentation/screens/edit_profile_screen.dart';
+import 'package:dolenae_mobile/src/features/profile/presentation/screens/profile_screen.dart';
+import 'package:dolenae_mobile/src/features/home/presentation/screens/beranda_screen.dart';
+import 'package:dolenae_mobile/src/features/onboarding/presentation/screens/onboarding_screen.dart';
+import 'package:dolenae_mobile/src/features/onboarding/presentation/screens/splash_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:provider/provider.dart';
 
-import 'package:dolenae_mobile/src/app/state/ai_state.dart';
-import 'package:dolenae_mobile/src/app/state/notifications_state.dart';
-import 'package:dolenae_mobile/src/app/state/saved_state.dart';
-import 'package:dolenae_mobile/src/app/state/search_state.dart';
-import 'package:dolenae_mobile/src/app/state/settings_state.dart';
+import 'helpers/test_harness.dart';
 
 const _phone = Size(390, 844);
-
-/// Bungkus layar dengan state per-domain agar layar yang membaca state
-/// lintas layar, misalnya Jelajah dan Beranda, bisa diuji sendirian.
-Widget _wrap(Widget child) => MultiProvider(
-  providers: [
-    ChangeNotifierProvider(create: (_) => NotificationsState()),
-    ChangeNotifierProvider(create: (_) => SavedState()),
-    ChangeNotifierProvider(create: (_) => AiState()),
-    ChangeNotifierProvider(create: (_) => SettingsState()),
-    ChangeNotifierProvider(create: (_) => SearchState()),
-  ],
-  child: MaterialApp(home: child),
-);
 
 void main() {
   setUpAll(() {
@@ -47,14 +30,14 @@ void main() {
   });
 
   test('seed data tidak kosong', () {
-    expect(SeedData.destinations, isNotEmpty);
-    expect(SeedData.supports, isNotEmpty);
+    expect(DestinationSeedData.items, isNotEmpty);
+    expect(FacilitySeedData.supports, isNotEmpty);
   });
 
   testWidgets('Splash menampilkan Dolenae.id', (tester) async {
     await tester.binding.setSurfaceSize(_phone);
     addTearDown(() => tester.binding.setSurfaceSize(null));
-    await tester.pumpWidget(_wrap(const SplashScreen()));
+    await tester.pumpWidget(wrapScreen(const SplashScreen()));
     await tester.pump();
     expect(find.text('Dolenae.id'), findsOneWidget);
   });
@@ -62,7 +45,7 @@ void main() {
   testWidgets('Onboarding menampilkan CTA', (tester) async {
     await tester.binding.setSurfaceSize(_phone);
     addTearDown(() => tester.binding.setSurfaceSize(null));
-    await tester.pumpWidget(_wrap(const OnboardingScreen()));
+    await tester.pumpWidget(wrapScreen(const OnboardingScreen()));
     expect(find.text('Mulai Jelajah'), findsOneWidget);
     expect(find.text('Lewati'), findsOneWidget);
   });
@@ -70,7 +53,7 @@ void main() {
   testWidgets('Login menampilkan form', (tester) async {
     await tester.binding.setSurfaceSize(_phone);
     addTearDown(() => tester.binding.setSurfaceSize(null));
-    await tester.pumpWidget(_wrap(const LoginScreen()));
+    await tester.pumpWidget(wrapScreen(const LoginScreen()));
     expect(find.text('Selamat datang'), findsOneWidget);
     expect(find.text('Masuk'), findsWidgets);
   });
@@ -78,7 +61,7 @@ void main() {
   testWidgets('Beranda menampilkan seksi utama', (tester) async {
     await tester.binding.setSurfaceSize(_phone);
     addTearDown(() => tester.binding.setSurfaceSize(null));
-    await tester.pumpWidget(_wrap(const BerandaScreen()));
+    await tester.pumpWidget(wrapScreen(const BerandaScreen()));
     expect(find.text('Mau ke mana?'), findsOneWidget);
     expect(find.text('Destinasi populer'), findsOneWidget);
   });
@@ -86,7 +69,7 @@ void main() {
   testWidgets('Eksplor menampilkan daftar destinasi', (tester) async {
     await tester.binding.setSurfaceSize(_phone);
     addTearDown(() => tester.binding.setSurfaceSize(null));
-    await tester.pumpWidget(_wrap(const ExploreScreen()));
+    await tester.pumpWidget(wrapScreen(const ExploreScreen()));
     await tester.pumpAndSettle();
     expect(find.text('Jelajahi'), findsOneWidget);
     expect(find.text('Gunung Bromo'), findsWidgets);
@@ -96,7 +79,7 @@ void main() {
     await tester.binding.setSurfaceSize(_phone);
     addTearDown(() => tester.binding.setSurfaceSize(null));
     await tester.pumpWidget(
-      _wrap(const DestinationDetailScreen(destinationId: 'dest-bromo')),
+      wrapScreen(const DestinationDetailScreen(destinationId: 'dest-bromo')),
     );
     expect(find.text('Gunung Bromo'), findsWidgets);
     expect(find.text('Sunrise di lautan pasir'), findsOneWidget);
@@ -113,7 +96,7 @@ void main() {
   testWidgets('Rencana Perjalanan menampilkan ringkasan, briefing AI, dan hari', (tester) async {
     await tester.binding.setSurfaceSize(_phone);
     addTearDown(() => tester.binding.setSurfaceSize(null));
-    await tester.pumpWidget(_wrap(const TripPlanScreen()));
+    await tester.pumpWidget(wrapScreen(const TripPlanScreen()));
     expect(find.text('Rencana Perjalanan'), findsOneWidget);
     expect(find.text('Trip Dieng'), findsOneWidget);
     expect(find.text('BRIEFING AI'), findsOneWidget);
@@ -127,7 +110,7 @@ void main() {
   testWidgets('Buat Rencana Baru menampilkan form dan stepper orang', (tester) async {
     await tester.binding.setSurfaceSize(_phone);
     addTearDown(() => tester.binding.setSurfaceSize(null));
-    await tester.pumpWidget(_wrap(const CreatePlanScreen()));
+    await tester.pumpWidget(wrapScreen(const CreatePlanScreen()));
     expect(find.text('Buat rencana baru'), findsOneWidget);
     expect(find.text('Nama rencana'), findsOneWidget);
     expect(find.text('Destinasi'), findsOneWidget);
@@ -144,7 +127,7 @@ void main() {
   testWidgets('Pilih Destinasi menampilkan search, daftar destinasi, dan tombol konfirmasi', (tester) async {
     await tester.binding.setSurfaceSize(_phone);
     addTearDown(() => tester.binding.setSurfaceSize(null));
-    await tester.pumpWidget(_wrap(const SelectDestinationScreen()));
+    await tester.pumpWidget(wrapScreen(const SelectDestinationScreen()));
     expect(find.text('Pilih destinasi'), findsWidgets);
     expect(find.text('Gunung Bromo'), findsOneWidget);
     expect(find.text('Gunung Prau'), findsOneWidget);
@@ -159,7 +142,7 @@ void main() {
   testWidgets('Pilih Fasilitas menampilkan segmented tabs, fasilitas, dan konfirmasi', (tester) async {
     await tester.binding.setSurfaceSize(_phone);
     addTearDown(() => tester.binding.setSurfaceSize(null));
-    await tester.pumpWidget(_wrap(const SelectFacilityScreen()));
+    await tester.pumpWidget(wrapScreen(const SelectFacilityScreen()));
     expect(find.text('Pilih fasilitas'), findsWidgets);
     expect(find.text('Penginapan'), findsOneWidget);
     expect(find.text('Transport'), findsOneWidget);
@@ -175,7 +158,7 @@ void main() {
   testWidgets('Detail Item Rencana menampilkan item, catatan, fasilitas, dan tombol aksi', (tester) async {
     await tester.binding.setSurfaceSize(_phone);
     addTearDown(() => tester.binding.setSurfaceSize(null));
-    await tester.pumpWidget(_wrap(const PlanItemDetailScreen()));
+    await tester.pumpWidget(wrapScreen(const PlanItemDetailScreen()));
     expect(find.text('Detail item'), findsOneWidget);
     expect(find.text('Gunung Bromo'), findsOneWidget);
     expect(find.text('Hari 1'), findsOneWidget);
@@ -189,7 +172,7 @@ void main() {
   testWidgets('Checklist Persiapan menampilkan progress, filter kategori, dan item toggle', (tester) async {
     await tester.binding.setSurfaceSize(_phone);
     addTearDown(() => tester.binding.setSurfaceSize(null));
-    await tester.pumpWidget(_wrap(const ChecklistScreen()));
+    await tester.pumpWidget(wrapScreen(const ChecklistScreen()));
     expect(find.text('Checklist Persiapan'), findsOneWidget);
     expect(find.text('Gunung Bromo'), findsOneWidget);
     expect(find.text('Semua'), findsOneWidget);
@@ -209,7 +192,7 @@ void main() {
   testWidgets('Tambah Item Checklist menampilkan form input, switch, dan chip kategori', (tester) async {
     await tester.binding.setSurfaceSize(_phone);
     addTearDown(() => tester.binding.setSurfaceSize(null));
-    await tester.pumpWidget(_wrap(const AddChecklistItemScreen()));
+    await tester.pumpWidget(wrapScreen(const AddChecklistItemScreen()));
     expect(find.text('Tambah item'), findsWidgets);
     expect(find.text('Nama item'), findsOneWidget);
     expect(find.text('Kategori'), findsOneWidget);
@@ -229,7 +212,7 @@ void main() {
   testWidgets('Profil menampilkan identitas, stats, menu grup, dan BottomNav', (tester) async {
     await tester.binding.setSurfaceSize(_phone);
     addTearDown(() => tester.binding.setSurfaceSize(null));
-    await tester.pumpWidget(_wrap(const ProfileScreen()));
+    await tester.pumpWidget(wrapScreen(const ProfileScreen()));
     expect(find.text('Profil'), findsWidgets);
     expect(find.text('Dimas'), findsOneWidget);
     expect(find.text('dimas@dolenae.id'), findsOneWidget);
@@ -248,7 +231,7 @@ void main() {
   testWidgets('Edit Profil menampilkan avatar, fields lengkap, dan tombol Simpan', (tester) async {
     await tester.binding.setSurfaceSize(_phone);
     addTearDown(() => tester.binding.setSurfaceSize(null));
-    await tester.pumpWidget(_wrap(const EditProfileScreen()));
+    await tester.pumpWidget(wrapScreen(const EditProfileScreen()));
     expect(find.text('Edit profil'), findsOneWidget);
     expect(find.text('Simpan'), findsOneWidget);
     expect(find.text('Ganti foto'), findsOneWidget);

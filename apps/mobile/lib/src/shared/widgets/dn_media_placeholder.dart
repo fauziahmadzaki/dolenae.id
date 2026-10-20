@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../app/theme/app_colors.dart';
+import 'package:dolenae_mobile/src/app/theme/app_colors.dart';
 
 /// Placeholder media bergaya "bukit + matahari" (pengganti foto sementara),
 /// meniru scene pada desain Figma.

@@ -1,11 +1,11 @@
 import 'package:go_router/go_router.dart';
 
-import '../../../features/checklist/presentation/checklist_screen.dart';
-import '../../../features/explore/presentation/explore_screen.dart';
-import '../../../features/home/presentation/beranda_screen.dart';
-import '../../../features/notifications/presentation/notifications_screen.dart';
-import '../../../features/plan/presentation/trip_plan_screen.dart';
-import '../../../features/profile/presentation/profile_screen.dart';
+import 'package:dolenae_mobile/src/features/checklist/presentation/screens/checklist_screen.dart';
+import 'package:dolenae_mobile/src/features/explore/presentation/screens/explore_screen.dart';
+import 'package:dolenae_mobile/src/features/home/presentation/screens/beranda_screen.dart';
+import 'package:dolenae_mobile/src/features/notifications/presentation/screens/notifications_screen.dart';
+import 'package:dolenae_mobile/src/features/plan/presentation/screens/trip_plan_screen.dart';
+import 'package:dolenae_mobile/src/features/profile/presentation/screens/profile_screen.dart';
 
 final List<RouteBase> mainTabRoutes = [
   GoRoute(path: '/home', builder: (_, _) => const BerandaScreen()),

@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:dolenae_mobile/src/shared/icons/app_icons.dart';
 
-import '../../app/theme/app_colors.dart';
-import '../../app/theme/app_radius.dart';
-import '../../app/theme/app_shadows.dart';
-import '../../app/theme/app_spacing.dart';
-import '../../data/models/travel_support.dart';
-import 'dn_icon_circle.dart';
+import 'package:dolenae_mobile/src/app/theme/app_colors.dart';
+import 'package:dolenae_mobile/src/app/theme/app_radius.dart';
+import 'package:dolenae_mobile/src/app/theme/app_shadows.dart';
+import 'package:dolenae_mobile/src/app/theme/app_spacing.dart';
+import 'package:dolenae_mobile/src/features/facilities/domain/entities/travel_support.dart';
+import 'package:dolenae_mobile/src/shared/widgets/dn_icon_circle.dart';
 
 /// Kartu fasilitas pendukung (rail horizontal di Beranda).
 class DnSupportCard extends StatelessWidget {

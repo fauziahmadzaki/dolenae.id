@@ -19,6 +19,7 @@ wisata alam sejenis).
 - `docs/prd/product-overview.md` — product overview (baca dulu sebelum kerja).
 - `docs/specs/architecture.md` — struktur monorepo & tech stack.
 - `docs/specs/data-model.md` — entitas domain.
+- `docs/specs/mobile-architecture.md` — struktur & konvensi `apps/mobile`.
 - `docs/specs/api-contract.md`, `docs/specs/ai-recommendation.md` — belum
   dibuat, rancang saat implementasi terkait.
 - `docs/decisions/` — ADR untuk keputusan arsitektur bernilai dokumentasi.
@@ -41,9 +42,28 @@ wisata alam sejenis).
 3. Verifikasi dengan menjalankan:
    - `pnpm typecheck` (semua paket TS)
    - `cd apps/mobile && flutter analyze` (Flutter)
+   - `cd apps/mobile && flutter test` (test Flutter)
 4. UI baru untuk web dibuat sebagai route file di `apps/web/src/routes/`.
 5. Update `docs/` (PRD/spec) bila ada perubahan perilaku produk yang
    signifikan.
+
+## Mobile (Flutter)
+
+- Struktur **feature-first clean architecture**; detail ada di
+  `docs/specs/mobile-architecture.md`.
+- Fitur di `lib/src/features/<fitur>/{domain,data,presentation}`. `domain`
+  bebas Flutter; hanya `data` yang menyentuh HTTP/Drift/SharedPreferences;
+  `presentation` hanya lewat controller + `domain`.
+- Kode lintas fitur: `core/` (config, error, network, database, result,
+  usecase, util) dan `shared/` (widget/ikon/tema).
+- `lib/src/app/di/app_dependencies.dart` adalah satu-satunya tempat
+  instansiasi implementasi repository; controller dibangun di `app/app.dart`.
+- State pakai `provider` + `ChangeNotifier` dengan nama kelas `*Controller`.
+- Operasi gagal mengembalikan `Result<T>`; `ApiException` berhenti di lapisan
+  data (diubah jadi `AppFailure` berpesan Bahasa Indonesia).
+- Import internal memakai `package:dolenae_mobile/src/...`.
+- Data contoh per fitur memakai `abstract final class ...SeedData`
+  (bukan satu `seed_data.dart` global).
 
 ## Desain & Figma (figma-cli)
 

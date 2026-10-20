@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../app/theme/app_colors.dart';
+import 'package:dolenae_mobile/src/app/theme/app_colors.dart';
 
 /// Progress bar tipis untuk ringkasan rencana/checklist.
 class DnProgressBar extends StatelessWidget {

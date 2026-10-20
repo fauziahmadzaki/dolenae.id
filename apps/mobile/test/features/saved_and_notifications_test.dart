@@ -1,11 +1,11 @@
-import 'package:dolenae_mobile/src/data/models/app_notification.dart';
-import 'package:dolenae_mobile/src/data/models/facility_proposal.dart';
-import 'package:dolenae_mobile/src/data/seed/seed_data.dart';
-import 'package:dolenae_mobile/src/features/notifications/presentation/notifications_screen.dart';
-import 'package:dolenae_mobile/src/features/saved/presentation/saved_checklists_screen.dart';
-import 'package:dolenae_mobile/src/features/saved/presentation/saved_destinations_screen.dart';
-import 'package:dolenae_mobile/src/features/saved/presentation/saved_plans_screen.dart';
-import 'package:dolenae_mobile/src/features/saved/presentation/saved_proposals_screen.dart';
+import 'package:dolenae_mobile/src/features/notifications/domain/entities/app_notification.dart';
+import 'package:dolenae_mobile/src/features/facilities/domain/entities/facility_proposal.dart';
+import 'package:dolenae_mobile/src/features/saved/data/data_sources/saved_seed_data_source.dart';
+import 'package:dolenae_mobile/src/features/notifications/presentation/screens/notifications_screen.dart';
+import 'package:dolenae_mobile/src/features/saved/presentation/screens/saved_checklists_screen.dart';
+import 'package:dolenae_mobile/src/features/saved/presentation/screens/saved_destinations_screen.dart';
+import 'package:dolenae_mobile/src/features/saved/presentation/screens/saved_plans_screen.dart';
+import 'package:dolenae_mobile/src/features/saved/presentation/screens/saved_proposals_screen.dart';
 import 'package:dolenae_mobile/src/shared/widgets/dn_plan_card.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -52,7 +52,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('Destinasi tersimpan'), findsOneWidget);
-      for (final item in SeedData.savedDestinations) {
+      for (final item in SavedSeedData.destinations) {
         expect(find.text(item.destination.name), findsOneWidget);
       }
     });
@@ -94,7 +94,7 @@ void main() {
       await tester.pumpWidget(
         wrapScreen(
           SavedDestinationsScreen(
-            items: SeedData.savedDestinations,
+            items: SavedSeedData.destinations,
             onRemove: removed.add,
           ),
         ),
@@ -132,7 +132,7 @@ void main() {
 
       expect(find.text('Daftar rencana'), findsOneWidget);
       expect(find.byType(DnPlanCard), findsWidgets);
-      for (final plan in SeedData.savedPlans) {
+      for (final plan in SavedSeedData.plans) {
         expect(find.text(plan.name), findsOneWidget);
         expect(find.text(plan.dateRange), findsOneWidget);
         expect(find.text(plan.statusLabel), findsOneWidget);
@@ -179,7 +179,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('Checklist tersimpan'), findsOneWidget);
-      for (final checklist in SeedData.savedChecklists) {
+      for (final checklist in SavedSeedData.checklists) {
         expect(find.text(checklist.name), findsOneWidget);
         expect(find.text(checklist.countLabel), findsOneWidget);
       }
@@ -225,7 +225,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('Fasilitas diusulkan'), findsOneWidget);
-      for (final proposal in SeedData.proposals) {
+      for (final proposal in SavedSeedData.proposals) {
         expect(find.text(proposal.name), findsOneWidget);
         expect(find.text(proposal.statusLabel), findsOneWidget);
       }
@@ -244,7 +244,7 @@ void main() {
 
     testWidgets('status menunggu memakai warna peringatan', (tester) async {
       await usePhone(tester);
-      final menunggu = SeedData.proposals
+      final menunggu = SavedSeedData.proposals
           .where((p) => p.status == ProposalStatus.menunggu)
           .toList();
       expect(menunggu, isNotEmpty);
@@ -367,13 +367,13 @@ void main() {
 
   group('Model Tersimpan', () {
     test('progres rencana dan checklist dihitung benar', () {
-      final plan = SeedData.savedPlans.first;
+      final plan = SavedSeedData.plans.first;
       expect(
         plan.progress,
         closeTo(plan.destinationCount / plan.destinationTotal, 0.001),
       );
 
-      final checklist = SeedData.savedChecklists.first;
+      final checklist = SavedSeedData.checklists.first;
       expect(
         checklist.progress,
         closeTo(checklist.completedCount / checklist.totalCount, 0.001),

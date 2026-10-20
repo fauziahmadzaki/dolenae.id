@@ -1,0 +1,65 @@
+import 'package:dolenae_mobile/src/features/destinations/domain/entities/destination.dart';
+
+/// Offline fallback used before the first successful API sync.
+abstract final class DestinationSeedData {
+  static const items = <Destination>[
+    Destination(
+      id: 'dest-bromo',
+      slug: 'gunung-bromo',
+      name: 'Gunung Bromo',
+      tagline: 'Sunrise di lautan pasir',
+      elevationM: 2329,
+      regency: 'Probolinggo',
+      province: 'Jawa Timur',
+      priceFrom: 29000,
+      difficulty: DifficultyLevel.pemula,
+      entryFee: 'Rp29rb - 34rb',
+      bestSeason: 'Kering (Jul-Okt)',
+      guideRequired: false,
+      accessDescription:
+          'Dari Surabaya via Probolinggo, lanjut ke Cemoro Lawang. Bisa kendaraan pribadi atau sewa jeep.',
+      accessTransportModes: ['Mobil', 'Jeep', 'Motor'],
+      accessTravelTime: '≈ 4 jam dari Surabaya',
+      accessDistance: '140 km dari kota terdekat',
+      accessPointName: 'Cemoro Lawang',
+      facilityToilet: true,
+      facilityWarung: true,
+      facilityParking: true,
+      facilityHomestay: true,
+      facilityMushola: false,
+    ),
+    Destination(
+      id: 'dest-prau',
+      slug: 'gunung-prau',
+      name: 'Gunung Prau',
+      tagline: 'Camping di Dataran Tinggi Dieng',
+      elevationM: 2565,
+      regency: 'Wonosobo',
+      province: 'Jawa Tengah',
+      priceFrom: 25000,
+      difficulty: DifficultyLevel.pemula,
+    ),
+    Destination(
+      id: 'dest-papandayan',
+      slug: 'gunung-papandayan',
+      name: 'Gunung Papandayan',
+      tagline: 'Savana Tegal Alun',
+      elevationM: 2665,
+      regency: 'Garut',
+      province: 'Jawa Barat',
+      priceFrom: 30000,
+      difficulty: DifficultyLevel.sulit,
+    ),
+    Destination(
+      id: 'dest-moko',
+      slug: 'bukit-moko',
+      name: 'Bukit Moko',
+      tagline: 'Panorama Bandung dari ketinggian',
+      elevationM: 1200,
+      regency: 'Bandung Barat',
+      province: 'Jawa Barat',
+      priceFrom: 15000,
+      difficulty: DifficultyLevel.pemula,
+    ),
+  ];
+}

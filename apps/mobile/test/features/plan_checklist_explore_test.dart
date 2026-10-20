@@ -1,8 +1,8 @@
-import 'package:dolenae_mobile/src/data/models/search_filter.dart';
-import 'package:dolenae_mobile/src/features/checklist/presentation/checklist_done_screen.dart';
-import 'package:dolenae_mobile/src/features/explore/presentation/explore_screen.dart';
-import 'package:dolenae_mobile/src/features/plan/presentation/plan_new_screen.dart';
-import 'package:dolenae_mobile/src/features/plan/presentation/plan_success_screen.dart';
+import 'package:dolenae_mobile/src/features/destinations/domain/entities/search_filter.dart';
+import 'package:dolenae_mobile/src/features/checklist/presentation/screens/checklist_done_screen.dart';
+import 'package:dolenae_mobile/src/features/explore/presentation/screens/explore_screen.dart';
+import 'package:dolenae_mobile/src/features/plan/presentation/screens/plan_new_screen.dart';
+import 'package:dolenae_mobile/src/features/plan/presentation/screens/plan_success_screen.dart';
 import 'package:dolenae_mobile/src/shared/icons/app_icons.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';

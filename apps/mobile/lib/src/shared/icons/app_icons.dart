@@ -28,6 +28,7 @@ abstract final class AppIcons {
   static const IconData close = Icons.close;
   static const IconData cloudOff = Icons.cloud_off_outlined;
   static const IconData compass = Icons.explore_outlined;
+  static const IconData database = Icons.storage_outlined;
   static const IconData delete = Icons.delete_outline;
   static const IconData edit = Icons.edit_outlined;
   static const IconData eye = Icons.visibility_outlined;

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
-import '../../app/theme/app_colors.dart';
-import '../../app/theme/app_radius.dart';
+import 'package:dolenae_mobile/src/app/theme/app_colors.dart';
+import 'package:dolenae_mobile/src/app/theme/app_radius.dart';
 
 /// Tile aktivitas kecil (ikon dalam kontainer) untuk seksi Beranda.
 class DnActivityTile extends StatelessWidget {

@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:dolenae_mobile/src/shared/icons/app_icons.dart';
 
-import '../../app/theme/app_colors.dart';
-import '../../app/theme/app_text_styles.dart';
+import 'package:dolenae_mobile/src/app/theme/app_colors.dart';
+import 'package:dolenae_mobile/src/app/theme/app_text_styles.dart';
 
 /// App bar pine dengan tombol kembali opsional dan aksi kanan.
 class DnAppBar extends StatelessWidget implements PreferredSizeWidget {

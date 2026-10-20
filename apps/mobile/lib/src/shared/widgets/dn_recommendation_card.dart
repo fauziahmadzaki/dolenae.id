@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 
-import '../../app/theme/app_colors.dart';
-import '../../app/theme/app_radius.dart';
-import '../../app/theme/app_spacing.dart';
-import '../../app/theme/app_text_styles.dart';
-import '../../data/models/ai_recommendation.dart';
-import '../../data/models/destination.dart';
-import '../icons/app_icons.dart';
-import 'dn_difficulty_badge.dart';
+import 'package:dolenae_mobile/src/app/theme/app_colors.dart';
+import 'package:dolenae_mobile/src/app/theme/app_radius.dart';
+import 'package:dolenae_mobile/src/app/theme/app_spacing.dart';
+import 'package:dolenae_mobile/src/app/theme/app_text_styles.dart';
+import 'package:dolenae_mobile/src/features/ai/domain/entities/ai_recommendation.dart';
+import 'package:dolenae_mobile/src/features/destinations/domain/entities/destination.dart';
+import 'package:dolenae_mobile/src/shared/icons/app_icons.dart';
+import 'package:dolenae_mobile/src/shared/widgets/dn_difficulty_badge.dart';
 
 /// Varian kartu rekomendasi (component `RecommendationCard (Alam)`).
 enum DnRecommendationVariant { ringkas, lengkap }
