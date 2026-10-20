@@ -408,58 +408,65 @@ class _Header extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      height: 56,
       color: AppColors.primary,
       padding: const EdgeInsets.symmetric(horizontal: AppSpacing.s4),
-      child: Row(
-        children: [
-          Container(
-            width: 32,
-            height: 32,
-            decoration: BoxDecoration(
-              color: AppColors.primaryHover,
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: const Icon(
-              AppIcons.mountainSnow,
-              size: 18,
-              color: AppColors.onPrimary,
-            ),
+      child: SafeArea(
+        bottom: false,
+        child: SizedBox(
+          height: 56,
+          child: Row(
+            children: [
+              Container(
+                width: 32,
+                height: 32,
+                decoration: BoxDecoration(
+                  color: AppColors.primaryHover,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: const Icon(
+                  AppIcons.mountainSnow,
+                  size: 18,
+                  color: AppColors.onPrimary,
+                ),
+              ),
+              const SizedBox(width: AppSpacing.s2 + 2),
+              Text(
+                'Dolenae.id',
+                style: AppTextStyles.titleSm.copyWith(
+                  color: AppColors.onPrimary,
+                ),
+              ),
+              const Spacer(),
+              Container(
+                width: 36,
+                height: 36,
+                decoration: const BoxDecoration(
+                  color: AppColors.primaryHover,
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  AppIcons.bell,
+                  size: 18,
+                  color: AppColors.onPrimary,
+                ),
+              ),
+              const SizedBox(width: AppSpacing.s2 + 2),
+              Container(
+                width: 36,
+                height: 36,
+                alignment: Alignment.center,
+                decoration: const BoxDecoration(
+                  color: AppColors.canvas,
+                  shape: BoxShape.circle,
+                ),
+                child: Text(
+                  context.watch<AuthController?>()?.user?.initials ?? 'D',
+                  style: AppTextStyles.label.copyWith(color: AppColors.primary),
+                ),
+              ),
+            ],
           ),
-          const SizedBox(width: AppSpacing.s2 + 2),
-          Text(
-            'Dolenae.id',
-            style: AppTextStyles.titleSm.copyWith(color: AppColors.onPrimary),
-          ),
-          const Spacer(),
-          Container(
-            width: 36,
-            height: 36,
-            decoration: const BoxDecoration(
-              color: AppColors.primaryHover,
-              shape: BoxShape.circle,
-            ),
-            child: const Icon(
-              AppIcons.bell,
-              size: 18,
-              color: AppColors.onPrimary,
-            ),
-          ),
-          const SizedBox(width: AppSpacing.s2 + 2),
-          Container(
-            width: 36,
-            height: 36,
-            alignment: Alignment.center,
-            decoration: const BoxDecoration(
-              color: AppColors.canvas,
-              shape: BoxShape.circle,
-            ),
-            child: Text(
-              context.watch<AuthController?>()?.user?.initials ?? 'D',
-              style: AppTextStyles.label.copyWith(color: AppColors.primary),
-            ),
-          ),
-        ],
+        ),
       ),
     );
   }
