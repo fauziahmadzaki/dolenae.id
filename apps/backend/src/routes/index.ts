@@ -1,5 +1,7 @@
 import { Router } from "express";
 import { authRouter } from "./auth.route";
+import { categoryRouter } from "./category.route";
+import { destinationRouter } from "./destination.route";
 import { healthRouter } from "./health.route";
 import { userRouter } from "./user.route";
 
@@ -9,3 +11,5 @@ export const apiRouter = Router();
 apiRouter.use("/health", healthRouter);
 apiRouter.use("/auth", authRouter);
 apiRouter.use("/users", userRouter);
+apiRouter.use("/categories", categoryRouter);
+apiRouter.use("/destinations", destinationRouter);

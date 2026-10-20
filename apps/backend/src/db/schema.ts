@@ -1,7 +1,11 @@
 import {
+  boolean,
   index,
+  integer,
+  numeric,
   pgEnum,
   pgTable,
+  primaryKey,
   text,
   timestamp,
   uuid,
@@ -69,3 +73,117 @@ export type PasswordResetTokenRow = typeof passwordResetTokens.$inferSelect;
 export type NewPasswordResetTokenRow =
   typeof passwordResetTokens.$inferInsert;
 export type UserRole = typeof users.$inferSelect.role;
+
+// ---------------------------------------------------------------------------
+// Categories & destinations (Modul 4 — Admin Destinasi & Kategori)
+// ---------------------------------------------------------------------------
+
+export const categoryTypeEnum = pgEnum("category_type", ["terrain", "activity"]);
+
+export const difficultyEnum = pgEnum("difficulty", [
+  "ramah-pemula",
+  "menengah",
+  "sulit",
+]);
+
+export const destinationStatusEnum = pgEnum("destination_status", [
+  "draft",
+  "published",
+  "archived",
+]);
+
+export const categories = pgTable(
+  "categories",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    name: varchar("name", { length: 80 }).notNull(),
+    slug: varchar("slug", { length: 100 }).notNull().unique(),
+    type: categoryTypeEnum("type").notNull(),
+    // Lucide icon reference, e.g. "lucide:mountain".
+    icon: varchar("icon", { length: 80 }),
+    description: text("description"),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => ({
+    typeIdx: index("categories_type_idx").on(table.type),
+  }),
+);
+
+export const destinations = pgTable(
+  "destinations",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    name: varchar("name", { length: 120 }).notNull(),
+    slug: varchar("slug", { length: 140 }).notNull().unique(),
+    tagline: varchar("tagline", { length: 200 }),
+    description: text("description"),
+    // Classification
+    difficulty: difficultyEnum("difficulty").notNull().default("menengah"),
+    bestSeason: text("best_season").array().notNull().default([]),
+    tags: text("tags").array().notNull().default([]),
+    // Compatibility with the design/seed display (official relation = categoryIds).
+    terrain: text("terrain").array().notNull().default([]),
+    activities: text("activities").array().notNull().default([]),
+    // Geography (reverse geocode via @dolenae/regions — ADR-0004)
+    province: varchar("province", { length: 80 }),
+    regency: varchar("regency", { length: 80 }),
+    district: varchar("district", { length: 80 }),
+    latitude: numeric("latitude", { precision: 10, scale: 7 }),
+    longitude: numeric("longitude", { precision: 10, scale: 7 }),
+    accessPoint: varchar("access_point", { length: 160 }),
+    // Access
+    accessDescription: text("access_description"),
+    accessTransport: text("access_transport").array().notNull().default([]),
+    accessDuration: varchar("access_duration", { length: 80 }),
+    accessDistanceKm: numeric("access_distance_km", { precision: 8, scale: 2 }),
+    // Facilities & economy
+    facilities: text("facilities").array().notNull().default([]),
+    entryFee: integer("entry_fee"),
+    elevationMeters: integer("elevation_meters"),
+    // Media & publishing
+    images: text("images").array().notNull().default([]),
+    guideRequired: boolean("guide_required").notNull().default(false),
+    status: destinationStatusEnum("status").notNull().default("draft"),
+    verified: boolean("verified").notNull().default(false),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => ({
+    statusIdx: index("destinations_status_idx").on(table.status),
+    difficultyIdx: index("destinations_difficulty_idx").on(table.difficulty),
+  }),
+);
+
+export const destinationCategories = pgTable(
+  "destination_categories",
+  {
+    destinationId: uuid("destination_id")
+      .notNull()
+      .references(() => destinations.id, { onDelete: "cascade" }),
+    categoryId: uuid("category_id")
+      .notNull()
+      .references(() => categories.id, { onDelete: "cascade" }),
+  },
+  (table) => ({
+    pk: primaryKey({
+      columns: [table.destinationId, table.categoryId],
+    }),
+  }),
+);
+
+export type CategoryRow = typeof categories.$inferSelect;
+export type NewCategoryRow = typeof categories.$inferInsert;
+export type DestinationRow = typeof destinations.$inferSelect;
+export type NewDestinationRow = typeof destinations.$inferInsert;
+export type CategoryType = typeof categories.$inferSelect.type;
+export type Difficulty = typeof destinations.$inferSelect.difficulty;
+export type DestinationStatus = typeof destinations.$inferSelect.status;
