@@ -1,6 +1,7 @@
 import 'package:dolenae_mobile/src/features/destinations/data/data_sources/destination_seed_data_source.dart';
 import 'package:dolenae_mobile/src/features/facilities/data/data_sources/facility_seed_data_source.dart';
 import 'package:dolenae_mobile/src/shared/icons/app_icons.dart';
+import 'package:dolenae_mobile/src/shared/widgets/dn_google_logo.dart';
 import 'package:dolenae_mobile/src/features/auth/presentation/screens/login_screen.dart';
 import 'package:dolenae_mobile/src/features/checklist/presentation/screens/add_checklist_item_screen.dart';
 import 'package:dolenae_mobile/src/features/checklist/presentation/screens/checklist_screen.dart';
@@ -54,8 +55,10 @@ void main() {
     await tester.binding.setSurfaceSize(_phone);
     addTearDown(() => tester.binding.setSurfaceSize(null));
     await tester.pumpWidget(wrapScreen(const LoginScreen()));
+    await tester.pumpAndSettle();
     expect(find.text('Selamat datang'), findsOneWidget);
     expect(find.text('Masuk'), findsWidgets);
+    expect(find.byType(DnGoogleLogo), findsOneWidget);
   });
 
   testWidgets('Beranda menampilkan seksi utama', (tester) async {

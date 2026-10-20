@@ -26,6 +26,7 @@ flutter:
   # atau `Poppins-<Bobot>.ttf`, jadi nama berkas di sini tidak boleh diubah.
   assets:
     - assets/fonts/
+    - assets/images/
 
   fonts:
     - family: Inter

@@ -9,6 +9,7 @@ import 'package:dolenae_mobile/src/app/theme/app_radius.dart';
 import 'package:dolenae_mobile/src/app/theme/app_spacing.dart';
 import 'package:dolenae_mobile/src/app/theme/app_text_styles.dart';
 import 'package:dolenae_mobile/src/shared/widgets/dn_buttons.dart';
+import 'package:dolenae_mobile/src/shared/widgets/dn_google_logo.dart';
 
 /// Login & daftar dengan validasi lokal + state error.
 class LoginScreen extends StatefulWidget {
@@ -269,7 +270,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       borderRadius: BorderRadius.circular(AppRadius.lg),
                     ),
                   ),
-                  icon: const Icon(AppIcons.chrome, size: 20),
+                  icon: const DnGoogleLogo(size: 20),
                   label: const Text(
                     'Google',
                     style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
