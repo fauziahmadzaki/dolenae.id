@@ -5,6 +5,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 const store = vi.hoisted(() => ({
   users: new Map<string, Record<string, unknown>>(),
   resetTokens: new Map<string, Record<string, unknown>>(),
+  verifyTokens: new Map<string, Record<string, unknown>>(),
 }));
 
 vi.mock("../../src/db/client", () => ({
@@ -75,12 +76,47 @@ vi.mock("../../src/repositories/password-reset.repository", () => ({
   },
 }));
 
+vi.mock("../../src/repositories/email-verification.repository", () => ({
+  emailVerificationRepository: {
+    create: vi.fn(async (data: Record<string, unknown>) => {
+      const row = {
+        id: `verify-${store.verifyTokens.size + 1}`,
+        usedAt: null,
+        createdAt: new Date(),
+        ...data,
+      };
+      store.verifyTokens.set(String(row.tokenHash), row);
+      return row;
+    }),
+    findByHash: vi.fn(async (tokenHash: string) =>
+      store.verifyTokens.get(tokenHash),
+    ),
+    findLatestByUser: vi.fn(async (userId: string) =>
+      [...store.verifyTokens.values()]
+        .filter((row) => row.userId === userId)
+        .sort(
+          (a, b) =>
+            (b.createdAt as Date).getTime() - (a.createdAt as Date).getTime(),
+        )[0],
+    ),
+    invalidateForUser: vi.fn(async (userId: string) => {
+      for (const row of store.verifyTokens.values()) {
+        if (row.userId === userId && !row.usedAt) row.usedAt = new Date();
+      }
+    }),
+  },
+}));
+
 vi.mock("../../src/services/email.service", () => ({
   sendPasswordResetEmail: vi.fn(async () => undefined),
+  sendVerificationEmail: vi.fn(async () => undefined),
 }));
 
 import { createApp } from "../../src/app";
-import { sendPasswordResetEmail } from "../../src/services/email.service";
+import {
+  sendPasswordResetEmail,
+  sendVerificationEmail,
+} from "../../src/services/email.service";
 
 const app = createApp();
 
@@ -97,6 +133,7 @@ async function registerUser() {
 beforeEach(() => {
   store.users.clear();
   store.resetTokens.clear();
+  store.verifyTokens.clear();
   vi.clearAllMocks();
 });
 
@@ -128,6 +165,54 @@ describe("auth api", () => {
       .send({ name: "A", email: "bukan-email", password: "pendek" });
     expect(res.status).toBe(422);
     expect(res.body.error.code).toBe("VALIDATION_ERROR");
+  });
+
+  it("POST /api/auth/register sends a verification email", async () => {
+    const res = await registerUser();
+    expect(res.status).toBe(201);
+    expect(res.body.data.user.emailVerifiedAt).toBeNull();
+
+    const call = vi.mocked(sendVerificationEmail).mock.calls[0];
+    expect(call).toBeDefined();
+    const verifyUrl = new URL(call![1]);
+    expect(verifyUrl.pathname).toBe("/auth/verify-email");
+    expect(verifyUrl.searchParams.get("token")).toBeTruthy();
+  });
+
+  it("POST /api/auth/verify-email marks the account verified (idempotent)", async () => {
+    await registerUser();
+    const call = vi.mocked(sendVerificationEmail).mock.calls[0];
+    const token = new URL(call![1]).searchParams.get("token");
+
+    const first = await request(app)
+      .post("/api/auth/verify-email")
+      .send({ token });
+    expect(first.status).toBe(200);
+
+    const second = await request(app)
+      .post("/api/auth/verify-email")
+      .send({ token });
+    expect(second.status).toBe(200);
+
+    const login = await request(app)
+      .post("/api/auth/login")
+      .send({ email: credentials.email, password: credentials.password });
+    expect(login.body.data.user.emailVerifiedAt).toEqual(expect.any(String));
+  });
+
+  it("POST /api/auth/verify-email rejects an unknown token", async () => {
+    const res = await request(app)
+      .post("/api/auth/verify-email")
+      .send({ token: "tidak-ada" });
+    expect(res.status).toBe(400);
+  });
+
+  it("POST /api/auth/resend-verification always answers generically", async () => {
+    const res = await request(app)
+      .post("/api/auth/resend-verification")
+      .send({ email: "tidak-terdaftar@example.com" });
+    expect(res.status).toBe(200);
+    expect(res.body.data.message).toEqual(expect.any(String));
   });
 
   it("POST /api/auth/login returns a token for valid credentials", async () => {

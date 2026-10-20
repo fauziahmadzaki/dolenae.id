@@ -15,6 +15,13 @@
       "when": 1792423379658,
       "tag": "0001_sleepy_harrier",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1792502393372,
+      "tag": "0002_secret_stardust",
+      "breakpoints": true
     }
   ]
 }

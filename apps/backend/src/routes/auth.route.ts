@@ -5,7 +5,9 @@ import {
   googleSchema,
   loginSchema,
   registerSchema,
+  resendVerificationSchema,
   resetPasswordSchema,
+  verifyEmailSchema,
 } from "../controllers/auth.schema";
 import { authRequired } from "../middleware/auth";
 import { validate } from "../middleware/validate";
@@ -32,5 +34,15 @@ authRouter.post(
   "/reset-password",
   validate({ body: resetPasswordSchema }),
   authController.resetPassword,
+);
+authRouter.post(
+  "/verify-email",
+  validate({ body: verifyEmailSchema }),
+  authController.verifyEmail,
+);
+authRouter.post(
+  "/resend-verification",
+  validate({ body: resendVerificationSchema }),
+  authController.resendVerification,
 );
 authRouter.get("/me", authRequired, authController.me);

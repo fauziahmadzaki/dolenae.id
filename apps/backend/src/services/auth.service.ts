@@ -1,6 +1,7 @@
 import { OAuth2Client } from "google-auth-library";
 import { loadEnv } from "../config/env";
 import type { UserRow } from "../db/schema";
+import { emailVerificationRepository } from "../repositories/email-verification.repository";
 import { passwordResetRepository } from "../repositories/password-reset.repository";
 import { userRepository } from "../repositories/user.repository";
 import type { AuthTokenResponse, AuthUser } from "../types/auth";
@@ -14,13 +15,15 @@ import {
 import { signAccessToken } from "../utils/jwt";
 import { hashPassword, verifyPassword } from "../utils/password";
 import { generateToken, hashToken } from "../utils/token";
-import { sendPasswordResetEmail } from "./email.service";
+import { sendPasswordResetEmail, sendVerificationEmail } from "./email.service";
 import type {
   ForgotPasswordInput,
   GoogleInput,
   LoginInput,
   RegisterInput,
+  ResendVerificationInput,
   ResetPasswordInput,
+  VerifyEmailInput,
 } from "../controllers/auth.schema";
 
 /** Map a DB row to the public user shape (never leaks the password hash). */
@@ -32,6 +35,7 @@ function toAuthUser(row: UserRow): AuthUser {
     role: row.role,
     provider: row.provider,
     avatarUrl: row.avatarUrl,
+    emailVerifiedAt: row.emailVerifiedAt?.toISOString() ?? null,
     createdAt: row.createdAt.toISOString(),
     updatedAt: row.updatedAt.toISOString(),
   };
@@ -44,6 +48,27 @@ async function issueToken(row: UserRow): Promise<AuthTokenResponse> {
     role: row.role,
   });
   return { token, user: toAuthUser(row) };
+}
+
+/** Cooldown between two verification emails for the same account. */
+const VERIFICATION_RESEND_COOLDOWN_MS = 60_000;
+
+/**
+ * Create a fresh (single-use, non-expiring) verification token for the user and
+ * email the link. Older unused tokens are invalidated on the way.
+ */
+async function sendVerificationLink(row: UserRow): Promise<void> {
+  const env = loadEnv();
+  const rawToken = generateToken();
+
+  await emailVerificationRepository.invalidateForUser(row.id);
+  await emailVerificationRepository.create({
+    userId: row.id,
+    tokenHash: hashToken(rawToken),
+  });
+
+  const verifyUrl = `${env.APP_WEB_URL}/auth/verify-email?token=${rawToken}`;
+  await sendVerificationEmail(row.email, verifyUrl);
 }
 
 export const authService = {
@@ -60,6 +85,15 @@ export const authService = {
       role: input.role ?? "wisatawan",
       provider: "local",
     });
+
+    // Soft verification: the account is usable right away, so a mail failure
+    // must not block registration.
+    try {
+      await sendVerificationLink(row);
+    } catch (error) {
+      console.warn("[auth] failed to send verification email", error);
+    }
+
     return issueToken(row);
   },
 
@@ -153,7 +187,7 @@ export const authService = {
       ),
     });
 
-    const resetUrl = `${env.APP_WEB_URL}/reset-password?token=${rawToken}`;
+    const resetUrl = `${env.APP_WEB_URL}/auth/reset-password?token=${rawToken}`;
     await sendPasswordResetEmail(row.email, resetUrl);
     return { message };
   },
@@ -173,6 +207,59 @@ export const authService = {
     });
     await passwordResetRepository.markUsed(record.id);
     return { message: "Password berhasil diperbarui." };
+  },
+
+  /**
+   * Confirm an email address with the token from the verification link.
+   * Idempotent: an already-used token still resolves to a success message, so
+   * a page refresh or a double request does not show a false error.
+   */
+  async verifyEmail(input: VerifyEmailInput): Promise<{ message: string }> {
+    const record = await emailVerificationRepository.findByHash(
+      hashToken(input.token),
+    );
+    if (!record) throw new BadRequestError("Tautan verifikasi tidak valid");
+
+    const row = await userRepository.findById(record.userId);
+    if (!row) throw new BadRequestError("Tautan verifikasi tidak valid");
+
+    if (record.usedAt) return { message: "Email sudah terverifikasi." };
+
+    await userRepository.update(row.id, {
+      emailVerifiedAt: row.emailVerifiedAt ?? new Date(),
+    });
+    await emailVerificationRepository.invalidateForUser(row.id);
+
+    return { message: "Email berhasil diverifikasi." };
+  },
+
+  /**
+   * Re-send the verification link. Always resolves with the same message so a
+   * caller cannot tell whether the email exists or is already verified.
+   */
+  async resendVerification(
+    input: ResendVerificationInput,
+  ): Promise<{ message: string }> {
+    const message =
+      "Jika email terdaftar dan belum terverifikasi, tautan verifikasi telah dikirim.";
+    const row = await userRepository.findByEmail(input.email.toLowerCase());
+    if (!row || row.emailVerifiedAt) return { message };
+
+    const latest = await emailVerificationRepository.findLatestByUser(row.id);
+    if (
+      latest &&
+      Date.now() - latest.createdAt.getTime() < VERIFICATION_RESEND_COOLDOWN_MS
+    ) {
+      return { message };
+    }
+
+    try {
+      await sendVerificationLink(row);
+    } catch (error) {
+      console.warn("[auth] failed to send verification email", error);
+    }
+
+    return { message };
   },
 
   async getMe(userId: string): Promise<AuthUser> {

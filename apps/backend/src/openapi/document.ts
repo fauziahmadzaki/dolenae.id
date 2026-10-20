@@ -65,6 +65,7 @@ export const openApiDocument = {
           role: { type: "string", enum: ["wisatawan", "merchant", "admin"] },
           provider: { type: "string", enum: ["local", "google"] },
           avatarUrl: { type: ["string", "null"] },
+          emailVerifiedAt: { type: ["string", "null"], format: "date-time" },
           createdAt: { type: "string", format: "date-time" },
           updatedAt: { type: "string", format: "date-time" },
         },
@@ -340,6 +341,51 @@ export const openApiDocument = {
         responses: {
           "200": { description: "Password updated" },
           "400": { description: "Invalid or expired token" },
+        },
+      },
+    },
+    "/api/auth/verify-email": {
+      post: {
+        tags: ["Auth"],
+        summary: "Verify an email address with the token from the link",
+        requestBody: {
+          required: true,
+          content: {
+            "application/json": {
+              schema: {
+                type: "object",
+                required: ["token"],
+                properties: { token: { type: "string" } },
+              },
+            },
+          },
+        },
+        responses: {
+          "200": { description: "Email verified (idempotent)" },
+          "400": { description: "Unknown verification token" },
+        },
+      },
+    },
+    "/api/auth/resend-verification": {
+      post: {
+        tags: ["Auth"],
+        summary: "Re-send the verification link",
+        requestBody: {
+          required: true,
+          content: {
+            "application/json": {
+              schema: {
+                type: "object",
+                required: ["email"],
+                properties: { email: { type: "string", format: "email" } },
+              },
+            },
+          },
+        },
+        responses: {
+          "200": {
+            description: "Generic confirmation (no account enumeration)",
+          },
         },
       },
     },

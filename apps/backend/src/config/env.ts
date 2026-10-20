@@ -13,7 +13,9 @@ const envSchema = z.object({
   PASSWORD_RESET_TTL_MINUTES: z.coerce.number().int().positive().default(60),
   // Email (Resend). Empty key = dev mode, emails are logged instead of sent.
   RESEND_API_KEY: z.string().default(""),
-  MAIL_FROM: z.string().default("Dolenae <no-reply@dolenae.id>"),
+  MAIL_FROM: z.string().default("Dolenae <no-reply@dolenae.web.id>"),
+  // Optional Reply-To for transactional mail (no-reply addresses bounce).
+  MAIL_REPLY_TO: z.string().default(""),
   // Google sign-in audience (OAuth client id). Empty = endpoint disabled.
   GOOGLE_CLIENT_ID: z.string().default(""),
   LOG_LEVEL: z
@@ -33,6 +35,11 @@ let cached: Env | null = null;
 export function loadEnv(): Env {
   if (cached) return cached;
 
+  // NextAuth-style alias: either name works for the Google OAuth client id.
+  if (!process.env.GOOGLE_CLIENT_ID && process.env.AUTH_GOOGLE_ID) {
+    process.env.GOOGLE_CLIENT_ID = process.env.AUTH_GOOGLE_ID;
+  }
+
   const parsed = envSchema.safeParse(process.env);
   if (!parsed.success) {
     console.error("Invalid environment:");
@@ -40,6 +47,17 @@ export function loadEnv(): Env {
       console.error(`  - ${issue.path.join(".")}: ${issue.message}`);
     }
     process.exit(1);
+  }
+
+  // Links inside transactional emails are built from APP_WEB_URL, so a
+  // localhost value in production silently ships broken links.
+  if (
+    parsed.data.NODE_ENV === "production" &&
+    /^https?:\/\/(localhost|127\.0\.0\.1)/.test(parsed.data.APP_WEB_URL)
+  ) {
+    console.warn(
+      "[env] APP_WEB_URL points to localhost; email links will be unreachable outside this machine.",
+    );
   }
 
   cached = parsed.data;
