@@ -23,8 +23,20 @@ abstract interface class AuthRepository {
     required String password,
   });
 
+  /// Masuk memakai akun Google (menukar `idToken` ke API).
+  Future<Result<AuthSession>> googleSignIn();
+
+  /// Email terakhir yang dipilih untuk diingat pada form masuk.
+  Future<String?> readRememberedEmail();
+
+  /// Menyimpan email yang diingat; `null` menghapusnya.
+  Future<void> writeRememberedEmail(String? email);
+
   /// Sends a password-reset link and returns the backend message.
   Future<Result<String>> forgotPassword({required String email});
+
+  /// Sends the email-verification link again; returns the backend message.
+  Future<Result<String>> resendVerificationEmail({required String email});
 
   /// Clears the persisted session and the API token.
   Future<Result<void>> logout();

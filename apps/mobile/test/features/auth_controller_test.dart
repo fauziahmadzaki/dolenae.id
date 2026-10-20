@@ -17,7 +17,9 @@ const _session = AuthSession(
 
 void main() {
   test('login berhasil menyimpan sesi dari backend', () async {
-    final repository = _FakeAuthRepository(loginResult: const Success(_session));
+    final repository = _FakeAuthRepository(
+      loginResult: const Success(_session),
+    );
     final controller = AuthController(repository: repository);
 
     final failure = await controller.login(
@@ -65,6 +67,28 @@ void main() {
     expect(controller.user?.email, 'wisatawan@dolenae.id');
   });
 
+  test('resendVerificationEmail mengirim tautan untuk email sesi', () async {
+    final repository = _FakeAuthRepository(
+      resendVerificationResult: const Success(
+        'Tautan verifikasi sudah dikirim.',
+      ),
+    );
+    final controller = AuthController(
+      repository: repository,
+      initialSession: _session,
+    );
+
+    expect(controller.needsEmailVerification, isTrue);
+
+    final result = await controller.resendVerificationEmail();
+
+    expect(result, isA<Success<String>>());
+    expect(repository.resendVerificationCalls, 1);
+    expect(repository.resendVerificationTo, 'wisatawan@dolenae.id');
+    expect(controller.verificationEmailSent, isTrue);
+    expect(controller.isResendingVerification, isFalse);
+  });
+
   test('verifySession menghapus sesi saat token ditolak', () async {
     final repository = _FakeAuthRepository(
       verifyResult: const Failure(AuthFailure('Token tidak valid')),
@@ -82,7 +106,9 @@ void main() {
 
   test('verifySession mempertahankan sesi saat offline', () async {
     final repository = _FakeAuthRepository(
-      verifyResult: const Failure(NetworkFailure('Tidak dapat memeriksa sesi.')),
+      verifyResult: const Failure(
+        NetworkFailure('Tidak dapat memeriksa sesi.'),
+      ),
     );
     final controller = AuthController(
       repository: repository,
@@ -129,6 +155,59 @@ void main() {
     expect(result.valueOrNull, 'Tautan sudah dikirim.');
     expect(repository.forgotPasswordEmail, 'dimas@mail.com');
   });
+
+  test('signInWithGoogle menyimpan sesi dari backend', () async {
+    final repository = _FakeAuthRepository(
+      googleResult: const Success(_session),
+    );
+    final controller = AuthController(repository: repository);
+
+    final failure = await controller.signInWithGoogle();
+
+    expect(failure, isNull);
+    expect(controller.isAuthenticated, isTrue);
+    expect(controller.user?.email, 'wisatawan@dolenae.id');
+    expect(repository.googleCalls, 1);
+  });
+
+  test('signInWithGoogle meneruskan kode batal dari lapisan data', () async {
+    final repository = _FakeAuthRepository(
+      googleResult: const Failure(
+        AuthFailure(
+          'Masuk dengan Google dibatalkan.',
+          code: 'GOOGLE_CANCELLED',
+        ),
+      ),
+    );
+    final controller = AuthController(repository: repository);
+
+    final failure = await controller.signInWithGoogle();
+
+    expect(failure?.code, 'GOOGLE_CANCELLED');
+    expect(controller.isAuthenticated, isFalse);
+  });
+
+  test('setRememberedEmail menyimpan lalu menghapus email', () async {
+    final repository = _FakeAuthRepository();
+    final controller = AuthController(repository: repository);
+
+    await controller.setRememberedEmail('  dimas@mail.com  ');
+    expect(controller.rememberedEmail, 'dimas@mail.com');
+    expect(repository.rememberedEmail, 'dimas@mail.com');
+
+    await controller.setRememberedEmail('');
+    expect(controller.rememberedEmail, isNull);
+    expect(repository.rememberedEmail, isNull);
+  });
+
+  test('initialRememberedEmail dipakai untuk mengisi form', () {
+    final controller = AuthController(
+      repository: _FakeAuthRepository(),
+      initialRememberedEmail: 'dimas@mail.com',
+    );
+
+    expect(controller.rememberedEmail, 'dimas@mail.com');
+  });
 }
 
 class _FakeAuthRepository implements AuthRepository {
@@ -137,16 +216,26 @@ class _FakeAuthRepository implements AuthRepository {
     this.registerResult = const Failure(AuthFailure('belum diatur')),
     this.verifyResult = const Failure(AuthFailure('belum diatur')),
     this.forgotPasswordResult = const Failure(AuthFailure('belum diatur')),
+    this.googleResult = const Failure(AuthFailure('belum diatur')),
+    this.resendVerificationResult = const Failure(
+      AuthFailure('belum diatur'),
+    ),
   });
 
   final Result<AuthSession> loginResult;
   final Result<AuthSession> registerResult;
   final Result<AuthSession> verifyResult;
   final Result<String> forgotPasswordResult;
+  final Result<AuthSession> googleResult;
+  final Result<String> resendVerificationResult;
 
   int loginCalls = 0;
   int verifyCalls = 0;
+  int googleCalls = 0;
+  int resendVerificationCalls = 0;
   String? forgotPasswordEmail;
+  String? resendVerificationTo;
+  String? rememberedEmail;
 
   @override
   Future<Result<AuthSession>> restore() async => const Success(_session);
@@ -183,4 +272,27 @@ class _FakeAuthRepository implements AuthRepository {
 
   @override
   Future<Result<void>> logout() async => const Success(null);
+
+  @override
+  Future<Result<AuthSession>> googleSignIn() async {
+    googleCalls++;
+    return googleResult;
+  }
+
+  @override
+  Future<Result<String>> resendVerificationEmail({
+    required String email,
+  }) async {
+    resendVerificationCalls++;
+    resendVerificationTo = email;
+    return resendVerificationResult;
+  }
+
+  @override
+  Future<String?> readRememberedEmail() async => rememberedEmail;
+
+  @override
+  Future<void> writeRememberedEmail(String? email) async {
+    rememberedEmail = email;
+  }
 }

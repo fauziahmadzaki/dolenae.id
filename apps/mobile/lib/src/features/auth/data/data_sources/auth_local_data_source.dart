@@ -12,8 +12,27 @@ class AuthLocalDataSource {
 
   static const userKey = 'dolenae.session.user.v1';
 
+  /// Email terakhir yang dipilih untuk diingat pada form masuk.
+  static const rememberedEmailKey = 'dolenae.auth.remembered_email.v1';
+
   final SecureTokenStore _secure;
   final SharedPreferences _prefs;
+
+  Future<String?> readRememberedEmail() async {
+    final value = _prefs.getString(rememberedEmailKey)?.trim();
+    if (value == null || value.isEmpty) return null;
+    return value;
+  }
+
+  /// Menyimpan email yang diingat; `null` atau kosong menghapusnya.
+  Future<void> writeRememberedEmail(String? email) async {
+    final value = email?.trim() ?? '';
+    if (value.isEmpty) {
+      await _prefs.remove(rememberedEmailKey);
+      return;
+    }
+    await _prefs.setString(rememberedEmailKey, value);
+  }
 
   Future<AuthSession?> read() async {
     final token = await _secure.readAccessToken();
@@ -53,6 +72,7 @@ Map<String, dynamic> _userToJson(AuthUser user) => {
   'email': user.email,
   'role': user.role,
   'avatarUrl': user.avatarUrl,
+  'emailVerifiedAt': user.emailVerifiedAt?.toIso8601String(),
 };
 
 AuthUser _userFromJson(Map<String, dynamic> json) => AuthUser(
@@ -61,4 +81,5 @@ AuthUser _userFromJson(Map<String, dynamic> json) => AuthUser(
   email: json['email'] as String? ?? '',
   role: json['role'] as String? ?? 'wisatawan',
   avatarUrl: json['avatarUrl'] as String?,
+  emailVerifiedAt: DateTime.tryParse(json['emailVerifiedAt'] as String? ?? ''),
 );

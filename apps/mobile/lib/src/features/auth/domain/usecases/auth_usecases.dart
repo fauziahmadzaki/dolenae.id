@@ -97,3 +97,58 @@ class ForgotPasswordUseCase implements UseCase<String, ForgotPasswordParams> {
     return _repository.forgotPassword(email: params.email);
   }
 }
+
+/// Signs the user in with a Google account.
+class GoogleSignInUseCase implements UseCase<AuthSession, NoParams> {
+  const GoogleSignInUseCase(this._repository);
+
+  final AuthRepository _repository;
+
+  @override
+  Future<Result<AuthSession>> call(NoParams params) =>
+      _repository.googleSignIn();
+}
+
+class ResendVerificationParams {
+  const ResendVerificationParams({required this.email});
+
+  final String email;
+}
+
+/// Meminta ulang tautan verifikasi email.
+class ResendVerificationUseCase
+    implements UseCase<String, ResendVerificationParams> {
+  const ResendVerificationUseCase(this._repository);
+
+  final AuthRepository _repository;
+
+  @override
+  Future<Result<String>> call(ResendVerificationParams params) {
+    return _repository.resendVerificationEmail(email: params.email);
+  }
+}
+
+/// Reads the email remembered by the login form.
+class ReadRememberedEmailUseCase implements UseCase<String?, NoParams> {
+  const ReadRememberedEmailUseCase(this._repository);
+
+  final AuthRepository _repository;
+
+  @override
+  Future<Result<String?>> call(NoParams params) async {
+    return Success(await _repository.readRememberedEmail());
+  }
+}
+
+/// Stores (or clears) the email remembered by the login form.
+class WriteRememberedEmailUseCase implements UseCase<void, String?> {
+  const WriteRememberedEmailUseCase(this._repository);
+
+  final AuthRepository _repository;
+
+  @override
+  Future<Result<void>> call(String? email) async {
+    await _repository.writeRememberedEmail(email);
+    return const Success(null);
+  }
+}

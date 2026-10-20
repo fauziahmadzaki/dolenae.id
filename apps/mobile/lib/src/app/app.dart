@@ -25,10 +25,12 @@ class DolenaeApp extends StatefulWidget {
     super.key,
     required this.dependencies,
     this.initialSession,
+    this.initialRememberedEmail,
   });
 
   final AppDependencies dependencies;
   final AuthSession? initialSession;
+  final String? initialRememberedEmail;
 
   @override
   State<DolenaeApp> createState() => _DolenaeAppState();
@@ -55,6 +57,7 @@ class _DolenaeAppState extends State<DolenaeApp> {
     _auth = AuthController(
       repository: dependencies.authRepository,
       initialSession: widget.initialSession,
+      initialRememberedEmail: widget.initialRememberedEmail,
     );
     _destinations = DestinationsController(
       repository: dependencies.destinationRepository,

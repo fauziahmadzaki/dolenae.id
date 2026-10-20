@@ -9,7 +9,9 @@ final List<RouteBase> authRoutes = [
   GoRoute(path: '/login', builder: (_, _) => const LoginScreen()),
   GoRoute(
     path: '/auth/forgot-password',
-    builder: (_, _) => const ForgotPasswordScreen(),
+    builder: (_, state) => ForgotPasswordScreen(
+      initialEmail: state.uri.queryParameters['email'] ?? '',
+    ),
   ),
   GoRoute(path: '/auth/otp', builder: (_, _) => const OtpScreen()),
   GoRoute(

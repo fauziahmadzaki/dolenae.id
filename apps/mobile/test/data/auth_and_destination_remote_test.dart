@@ -4,6 +4,7 @@ import 'package:dolenae_mobile/src/core/error/app_failure.dart';
 import 'package:dolenae_mobile/src/core/network/api_client.dart';
 import 'package:dolenae_mobile/src/features/auth/data/data_sources/auth_local_data_source.dart';
 import 'package:dolenae_mobile/src/features/auth/data/data_sources/auth_remote_data_source.dart';
+import 'package:dolenae_mobile/src/features/auth/data/data_sources/google_sign_in_source.dart';
 import 'package:dolenae_mobile/src/features/auth/data/repositories/auth_repository_impl.dart';
 import 'package:dolenae_mobile/src/features/auth/domain/entities/auth_session.dart';
 import 'package:dolenae_mobile/src/features/destinations/data/data_sources/destination_remote_data_source.dart';
@@ -148,7 +149,8 @@ void main() {
           return _json({
             'success': true,
             'data': {
-              'message': 'Jika email terdaftar, tautan reset password telah dikirim.',
+              'message':
+                  'Jika email terdaftar, tautan reset password telah dikirim.',
             },
           });
         }),
@@ -319,10 +321,7 @@ void main() {
         ),
       );
 
-      await expectLater(
-        remote.fetchPublished(),
-        throwsA(isA<ApiException>()),
-      );
+      await expectLater(remote.fetchPublished(), throwsA(isA<ApiException>()));
     });
   });
 }
@@ -340,6 +339,7 @@ AuthRepositoryImpl _repository({
     AuthRemoteDataSource(client),
     local,
     client,
+    GoogleSignInSource(serverClientId: 'test-client-id'),
   );
 }
 
@@ -356,6 +356,7 @@ class _FakeAuthLocal implements AuthLocalDataSource {
   _FakeAuthLocal({this.session});
 
   AuthSession? session;
+  String? rememberedEmail;
 
   @override
   Future<AuthSession?> read() async => session;
@@ -365,4 +366,11 @@ class _FakeAuthLocal implements AuthLocalDataSource {
 
   @override
   Future<void> clear() async => session = null;
+
+  @override
+  Future<String?> readRememberedEmail() async => rememberedEmail;
+
+  @override
+  Future<void> writeRememberedEmail(String? email) async =>
+      rememberedEmail = email;
 }

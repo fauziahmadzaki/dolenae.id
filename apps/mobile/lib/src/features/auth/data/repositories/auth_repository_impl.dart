@@ -2,16 +2,18 @@ import 'package:dolenae_mobile/src/core/error/app_failure.dart';
 import 'package:dolenae_mobile/src/core/network/api_client.dart';
 import 'package:dolenae_mobile/src/features/auth/data/data_sources/auth_local_data_source.dart';
 import 'package:dolenae_mobile/src/features/auth/data/data_sources/auth_remote_data_source.dart';
+import 'package:dolenae_mobile/src/features/auth/data/data_sources/google_sign_in_source.dart';
 import 'package:dolenae_mobile/src/features/auth/domain/entities/auth_session.dart';
 import 'package:dolenae_mobile/src/features/auth/domain/repositories/auth_repository.dart';
 import 'package:dolenae_mobile/src/core/result/result.dart';
 
 class AuthRepositoryImpl implements AuthRepository {
-  AuthRepositoryImpl(this._remote, this._local, this._client);
+  AuthRepositoryImpl(this._remote, this._local, this._client, this._google);
 
   final AuthRemoteDataSource _remote;
   final AuthLocalDataSource _local;
   final ApiClient _client;
+  final GoogleSignInSource _google;
 
   @override
   Future<Result<AuthSession>> restore() async {
@@ -63,9 +65,7 @@ class AuthRepositoryImpl implements AuthRepository {
     required String email,
     required String password,
   }) {
-    return _authenticate(
-      () => _remote.login(email: email, password: password),
-    );
+    return _authenticate(() => _remote.login(email: email, password: password));
   }
 
   @override
@@ -80,6 +80,33 @@ class AuthRepositoryImpl implements AuthRepository {
   }
 
   @override
+  Future<Result<AuthSession>> googleSignIn() {
+    return _authenticate(() async {
+      final idToken = await _google.idToken();
+      return _remote.googleLogin(idToken: idToken);
+    });
+  }
+
+  @override
+  Future<String?> readRememberedEmail() async {
+    try {
+      return await _local.readRememberedEmail();
+    } catch (_) {
+      // Email yang diingat bersifat opsional; jangan gagalkan form masuk.
+      return null;
+    }
+  }
+
+  @override
+  Future<void> writeRememberedEmail(String? email) async {
+    try {
+      await _local.writeRememberedEmail(email);
+    } catch (_) {
+      // Sama seperti di atas: kegagalan penyimpanan tidak menghalangi login.
+    }
+  }
+
+  @override
   Future<Result<String>> forgotPassword({required String email}) async {
     try {
       return Success(await _remote.forgotPassword(email: email));
@@ -88,6 +115,19 @@ class AuthRepositoryImpl implements AuthRepository {
     } catch (_) {
       return const Failure(
         UnknownFailure('Tidak dapat mengirim tautan. Coba lagi.'),
+      );
+    }
+  }
+
+  @override
+  Future<Result<String>> resendVerificationEmail({required String email}) async {
+    try {
+      return Success(await _remote.resendVerification(email: email));
+    } on ApiException catch (error) {
+      return Failure(error.toFailure());
+    } catch (_) {
+      return const Failure(
+        UnknownFailure('Tidak dapat mengirim tautan verifikasi. Coba lagi.'),
       );
     }
   }
@@ -111,6 +151,13 @@ class AuthRepositoryImpl implements AuthRepository {
       await _local.save(session);
       _client.token = session.token;
       return Success(session);
+    } on GoogleSignInFailure catch (error) {
+      return Failure(
+        AuthFailure(
+          error.message,
+          code: error.cancelled ? 'GOOGLE_CANCELLED' : 'GOOGLE_FAILED',
+        ),
+      );
     } on ApiException catch (error) {
       return Failure(error.toFailure());
     } catch (_) {

@@ -24,7 +24,15 @@ Future<void> main() async {
     initialSession = null;
   }
 
+  // Email terakhir yang dipilih untuk diingat, dipakai untuk mengisi form masuk.
+  final rememberedEmail = await dependencies.authRepository
+      .readRememberedEmail();
+
   runApp(
-    DolenaeApp(dependencies: dependencies, initialSession: initialSession),
+    DolenaeApp(
+      dependencies: dependencies,
+      initialSession: initialSession,
+      initialRememberedEmail: rememberedEmail,
+    ),
   );
 }

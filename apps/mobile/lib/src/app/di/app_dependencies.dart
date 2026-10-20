@@ -6,6 +6,7 @@ import 'package:dolenae_mobile/src/features/ai/data/repositories/ai_repository_i
 import 'package:dolenae_mobile/src/features/ai/domain/repositories/ai_repository.dart';
 import 'package:dolenae_mobile/src/features/auth/data/data_sources/auth_local_data_source.dart';
 import 'package:dolenae_mobile/src/features/auth/data/data_sources/auth_remote_data_source.dart';
+import 'package:dolenae_mobile/src/features/auth/data/data_sources/google_sign_in_source.dart';
 import 'package:dolenae_mobile/src/features/auth/data/data_sources/secure_token_store.dart';
 import 'package:dolenae_mobile/src/features/auth/data/repositories/auth_repository_impl.dart';
 import 'package:dolenae_mobile/src/features/auth/domain/repositories/auth_repository.dart';
@@ -61,6 +62,7 @@ class AppDependencies {
         AuthRemoteDataSource(client),
         authLocal,
         client,
+        GoogleSignInSource(),
       ),
       destinationRepository: DestinationRepositoryImpl(
         DestinationRemoteDataSource(client),

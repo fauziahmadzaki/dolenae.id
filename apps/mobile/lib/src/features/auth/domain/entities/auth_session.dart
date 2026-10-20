@@ -6,6 +6,7 @@ class AuthUser {
     required this.email,
     required this.role,
     this.avatarUrl,
+    this.emailVerifiedAt,
   });
 
   final String id;
@@ -13,6 +14,11 @@ class AuthUser {
   final String email;
   final String role;
   final String? avatarUrl;
+
+  /// Waktu email diverifikasi; `null` selama belum diverifikasi.
+  final DateTime? emailVerifiedAt;
+
+  bool get isEmailVerified => emailVerifiedAt != null;
 
   String get roleLabel {
     switch (role) {

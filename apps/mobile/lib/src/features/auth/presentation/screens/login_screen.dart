@@ -23,9 +23,12 @@ class _LoginScreenState extends State<LoginScreen> {
   final _name = TextEditingController();
   final _email = TextEditingController();
   final _password = TextEditingController();
+  final _confirm = TextEditingController();
   bool _isRegister = false;
   bool _submitted = false;
   bool _loading = false;
+  bool _googleLoading = false;
+  bool _rememberMe = true;
   String? _errorMessage;
 
   bool get _emailValid =>
@@ -35,13 +38,31 @@ class _LoginScreenState extends State<LoginScreen> {
 
   bool get _nameValid => _name.text.trim().length >= 2;
 
-  bool get _hasError => _submitted && (!_emailValid || !_passwordValid);
+  bool get _confirmValid =>
+      _confirm.text.isNotEmpty && _confirm.text == _password.text;
+
+  bool get _hasError =>
+      _submitted &&
+      (!_emailValid ||
+          !_passwordValid ||
+          (_isRegister && (!_nameValid || !_confirmValid)));
+
+  @override
+  void initState() {
+    super.initState();
+    // Isi email terakhir bila pengguna memilih "Ingat saya" sebelumnya.
+    final remembered = context.read<AuthController>().rememberedEmail;
+    if (remembered != null && remembered.isNotEmpty) {
+      _email.text = remembered;
+    }
+  }
 
   @override
   void dispose() {
     _name.dispose();
     _email.dispose();
     _password.dispose();
+    _confirm.dispose();
     super.dispose();
   }
 
@@ -51,7 +72,9 @@ class _LoginScreenState extends State<LoginScreen> {
       _errorMessage = null;
     });
     final localValid =
-        _emailValid && _passwordValid && (!_isRegister || _nameValid);
+        _emailValid &&
+        _passwordValid &&
+        (!_isRegister || (_nameValid && _confirmValid));
     if (!localValid || _loading) return;
 
     final auth = context.read<AuthController>();
@@ -68,6 +91,7 @@ class _LoginScreenState extends State<LoginScreen> {
       if (failure != null) {
         if (mounted) setState(() => _errorMessage = failure.message);
       } else {
+        await auth.setRememberedEmail(_rememberMe ? _email.text : null);
         success = true;
       }
     } catch (_) {
@@ -81,6 +105,48 @@ class _LoginScreenState extends State<LoginScreen> {
     }
 
     if (success && mounted) context.go('/home');
+  }
+
+  Future<void> _signInWithGoogle() async {
+    if (_googleLoading || _loading) return;
+
+    final auth = context.read<AuthController>();
+    setState(() {
+      _googleLoading = true;
+      _errorMessage = null;
+    });
+
+    var success = false;
+    try {
+      final failure = await auth.signInWithGoogle();
+      if (failure != null) {
+        // Batal memilih akun bukan error: jangan tampilkan apa pun.
+        if (failure.code != 'GOOGLE_CANCELLED' && mounted) {
+          setState(() => _errorMessage = failure.message);
+        }
+      } else {
+        await auth.setRememberedEmail(_rememberMe ? auth.user?.email : null);
+        success = true;
+      }
+    } catch (_) {
+      if (mounted) {
+        setState(
+          () => _errorMessage = 'Terjadi kesalahan. Coba beberapa saat lagi.',
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _googleLoading = false);
+    }
+
+    if (success && mounted) context.go('/home');
+  }
+
+  void _openForgotPassword() {
+    final email = _email.text.trim();
+    final path = email.isEmpty
+        ? '/auth/forgot-password'
+        : '/auth/forgot-password?email=${Uri.encodeQueryComponent(email)}';
+    context.push(path);
   }
 
   @override
@@ -150,6 +216,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 onChanged: (value) => setState(() {
                   _isRegister = value;
                   _errorMessage = null;
+                  _confirm.clear();
                 }),
               ),
               const SizedBox(height: AppSpacing.s4),
@@ -188,46 +255,89 @@ class _LoginScreenState extends State<LoginScreen> {
                     : null,
                 onChanged: (_) => setState(() {}),
               ),
+              if (_isRegister) ...[
+                const SizedBox(height: AppSpacing.s3),
+                _Field(
+                  label: 'Ulangi kata sandi',
+                  controller: _confirm,
+                  hint: 'Ketik ulang kata sandi',
+                  icon: AppIcons.lock,
+                  obscure: true,
+                  error: _submitted && !_confirmValid
+                      ? 'Konfirmasi kata sandi tidak cocok.'
+                      : null,
+                  onChanged: (_) => setState(() {}),
+                ),
+              ],
               const SizedBox(height: AppSpacing.s3),
               Row(
                 children: [
                   Expanded(
-                    child: Row(
-                      children: [
-                        Container(
-                          width: 18,
-                          height: 18,
-                          decoration: BoxDecoration(
-                            color: AppColors.primary,
-                            borderRadius: BorderRadius.circular(AppRadius.sm),
-                          ),
-                          child: const Icon(
-                            AppIcons.check,
-                            size: 12,
-                            color: AppColors.onPrimary,
+                    child: Semantics(
+                      checked: _rememberMe,
+                      label: 'Ingat saya',
+                      child: InkWell(
+                        onTap: () => setState(() => _rememberMe = !_rememberMe),
+                        borderRadius: BorderRadius.circular(AppRadius.sm),
+                        child: ConstrainedBox(
+                          constraints: const BoxConstraints(minHeight: 44),
+                          child: Row(
+                            children: [
+                              Container(
+                                width: 18,
+                                height: 18,
+                                decoration: BoxDecoration(
+                                  color: _rememberMe
+                                      ? AppColors.primary
+                                      : Colors.transparent,
+                                  borderRadius: BorderRadius.circular(
+                                    AppRadius.sm,
+                                  ),
+                                  border: Border.all(
+                                    color: _rememberMe
+                                        ? AppColors.primary
+                                        : AppColors.borderStrong,
+                                  ),
+                                ),
+                                child: _rememberMe
+                                    ? const Icon(
+                                        AppIcons.check,
+                                        size: 12,
+                                        color: AppColors.onPrimary,
+                                      )
+                                    : null,
+                              ),
+                              const SizedBox(width: AppSpacing.s2),
+                              Flexible(
+                                child: Text(
+                                  'Ingat saya',
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: AppTextStyles.bodySm,
+                                ),
+                              ),
+                            ],
                           ),
                         ),
-                        const SizedBox(width: AppSpacing.s2),
-                        Flexible(
-                          child: Text(
-                            'Ingat saya',
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: AppTextStyles.bodySm,
-                          ),
-                        ),
-                      ],
+                      ),
                     ),
                   ),
                   const SizedBox(width: AppSpacing.s2),
-                  Flexible(
-                    child: Text(
-                      'Lupa kata sandi?',
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      textAlign: TextAlign.right,
-                      style: AppTextStyles.label.copyWith(
-                        color: AppColors.primary,
+                  InkWell(
+                    onTap: _openForgotPassword,
+                    borderRadius: BorderRadius.circular(AppRadius.sm),
+                    child: ConstrainedBox(
+                      constraints: const BoxConstraints(minHeight: 44),
+                      child: Center(
+                        widthFactor: 1,
+                        child: Text(
+                          'Lupa kata sandi?',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: AppTextStyles.label.copyWith(
+                            color: AppColors.primary,
+                          ),
+                        ),
                       ),
                     ),
                   ),
@@ -261,7 +371,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 height: 48,
                 width: double.infinity,
                 child: OutlinedButton.icon(
-                  onPressed: () {},
+                  onPressed: _googleLoading ? null : _signInWithGoogle,
                   style: OutlinedButton.styleFrom(
                     backgroundColor: AppColors.surface,
                     foregroundColor: AppColors.ink,
@@ -271,9 +381,12 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                   ),
                   icon: const DnGoogleLogo(size: 20),
-                  label: const Text(
-                    'Google',
-                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+                  label: Text(
+                    _googleLoading ? 'Menghubungkan…' : 'Google',
+                    style: const TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                 ),
               ),

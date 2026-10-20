@@ -35,6 +35,12 @@ class AuthRemoteDataSource {
     return _session(body);
   }
 
+  /// Menukar `idToken` Google dengan token API (`POST /auth/google`).
+  Future<AuthSession> googleLogin({required String idToken}) async {
+    final body = await _client.post('/auth/google', body: {'idToken': idToken});
+    return _session(body);
+  }
+
   /// Reads the user that owns the current token (`GET /auth/me`).
   Future<AuthUser> me() async {
     final body = await _client.get('/auth/me');
@@ -62,6 +68,20 @@ class AuthRemoteDataSource {
       if (message is String && message.isNotEmpty) return message;
     }
     return 'Jika email terdaftar, tautan reset password telah dikirim.';
+  }
+
+  /// Meminta ulang tautan verifikasi email (`POST /auth/resend-verification`).
+  Future<String> resendVerification({required String email}) async {
+    final body = await _client.post(
+      '/auth/resend-verification',
+      body: {'email': email.trim()},
+    );
+    final data = body['data'];
+    if (data is Map) {
+      final message = data.cast<String, dynamic>()['message'];
+      if (message is String && message.isNotEmpty) return message;
+    }
+    return 'Tautan verifikasi telah dikirim.';
   }
 
   AuthSession _session(Map<String, dynamic> body) {
@@ -92,5 +112,8 @@ AuthUser _userFromJson(Map<String, dynamic> json) {
     email: json['email'] as String? ?? '',
     role: json['role'] as String? ?? 'wisatawan',
     avatarUrl: json['avatarUrl'] as String?,
+    emailVerifiedAt: DateTime.tryParse(
+      json['emailVerifiedAt'] as String? ?? '',
+    ),
   );
 }
