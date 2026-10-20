@@ -3,7 +3,10 @@ import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'package:dolenae_mobile/src/shared/icons/app_icons.dart';
 
+import 'package:dolenae_mobile/src/core/result/result.dart';
+import 'package:dolenae_mobile/src/features/ai/domain/entities/ai_recommendation.dart';
 import 'package:dolenae_mobile/src/features/auth/presentation/controllers/auth_controller.dart';
+import 'package:dolenae_mobile/src/features/destinations/domain/usecases/destination_usecases.dart';
 import 'package:dolenae_mobile/src/features/destinations/presentation/controllers/destinations_controller.dart';
 import 'package:dolenae_mobile/src/features/facilities/presentation/controllers/facilities_controller.dart';
 import 'package:dolenae_mobile/src/app/theme/app_colors.dart';
@@ -19,13 +22,16 @@ import 'package:dolenae_mobile/src/shared/widgets/dn_empty_state.dart';
 import 'package:dolenae_mobile/src/shared/widgets/dn_card.dart';
 import 'package:dolenae_mobile/src/shared/widgets/dn_chip.dart';
 import 'package:dolenae_mobile/src/shared/widgets/dn_destination_card.dart';
+import 'package:dolenae_mobile/src/shared/widgets/dn_email_verification_banner.dart';
 import 'package:dolenae_mobile/src/shared/widgets/dn_menu_row.dart';
+import 'package:dolenae_mobile/src/shared/widgets/dn_recommendation_card.dart';
 import 'package:dolenae_mobile/src/shared/widgets/dn_search_field.dart';
 import 'package:dolenae_mobile/src/shared/widgets/dn_section_header.dart';
 import 'package:dolenae_mobile/src/shared/widgets/dn_support_card.dart';
+import 'package:dolenae_mobile/src/shared/widgets/dn_toast.dart';
 
 /// Beranda wisatawan.
-class BerandaScreen extends StatelessWidget {
+class BerandaScreen extends StatefulWidget {
   const BerandaScreen({
     super.key,
     this.hasError = false,
@@ -39,6 +45,28 @@ class BerandaScreen extends StatelessWidget {
   /// Aksi CTA "Coba lagi" dan ghost "Muat ulang".
   final VoidCallback? onRetry;
   final VoidCallback? onReload;
+
+  @override
+  State<BerandaScreen> createState() => _BerandaScreenState();
+}
+
+class _BerandaScreenState extends State<BerandaScreen> {
+  static const _searchRecommendations = SearchRecommendationsUseCase();
+
+  /// Kata kunci pencarian yang aktif di Beranda (bukan di Jelajah).
+  String _query = '';
+
+  bool get _isSearching => _query.trim().isNotEmpty;
+
+  void _onQueryChanged(String value) => setState(() => _query = value);
+
+  void _clearQuery() => setState(() => _query = '');
+
+  /// Chip kategori mengisi kolom pencarian, bukan pindah halaman.
+  void _applyCategory(String label) {
+    final next = label.toLowerCase();
+    setState(() => _query = _query.trim().toLowerCase() == next ? '' : next);
+  }
 
   void _onTab(BuildContext context, DnTab tab) {
     switch (tab) {
@@ -59,6 +87,7 @@ class BerandaScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final destinationsController = context.watch<DestinationsController?>();
     final destinations = destinationsController?.items ?? const <Destination>[];
+    final auth = context.watch<AuthController?>();
 
     return Scaffold(
       body: Column(
@@ -74,27 +103,38 @@ class BerandaScreen extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     const _Header(),
-                    if (hasError)
+                    if (auth != null && auth.needsEmailVerification)
+                      DnEmailVerificationBanner(
+                        email: auth.user!.email,
+                        isSending: auth.isResendingVerification,
+                        sent: auth.verificationEmailSent,
+                        onResend: () => _resendVerification(context, auth),
+                      ),
+                    if (widget.hasError)
                       _loadError(
-                        onRetry: onRetry ?? () {},
-                        onReload: onReload ?? () {},
+                        onRetry: widget.onRetry ?? () {},
+                        onReload: widget.onReload ?? () {},
                       )
                     else ...[
                       _search(context),
                       _chips(context),
-                      Padding(
-                        padding: const EdgeInsets.all(AppSpacing.s4),
-                        child: DnAiCard(
-                          title: 'Siapkan perjalananmu dengan AI',
-                          body: 'Ceritakan rencanamu, Dolenae menyusun checklist dan gambaran kondisi perjalanan.',
-                          onPressed: () => context.go('/ai/preferences'),
+                      if (_isSearching)
+                        _recommendations(context, destinations)
+                      else ...[
+                        Padding(
+                          padding: const EdgeInsets.all(AppSpacing.s4),
+                          child: DnAiCard(
+                            title: 'Siapkan perjalananmu dengan AI',
+                            body: 'Ceritakan rencanamu, Dolenae menyusun checklist dan gambaran kondisi perjalanan.',
+                            onPressed: () => context.go('/ai/preferences'),
+                          ),
                         ),
-                      ),
-                      _popular(context, destinations, destinationsController),
-                      _activities(),
-                      _supports(context),
-                      _help(),
-                      _ctaBand(context),
+                        _popular(context, destinations, destinationsController),
+                        _activities(),
+                        _supports(context),
+                        _help(),
+                        _ctaBand(context),
+                      ],
                       const SizedBox(height: AppSpacing.s6),
                     ],
                   ],
@@ -109,6 +149,21 @@ class BerandaScreen extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  /// Mengirim ulang tautan verifikasi email dari banner Beranda.
+  Future<void> _resendVerification(
+    BuildContext context,
+    AuthController auth,
+  ) async {
+    final result = await auth.resendVerificationEmail();
+    if (!context.mounted) return;
+    switch (result) {
+      case Success(:final value):
+        showDnToast(context, value, type: DnToastType.sukses);
+      case Failure(:final failure):
+        showDnToast(context, failure.message, type: DnToastType.gagal);
+    }
   }
 
   /// State `Gagal memuat beranda` (`101:243`): header pine tetap tampil,
@@ -158,20 +213,24 @@ class BerandaScreen extends StatelessWidget {
           const SizedBox(height: AppSpacing.s3),
           DnSearchField(
             hint: 'Cari gunung, bukit, atau air terjun',
-            onTap: () => context.go('/explore'),
-            trailing: Container(
-              width: 32,
-              height: 32,
-              decoration: const BoxDecoration(
-                color: AppColors.primary,
-                shape: BoxShape.circle,
-              ),
-              child: const Icon(
-                AppIcons.slidersHorizontal,
-                size: 16,
-                color: AppColors.onPrimary,
-              ),
-            ),
+            value: _query,
+            focused: _isSearching,
+            onChanged: _onQueryChanged,
+            onSubmitted: _onQueryChanged,
+            trailing: _query.isEmpty
+                ? null
+                : IconButton(
+                    onPressed: _clearQuery,
+                    tooltip: 'Hapus pencarian',
+                    icon: const Icon(AppIcons.close, size: 18),
+                    color: AppColors.body,
+                    padding: EdgeInsets.zero,
+                    visualDensity: VisualDensity.compact,
+                    constraints: const BoxConstraints.tightFor(
+                      width: 32,
+                      height: 32,
+                    ),
+                  ),
           ),
         ],
       ),
@@ -180,6 +239,7 @@ class BerandaScreen extends StatelessWidget {
 
   Widget _chips(BuildContext context) {
     const labels = ['Gunung', 'Bukit', 'Danau', 'Air terjun', 'Camping'];
+    final active = _query.trim().toLowerCase();
     return Padding(
       padding: const EdgeInsets.only(top: AppSpacing.s3),
       child: SizedBox(
@@ -191,10 +251,66 @@ class BerandaScreen extends StatelessWidget {
           separatorBuilder: (_, _) => const SizedBox(width: AppSpacing.s2),
           itemBuilder: (_, i) => DnChip(
             label: labels[i],
-            active: i == 0,
-            onTap: () => context.go('/explore'),
+            active: active == labels[i].toLowerCase(),
+            onTap: () => _applyCategory(labels[i]),
           ),
         ),
+      ),
+    );
+  }
+
+  /// Hasil pencarian di Beranda: kartu rekomendasi dari katalog yang ada.
+  Widget _recommendations(BuildContext context, List<Destination> items) {
+    final query = _query.trim();
+    final matches = _searchRecommendations(items, query);
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(
+        AppSpacing.s4,
+        AppSpacing.s5,
+        AppSpacing.s4,
+        0,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          DnSectionHeader(title: 'Rekomendasi untuk "$query"'),
+          const SizedBox(height: 6),
+          Text(
+            matches.isEmpty
+                ? 'Tidak ada destinasi yang cocok di katalog.'
+                : '${matches.length} destinasi cocok dari katalog',
+            style: AppTextStyles.caption.copyWith(color: AppColors.body),
+          ),
+          const SizedBox(height: AppSpacing.s3),
+          if (matches.isEmpty)
+            Padding(
+              padding: const EdgeInsets.only(top: AppSpacing.s6),
+              child: DnEmptyState(
+                variant: DnEmptyVariant.tanpaHasil,
+                title: 'Destinasi tidak ditemukan',
+                body: 'Coba kata kunci lain seperti "gunung", "camping", atau nama daerah.',
+                actionLabel: 'Jelajahi semua',
+                onAction: () => context.go('/explore'),
+              ),
+            )
+          else
+            for (var i = 0; i < matches.length; i++) ...[
+              DnRecommendationCard(
+                recommendation: AiRecommendation(
+                  destination: matches[i].destination,
+                  score: matches[i].score,
+                  reasons: matches[i].reasons,
+                  rank: i + 1,
+                ),
+                variant: DnRecommendationVariant.ringkas,
+                onTap: () =>
+                    context.push('/destination/${matches[i].destination.id}'),
+              ),
+              if (i != matches.length - 1)
+                const SizedBox(height: AppSpacing.s3),
+            ],
+        ],
       ),
     );
   }

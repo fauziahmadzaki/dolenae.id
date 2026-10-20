@@ -42,6 +42,8 @@ class DestinationModel {
       entryFee: fee is num ? 'Rp ${_thousands(fee.toInt())}' : null,
       bestSeason: _join(_stringList(json['bestSeason'])),
       guideRequired: json['guideRequired'] as bool?,
+      terrain: _stringList(json['terrain']),
+      activities: _stringList(json['activities']),
       accessDescription: access['description'] as String?,
       accessTransportModes: transports.isEmpty
           ? const ['Mobil', 'Motor']

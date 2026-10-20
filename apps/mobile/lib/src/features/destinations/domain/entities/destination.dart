@@ -18,6 +18,8 @@ class Destination {
     this.entryFee,
     this.bestSeason,
     this.guideRequired,
+    this.terrain = const [],
+    this.activities = const [],
     this.accessDescription,
     this.accessTransportModes = const ['Mobil', 'Jeep', 'Motor'],
     this.accessTravelTime,
@@ -42,6 +44,12 @@ class Destination {
   final String? entryFee;
   final String? bestSeason;
   final bool? guideRequired;
+
+  /// Kategori medan (mis. `Gunung`, `Bukit`, `Danau`) dari API.
+  final List<String> terrain;
+
+  /// Aktivitas yang cocok (mis. `Hiking`, `Camping`).
+  final List<String> activities;
   final String? accessDescription;
   final List<String> accessTransportModes;
   final String? accessTravelTime;

@@ -67,6 +67,8 @@ abstract final class DestinationCacheMapper {
       entryFee: row.entryFee == null ? null : 'Rp ${_thousands(row.entryFee!)}',
       bestSeason: _joined(_strings(row.bestSeason)),
       guideRequired: row.guideRequired,
+      terrain: _strings(row.terrain),
+      activities: _strings(row.activities),
       accessDescription: row.accessDescription,
       accessTransportModes: _transport(row.accessTransport),
       accessTravelTime: row.accessDuration,

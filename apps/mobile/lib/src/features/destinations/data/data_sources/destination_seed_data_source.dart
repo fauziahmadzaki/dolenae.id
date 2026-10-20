@@ -13,11 +13,12 @@ abstract final class DestinationSeedData {
       province: 'Jawa Timur',
       priceFrom: 29000,
       difficulty: DifficultyLevel.pemula,
+      terrain: ['Gunung', 'Savana'],
+      activities: ['Sunrise', 'Foto'],
       entryFee: 'Rp29rb - 34rb',
       bestSeason: 'Kering (Jul-Okt)',
       guideRequired: false,
-      accessDescription:
-          'Dari Surabaya via Probolinggo, lanjut ke Cemoro Lawang. Bisa kendaraan pribadi atau sewa jeep.',
+      accessDescription: 'Dari Surabaya via Probolinggo, lanjut ke Cemoro Lawang. Bisa kendaraan pribadi atau sewa jeep.',
       accessTransportModes: ['Mobil', 'Jeep', 'Motor'],
       accessTravelTime: '≈ 4 jam dari Surabaya',
       accessDistance: '140 km dari kota terdekat',
@@ -38,6 +39,8 @@ abstract final class DestinationSeedData {
       province: 'Jawa Tengah',
       priceFrom: 25000,
       difficulty: DifficultyLevel.pemula,
+      terrain: ['Gunung'],
+      activities: ['Hiking', 'Camping'],
     ),
     Destination(
       id: 'dest-papandayan',
@@ -49,6 +52,8 @@ abstract final class DestinationSeedData {
       province: 'Jawa Barat',
       priceFrom: 30000,
       difficulty: DifficultyLevel.sulit,
+      terrain: ['Gunung', 'Savana'],
+      activities: ['Hiking', 'Foto'],
     ),
     Destination(
       id: 'dest-moko',
@@ -60,6 +65,8 @@ abstract final class DestinationSeedData {
       province: 'Jawa Barat',
       priceFrom: 15000,
       difficulty: DifficultyLevel.pemula,
+      terrain: ['Bukit'],
+      activities: ['Sunrise', 'Foto'],
     ),
   ];
 }
