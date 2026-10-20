@@ -24,7 +24,16 @@ Destinasi alam (gunung, bukit, danau, air terjun, dsb).
 - `access`: deskripsi akses, moda transportasi, estimasi waktu, jarak
 - `facilities`: toilet, warung, mushola, parkir, homestay dekat, dll
 - ekonomi: `entryFee`, `elevationMeters`
+- publikasi: `status` (`draft` | `published` | `archived`), `verified`
 - meta: `images`, `guideRequired`, `categoryIds[]`, `createdAt`, `updatedAt`
+
+Nilai `difficulty`: `ramah-pemula` | `menengah` | `sulit`.
+
+> Implementasi backend (`apps/backend/src/db/schema.ts`) menyimpan geografi dan
+> akses sebagai kolom datar (`province`, `regency`, `district`, `latitude`,
+> `longitude`, `accessPoint`, `accessDescription`, `accessTransport`,
+> `accessDuration`, `accessDistanceKm`), sedangkan API mengeksposnya sebagai
+> objek bersarang `location` dan `access`.
 
 **Relasi:** satu destinasi memiliki banyak `TravelSupport`
 (`DestinationDetail = Destination + supports[]`) dan banyak `Category`

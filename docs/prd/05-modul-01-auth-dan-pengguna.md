@@ -21,6 +21,7 @@ Autentikasi lengkap (BE + FE) berbasis JWT sebagai pintu masuk area admin.
 - [x] Service auth + hashing password (`scrypt`).
 - [x] `POST /api/auth/google` — verifikasi Google ID token.
 - [x] `POST /api/auth/forgot-password` + `POST /api/auth/reset-password` (email via Resend).
+- [x] `POST /api/auth/verify-email` + `POST /api/auth/resend-verification` — verifikasi email (soft).
 - [ ] `GET /api/users` — daftar pengguna (admin). _(modul berikutnya)_
 
 > **Catatan (SCRUM-7):** backend auth dikerjakan **Adi** (per Jira), bukan
@@ -35,6 +36,8 @@ Autentikasi lengkap (BE + FE) berbasis JWT sebagai pintu masuk area admin.
 - [x] `useAuth` + session store (`localStorage`; `sessionStorage` bila "Ingat saya" tidak dicentang).
 - [x] Redirect ke `/admin` setelah login berhasil.
 - [ ] Halaman `/auth/register` & `/auth/forgot-password` — menyusul (tab & link sudah mengarah).
+  - `/auth/forgot-password` sudah ada.
+- [x] Halaman `/auth/verify-email` — verifikasi otomatis saat tautan dibuka.
 - [ ] Login Google (GSI → `POST /api/auth/google`) — butuh `GOOGLE_CLIENT_ID`; tombol sudah tampil.
 
 > **Catatan (SCRUM-8):** dikerjakan **Adi** (per Jira). `auth/api/login.ts` memakai
