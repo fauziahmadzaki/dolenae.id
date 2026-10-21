@@ -1,4 +1,5 @@
-import { ImagePlus, Trash2 } from "lucide-react";
+import { ImagePlus } from "lucide-react";
+import { ImageUploader } from "~/components/media/image-uploader";
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
 import { Select } from "~/components/ui/select";
@@ -10,6 +11,7 @@ import type { StepProps } from "./types";
 interface MediaStepProps extends StepProps {
   imageDraft: string;
   onImageDraftChange: (value: string) => void;
+  token?: string | null;
 }
 
 export function MediaStep({
@@ -18,8 +20,9 @@ export function MediaStep({
   set,
   imageDraft,
   onImageDraftChange,
+  token,
 }: MediaStepProps) {
-  const addImage = () => {
+  const addImageByUrl = () => {
     if (!imageDraft.trim() || values.images.length >= 20) return;
     set("images", [...values.images, imageDraft.trim()]);
     onImageDraftChange("");
@@ -28,72 +31,46 @@ export function MediaStep({
   return (
     <div className="space-y-6">
       <div>
-        <p className="mb-2 text-sm font-semibold text-ink">
-          Foto destinasi{" "}
-          <span className="font-normal text-body">
-            ({values.images.length}/20)
-          </span>
-        </p>
-        <div className="flex gap-2">
-          <Input
-            aria-label="URL foto"
-            placeholder="https://cdn.dolenae.id/bromo.jpg"
-            value={imageDraft}
-            onChange={(event) => onImageDraftChange(event.target.value)}
-          />
-          <Button
-            type="button"
-            variant="secondary"
-            disabled={!imageDraft.trim() || values.images.length >= 20}
-            onClick={addImage}
-          >
-            <ImagePlus aria-hidden className="h-4 w-4" />
-            Tambah
-          </Button>
-        </div>
-        <p className="mt-1 text-xs text-body">
-          Tempel URL foto. Unggah berkas tersedia setelah integrasi penyimpanan
-          media.
-        </p>
-        {values.images.length > 0 && (
-          <ul className="mt-3 flex flex-wrap gap-3">
-            {values.images.map((image, index) => (
-              <li key={`${image}-${index}`} className="relative">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={image}
-                  alt={`Foto ${index + 1}`}
-                  className="h-20 w-28 rounded-lg border border-hairline object-cover"
-                />
-                {index === 0 && (
-                  <span className="absolute left-1 top-1 rounded bg-primary px-1.5 py-0.5 text-[10px] font-semibold text-on-primary">
-                    Utama
-                  </span>
-                )}
-                <button
-                  type="button"
-                  aria-label={`Hapus foto ${index + 1}`}
-                  onClick={() =>
-                    set(
-                      "images",
-                      values.images.filter(
-                        (_, position) => position !== index,
-                      ),
-                    )
-                  }
-                  className="absolute -right-2 -top-2 flex h-6 w-6 items-center justify-center rounded-full bg-danger text-white shadow-sm"
-                >
-                  <Trash2 aria-hidden className="h-3 w-3" />
-                </button>
-              </li>
-            ))}
-          </ul>
-        )}
+        <p className="mb-2 text-sm font-semibold text-ink">Foto destinasi</p>
+
+        <ImageUploader
+          images={values.images}
+          onChange={(images) => set("images", images)}
+          token={token}
+          max={20}
+        />
+
         {errors.images && (
           <p role="alert" className="mt-1 text-xs text-danger">
             {errors.images}
           </p>
         )}
+
+        <details className="mt-3 rounded-lg border border-hairline bg-surface p-3">
+          <summary className="cursor-pointer text-xs font-semibold text-primary">
+            Tempel URL foto (opsional)
+          </summary>
+          <div className="mt-2 flex gap-2">
+            <Input
+              aria-label="URL foto"
+              placeholder="https://cdn.dolenae.id/bromo.jpg"
+              value={imageDraft}
+              onChange={(event) => onImageDraftChange(event.target.value)}
+            />
+            <Button
+              type="button"
+              variant="secondary"
+              disabled={!imageDraft.trim() || values.images.length >= 20}
+              onClick={addImageByUrl}
+            >
+              <ImagePlus aria-hidden className="h-4 w-4" />
+              Tambah
+            </Button>
+          </div>
+          <p className="mt-1 text-xs text-body">
+            Berguna untuk foto yang sudah di-host di CDN lain.
+          </p>
+        </details>
       </div>
 
       <div className="grid gap-5 sm:grid-cols-2">

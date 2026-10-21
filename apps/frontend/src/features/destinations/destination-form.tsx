@@ -307,6 +307,7 @@ export function DestinationForm({ destinationId }: { destinationId?: string }) {
             {...stepProps}
             imageDraft={imageDraft}
             onImageDraftChange={setImageDraft}
+            token={auth.token}
           />
         );
     }
