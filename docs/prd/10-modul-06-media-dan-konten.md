@@ -14,13 +14,13 @@ destinasi, dipakai form admin (Modul 4).
 
 ## Backend
 
-- [ ] `POST /api/uploads` — multipart via `multer`.
-- [ ] `DELETE /api/uploads`.
-- [ ] `storage.service` (S3/MinIO) — port dari versi lama.
+- [x] `POST /api/uploads` — multipart via `multer`.
+- [x] `DELETE /api/uploads`.
+- [x] `storage.service` (S3/MinIO) — plus driver `local` untuk dev tanpa Docker.
 
 ## Frontend
 
-- [ ] `image-uploader` (slot upload + preview + hapus).
+- [x] `image-uploader` (slot upload + preview + hapus).
 - [ ] `rich-text` editor (deskripsi destinasi).
 
 ## Rencana Commit
