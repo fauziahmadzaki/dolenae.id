@@ -91,8 +91,6 @@ export const destinationFormSchema = z.object({
   status: z.enum(["draft", "published", "archived"]),
   bestSeason: csvList(),
   tags: csvList(),
-  terrain: csvList(),
-  activities: csvList(),
   categoryIds: z.array(z.string().uuid()),
   province: z.string().trim().max(80),
   regency: z.string().trim().max(80),
@@ -122,8 +120,6 @@ export const emptyDestinationForm: DestinationForm = {
   status: "draft",
   bestSeason: "",
   tags: "",
-  terrain: "",
-  activities: "",
   categoryIds: [],
   province: "",
   regency: "",
@@ -165,8 +161,6 @@ export function toDestinationPayload(form: DestinationForm) {
     status: form.status,
     bestSeason: splitList(form.bestSeason),
     tags: splitList(form.tags),
-    terrain: splitList(form.terrain),
-    activities: splitList(form.activities),
     categoryIds: form.categoryIds,
     location: {
       province: toText(form.province),
@@ -200,8 +194,6 @@ export function toDestinationForm(detail: {
   status: DestinationStatus;
   bestSeason: string[];
   tags: string[];
-  terrain: string[];
-  activities: string[];
   categoryIds: string[];
   location: {
     province: string | null;
@@ -236,8 +228,6 @@ export function toDestinationForm(detail: {
     status: detail.status,
     bestSeason: join(detail.bestSeason),
     tags: join(detail.tags),
-    terrain: join(detail.terrain),
-    activities: join(detail.activities),
     categoryIds: detail.categoryIds,
     province: text(detail.location.province),
     regency: text(detail.location.regency),

@@ -53,8 +53,6 @@ const stepFields: Record<StepKey, (keyof DestinationFormValues)[]> = {
   klasifikasi: [
     "categoryIds",
     "difficulty",
-    "terrain",
-    "activities",
     "bestSeason",
     "tags",
     "elevationMeters",

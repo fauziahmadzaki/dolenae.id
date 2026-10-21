@@ -14,6 +14,11 @@ interface KlasifikasiStepProps extends StepProps {
   selectedCount: number;
 }
 
+const GROUPS = [
+  { type: "terrain", label: "Terrain" },
+  { type: "activity", label: "Aktivitas" },
+] as const;
+
 export function KlasifikasiStep({
   values,
   errors,
@@ -25,10 +30,15 @@ export function KlasifikasiStep({
   return (
     <div className="space-y-6">
       <div>
-        <p className="mb-2 text-sm font-semibold text-ink">
+        <p className="mb-1 text-sm font-semibold text-ink">
           Kategori{" "}
           <span className="font-normal text-body">({selectedCount} dipilih)</span>
         </p>
+        <p className="mb-3 text-xs text-body">
+          Klasifikasi resmi destinasi. Kategori inilah yang dipakai filter dan
+          tampilan publik.
+        </p>
+
         {categoriesPending ? (
           <p className="text-sm text-body">Memuat kategori…</p>
         ) : categories.length === 0 ? (
@@ -37,36 +47,70 @@ export function KlasifikasiStep({
             daftar.
           </p>
         ) : (
-          <div className="flex flex-wrap gap-2">
-            {categories.map((category) => {
-              const active = values.categoryIds.includes(category.id);
+          <div className="space-y-4">
+            {GROUPS.map((group) => {
+              const items = categories.filter(
+                (category) => category.type === group.type,
+              );
+              const count = items.filter((category) =>
+                values.categoryIds.includes(category.id),
+              ).length;
+
               return (
-                <button
-                  key={category.id}
-                  type="button"
-                  aria-pressed={active}
-                  onClick={() =>
-                    set(
-                      "categoryIds",
-                      active
-                        ? values.categoryIds.filter((id) => id !== category.id)
-                        : [...values.categoryIds, category.id],
-                    )
-                  }
-                  className={cn(
-                    "flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-semibold",
-                    active
-                      ? "border-primary bg-primary text-on-primary"
-                      : "border-hairline bg-surface text-body hover:bg-canvas-subtle",
+                <div key={group.type}>
+                  <p className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-body">
+                    {group.label}{" "}
+                    <span className="font-normal normal-case">
+                      ({count} dipilih)
+                    </span>
+                  </p>
+
+                  {items.length === 0 ? (
+                    <p className="text-xs text-body">
+                      Belum ada kategori {group.label.toLowerCase()}.
+                    </p>
+                  ) : (
+                    <div className="flex flex-wrap gap-2">
+                      {items.map((category) => {
+                        const active = values.categoryIds.includes(category.id);
+                        return (
+                          <button
+                            key={category.id}
+                            type="button"
+                            aria-pressed={active}
+                            onClick={() =>
+                              set(
+                                "categoryIds",
+                                active
+                                  ? values.categoryIds.filter(
+                                      (id) => id !== category.id,
+                                    )
+                                  : [...values.categoryIds, category.id],
+                              )
+                            }
+                            className={cn(
+                              "flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-semibold",
+                              active
+                                ? "border-primary bg-primary text-on-primary"
+                                : "border-hairline bg-surface text-body hover:bg-canvas-subtle",
+                            )}
+                          >
+                            <CategoryIcon
+                              name={category.icon}
+                              className="h-3.5 w-3.5"
+                            />
+                            {category.name}
+                          </button>
+                        );
+                      })}
+                    </div>
                   )}
-                >
-                  <CategoryIcon name={category.icon} className="h-3.5 w-3.5" />
-                  {category.name}
-                </button>
+                </div>
               );
             })}
           </div>
         )}
+
         {errors.categoryIds && (
           <p role="alert" className="mt-1 text-xs text-danger">
             {errors.categoryIds}
@@ -97,34 +141,6 @@ export function KlasifikasiStep({
             placeholder="2329"
             value={values.elevationMeters}
             onChange={(event) => set("elevationMeters", event.target.value)}
-          />
-        </Field>
-        <Field
-          label="Terrain"
-          htmlFor="terrain"
-          optional
-          hint="Pisahkan dengan koma."
-          error={errors.terrain}
-        >
-          <Input
-            id="terrain"
-            placeholder="Gunung, Bukit"
-            value={values.terrain}
-            onChange={(event) => set("terrain", event.target.value)}
-          />
-        </Field>
-        <Field
-          label="Aktivitas"
-          htmlFor="activities"
-          optional
-          hint="Pisahkan dengan koma."
-          error={errors.activities}
-        >
-          <Input
-            id="activities"
-            placeholder="Hiking, Camping"
-            value={values.activities}
-            onChange={(event) => set("activities", event.target.value)}
           />
         </Field>
         <Field
