@@ -4,6 +4,7 @@ import { categoryRouter } from "./category.route";
 import { destinationRouter } from "./destination.route";
 import { healthRouter } from "./health.route";
 import { regionRouter } from "./region.route";
+import { uploadRouter } from "./upload.route";
 import { userRouter } from "./user.route";
 
 /** Main API router, mounted at `/api`. Add domain routes here. */
@@ -15,3 +16,4 @@ apiRouter.use("/users", userRouter);
 apiRouter.use("/categories", categoryRouter);
 apiRouter.use("/destinations", destinationRouter);
 apiRouter.use("/regions", regionRouter);
+apiRouter.use("/uploads", uploadRouter);

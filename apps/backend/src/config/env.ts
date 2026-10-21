@@ -18,6 +18,22 @@ const envSchema = z.object({
   MAIL_REPLY_TO: z.string().default(""),
   // Google sign-in audience (OAuth client id). Empty = endpoint disabled.
   GOOGLE_CLIENT_ID: z.string().default(""),
+  // Image storage (S3-compatible; MinIO in development).
+  STORAGE_DRIVER: z.enum(["s3", "local"]).default("s3"),
+  /** Local driver only: folder + public base of the API serving /uploads. */
+  UPLOAD_DIR: z.string().default("uploads"),
+  PUBLIC_API_URL: z.string().url().default("http://localhost:3001"),
+  S3_ENDPOINT: z.string().url().default("http://localhost:9000"),
+  S3_REGION: z.string().default("us-east-1"),
+  S3_BUCKET: z.string().default("dolenae"),
+  S3_ACCESS_KEY_ID: z.string().default("minioadmin"),
+  S3_SECRET_ACCESS_KEY: z.string().default("minioadmin"),
+  S3_PUBLIC_URL: z.string().url().default("http://localhost:9000/dolenae"),
+  S3_FORCE_PATH_STYLE: z
+    .string()
+    .default("true")
+    .transform((value) => value.toLowerCase() !== "false"),
+  MAX_UPLOAD_MB: z.coerce.number().int().positive().default(5),
   LOG_LEVEL: z
     .enum(["fatal", "error", "warn", "info", "debug", "trace", "silent"])
     .default("info"),

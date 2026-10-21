@@ -66,3 +66,6 @@ pnpm-debug.log*
 
 # Local usability-testing output (not part of the product docs)
 ut-output/
+
+# Local image uploads (dev)
+apps/backend/uploads/
