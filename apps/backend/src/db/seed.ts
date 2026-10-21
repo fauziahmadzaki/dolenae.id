@@ -45,8 +45,6 @@ interface SeedDestination {
   accessDistanceKm: string;
   bestSeason: string[];
   tags: string[];
-  terrain: string[];
-  activities: string[];
   facilities: string[];
   entryFee: number;
   guideRequired: boolean;
@@ -135,8 +133,6 @@ const seedDestinations: SeedDestination[] = [
     accessDistanceKm: "140.00",
     bestSeason: ["Kering (Jul-Okt)"],
     tags: ["sunrise", "kawah", "jeep"],
-    terrain: ["gunung", "lautan pasir"],
-    activities: ["hiking", "sunrise", "foto"],
     facilities: ["Toilet", "Warung", "Parkir", "Homestay"],
     entryFee: 29000,
     guideRequired: false,
@@ -164,8 +160,6 @@ const seedDestinations: SeedDestination[] = [
     accessDistanceKm: "12.00",
     bestSeason: ["Kering (Jun-Sep)"],
     tags: ["sunrise", "camping", "lautan awan"],
-    terrain: ["gunung", "savana"],
-    activities: ["hiking", "camping", "sunrise"],
     facilities: ["Toilet", "Warung", "Parkir", "Camping ground"],
     entryFee: 25000,
     guideRequired: false,
@@ -193,8 +187,6 @@ const seedDestinations: SeedDestination[] = [
     accessDistanceKm: "28.00",
     bestSeason: ["Kering (Mei-Sep)"],
     tags: ["edelweiss", "kawah", "savana"],
-    terrain: ["gunung", "savana"],
-    activities: ["hiking", "camping", "foto"],
     facilities: ["Toilet", "Warung", "Parkir", "Camping ground"],
     entryFee: 30000,
     guideRequired: true,
@@ -222,8 +214,6 @@ const seedDestinations: SeedDestination[] = [
     accessDistanceKm: "10.00",
     bestSeason: ["Kemarau (Mei-Sep)"],
     tags: ["city view", "sunset", "camping"],
-    terrain: ["bukit"],
-    activities: ["camping", "sunset", "foto"],
     facilities: ["Toilet", "Warung", "Parkir"],
     entryFee: 15000,
     guideRequired: false,
@@ -251,8 +241,6 @@ const seedDestinations: SeedDestination[] = [
     accessDistanceKm: "85.00",
     bestSeason: ["Kering (Jun-Sep)"],
     tags: ["danau", "camping", "savana"],
-    terrain: ["danau", "savana"],
-    activities: ["hiking", "camping", "foto"],
     facilities: ["Toilet", "Warung", "Camping ground"],
     entryFee: 35000,
     guideRequired: true,
@@ -280,8 +268,6 @@ const seedDestinations: SeedDestination[] = [
     accessDistanceKm: "25.00",
     bestSeason: ["Kemarau (Mei-Sep)"],
     tags: ["sunrise", "gunung api purba", "embung"],
-    terrain: ["gunung", "bukit"],
-    activities: ["hiking", "sunrise", "foto"],
     facilities: ["Toilet", "Warung", "Parkir", "Homestay"],
     entryFee: 10000,
     guideRequired: false,

@@ -43,8 +43,6 @@ const destinationFields = {
   difficulty: z.enum(["ramah-pemula", "menengah", "sulit"]).optional(),
   bestSeason: textList,
   tags: textList,
-  terrain: textList,
-  activities: textList,
   location: locationSchema.optional(),
   access: accessSchema.optional(),
   facilities: textList,

@@ -45,8 +45,6 @@ describe("Destination CRUD API (/api/destinations)", () => {
     difficulty: "menengah" as const,
     bestSeason: ["Apr-Okt"],
     tags: ["sunrise"],
-    terrain: ["gunung"],
-    activities: ["hiking"],
     province: "Jawa Timur",
     regency: "Probolinggo",
     district: "Sukapura",
@@ -79,6 +77,18 @@ describe("Destination CRUD API (/api/destinations)", () => {
     updatedAt: new Date("2026-10-10T00:00:00Z"),
   };
 
+  const activityCategoryId = "33333333-3333-4333-a333-333333333333";
+  const mockActivityCategory = {
+    id: activityCategoryId,
+    name: "Hiking",
+    slug: "hiking",
+    type: "activity" as const,
+    icon: "lucide:footprints",
+    description: null,
+    createdAt: new Date("2026-10-10T00:00:00Z"),
+    updatedAt: new Date("2026-10-10T00:00:00Z"),
+  };
+
   describe("GET /api/destinations", () => {
     it("returns a paginated public list with category links", async () => {
       vi.spyOn(destinationRepository, "list").mockResolvedValueOnce({
@@ -87,6 +97,11 @@ describe("Destination CRUD API (/api/destinations)", () => {
       });
       vi.spyOn(destinationRepository, "findCategoryLinks").mockResolvedValueOnce([
         { destinationId: mockDestination.id, categoryId },
+        { destinationId: mockDestination.id, categoryId: activityCategoryId },
+      ]);
+      vi.spyOn(categoryRepository, "findByIds").mockResolvedValueOnce([
+        mockCategory,
+        mockActivityCategory,
       ]);
 
       const res = await request(app).get("/api/destinations?page=1&limit=10");
@@ -94,7 +109,9 @@ describe("Destination CRUD API (/api/destinations)", () => {
       expect(res.body.data[0]).toMatchObject({
         id: mockDestination.id,
         slug: "gunung-bromo",
-        categoryIds: [categoryId],
+        categoryIds: [categoryId, activityCategoryId],
+        terrain: ["Gunung"],
+        activities: ["Hiking"],
       });
       expect(res.body.data[0].location).toMatchObject({
         province: "Jawa Timur",
@@ -176,6 +193,8 @@ describe("Destination CRUD API (/api/destinations)", () => {
       expect(res.body.data).toMatchObject({
         categoryIds: [categoryId],
         status: "published",
+        terrain: ["Gunung"],
+        activities: [],
       });
       expect(replace).toHaveBeenCalledWith(mockDestination.id, [categoryId]);
       expect(destinationRepository.create).toHaveBeenCalledWith(
@@ -240,6 +259,8 @@ describe("Destination CRUD API (/api/destinations)", () => {
       );
       expect(replace).toHaveBeenCalledWith(mockDestination.id, [categoryId]);
       expect(res.body.data.categoryIds).toEqual([categoryId]);
+      expect(res.body.data.terrain).toEqual(["Gunung"]);
+      expect(res.body.data.activities).toEqual([]);
     });
 
     it("keeps the slug when only the name changes", async () => {

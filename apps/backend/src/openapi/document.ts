@@ -582,8 +582,6 @@ export const openApiDocument = {
                   difficulty: { type: "string", enum: ["ramah-pemula", "menengah", "sulit"] },
                   bestSeason: { type: "array", items: { type: "string" } },
                   tags: { type: "array", items: { type: "string" } },
-                  terrain: { type: "array", items: { type: "string" } },
-                  activities: { type: "array", items: { type: "string" } },
                   location: { type: "object" },
                   access: { type: "object" },
                   facilities: { type: "array", items: { type: "string" } },

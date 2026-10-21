@@ -154,9 +154,6 @@ export const destinations = pgTable(
     difficulty: difficultyEnum("difficulty").notNull().default("menengah"),
     bestSeason: text("best_season").array().notNull().default([]),
     tags: text("tags").array().notNull().default([]),
-    // Compatibility with the design/seed display (official relation = categoryIds).
-    terrain: text("terrain").array().notNull().default([]),
-    activities: text("activities").array().notNull().default([]),
     // Geography (reverse geocode via @dolenae/regions — ADR-0004)
     province: varchar("province", { length: 80 }),
     regency: varchar("regency", { length: 80 }),

@@ -65,8 +65,6 @@ export interface CreateDestinationDto {
   difficulty?: Difficulty;
   bestSeason?: string[];
   tags?: string[];
-  terrain?: string[];
-  activities?: string[];
   location?: Partial<DestinationLocation>;
   access?: Partial<DestinationAccess>;
   facilities?: string[];
@@ -91,7 +89,19 @@ type CategoryLookup = Map<string, PublicCategory>;
 function toPublicDestination(
   row: DestinationRow,
   categoryIds: string[],
+  categories: PublicCategory[],
 ): PublicDestination {
+  // Classification is derived from the official category links, so a renamed
+  // category is reflected everywhere without duplicated columns.
+  const terrain = categories
+    .filter((category) => category.type === "terrain")
+    .map((category) => category.name)
+    .sort((a, b) => a.localeCompare(b));
+  const activities = categories
+    .filter((category) => category.type === "activity")
+    .map((category) => category.name)
+    .sort((a, b) => a.localeCompare(b));
+
   return {
     id: row.id,
     name: row.name,
@@ -101,8 +111,8 @@ function toPublicDestination(
     difficulty: row.difficulty,
     bestSeason: row.bestSeason,
     tags: row.tags,
-    terrain: row.terrain,
-    activities: row.activities,
+    terrain,
+    activities,
     location: {
       province: row.province,
       regency: row.regency,
@@ -153,7 +163,7 @@ export const destinationService = {
     const categories = categoryIds
       .map((categoryId) => lookup.get(categoryId))
       .filter((c): c is PublicCategory => Boolean(c));
-    return { ...toPublicDestination(row, categoryIds), categories };
+    return { ...toPublicDestination(row, categoryIds, categories), categories };
   },
 
   async list(
@@ -180,10 +190,23 @@ export const destinationService = {
       list.push(link.categoryId);
       linked.set(link.destinationId, list);
     }
+
+    // One lookup for every category referenced on this page.
+    const categoryRows = await categoryRepository.findByIds([
+      ...new Set(links.map((link) => link.categoryId)),
+    ]);
+    const categoryById = new Map(
+      categoryRows.map((row) => [row.id, toPublicCategory(row)]),
+    );
+
     return {
-      items: items.map((row) =>
-        toPublicDestination(row, linked.get(row.id) ?? []),
-      ),
+      items: items.map((row) => {
+        const categoryIds = linked.get(row.id) ?? [];
+        const categories = categoryIds
+          .map((categoryId) => categoryById.get(categoryId))
+          .filter((category): category is PublicCategory => Boolean(category));
+        return toPublicDestination(row, categoryIds, categories);
+      }),
       meta: buildMeta(total, query.page, query.limit),
     };
   },
@@ -206,8 +229,6 @@ export const destinationService = {
       difficulty: input.difficulty ?? "menengah",
       bestSeason: input.bestSeason ?? [],
       tags: input.tags ?? [],
-      terrain: input.terrain ?? [],
-      activities: input.activities ?? [],
       province: input.location?.province ?? null,
       regency: input.location?.regency ?? null,
       district: input.location?.district ?? null,
@@ -265,8 +286,6 @@ export const destinationService = {
     if (input.difficulty !== undefined) patch.difficulty = input.difficulty;
     if (input.bestSeason !== undefined) patch.bestSeason = input.bestSeason;
     if (input.tags !== undefined) patch.tags = input.tags;
-    if (input.terrain !== undefined) patch.terrain = input.terrain;
-    if (input.activities !== undefined) patch.activities = input.activities;
     if (input.location !== undefined) {
       if (input.location.province !== undefined) patch.province = input.location.province;
       if (input.location.regency !== undefined) patch.regency = input.location.regency;
