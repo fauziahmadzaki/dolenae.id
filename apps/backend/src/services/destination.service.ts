@@ -243,9 +243,7 @@ export const destinationService = {
     const nextSlug =
       input.slug !== undefined && input.slug.trim() !== ""
         ? input.slug.trim()
-        : input.name !== undefined
-          ? slugify(input.name)
-          : undefined;
+        : undefined;
 
     if (nextSlug && nextSlug !== existing.slug) {
       if (await destinationRepository.slugExists(nextSlug, id)) {

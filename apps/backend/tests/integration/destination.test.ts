@@ -242,6 +242,28 @@ describe("Destination CRUD API (/api/destinations)", () => {
       expect(res.body.data.categoryIds).toEqual([categoryId]);
     });
 
+    it("keeps the slug when only the name changes", async () => {
+      vi.spyOn(destinationRepository, "findById").mockResolvedValue(
+        mockDestination,
+      );
+      const update = vi
+        .spyOn(destinationRepository, "update")
+        .mockResolvedValueOnce({ ...mockDestination, name: "Nama Baru" });
+      vi.spyOn(destinationRepository, "findCategoryIds").mockResolvedValue([]);
+
+      const res = await request(app)
+        .patch(`/api/destinations/${mockDestination.id}`)
+        .auth(adminToken, { type: "bearer" })
+        .send({ name: "Nama Baru" });
+
+      expect(res.status).toBe(200);
+      expect(update).toHaveBeenCalledWith(
+        mockDestination.id,
+        expect.objectContaining({ name: "Nama Baru" }),
+      );
+      expect(update.mock.calls[0]?.[1]).not.toHaveProperty("slug");
+    });
+
     it("returns 404 for an unknown id", async () => {
       vi.spyOn(destinationRepository, "findById").mockResolvedValueOnce(undefined);
 
