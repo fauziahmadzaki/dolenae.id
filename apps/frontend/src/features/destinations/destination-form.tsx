@@ -4,6 +4,14 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, ArrowRight, Loader2, Plus } from "lucide-react";
 import { Button } from "~/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogTitle,
+} from "~/components/ui/dialog";
+import { useToast } from "~/components/ui/toaster";
 import { ApiError } from "~/lib/api/types";
 import { useAuth } from "~/features/auth/hooks/use-auth";
 import { cn } from "~/lib/cn";
@@ -76,6 +84,7 @@ const message = (error: unknown) =>
 export function DestinationForm({ destinationId }: { destinationId?: string }) {
   const auth = useAuth();
   const router = useRouter();
+  const { toast } = useToast();
   const editing = Boolean(destinationId);
 
   const [step, setStep] = useState(0);
@@ -85,6 +94,8 @@ export function DestinationForm({ destinationId }: { destinationId?: string }) {
   const [imageDraft, setImageDraft] = useState("");
   const [notice, setNotice] = useState("");
   const [loaded, setLoaded] = useState(!editing);
+  const [dirty, setDirty] = useState(false);
+  const [confirmLeave, setConfirmLeave] = useState(false);
 
   const enabled = auth.hydrated && !!auth.token && auth.user?.role === "admin";
 
@@ -95,7 +106,16 @@ export function DestinationForm({ destinationId }: { destinationId?: string }) {
     editing,
     id: destinationId,
     token: auth.token ?? undefined,
-    onSaved: () => router.push("/admin/destinasi"),
+    onSaved: (destination) => {
+      setDirty(false);
+      toast({
+        title: editing
+          ? "Perubahan destinasi disimpan."
+          : `Destinasi "${destination.name}" berhasil dibuat.`,
+        variant: "success",
+      });
+      router.push("/admin/destinasi");
+    },
   });
 
   useEffect(() => {
@@ -122,7 +142,19 @@ export function DestinationForm({ destinationId }: { destinationId?: string }) {
   ) => {
     setValues((prev) => ({ ...prev, [key]: value }));
     setErrors((prev) => ({ ...prev, [key]: undefined }));
+    setDirty(true);
   };
+
+  // Warn before leaving with unsaved edits (refresh, tab close, back).
+  useEffect(() => {
+    if (!dirty) return;
+    const handler = (event: BeforeUnloadEvent) => {
+      event.preventDefault();
+      event.returnValue = "";
+    };
+    window.addEventListener("beforeunload", handler);
+    return () => window.removeEventListener("beforeunload", handler);
+  }, [dirty]);
 
   const issueFields = () => {
     const parsed = destinationFormSchema.safeParse(values);
@@ -162,7 +194,7 @@ export function DestinationForm({ destinationId }: { destinationId?: string }) {
     }
   };
 
-  const submit = () => {
+  const submit = (status?: DestinationFormValues["status"]) => {
     const parsed = validate();
     if (!parsed) {
       const invalid = issueFields();
@@ -172,16 +204,29 @@ export function DestinationForm({ destinationId }: { destinationId?: string }) {
       if (firstInvalid >= 0) setStep(firstInvalid);
       return;
     }
-    mutation.mutate(toDestinationPayload(parsed));
+    setNotice("");
+    mutation.mutate(
+      toDestinationPayload({ ...parsed, status: status ?? parsed.status }),
+    );
   };
 
   const saveDraft = () => {
-    set("status", "draft");
-    const parsed = destinationFormSchema.safeParse({ ...values, status: "draft" });
-    if (!parsed.success) {
-      setNotice("Lengkapi field wajib sebelum menyimpan draf.");
+    if (values.name.trim().length < 2) {
+      setErrors((prev) => ({ ...prev, name: "Nama minimal 2 karakter" }));
+      setNotice("Isi nama destinasi sebelum menyimpan draf.");
+      setStep(0);
       return;
     }
+    // Drafts only require a name; incomplete fields are completed later.
+    const parsed = destinationFormSchema.safeParse({
+      ...values,
+      status: "draft",
+    });
+    if (!parsed.success) {
+      setNotice("Periksa kembali angka dan slug sebelum menyimpan draf.");
+      return;
+    }
+    setNotice("");
     mutation.mutate(toDestinationPayload(parsed.data));
   };
 
@@ -275,7 +320,9 @@ export function DestinationForm({ destinationId }: { destinationId?: string }) {
         <div className="flex items-center gap-3">
           <button
             type="button"
-            onClick={() => router.push("/admin/destinasi")}
+            onClick={() =>
+              dirty ? setConfirmLeave(true) : router.push("/admin/destinasi")
+            }
             aria-label="Kembali ke daftar destinasi"
             className="flex h-9 w-9 items-center justify-center rounded-full border border-hairline bg-surface text-body hover:bg-surface-2 hover:text-ink"
           >
@@ -340,7 +387,10 @@ export function DestinationForm({ destinationId }: { destinationId?: string }) {
               <ArrowRight aria-hidden className="h-4 w-4" />
             </Button>
           ) : (
-            <Button onClick={submit} disabled={mutation.isPending}>
+            <Button
+              onClick={() => submit(editing ? undefined : "published")}
+              disabled={mutation.isPending}
+            >
               {mutation.isPending && (
                 <Loader2 aria-hidden className="h-4 w-4 animate-spin" />
               )}
@@ -354,6 +404,34 @@ export function DestinationForm({ destinationId }: { destinationId?: string }) {
         <Plus aria-hidden className="h-3 w-3" />
         Field bertanda opsional boleh dikosongkan; data dapat dilengkapi nanti.
       </p>
+
+      {confirmLeave && (
+        <Dialog open onOpenChange={(open) => !open && setConfirmLeave(false)}>
+          <DialogContent className="w-[420px]">
+            <DialogTitle>Tinggalkan formulir?</DialogTitle>
+            <DialogDescription>
+              Perubahan yang belum disimpan akan hilang.
+            </DialogDescription>
+            <DialogFooter>
+              <Button
+                variant="secondary"
+                onClick={() => setConfirmLeave(false)}
+              >
+                Batal
+              </Button>
+              <Button
+                className="bg-danger hover:bg-danger/90"
+                onClick={() => {
+                  setDirty(false);
+                  router.push("/admin/destinasi");
+                }}
+              >
+                Tinggalkan
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
     </div>
   );
 }

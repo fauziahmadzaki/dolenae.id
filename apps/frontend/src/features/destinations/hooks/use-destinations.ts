@@ -1,7 +1,7 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import type { Destination } from "~/types/domain";
+import type { Destination, DestinationDetail } from "~/types/domain";
 import {
   categoriesApi,
   destinationsApi,
@@ -56,7 +56,7 @@ interface SaveOptions {
   editing: boolean;
   id?: string;
   token?: string;
-  onSaved?: () => void;
+  onSaved?: (destination: DestinationDetail) => void;
 }
 
 export function useSaveDestination({
@@ -71,10 +71,10 @@ export function useSaveDestination({
       editing
         ? destinationsApi.update(id!, payload, token)
         : destinationsApi.create(payload, token),
-    onSuccess: () => {
+    onSuccess: (result) => {
       cache.invalidateQueries({ queryKey: ["destinations"] });
       cache.invalidateQueries({ queryKey: ["destination", id] });
-      onSaved?.();
+      onSaved?.(result.data);
     },
   });
 }
