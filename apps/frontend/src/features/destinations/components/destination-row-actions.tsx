@@ -1,8 +1,8 @@
 import Link from "next/link";
-import { Pencil, Trash2 } from "lucide-react";
+import { Pencil, Route, Trash2 } from "lucide-react";
 import type { Destination } from "~/types/domain";
 
-/** Aksi baris/kartu destinasi: edit dan hapus. */
+/** Aksi baris/kartu destinasi: kelola rute, edit, dan hapus. */
 export function DestinationRowActions({
   destination,
   onDelete,
@@ -12,6 +12,14 @@ export function DestinationRowActions({
 }) {
   return (
     <div className="flex gap-1">
+      <Link
+        href={`/admin/destinasi/${destination.id}/rute`}
+        aria-label={`Kelola rute ${destination.name}`}
+        title="Kelola rute & elevasi"
+        className="rounded-md p-2 text-body hover:bg-surface-2 hover:text-ink"
+      >
+        <Route aria-hidden className="h-4 w-4" />
+      </Link>
       <Link
         href={`/admin/destinasi/${destination.id}/edit`}
         aria-label={`Edit ${destination.name}`}
