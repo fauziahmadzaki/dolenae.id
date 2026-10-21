@@ -111,6 +111,13 @@ export function RouteEditorPage({ destinationId }: { destinationId: string }) {
     if (!selectedRouteId && routes[0]) setSelectedRouteId(routes[0].id);
   }, [routes, selectedRouteId]);
 
+  // Deep link from the preview page: ?mode=route starts drawing immediately.
+  useEffect(() => {
+    if (new URLSearchParams(window.location.search).get("mode") === "route") {
+      setMode("route");
+    }
+  }, []);
+
   const segmentError = (error: unknown) =>
     toast({ title: message(error), variant: "danger" });
 
@@ -258,7 +265,7 @@ export function RouteEditorPage({ destinationId }: { destinationId: string }) {
           onClick={() => toggleMode("route")}
         >
           <MapPin aria-hidden className="h-4 w-4" />
-          Buat jalur
+          Gambar jalur
         </Button>
         {mode !== "view" && (
           <Button size="sm" variant="ghost" onClick={() => toggleMode("view")}>
@@ -273,7 +280,7 @@ export function RouteEditorPage({ destinationId }: { destinationId: string }) {
         {mode === "connect" &&
           "Tarik handle di sisi titik ke titik lain, atau klik titik asal lalu titik tujuan."}
         {mode === "route" &&
-          "Klik peta untuk menambah titik belokan; klik titik bernama untuk snap."}
+          "Klik peta untuk menambah titik belokan; klik titik bernama untuk snap. Minimal dua titik lalu Simpan jalur."}
         {mode === "view" && "Klik titik untuk mengedit, klik ruas untuk detail."}
         {connectFrom && mode === "connect" && (
           <span className="ml-1 font-semibold text-primary">

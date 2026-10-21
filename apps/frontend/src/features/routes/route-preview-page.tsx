@@ -126,13 +126,22 @@ export function RoutePreviewPage({ destinationId }: { destinationId: string }) {
             </p>
           </div>
         </div>
-        <Link
-          href={`/admin/destinasi/${destinationId}/rute/peta`}
-          className="inline-flex h-10 items-center gap-2 rounded-full bg-primary px-4 text-sm font-semibold text-on-primary hover:bg-primary-hover"
-        >
-          <MapIcon aria-hidden className="h-4 w-4" />
-          Kelola di peta
-        </Link>
+        <div className="flex flex-wrap items-center gap-2">
+          <Link
+            href={`/admin/destinasi/${destinationId}/rute/peta?mode=route`}
+            className="inline-flex h-10 items-center gap-2 rounded-full border border-border-strong bg-surface px-4 text-sm font-semibold text-primary hover:bg-canvas-subtle"
+          >
+            <MapIcon aria-hidden className="h-4 w-4" />
+            Gambar jalur baru
+          </Link>
+          <Link
+            href={`/admin/destinasi/${destinationId}/rute/peta`}
+            className="inline-flex h-10 items-center gap-2 rounded-full bg-primary px-4 text-sm font-semibold text-on-primary hover:bg-primary-hover"
+          >
+            <MapIcon aria-hidden className="h-4 w-4" />
+            Kelola di peta
+          </Link>
+        </div>
       </div>
 
       {graph.isPending ? (
