@@ -4,15 +4,16 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import {
-  ChevronLeft,
-  ChevronRight,
-  LayoutGrid,
-  Loader2,
-  Plus,
-  Rows3,
-} from "lucide-react";
+import { LayoutGrid, Loader2, Plus, Rows3 } from "lucide-react";
 import { Button } from "~/components/ui/button";
+import {
+  DataTable,
+  DataTablePagination,
+  DataTableToolbar,
+  useDataTableState,
+  type SortOption,
+} from "~/components/ui/data-table";
+import { Select } from "~/components/ui/select";
 import { ApiError } from "~/lib/api/types";
 import { useAuth } from "~/features/auth/hooks/use-auth";
 import { cn } from "~/lib/cn";
@@ -20,14 +21,14 @@ import type { Category, Destination } from "~/types/domain";
 import { CategoryDialog } from "./category-dialog";
 import { CategoriesGrid } from "./components/categories-grid";
 import { DeleteDestinationDialog } from "./components/delete-destination-dialog";
+import { destinationColumns } from "./components/destination-columns";
 import { DestinationsGrid } from "./components/destinations-grid";
-import { DestinationsTable } from "./components/destinations-table";
-import { DestinationsToolbar } from "./components/destinations-toolbar";
 import {
   useCategories,
   useDeleteDestination,
   useDestinations,
 } from "./hooks/use-destinations";
+import { difficultyOptions, statusOptions } from "./schema";
 
 type Tab = "destinasi" | "kategori";
 type View = "table" | "card";
@@ -35,27 +36,34 @@ type CategoryMode =
   | { kind: "create" }
   | { kind: "edit" | "delete"; category: Category };
 
-const PAGE_SIZE = 8;
-
-const message = (error: unknown) =>
-  error instanceof Error
-    ? error.message
-    : "Permintaan gagal. Silakan coba lagi.";
+const SORT_OPTIONS: SortOption[] = [
+  { value: "createdAt:desc", label: "Terbaru" },
+  { value: "createdAt:asc", label: "Terlama" },
+  { value: "name:asc", label: "Nama A–Z" },
+  { value: "name:desc", label: "Nama Z–A" },
+  { value: "updatedAt:desc", label: "Terakhir diubah" },
+  { value: "elevationMeters:desc", label: "Paling tinggi" },
+  { value: "elevationMeters:asc", label: "Paling rendah" },
+];
 
 const VIEW_OPTIONS = [
   ["table", Rows3, "Tabel"],
   ["card", LayoutGrid, "Card"],
 ] as const;
 
+const message = (error: unknown) =>
+  error instanceof Error
+    ? error.message
+    : "Permintaan gagal. Silakan coba lagi.";
+
 export default function DestinationsPage() {
   const auth = useAuth();
   const router = useRouter();
   const cache = useQueryClient();
 
+  const table = useDataTableState();
   const [tab, setTab] = useState<Tab>("destinasi");
   const [view, setView] = useState<View>("table");
-  const [page, setPage] = useState(1);
-  const [search, setSearch] = useState("");
   const [difficulty, setDifficulty] = useState("");
   const [status, setStatus] = useState("");
   const [categoryId, setCategoryId] = useState("");
@@ -68,7 +76,7 @@ export default function DestinationsPage() {
 
   const categories = useCategories(enabled);
   const list = useDestinations(
-    { page, limit: PAGE_SIZE, search, difficulty, status, categoryId },
+    { ...table.query, difficulty, status, categoryId },
     enabled,
   );
 
@@ -95,13 +103,6 @@ export default function DestinationsPage() {
       router.replace("/auth/login");
     }
   }, [list.error, categories.error, auth, cache, router]);
-
-  const total = Number(list.data?.meta?.total ?? 0);
-  const totalPages = Number(list.data?.meta?.totalPages ?? 1);
-
-  useEffect(() => {
-    if (list.data && page > totalPages) setPage(totalPages);
-  }, [list.data, page, totalPages]);
 
   if (!auth.hydrated || !auth.token) {
     return (
@@ -131,6 +132,7 @@ export default function DestinationsPage() {
 
   const categoryList = categories.data?.data ?? [];
   const destinations = list.data?.data ?? [];
+  const total = Number(list.data?.meta?.total ?? 0);
   const categoryName = (id: string) =>
     categoryList.find((category) => category.id === id)?.name ?? "—";
 
@@ -146,10 +148,90 @@ export default function DestinationsPage() {
     cache.invalidateQueries({ queryKey: ["destinations"] });
   };
 
-  const resetPage = <T,>(setter: (value: T) => void) => (value: T) => {
+  const resetPageOn = <T,>(setter: (value: T) => void) => (value: T) => {
     setter(value);
-    setPage(1);
+    table.resetPage();
   };
+
+  const filters = (
+    <>
+      <Select
+        ariaLabel="Filter kesulitan"
+        size="sm"
+        value={difficulty}
+        onChange={resetPageOn(setDifficulty)}
+        options={[{ value: "", label: "Semua kesulitan" }, ...difficultyOptions]}
+        className="w-full sm:w-40"
+      />
+      <Select
+        ariaLabel="Filter status"
+        size="sm"
+        value={status}
+        onChange={resetPageOn(setStatus)}
+        options={[{ value: "", label: "Semua status" }, ...statusOptions]}
+        className="w-full sm:w-36"
+      />
+      <Select
+        ariaLabel="Filter kategori"
+        size="sm"
+        value={categoryId}
+        onChange={resetPageOn(setCategoryId)}
+        options={[
+          { value: "", label: "Semua kategori" },
+          ...categoryList.map((category) => ({
+            value: category.id,
+            label: category.name,
+          })),
+        ]}
+        className="w-full sm:w-44"
+      />
+    </>
+  );
+
+  const emptyDestinations = (
+    <div className="rounded-lg border border-dashed border-hairline bg-surface p-10 text-center">
+      <h3 className="font-display font-semibold text-ink">
+        Belum ada destinasi
+      </h3>
+      <p className="mt-1 text-sm text-body">
+        Mulai dengan menambahkan destinasi pertama atau ubah filter pencarian.
+      </p>
+      <Button
+        className="mt-4"
+        onClick={() => router.push("/admin/destinasi/baru")}
+      >
+        <Plus aria-hidden className="h-4 w-4" />
+        Tambah destinasi
+      </Button>
+    </div>
+  );
+
+  const paginationProps = {
+    page: table.page,
+    pageSize: table.pageSize,
+    total,
+    itemLabel: "destinasi",
+    onPageChange: table.setPage,
+    onPageSizeChange: table.setPageSize,
+    isFetching: list.isFetching,
+  };
+
+  const toolbarProps = {
+    search: table.search,
+    onSearchChange: table.setSearch,
+    searchPlaceholder: "Cari destinasi",
+    sort: table.sort,
+    onSortChange: table.setSort,
+    sortOptions: SORT_OPTIONS,
+    filters,
+    total,
+    itemLabel: "destinasi",
+  };
+
+  const columns = destinationColumns({
+    categoryName,
+    onDelete: setDeleteTarget,
+  });
 
   const errorBox = (error: unknown, onRetry: () => void) => (
     <div
@@ -271,20 +353,27 @@ export default function DestinationsPage() {
             />
           )}
         </section>
+      ) : view === "table" ? (
+        <section aria-label="Daftar destinasi">
+          <DataTable
+            data={destinations}
+            columns={columns}
+            getRowId={(destination) => destination.id}
+            {...toolbarProps}
+            page={table.page}
+            pageSize={table.pageSize}
+            onPageChange={table.setPage}
+            onPageSizeChange={table.setPageSize}
+            isLoading={list.isPending}
+            isFetching={list.isFetching}
+            error={list.error}
+            onRetry={() => list.refetch()}
+            emptyState={emptyDestinations}
+          />
+        </section>
       ) : (
         <section aria-label="Daftar destinasi" className="space-y-4">
-          <DestinationsToolbar
-            search={search}
-            difficulty={difficulty}
-            status={status}
-            categoryId={categoryId}
-            categories={categoryList}
-            total={total}
-            onSearchChange={resetPage(setSearch)}
-            onDifficultyChange={resetPage(setDifficulty)}
-            onStatusChange={resetPage(setStatus)}
-            onCategoryChange={resetPage(setCategoryId)}
-          />
+          <DataTableToolbar {...toolbarProps} />
 
           {list.isPending ? (
             <p role="status" className="text-sm text-body">
@@ -293,28 +382,7 @@ export default function DestinationsPage() {
           ) : list.isError ? (
             errorBox(list.error, () => list.refetch())
           ) : destinations.length === 0 ? (
-            <div className="rounded-lg border border-dashed border-hairline bg-surface p-10 text-center">
-              <h3 className="font-display font-semibold text-ink">
-                Belum ada destinasi
-              </h3>
-              <p className="mt-1 text-sm text-body">
-                Mulai dengan menambahkan destinasi pertama atau ubah filter
-                pencarian.
-              </p>
-              <Button
-                className="mt-4"
-                onClick={() => router.push("/admin/destinasi/baru")}
-              >
-                <Plus aria-hidden className="h-4 w-4" />
-                Tambah destinasi
-              </Button>
-            </div>
-          ) : view === "table" ? (
-            <DestinationsTable
-              destinations={destinations}
-              categoryName={categoryName}
-              onDelete={setDeleteTarget}
-            />
+            emptyDestinations
           ) : (
             <DestinationsGrid
               destinations={destinations}
@@ -322,37 +390,7 @@ export default function DestinationsPage() {
             />
           )}
 
-          {!list.isError && (
-            <div className="flex flex-wrap items-center justify-between gap-3 text-sm text-body">
-              <p>
-                Menampilkan {total ? (page - 1) * PAGE_SIZE + 1 : 0}–
-                {Math.min(page * PAGE_SIZE, total)} dari {total} destinasi
-              </p>
-              <div className="flex items-center gap-2">
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  aria-label="Halaman sebelumnya"
-                  disabled={page <= 1 || list.isFetching}
-                  onClick={() => setPage(page - 1)}
-                >
-                  <ChevronLeft aria-hidden className="h-4 w-4" />
-                </Button>
-                <span className="rounded-md bg-primary px-3 py-1.5 text-on-primary">
-                  {page}
-                </span>
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  aria-label="Halaman berikutnya"
-                  disabled={page >= totalPages || list.isFetching}
-                  onClick={() => setPage(page + 1)}
-                >
-                  <ChevronRight aria-hidden className="h-4 w-4" />
-                </Button>
-              </div>
-            </div>
-          )}
+          <DataTablePagination {...paginationProps} />
         </section>
       )}
 
