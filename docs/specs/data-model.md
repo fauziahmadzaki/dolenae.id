@@ -16,7 +16,8 @@ Destinasi alam (gunung, bukit, danau, air terjun, dsb).
 
 **Field inti:**
 - identitas: `id`, `name`, `slug`, `tagline`, `description`
-- klasifikasi: `terrain[]`, `activities[]`, `difficulty`, `bestSeason[]`, `tags[]`
+- klasifikasi: `difficulty`, `bestSeason[]`, `tags[]`, serta `terrain[]` &
+  `activities[]` yang **diturunkan** dari kategori (lihat catatan di bawah)
 - geografi: `location` (provinsi, kabupaten/kota, **kecamatan `district?`**,
   koordinat, serta `accessPoint?` berupa basecamp/titik akses terdekat — dipakai
   untuk peta lokasi). Nama wilayah diambil dari dataset `@dolenae/regions`
@@ -47,11 +48,11 @@ data yang bisa dikelola admin (tambah/edit/hapus).
 - field: `id`, `name`, `slug`, `type`, `icon` (nama ikon Lucide, mis.
   `lucide:mountain`), `description?`, `createdAt`, `updatedAt`.
 
-> Destinasi masih menyimpan `terrain[]`/`activities[]` (union string) untuk
-> kompatibilitas tampilan, sementara relasi resmi ke kategori disimpan di
-> `categoryIds`/`destination_categories`. Saat seed, tiap nilai
-> terrain/aktivitas dibuatkan satu kategori dengan `slug` sama sehingga
-> keduanya konsisten.
+> Destinasi **tidak lagi menyimpan** `terrain[]`/`activities[]` sebagai kolom.
+> Keduanya diturunkan saat read dari kategori yang terhubung
+> (`type: terrain` → `terrain`, `type: activity` → `activities`), sehingga rename
+> kategori langsung tercermin di API. Admin mengisi klasifikasi hanya lewat chip
+> kategori; field `tags[]` tetap bebas untuk label seperti `sunrise`.
 
 ### TravelSupport (Kebutuhan Pendukung)
 Diskriminator `type`:
