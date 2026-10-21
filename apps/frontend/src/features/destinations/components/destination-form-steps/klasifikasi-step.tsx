@@ -1,5 +1,6 @@
 import type { Category } from "~/types/domain";
 import { Input } from "~/components/ui/input";
+import { Select } from "~/components/ui/select";
 import { cn } from "~/lib/cn";
 import type { DestinationForm } from "../../schema";
 import { difficultyOptions } from "../../schema";
@@ -75,23 +76,14 @@ export function KlasifikasiStep({
 
       <div className="grid gap-5 sm:grid-cols-2">
         <Field label="Kesulitan" error={errors.difficulty}>
-          <select
-            aria-label="Kesulitan"
+          <Select
+            ariaLabel="Kesulitan"
             value={values.difficulty}
-            onChange={(event) =>
-              set(
-                "difficulty",
-                event.target.value as DestinationForm["difficulty"],
-              )
+            onChange={(value) =>
+              set("difficulty", value as DestinationForm["difficulty"])
             }
-            className="h-12 w-full rounded-lg border border-hairline bg-canvas-subtle px-3 text-sm text-ink"
-          >
-            {difficultyOptions.map((option) => (
-              <option key={option.value} value={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </select>
+            options={difficultyOptions}
+          />
         </Field>
         <Field
           label="Ketinggian (mdpl)"

@@ -1,6 +1,7 @@
 import { ImagePlus, Trash2 } from "lucide-react";
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
+import { Select } from "~/components/ui/select";
 import type { DestinationForm } from "../../schema";
 import { difficultyLabels, statusLabels, statusOptions } from "../../schema";
 import { Field } from "../form-field";
@@ -97,20 +98,14 @@ export function MediaStep({
 
       <div className="grid gap-5 sm:grid-cols-2">
         <Field label="Status publikasi" error={errors.status}>
-          <select
-            aria-label="Status publikasi"
+          <Select
+            ariaLabel="Status publikasi"
             value={values.status}
-            onChange={(event) =>
-              set("status", event.target.value as DestinationForm["status"])
+            onChange={(value) =>
+              set("status", value as DestinationForm["status"])
             }
-            className="h-12 w-full rounded-lg border border-hairline bg-canvas-subtle px-3 text-sm text-ink"
-          >
-            {statusOptions.map((option) => (
-              <option key={option.value} value={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </select>
+            options={statusOptions}
+          />
         </Field>
         <div className="rounded-lg bg-canvas-subtle p-3 text-xs text-body">
           <p className="font-semibold text-ink">Ringkasan</p>
