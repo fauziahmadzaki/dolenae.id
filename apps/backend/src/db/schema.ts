@@ -212,3 +212,180 @@ export type NewDestinationRow = typeof destinations.$inferInsert;
 export type CategoryType = typeof categories.$inferSelect.type;
 export type Difficulty = typeof destinations.$inferSelect.difficulty;
 export type DestinationStatus = typeof destinations.$inferSelect.status;
+
+// ---------------------------------------------------------------------------
+// Route builder (Modul 5 — jalur & elevasi)
+// ---------------------------------------------------------------------------
+
+export const trackNodeTypeEnum = pgEnum("track_node_type", [
+  "basecamp",
+  "gerbang",
+  "parkir",
+  "pos",
+  "sumber-air",
+  "viewpoint",
+  "puncak",
+  "persimpangan",
+  "area-camp",
+]);
+
+export const routeSurfaceEnum = pgEnum("route_surface", [
+  "setapak",
+  "aspal",
+  "tanah",
+  "batu",
+  "pasir",
+]);
+
+export const routeGradeEnum = pgEnum("route_grade", [
+  "datar",
+  "landai",
+  "sedang",
+  "terjal",
+  "sangat-terjal",
+]);
+
+export const routeStatusEnum = pgEnum("route_status", [
+  "draft",
+  "diterbitkan",
+  "terverifikasi",
+]);
+
+export const trackNodes = pgTable(
+  "track_nodes",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    destinationId: uuid("destination_id")
+      .notNull()
+      .references(() => destinations.id, { onDelete: "cascade" }),
+    name: varchar("name", { length: 120 }).notNull(),
+    type: trackNodeTypeEnum("type").notNull().default("pos"),
+    latitude: numeric("latitude", { precision: 10, scale: 7 }).notNull(),
+    longitude: numeric("longitude", { precision: 10, scale: 7 }).notNull(),
+    elevationMeters: integer("elevation_meters").notNull(),
+    notes: text("notes"),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => ({
+    destinationIdx: index("track_nodes_destination_idx").on(
+      table.destinationId,
+    ),
+  }),
+);
+
+export const routeSegments = pgTable(
+  "route_segments",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    destinationId: uuid("destination_id")
+      .notNull()
+      .references(() => destinations.id, { onDelete: "cascade" }),
+    fromNodeId: uuid("from_node_id")
+      .notNull()
+      .references(() => trackNodes.id, { onDelete: "cascade" }),
+    toNodeId: uuid("to_node_id")
+      .notNull()
+      .references(() => trackNodes.id, { onDelete: "cascade" }),
+    surface: routeSurfaceEnum("surface").notNull().default("setapak"),
+    grade: routeGradeEnum("grade").notNull().default("sedang"),
+    traversableBy: text("traversable_by").array().notNull().default([]),
+    bidirectional: boolean("bidirectional").notNull().default(true),
+    distanceKm: numeric("distance_km", { precision: 8, scale: 2 }),
+    estimatedDurationMinutes: integer("estimated_duration_minutes"),
+    seasonal: boolean("seasonal").notNull().default(false),
+    notes: text("notes"),
+    status: routeStatusEnum("status").notNull().default("draft"),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => ({
+    destinationIdx: index("route_segments_destination_idx").on(
+      table.destinationId,
+    ),
+  }),
+);
+
+export const trailRoutes = pgTable(
+  "trail_routes",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    destinationId: uuid("destination_id")
+      .notNull()
+      .references(() => destinations.id, { onDelete: "cascade" }),
+    name: varchar("name", { length: 120 }).notNull(),
+    description: text("description"),
+    basecampNodeId: uuid("basecamp_node_id").references(() => trackNodes.id, {
+      onDelete: "set null",
+    }),
+    // "campuran" for mixed surfaces; otherwise a routeSurfaceEnum value.
+    surface: varchar("surface", { length: 20 }).notNull().default("campuran"),
+    grade: routeGradeEnum("grade").notNull().default("sedang"),
+    traversableBy: text("traversable_by").array().notNull().default([]),
+    difficulty: difficultyEnum("difficulty").notNull().default("menengah"),
+    recommended: boolean("recommended").notNull().default(false),
+    status: routeStatusEnum("status").notNull().default("draft"),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => ({
+    destinationIdx: index("trail_routes_destination_idx").on(
+      table.destinationId,
+    ),
+  }),
+);
+
+export const trailRouteNodes = pgTable(
+  "trail_route_nodes",
+  {
+    routeId: uuid("route_id")
+      .notNull()
+      .references(() => trailRoutes.id, { onDelete: "cascade" }),
+    nodeId: uuid("node_id")
+      .notNull()
+      .references(() => trackNodes.id, { onDelete: "cascade" }),
+    position: integer("position").notNull(),
+  },
+  (table) => ({
+    pk: primaryKey({ columns: [table.routeId, table.position] }),
+  }),
+);
+
+export const trailRouteSegments = pgTable(
+  "trail_route_segments",
+  {
+    routeId: uuid("route_id")
+      .notNull()
+      .references(() => trailRoutes.id, { onDelete: "cascade" }),
+    segmentId: uuid("segment_id")
+      .notNull()
+      .references(() => routeSegments.id, { onDelete: "cascade" }),
+    position: integer("position").notNull(),
+  },
+  (table) => ({
+    pk: primaryKey({ columns: [table.routeId, table.position] }),
+  }),
+);
+
+export type TrackNodeRow = typeof trackNodes.$inferSelect;
+export type NewTrackNodeRow = typeof trackNodes.$inferInsert;
+export type RouteSegmentRow = typeof routeSegments.$inferSelect;
+export type NewRouteSegmentRow = typeof routeSegments.$inferInsert;
+export type TrailRouteRow = typeof trailRoutes.$inferSelect;
+export type NewTrailRouteRow = typeof trailRoutes.$inferInsert;
+export type TrackNodeType = typeof trackNodes.$inferSelect.type;
+export type RouteSurface = typeof routeSegments.$inferSelect.surface;
+export type RouteGrade = typeof routeSegments.$inferSelect.grade;
+export type RouteStatus = typeof routeSegments.$inferSelect.status;

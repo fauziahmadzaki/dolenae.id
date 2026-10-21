@@ -15,6 +15,7 @@ export const openApiDocument = {
     { name: "Categories", description: "Destination categories (terrain/activity)" },
     { name: "Destinations", description: "Nature destinations catalog & admin CRUD" },
     { name: "Regions", description: "Indonesian province/regency/district data & reverse geocoding" },
+    { name: "Routes", description: "Route builder: track nodes, segments, trails and elevation profiles" },
   ],
   components: {
     securitySchemes: {
@@ -698,6 +699,167 @@ export const openApiDocument = {
           "200": { description: "Province, regency, district and distance in km" },
           "422": { description: "Validation error" },
         },
+      },
+    },
+    "/api/destinations/{destinationId}/route-graph": {
+      get: {
+        tags: ["Routes"],
+        summary: "Track nodes, segments and routes of a destination (admin)",
+        security: [{ bearerAuth: [] }],
+        parameters: [
+          { name: "destinationId", in: "path", required: true, schema: { type: "string", format: "uuid" } },
+        ],
+        responses: {
+          "200": { description: "Route graph" },
+          "404": { description: "Destination not found" },
+        },
+      },
+    },
+    "/api/destinations/{destinationId}/track-nodes": {
+      get: {
+        tags: ["Routes"],
+        summary: "List track nodes (admin)",
+        security: [{ bearerAuth: [] }],
+        parameters: [
+          { name: "destinationId", in: "path", required: true, schema: { type: "string", format: "uuid" } },
+        ],
+        responses: { "200": { description: "Track nodes" } },
+      },
+      post: {
+        tags: ["Routes"],
+        summary: "Create a track node (admin)",
+        security: [{ bearerAuth: [] }],
+        parameters: [
+          { name: "destinationId", in: "path", required: true, schema: { type: "string", format: "uuid" } },
+        ],
+        requestBody: {
+          required: true,
+          content: {
+            "application/json": {
+              schema: {
+                type: "object",
+                required: ["name", "type", "latitude", "longitude", "elevationMeters"],
+                properties: {
+                  name: { type: "string" },
+                  type: { type: "string", enum: ["basecamp", "gerbang", "parkir", "pos", "sumber-air", "viewpoint", "puncak", "persimpangan", "area-camp"] },
+                  latitude: { type: "number" },
+                  longitude: { type: "number" },
+                  elevationMeters: { type: "integer" },
+                  notes: { type: ["string", "null"] },
+                },
+              },
+            },
+          },
+        },
+        responses: { "201": { description: "Node created" }, "422": { description: "Validation error" } },
+      },
+    },
+    "/api/track-nodes/{id}": {
+      parameters: [
+        { name: "id", in: "path", required: true, schema: { type: "string", format: "uuid" } },
+      ],
+      patch: {
+        tags: ["Routes"],
+        summary: "Update a track node (admin)",
+        security: [{ bearerAuth: [] }],
+        responses: { "200": { description: "Node updated" }, "404": { description: "Not found" } },
+      },
+      delete: {
+        tags: ["Routes"],
+        summary: "Delete a track node (admin); 409 when still used",
+        security: [{ bearerAuth: [] }],
+        responses: { "200": { description: "Deleted" }, "409": { description: "Still used by segments or routes" } },
+      },
+    },
+    "/api/destinations/{destinationId}/segments": {
+      get: {
+        tags: ["Routes"],
+        summary: "List segments (admin)",
+        security: [{ bearerAuth: [] }],
+        parameters: [
+          { name: "destinationId", in: "path", required: true, schema: { type: "string", format: "uuid" } },
+        ],
+        responses: { "200": { description: "Segments" } },
+      },
+      post: {
+        tags: ["Routes"],
+        summary: "Create a segment between two nodes (admin)",
+        security: [{ bearerAuth: [] }],
+        parameters: [
+          { name: "destinationId", in: "path", required: true, schema: { type: "string", format: "uuid" } },
+        ],
+        responses: { "201": { description: "Segment created" }, "409": { description: "Duplicate pair" } },
+      },
+    },
+    "/api/segments/{id}": {
+      parameters: [
+        { name: "id", in: "path", required: true, schema: { type: "string", format: "uuid" } },
+      ],
+      patch: {
+        tags: ["Routes"],
+        summary: "Update a segment (admin)",
+        security: [{ bearerAuth: [] }],
+        responses: { "200": { description: "Segment updated" } },
+      },
+      delete: {
+        tags: ["Routes"],
+        summary: "Delete a segment (admin); 409 when used by a route",
+        security: [{ bearerAuth: [] }],
+        responses: { "200": { description: "Deleted" }, "409": { description: "Still used by routes" } },
+      },
+    },
+    "/api/destinations/{destinationId}/routes": {
+      get: {
+        tags: ["Routes"],
+        summary: "List trails (admin)",
+        security: [{ bearerAuth: [] }],
+        parameters: [
+          { name: "destinationId", in: "path", required: true, schema: { type: "string", format: "uuid" } },
+        ],
+        responses: { "200": { description: "Trails" } },
+      },
+      post: {
+        tags: ["Routes"],
+        summary: "Create a trail; missing segments are created automatically (admin)",
+        security: [{ bearerAuth: [] }],
+        parameters: [
+          { name: "destinationId", in: "path", required: true, schema: { type: "string", format: "uuid" } },
+        ],
+        responses: { "201": { description: "Trail created" } },
+      },
+    },
+    "/api/routes/{id}": {
+      parameters: [
+        { name: "id", in: "path", required: true, schema: { type: "string", format: "uuid" } },
+      ],
+      get: {
+        tags: ["Routes"],
+        summary: "Get a trail (admin)",
+        security: [{ bearerAuth: [] }],
+        responses: { "200": { description: "Trail" }, "404": { description: "Not found" } },
+      },
+      patch: {
+        tags: ["Routes"],
+        summary: "Update a trail (admin)",
+        security: [{ bearerAuth: [] }],
+        responses: { "200": { description: "Trail updated" } },
+      },
+      delete: {
+        tags: ["Routes"],
+        summary: "Delete a trail (admin)",
+        security: [{ bearerAuth: [] }],
+        responses: { "200": { description: "Deleted" } },
+      },
+    },
+    "/api/routes/{id}/profile": {
+      get: {
+        tags: ["Routes"],
+        summary: "Elevation profile and statistics of a trail (admin)",
+        security: [{ bearerAuth: [] }],
+        parameters: [
+          { name: "id", in: "path", required: true, schema: { type: "string", format: "uuid" } },
+        ],
+        responses: { "200": { description: "Route profile" }, "404": { description: "Not found" } },
       },
     },
   },

@@ -8,6 +8,11 @@ import { closeDatabase, getDb } from "./client";
 import {
   categories,
   destinations,
+  routeSegments,
+  trackNodes,
+  trailRouteNodes,
+  trailRouteSegments,
+  trailRoutes,
   users,
   type CategoryType,
   type DestinationStatus,
@@ -336,7 +341,254 @@ async function seed(): Promise<void> {
     console.log(`Destinasi siap: ${row.slug} (${linkedIds.length} kategori)`);
   }
 
+  await seedBromoRoutes(db);
+
   console.log("Seed selesai.");
+}
+
+type SeedDb = ReturnType<typeof getDb>;
+
+/** Demo route network for the route builder (idempotent by destination). */
+async function seedBromoRoutes(db: SeedDb) {
+  const [bromo] = await db
+    .select({ id: destinations.id })
+    .from(destinations)
+    .where(eq(destinations.slug, "gunung-bromo"))
+    .limit(1);
+  if (!bromo) return;
+
+  const [existing] = await db
+    .select({ id: trackNodes.id })
+    .from(trackNodes)
+    .where(eq(trackNodes.destinationId, bromo.id))
+    .limit(1);
+  if (existing) {
+    console.log("Jaringan rute Bromo sudah ada.");
+    return;
+  }
+
+  const nodeRows = await db
+    .insert(trackNodes)
+    .values([
+      {
+        destinationId: bromo.id,
+        name: "Cemoro Lawang",
+        type: "basecamp",
+        latitude: "-7.9227000",
+        longitude: "112.9531000",
+        elevationMeters: 2200,
+        notes: "Basecamp utama, banyak homestay dan jeep.",
+      },
+      {
+        destinationId: bromo.id,
+        name: "Gerbang Penanjakan",
+        type: "gerbang",
+        latitude: "-7.9310000",
+        longitude: "112.9580000",
+        elevationMeters: 2450,
+      },
+      {
+        destinationId: bromo.id,
+        name: "Penanjakan 1",
+        type: "viewpoint",
+        latitude: "-7.9400000",
+        longitude: "112.9650000",
+        elevationMeters: 2770,
+        notes: "Spot sunrise utama.",
+      },
+      {
+        destinationId: bromo.id,
+        name: "Pasir Berbisik",
+        type: "pos",
+        latitude: "-7.9450000",
+        longitude: "112.9500000",
+        elevationMeters: 2150,
+      },
+      {
+        destinationId: bromo.id,
+        name: "Savana Teletubbies",
+        type: "viewpoint",
+        latitude: "-7.9480000",
+        longitude: "112.9430000",
+        elevationMeters: 2180,
+      },
+      {
+        destinationId: bromo.id,
+        name: "Kawah Bromo",
+        type: "puncak",
+        latitude: "-7.9420000",
+        longitude: "112.9530000",
+        elevationMeters: 2329,
+      },
+      {
+        destinationId: bromo.id,
+        name: "Pura Luhur Poten",
+        type: "pos",
+        latitude: "-7.9330000",
+        longitude: "112.9510000",
+        elevationMeters: 2200,
+      },
+    ])
+    .returning({ id: trackNodes.id, name: trackNodes.name });
+
+  const idOf = (name: string) =>
+    nodeRows.find((row) => row.name === name)?.id ?? "";
+
+  const segmentRows = await db
+    .insert(routeSegments)
+    .values([
+      {
+        destinationId: bromo.id,
+        fromNodeId: idOf("Cemoro Lawang"),
+        toNodeId: idOf("Gerbang Penanjakan"),
+        surface: "aspal",
+        grade: "sedang",
+        traversableBy: ["mobil", "jeep", "motor", "pejalan-kaki"],
+        estimatedDurationMinutes: 25,
+      },
+      {
+        destinationId: bromo.id,
+        fromNodeId: idOf("Gerbang Penanjakan"),
+        toNodeId: idOf("Penanjakan 1"),
+        surface: "aspal",
+        grade: "terjal",
+        traversableBy: ["jeep", "motor"],
+        estimatedDurationMinutes: 20,
+      },
+      {
+        destinationId: bromo.id,
+        fromNodeId: idOf("Cemoro Lawang"),
+        toNodeId: idOf("Pasir Berbisik"),
+        surface: "setapak",
+        grade: "landai",
+        traversableBy: ["jeep", "sepeda", "pejalan-kaki"],
+        estimatedDurationMinutes: 45,
+      },
+      {
+        destinationId: bromo.id,
+        fromNodeId: idOf("Pasir Berbisik"),
+        toNodeId: idOf("Kawah Bromo"),
+        surface: "setapak",
+        grade: "sedang",
+        traversableBy: ["pejalan-kaki"],
+        estimatedDurationMinutes: 60,
+      },
+      {
+        destinationId: bromo.id,
+        fromNodeId: idOf("Pasir Berbisik"),
+        toNodeId: idOf("Savana Teletubbies"),
+        surface: "setapak",
+        grade: "datar",
+        traversableBy: ["pejalan-kaki"],
+        estimatedDurationMinutes: 30,
+      },
+      {
+        destinationId: bromo.id,
+        fromNodeId: idOf("Cemoro Lawang"),
+        toNodeId: idOf("Pura Luhur Poten"),
+        surface: "aspal",
+        grade: "datar",
+        traversableBy: ["mobil", "motor", "pejalan-kaki"],
+        estimatedDurationMinutes: 15,
+      },
+    ])
+    .returning({ id: routeSegments.id, fromNodeId: routeSegments.fromNodeId, toNodeId: routeSegments.toNodeId });
+
+  const segmentIdOf = (from: string, to: string) =>
+    segmentRows.find(
+      (row) => row.fromNodeId === idOf(from) && row.toNodeId === idOf(to),
+    )?.id ?? "";
+
+  const routes = [
+    {
+      name: "Jeep Sunrise",
+      description: "Jalur jeep menuju spot sunrise Penanjakan 1.",
+      nodes: ["Cemoro Lawang", "Gerbang Penanjakan", "Penanjakan 1"],
+      segments: [
+        segmentIdOf("Cemoro Lawang", "Gerbang Penanjakan"),
+        segmentIdOf("Gerbang Penanjakan", "Penanjakan 1"),
+      ],
+      recommended: true,
+      surface: "aspal",
+      grade: "terjal" as const,
+      traversableBy: ["jeep"],
+      status: "diterbitkan" as const,
+    },
+    {
+      name: "Trek Kawah",
+      description: "Pendakian kaki dari Pasir Berbisik ke kawah.",
+      nodes: ["Cemoro Lawang", "Pasir Berbisik", "Kawah Bromo"],
+      segments: [
+        segmentIdOf("Cemoro Lawang", "Pasir Berbisik"),
+        segmentIdOf("Pasir Berbisik", "Kawah Bromo"),
+      ],
+      recommended: false,
+      surface: "setapak",
+      grade: "sedang" as const,
+      traversableBy: ["pejalan-kaki"],
+      status: "diterbitkan" as const,
+    },
+    {
+      name: "Savana + Kawah",
+      description: "Savana Teletubbies lalu kembali ke kawah.",
+      nodes: [
+        "Cemoro Lawang",
+        "Pasir Berbisik",
+        "Savana Teletubbies",
+        "Pasir Berbisik",
+        "Kawah Bromo",
+      ],
+      segments: [
+        segmentIdOf("Cemoro Lawang", "Pasir Berbisik"),
+        segmentIdOf("Pasir Berbisik", "Savana Teletubbies"),
+        segmentIdOf("Pasir Berbisik", "Savana Teletubbies"),
+        segmentIdOf("Pasir Berbisik", "Kawah Bromo"),
+      ],
+      recommended: false,
+      surface: "setapak",
+      grade: "sedang" as const,
+      traversableBy: ["pejalan-kaki"],
+      status: "draft" as const,
+    },
+  ];
+
+  for (const route of routes) {
+    const [row] = await db
+      .insert(trailRoutes)
+      .values({
+        destinationId: bromo.id,
+        name: route.name,
+        description: route.description,
+        basecampNodeId: idOf("Cemoro Lawang"),
+        surface: route.surface,
+        grade: route.grade,
+        traversableBy: route.traversableBy,
+        recommended: route.recommended,
+        status: route.status,
+      })
+      .returning({ id: trailRoutes.id });
+    if (!row) continue;
+
+    await db.insert(trailRouteNodes).values(
+      route.nodes.map((name, position) => ({
+        routeId: row.id,
+        nodeId: idOf(name),
+        position,
+      })),
+    );
+    await db.insert(trailRouteSegments).values(
+      route.segments.map((segmentId, position) => ({
+        routeId: row.id,
+        segmentId,
+        position,
+      })),
+    );
+    console.log(`Jalur siap: ${route.name}`);
+  }
+
+  console.log(
+    `Jaringan rute Bromo siap: ${nodeRows.length} titik, ${segmentRows.length} ruas.`,
+  );
 }
 
 seed()
