@@ -13,13 +13,20 @@ Kemampuan peta & data wilayah yang dipakai katalog publik dan form destinasi.
 
 ## Backend
 
-- [ ] `GET /api/regions/provinces`.
-- [ ] `GET /api/regions/reverse?lat=&lng=` — balas wilayah dari koordinat.
+- [x] `GET /api/regions/provinces`.
+- [x] `GET /api/regions/regencies?province=`.
+- [x] `GET /api/regions/districts?regency=`.
+- [x] `GET /api/regions/reverse?lat=&lng=` — balas wilayah dari koordinat.
+
+> Dataset wilayah (34 provinsi, 514 kabupaten/kota, 7.230 kecamatan) di-generate
+> dari `geografis` oleh `apps/backend/scripts/build-regions.mjs` dan disimpan di
+> `apps/backend/src/data/regions/`. Reverse geocode memakai centroid kecamatan
+> terdekat, jadi hasilnya **perkiraan**.
 
 ## Frontend
 
 - [ ] `map-view` (publik) — Leaflet, menampilkan titik destinasi.
-- [ ] `map-picker` (form destinasi) — pilih titik + tampilkan koordinat/wilayah.
+- [x] `map-picker` (form destinasi) — pilih titik + tampilkan koordinat/wilayah.
 
 ## Rencana Commit
 
@@ -34,10 +41,10 @@ Kemampuan peta & data wilayah yang dipakai katalog publik dan form destinasi.
 
 ## Kriteria Selesai (DoD)
 
-- [ ] `pnpm typecheck` & `pnpm build` hijau.
-- [ ] Pilih titik di peta → koordinat tersimpan.
-- [ ] Reverse geocode membalas wilayah.
-- [ ] Dokumentasi modul diperbarui.
+- [x] `pnpm typecheck` & `pnpm build` hijau.
+- [x] Pilih titik di peta → koordinat tersimpan.
+- [x] Reverse geocode membalas wilayah.
+- [x] Dokumentasi modul diperbarui.
 
 ## Catatan Integrasi
 
