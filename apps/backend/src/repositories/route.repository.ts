@@ -120,6 +120,19 @@ export const routeRepository = {
     return Number(row?.value ?? 0);
   },
 
+  /** Segments touching a node (used to clean up when a node is deleted). */
+  async findSegmentsForNode(nodeId: string): Promise<RouteSegmentRow[]> {
+    return getDb()
+      .select()
+      .from(routeSegments)
+      .where(
+        or(
+          eq(routeSegments.fromNodeId, nodeId),
+          eq(routeSegments.toNodeId, nodeId),
+        ),
+      );
+  },
+
   async countNodeRoutes(nodeId: string): Promise<number> {
     const [row] = await getDb()
       .select({ value: count() })

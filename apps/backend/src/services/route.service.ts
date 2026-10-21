@@ -675,18 +675,24 @@ export const routeService = {
     const node = await routeRepository.findNodeById(id);
     if (!node) throw new NotFoundError("Titik tidak ditemukan");
 
-    const [segments, routes] = await Promise.all([
-      routeRepository.countNodeSegments(id),
-      routeRepository.countNodeRoutes(id),
-    ]);
-    if (segments > 0) {
-      throw new ConflictError(
-        `Titik masih dipakai oleh ${segments} ruas. Hapus ruasnya dulu.`,
-      );
-    }
+    const routes = await routeRepository.countNodeRoutes(id);
     if (routes > 0) {
       throw new ConflictError(
         `Titik masih dipakai oleh ${routes} jalur. Hapus jalurnya dulu.`,
+      );
+    }
+
+    // Segments are metadata between anchors. Deleting the node cascades to
+    // them, but only when no other trail still depends on those segments.
+    const segments = await routeRepository.findSegmentsForNode(id);
+    let usedSegments = 0;
+    for (const segment of segments) {
+      const used = await routeRepository.countSegmentRoutes(segment.id);
+      if (used > 0) usedSegments += 1;
+    }
+    if (usedSegments > 0) {
+      throw new ConflictError(
+        `Titik masih terhubung ke ${usedSegments} ruas yang dipakai jalur lain. Hapus ruasnya dulu.`,
       );
     }
 
@@ -906,7 +912,16 @@ export const routeService = {
     const route = await routeRepository.findRouteById(id);
     if (!route) throw new NotFoundError("Jalur tidak ditemukan");
 
+    const segmentIds = await routeRepository.findRouteSegmentIds(id);
     await routeRepository.deleteRoute(id);
+
+    // Drop segments that were only used by this trail so the map stays clean
+    // and their nodes become deletable again.
+    for (const segmentId of segmentIds) {
+      const used = await routeRepository.countSegmentRoutes(segmentId);
+      if (used === 0) await routeRepository.deleteSegment(segmentId);
+    }
+
     return { id, deleted: true };
   },
 

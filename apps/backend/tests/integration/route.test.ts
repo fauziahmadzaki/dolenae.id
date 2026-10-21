@@ -21,6 +21,7 @@ vi.mock("../../src/repositories/route.repository", () => ({
     updateNode: vi.fn(),
     deleteNode: vi.fn(),
     countNodeSegments: vi.fn(),
+    findSegmentsForNode: vi.fn(),
     countNodeRoutes: vi.fn(),
     listSegments: vi.fn(),
     findSegmentById: vi.fn(),
@@ -149,6 +150,9 @@ beforeEach(() => {
   vi.mocked(routeRepository.findRouteSegmentIds).mockResolvedValue([segmentId]);
   vi.mocked(routeRepository.findRoutePoints).mockResolvedValue([]);
   vi.mocked(routeRepository.replaceRoutePoints).mockResolvedValue(undefined);
+  vi.mocked(routeRepository.findSegmentsForNode).mockResolvedValue([segmentRow]);
+  vi.mocked(routeRepository.countSegmentRoutes).mockResolvedValue(0);
+  vi.mocked(routeRepository.countNodeRoutes).mockResolvedValue(0);
   vi.mocked(routeRepository.findSegmentById).mockResolvedValue(segmentRow);
   vi.mocked(routeRepository.createSegment).mockResolvedValue(segmentRow);
   vi.mocked(routeRepository.createRoute).mockResolvedValue(routeRow);
@@ -316,9 +320,9 @@ describe("Route builder API", () => {
     expect(res.body.data.totalGainMeters).toBe(570);
   });
 
-  it("blocks deleting a node that is still used by a segment", async () => {
-    vi.mocked(routeRepository.countNodeSegments).mockResolvedValue(1);
+  it("blocks deleting a node that is still used by a route segment", async () => {
     vi.mocked(routeRepository.countNodeRoutes).mockResolvedValue(0);
+    vi.mocked(routeRepository.countSegmentRoutes).mockResolvedValue(1);
 
     const res = await request(app)
       .delete(`/api/track-nodes/${nodeAId}`)
@@ -326,5 +330,33 @@ describe("Route builder API", () => {
 
     expect(res.status).toBe(409);
     expect(res.body.error.message).toContain("ruas");
+  });
+
+  it("deletes a node once its segments are no longer used", async () => {
+    vi.mocked(routeRepository.countNodeRoutes).mockResolvedValue(0);
+    vi.mocked(routeRepository.countSegmentRoutes).mockResolvedValue(0);
+    vi.mocked(routeRepository.deleteNode).mockResolvedValue(true);
+
+    const res = await request(app)
+      .delete(`/api/track-nodes/${nodeAId}`)
+      .auth(token, { type: "bearer" });
+
+    expect(res.status).toBe(200);
+    expect(routeRepository.deleteNode).toHaveBeenCalledWith(nodeAId);
+  });
+
+  it("removes orphan segments when a trail is deleted", async () => {
+    vi.mocked(routeRepository.findRouteById).mockResolvedValue(routeRow);
+    vi.mocked(routeRepository.findRouteSegmentIds).mockResolvedValue([segmentId]);
+    vi.mocked(routeRepository.countSegmentRoutes).mockResolvedValue(0);
+    vi.mocked(routeRepository.deleteRoute).mockResolvedValue(true);
+    vi.mocked(routeRepository.deleteSegment).mockResolvedValue(true);
+
+    const res = await request(app)
+      .delete(`/api/routes/${routeId}`)
+      .auth(token, { type: "bearer" });
+
+    expect(res.status).toBe(200);
+    expect(routeRepository.deleteSegment).toHaveBeenCalledWith(segmentId);
   });
 });
