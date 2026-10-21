@@ -84,20 +84,49 @@ export const updateRouteSegmentSchema = createRouteSegmentSchema
     "Setidaknya satu field harus diisi",
   );
 
-export const createTrailRouteSchema = z.object({
+const trailRouteFields = {
   name: z.string().trim().min(2, "Nama jalur minimal 2 karakter").max(120),
   description: notes,
   basecampNodeId: z.string().uuid().nullable().optional(),
-  nodeIds: z.array(z.string().uuid()).min(2, "Minimal dua titik").max(60),
+  /** Free geometry: named anchors and anonymous bend points. */
+  points: z
+    .array(
+      z.object({
+        latitude: z.number().min(-90).max(90),
+        longitude: z.number().min(-180).max(180),
+        elevationMeters: z
+          .number()
+          .int()
+          .min(-500)
+          .max(9000)
+          .nullable()
+          .optional(),
+        nodeId: z.string().uuid().nullable().optional(),
+      }),
+    )
+    .min(2, "Minimal dua titik")
+    .max(200)
+    .optional(),
+  /** Legacy input: anchors only, converted into points. */
+  nodeIds: z.array(z.string().uuid()).min(2, "Minimal dua titik").max(200).optional(),
   surface: z.union([routeSurface, z.literal("campuran")]).optional(),
   grade: routeGrade.optional(),
   traversableBy: traversalList,
   difficulty: z.enum(["ramah-pemula", "menengah", "sulit"]).optional(),
   recommended: z.boolean().optional(),
   status: routeStatus.optional(),
-});
+};
 
-export const updateTrailRouteSchema = createTrailRouteSchema
+export const createTrailRouteSchema = z
+  .object(trailRouteFields)
+  .refine(
+    (data) =>
+      (data.points?.length ?? 0) >= 2 || (data.nodeIds?.length ?? 0) >= 2,
+    "Jalur butuh minimal dua titik (points atau nodeIds)",
+  );
+
+export const updateTrailRouteSchema = z
+  .object(trailRouteFields)
   .partial()
   .refine(
     (data) => Object.keys(data).length > 0,

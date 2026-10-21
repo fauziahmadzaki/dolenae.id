@@ -11,6 +11,7 @@ import {
   routeSegments,
   trackNodes,
   trailRouteNodes,
+  trailRoutePoints,
   trailRouteSegments,
   trailRoutes,
   users,
@@ -429,7 +430,13 @@ async function seedBromoRoutes(db: SeedDb) {
         elevationMeters: 2200,
       },
     ])
-    .returning({ id: trackNodes.id, name: trackNodes.name });
+    .returning({
+      id: trackNodes.id,
+      name: trackNodes.name,
+      latitude: trackNodes.latitude,
+      longitude: trackNodes.longitude,
+      elevationMeters: trackNodes.elevationMeters,
+    });
 
   const idOf = (name: string) =>
     nodeRows.find((row) => row.name === name)?.id ?? "";
@@ -582,6 +589,19 @@ async function seedBromoRoutes(db: SeedDb) {
         segmentId,
         position,
       })),
+    );
+    await db.insert(trailRoutePoints).values(
+      route.nodes.map((name, position) => {
+        const node = nodeRows.find((item) => item.name === name)!;
+        return {
+          routeId: row.id,
+          position,
+          latitude: node.latitude,
+          longitude: node.longitude,
+          elevationMeters: node.elevationMeters,
+          nodeId: node.id,
+        };
+      }),
     );
     console.log(`Jalur siap: ${route.name}`);
   }

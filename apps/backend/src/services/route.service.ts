@@ -6,6 +6,7 @@ import type {
   RouteSurface,
   TrackNodeRow,
   TrackNodeType,
+  TrailRoutePointRow,
   TrailRouteRow,
 } from "../db/schema";
 import { destinationRepository } from "../repositories/destination.repository";
@@ -57,6 +58,14 @@ export interface RouteSegmentDto {
   updatedAt: string;
 }
 
+/** One point of the trail geometry; `nodeId` is set for named anchors. */
+export interface RoutePointDto {
+  latitude: number;
+  longitude: number;
+  elevationMeters: number | null;
+  nodeId: string | null;
+}
+
 export interface TrailRouteDto {
   id: string;
   destinationId: string;
@@ -65,6 +74,7 @@ export interface TrailRouteDto {
   basecampNodeId: string | null;
   nodeIds: string[];
   segmentIds: string[];
+  points: RoutePointDto[];
   surface: string;
   grade: RouteGrade;
   traversableBy: string[];
@@ -80,7 +90,7 @@ export interface ElevationPoint {
   elevationMeters: number;
   nodeId: string;
   name: string;
-  type: TrackNodeType;
+  type: TrackNodeType | "belokan";
 }
 
 export interface RouteProfileDto {
@@ -133,11 +143,21 @@ export type UpdateRouteSegmentDto = Omit<
   "fromNodeId" | "toNodeId"
 >;
 
+export interface RoutePointInput {
+  latitude: number;
+  longitude: number;
+  elevationMeters?: number | null;
+  nodeId?: string | null;
+}
+
 export interface CreateTrailRouteDto {
   name: string;
   description?: string | null;
   basecampNodeId?: string | null;
-  nodeIds: string[];
+  /** Explicit geometry; takes precedence over `nodeIds`. */
+  points?: RoutePointInput[];
+  /** Legacy input: anchors only, converted into points. */
+  nodeIds?: string[];
   surface?: string;
   grade?: RouteGrade;
   traversableBy?: string[];
@@ -195,10 +215,23 @@ function toSegmentDto(row: RouteSegmentRow): RouteSegmentDto {
   };
 }
 
+const toPointDto = (row: {
+  latitude: string | number;
+  longitude: string | number;
+  elevationMeters: number | null;
+  nodeId: string | null;
+}): RoutePointDto => ({
+  latitude: Number(row.latitude),
+  longitude: Number(row.longitude),
+  elevationMeters: row.elevationMeters,
+  nodeId: row.nodeId,
+});
+
 function toRouteDto(
   row: TrailRouteRow,
   nodeIds: string[],
   segmentIds: string[],
+  points: RoutePointDto[],
 ): TrailRouteDto {
   return {
     id: row.id,
@@ -208,6 +241,7 @@ function toRouteDto(
     basecampNodeId: row.basecampNodeId,
     nodeIds,
     segmentIds,
+    points,
     surface: row.surface,
     grade: row.grade,
     traversableBy: row.traversableBy,
@@ -284,8 +318,7 @@ function buildProfile(
   const estimatedDurationMinutes =
     segments.length > 0 && allDurations
       ? segments.reduce(
-          (total, segment) =>
-            total + (segment.estimatedDurationMinutes ?? 0),
+          (total, segment) => total + (segment.estimatedDurationMinutes ?? 0),
           0,
         )
       : naismithMinutes(totalDistanceKm, gain);
@@ -303,6 +336,107 @@ function buildProfile(
   };
 }
 
+/**
+ * Build the profile from free geometry points. Elevations missing on bends are
+ * interpolated between the nearest known elevations so the chart stays smooth.
+ */
+function buildPointProfile(
+  routeId: string,
+  rows: TrailRoutePointRow[],
+  nodes: Map<string, TrackNodeRow>,
+): RouteProfileDto {
+  const resolved = rows.map((row) => {
+    const node = row.nodeId ? nodes.get(row.nodeId) : undefined;
+    return {
+      latitude: Number(row.latitude),
+      longitude: Number(row.longitude),
+      elevation: row.elevationMeters ?? node?.elevationMeters ?? null,
+      nodeId: row.nodeId ?? "",
+      name: node?.name ?? "",
+      type: (node?.type ?? "belokan") as TrackNodeType | "belokan",
+    };
+  });
+
+  const distances: number[] = [];
+  let cumulative = 0;
+  resolved.forEach((point, index) => {
+    if (index > 0) {
+      const previous = resolved[index - 1]!;
+      cumulative += haversineKm(
+        { latitude: previous.latitude, longitude: previous.longitude },
+        { latitude: point.latitude, longitude: point.longitude },
+      );
+    }
+    distances.push(Number(cumulative.toFixed(2)));
+  });
+
+  const known = resolved
+    .map((point, index) => (point.elevation !== null ? index : -1))
+    .filter((index) => index >= 0);
+
+  resolved.forEach((point, index) => {
+    if (point.elevation !== null) return;
+
+    if (known.length === 0) {
+      point.elevation = 0;
+      return;
+    }
+
+    const previousKnown = [...known].reverse().find((value) => value < index);
+    const nextKnown = known.find((value) => value > index);
+
+    if (previousKnown !== undefined && nextKnown !== undefined) {
+      const start = resolved[previousKnown]!;
+      const end = resolved[nextKnown]!;
+      const startDistance = distances[previousKnown]!;
+      const endDistance = distances[nextKnown]!;
+      const ratio =
+        endDistance === startDistance
+          ? 0
+          : (distances[index]! - startDistance) / (endDistance - startDistance);
+      point.elevation = Math.round(
+        start.elevation! + (end.elevation! - start.elevation!) * ratio,
+      );
+      return;
+    }
+
+    const nearest = previousKnown ?? nextKnown!;
+    point.elevation = resolved[nearest]!.elevation!;
+  });
+
+  const elevations = resolved.map((point) => point.elevation ?? 0);
+  const { gain, loss } = elevationGainLoss(elevations);
+
+  let steepestGrade = 0;
+  for (let index = 1; index < resolved.length; index += 1) {
+    const delta = elevations[index]! - elevations[index - 1]!;
+    const distance = distances[index]! - distances[index - 1]!;
+    steepestGrade = Math.max(steepestGrade, gradePercent(delta, distance));
+  }
+
+  const points: ElevationPoint[] = resolved.map((point, index) => ({
+    distanceKm: distances[index]!,
+    elevationMeters: point.elevation ?? 0,
+    nodeId: point.nodeId,
+    name: point.name || `Belokan ${index + 1}`,
+    type: point.type,
+  }));
+
+  const totalDistanceKm = Number((distances.at(-1) ?? 0).toFixed(2));
+
+  return {
+    routeId,
+    points,
+    totalDistanceKm,
+    totalGainMeters: gain,
+    totalLossMeters: loss,
+    maxElevationMeters: elevations.length ? Math.max(...elevations) : 0,
+    minElevationMeters: elevations.length ? Math.min(...elevations) : 0,
+    steepestGradePercent: steepestGrade,
+    estimatedDurationMinutes: naismithMinutes(totalDistanceKm, gain),
+  };
+}
+
 // --- Service ---------------------------------------------------------------
 
 async function ensureDestination(destinationId: string): Promise<void> {
@@ -310,59 +444,116 @@ async function ensureDestination(destinationId: string): Promise<void> {
   if (!destination) throw new NotFoundError("Destinasi tidak ditemukan");
 }
 
-async function loadNodesById(
-  ids: string[],
-): Promise<Map<string, TrackNodeRow>> {
+async function loadNodesById(ids: string[]): Promise<Map<string, TrackNodeRow>> {
   const rows = await routeRepository.findNodesByIds([...new Set(ids)]);
   return new Map(rows.map((row) => [row.id, row]));
 }
 
+function derivedPointsFromNodes(
+  nodeIds: string[],
+  nodes: Map<string, TrackNodeRow>,
+): RoutePointDto[] {
+  return nodeIds
+    .map((id) => nodes.get(id))
+    .filter((node): node is TrackNodeRow => Boolean(node))
+    .map((node) => ({
+      latitude: Number(node.latitude),
+      longitude: Number(node.longitude),
+      elevationMeters: node.elevationMeters,
+      nodeId: node.id,
+    }));
+}
+
 async function routeDto(row: TrailRouteRow): Promise<TrailRouteDto> {
-  const [nodeIds, segmentIds] = await Promise.all([
+  const [nodeIds, segmentIds, pointRows] = await Promise.all([
     routeRepository.findRouteNodeIds(row.id),
     routeRepository.findRouteSegmentIds(row.id),
+    routeRepository.findRoutePoints(row.id),
   ]);
-  return toRouteDto(row, nodeIds, segmentIds);
+
+  // Legacy routes created before free geometry: derive points from anchors.
+  if (pointRows.length < 2 && nodeIds.length >= 2) {
+    const nodes = await loadNodesById(nodeIds);
+    return toRouteDto(
+      row,
+      nodeIds,
+      segmentIds,
+      derivedPointsFromNodes(nodeIds, nodes),
+    );
+  }
+
+  return toRouteDto(row, nodeIds, segmentIds, pointRows.map(toPointDto));
+}
+
+interface ResolvedRoute {
+  points: RoutePointDto[];
+  nodeIds: string[];
+  segmentIds: string[];
 }
 
 /**
- * Validate the ordered route nodes and make sure every consecutive pair has a
- * segment. Missing segments are created with walking defaults.
+ * Validate geometry points, resolve node anchors and create the segment
+ * metadata between consecutive anchors (free bends have no segment).
  */
-async function syncRouteSegments(
+async function resolveRoutePoints(
   destinationId: string,
-  nodeIds: string[],
-): Promise<string[]> {
-  const nodes = await loadNodesById(nodeIds);
+  input: Pick<CreateTrailRouteDto, "points" | "nodeIds">,
+): Promise<ResolvedRoute> {
+  let points: RoutePointDto[] = [];
 
-  for (const nodeId of nodeIds) {
-    const node = nodes.get(nodeId);
-    if (!node) throw new BadRequestError("Titik jalur tidak ditemukan");
-    if (node.destinationId !== destinationId) {
-      throw new BadRequestError("Semua titik harus milik destinasi yang sama");
+  if (input.points && input.points.length > 0) {
+    points = input.points.map((point) => ({
+      latitude: point.latitude,
+      longitude: point.longitude,
+      elevationMeters: point.elevationMeters ?? null,
+      nodeId: point.nodeId ?? null,
+    }));
+  } else if (input.nodeIds && input.nodeIds.length > 0) {
+    const nodes = await loadNodesById(input.nodeIds);
+    points = derivedPointsFromNodes(input.nodeIds, nodes);
+  }
+
+  if (points.length < 2) {
+    throw new BadRequestError("Jalur minimal terdiri dari dua titik");
+  }
+  if (points.length > 200) {
+    throw new BadRequestError("Jalur maksimal terdiri dari 200 titik");
+  }
+
+  const anchoredIds = [
+    ...new Set(
+      points
+        .map((point) => point.nodeId)
+        .filter((id): id is string => Boolean(id)),
+    ),
+  ];
+
+  if (anchoredIds.length > 0) {
+    const nodes = await loadNodesById(anchoredIds);
+    for (const nodeId of anchoredIds) {
+      const node = nodes.get(nodeId);
+      if (!node) throw new BadRequestError("Titik jalur tidak ditemukan");
+      if (node.destinationId !== destinationId) {
+        throw new BadRequestError("Semua titik harus milik destinasi yang sama");
+      }
     }
   }
 
-  for (let index = 1; index < nodeIds.length; index += 1) {
-    if (nodeIds[index] === nodeIds[index - 1]) {
-      throw new BadRequestError(
-        "Titik berurutan tidak boleh sama; tambahkan titik lain di antaranya",
-      );
-    }
-  }
+  const nodeIds = points
+    .map((point) => point.nodeId)
+    .filter((id): id is string => Boolean(id));
 
   const segmentIds: string[] = [];
-
-  for (let index = 1; index < nodeIds.length; index += 1) {
-    const fromNodeId = nodeIds[index - 1]!;
-    const toNodeId = nodeIds[index]!;
+  for (let index = 1; index < points.length; index += 1) {
+    const fromNodeId = points[index - 1]!.nodeId;
+    const toNodeId = points[index]!.nodeId;
+    if (!fromNodeId || !toNodeId || fromNodeId === toNodeId) continue;
 
     let segment = await routeRepository.findSegmentBetween(
       destinationId,
       fromNodeId,
       toNodeId,
     );
-
     if (!segment) {
       segment = await routeRepository.createSegment({
         destinationId,
@@ -373,11 +564,43 @@ async function syncRouteSegments(
         bidirectional: true,
       });
     }
-
     segmentIds.push(segment.id);
   }
 
-  return segmentIds;
+  return { points, nodeIds, segmentIds };
+}
+
+function pointsToRows(
+  routeId: string,
+  points: RoutePointDto[],
+): TrailRoutePointRow[] {
+  return points.map((point, position) => ({
+    routeId,
+    position,
+    latitude: String(point.latitude),
+    longitude: String(point.longitude),
+    elevationMeters: point.elevationMeters,
+    nodeId: point.nodeId,
+  }));
+}
+
+async function persistGeometry(
+  routeId: string,
+  points: RoutePointDto[],
+  nodeIds: string[],
+  segmentIds: string[],
+): Promise<void> {
+  await routeRepository.replaceRouteNodes(routeId, nodeIds);
+  await routeRepository.replaceRouteSegments(routeId, segmentIds);
+  await routeRepository.replaceRoutePoints(
+    routeId,
+    points.map((point) => ({
+      latitude: String(point.latitude),
+      longitude: String(point.longitude),
+      elevationMeters: point.elevationMeters,
+      nodeId: point.nodeId,
+    })),
+  );
 }
 
 export const routeService = {
@@ -434,9 +657,7 @@ export const routeService = {
     const patch: Parameters<typeof routeRepository.updateNode>[1] = {};
     if (input.name !== undefined) patch.name = input.name;
     if (input.type !== undefined) patch.type = input.type;
-    if (input.latitude !== undefined) {
-      patch.latitude = toNumeric(input.latitude)!;
-    }
+    if (input.latitude !== undefined) patch.latitude = toNumeric(input.latitude)!;
     if (input.longitude !== undefined) {
       patch.longitude = toNumeric(input.longitude)!;
     }
@@ -595,31 +816,17 @@ export const routeService = {
   ): Promise<TrailRouteDto> {
     await ensureDestination(destinationId);
 
-    const nodeIds = [...input.nodeIds];
-    if (nodeIds.length < 2) {
-      throw new BadRequestError("Jalur minimal terdiri dari dua titik");
-    }
-
     if (input.basecampNodeId) {
-      const basecamp = await routeRepository.findNodeById(
-        input.basecampNodeId,
-      );
+      const basecamp = await routeRepository.findNodeById(input.basecampNodeId);
       if (!basecamp || basecamp.destinationId !== destinationId) {
         throw new BadRequestError("Basecamp harus titik di destinasi ini");
       }
     }
 
-    const segmentIds = await syncRouteSegments(destinationId, nodeIds);
-    const nodes = await loadNodesById(nodeIds);
-    const segments = await Promise.all(
-      segmentIds.map((segmentId) => routeRepository.findSegmentById(segmentId)),
-    );
-    const profile = buildProfile(
-      "preview",
-      nodeIds,
-      segments.filter((row): row is RouteSegmentRow => Boolean(row)),
-      nodes,
-    );
+    const resolved = await resolveRoutePoints(destinationId, input);
+    const nodes = await loadNodesById(resolved.nodeIds);
+    const previewRows = pointsToRows("preview", resolved.points);
+    const profile = buildPointProfile("preview", previewRows, nodes);
 
     const row = await routeRepository.createRoute({
       destinationId,
@@ -640,8 +847,12 @@ export const routeService = {
       status: input.status ?? "draft",
     });
 
-    await routeRepository.replaceRouteNodes(row.id, nodeIds);
-    await routeRepository.replaceRouteSegments(row.id, segmentIds);
+    await persistGeometry(
+      row.id,
+      resolved.points,
+      resolved.nodeIds,
+      resolved.segmentIds,
+    );
 
     return routeDto(row);
   },
@@ -655,9 +866,7 @@ export const routeService = {
 
     const patch: Parameters<typeof routeRepository.updateRoute>[1] = {};
     if (input.name !== undefined) patch.name = input.name;
-    if (input.description !== undefined) {
-      patch.description = input.description;
-    }
+    if (input.description !== undefined) patch.description = input.description;
     if (input.basecampNodeId !== undefined) {
       patch.basecampNodeId = input.basecampNodeId;
     }
@@ -670,21 +879,24 @@ export const routeService = {
     if (input.recommended !== undefined) patch.recommended = input.recommended;
     if (input.status !== undefined) patch.status = input.status;
 
-    let segmentIds: string[] | undefined;
-    if (input.nodeIds !== undefined) {
-      const nodeIds = [...new Set(input.nodeIds)];
-      if (nodeIds.length < 2) {
-        throw new BadRequestError("Jalur minimal terdiri dari dua titik");
-      }
-      segmentIds = await syncRouteSegments(route.destinationId, nodeIds);
-    }
+    const hasGeometry =
+      (input.points && input.points.length > 0) ||
+      (input.nodeIds && input.nodeIds.length > 0);
+
+    const resolved = hasGeometry
+      ? await resolveRoutePoints(route.destinationId, input)
+      : null;
 
     const updated = await routeRepository.updateRoute(id, patch);
     if (!updated) throw new NotFoundError("Jalur tidak ditemukan");
 
-    if (input.nodeIds !== undefined && segmentIds) {
-      await routeRepository.replaceRouteNodes(id, input.nodeIds);
-      await routeRepository.replaceRouteSegments(id, segmentIds);
+    if (resolved) {
+      await persistGeometry(
+        id,
+        resolved.points,
+        resolved.nodeIds,
+        resolved.segmentIds,
+      );
     }
 
     return routeDto(updated);
@@ -702,11 +914,18 @@ export const routeService = {
     const route = await routeRepository.findRouteById(id);
     if (!route) throw new NotFoundError("Jalur tidak ditemukan");
 
-    const [nodeIds, segmentIds] = await Promise.all([
+    const [nodeIds, segmentIds, pointRows] = await Promise.all([
       routeRepository.findRouteNodeIds(id),
       routeRepository.findRouteSegmentIds(id),
+      routeRepository.findRoutePoints(id),
     ]);
+
     const nodes = await loadNodesById(nodeIds);
+
+    if (pointRows.length >= 2) {
+      return buildPointProfile(id, pointRows, nodes);
+    }
+
     const segments = (
       await Promise.all(
         segmentIds.map((segmentId) =>

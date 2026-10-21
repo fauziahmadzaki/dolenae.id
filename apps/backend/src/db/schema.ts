@@ -379,12 +379,36 @@ export const trailRouteSegments = pgTable(
   }),
 );
 
+/**
+ * Ordered geometry of a trail. A point can be a free bend (no node) or an
+ * anchor snapped to a named track node.
+ */
+export const trailRoutePoints = pgTable(
+  "trail_route_points",
+  {
+    routeId: uuid("route_id")
+      .notNull()
+      .references(() => trailRoutes.id, { onDelete: "cascade" }),
+    position: integer("position").notNull(),
+    latitude: numeric("latitude", { precision: 10, scale: 7 }).notNull(),
+    longitude: numeric("longitude", { precision: 10, scale: 7 }).notNull(),
+    elevationMeters: integer("elevation_meters"),
+    nodeId: uuid("node_id").references(() => trackNodes.id, {
+      onDelete: "set null",
+    }),
+  },
+  (table) => ({
+    pk: primaryKey({ columns: [table.routeId, table.position] }),
+  }),
+);
+
 export type TrackNodeRow = typeof trackNodes.$inferSelect;
 export type NewTrackNodeRow = typeof trackNodes.$inferInsert;
 export type RouteSegmentRow = typeof routeSegments.$inferSelect;
 export type NewRouteSegmentRow = typeof routeSegments.$inferInsert;
 export type TrailRouteRow = typeof trailRoutes.$inferSelect;
 export type NewTrailRouteRow = typeof trailRoutes.$inferInsert;
+export type TrailRoutePointRow = typeof trailRoutePoints.$inferSelect;
 export type TrackNodeType = typeof trackNodes.$inferSelect.type;
 export type RouteSurface = typeof routeSegments.$inferSelect.surface;
 export type RouteGrade = typeof routeSegments.$inferSelect.grade;

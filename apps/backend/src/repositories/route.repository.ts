@@ -4,6 +4,7 @@ import {
   routeSegments,
   trackNodes,
   trailRouteNodes,
+  trailRoutePoints,
   trailRouteSegments,
   trailRoutes,
   type NewRouteSegmentRow,
@@ -295,6 +296,43 @@ export const routeRepository = {
           routeId,
           segmentId,
           position,
+        })),
+      );
+    }
+  },
+
+  // --- Route geometry ------------------------------------------------------
+
+  async findRoutePoints(routeId: string) {
+    return getDb()
+      .select()
+      .from(trailRoutePoints)
+      .where(eq(trailRoutePoints.routeId, routeId))
+      .orderBy(asc(trailRoutePoints.position));
+  },
+
+  async replaceRoutePoints(
+    routeId: string,
+    points: {
+      latitude: string;
+      longitude: string;
+      elevationMeters: number | null;
+      nodeId: string | null;
+    }[],
+  ): Promise<void> {
+    const db = getDb();
+    await db
+      .delete(trailRoutePoints)
+      .where(eq(trailRoutePoints.routeId, routeId));
+    if (points.length > 0) {
+      await db.insert(trailRoutePoints).values(
+        points.map((point, position) => ({
+          routeId,
+          position,
+          latitude: point.latitude,
+          longitude: point.longitude,
+          elevationMeters: point.elevationMeters,
+          nodeId: point.nodeId,
         })),
       );
     }
