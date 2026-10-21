@@ -107,14 +107,22 @@ export interface RouteSegment {
 ### 2.3 TrailRoute (Jalur)
 
 ```ts
+export interface RoutePoint {
+  latitude: number;
+  longitude: number;
+  elevationMeters: number | null;   // null pada titik belokan
+  nodeId: string | null;            // terisi bila snap ke titik bernama
+}
+
 export interface TrailRoute {
   id: ID;
   destinationId: ID;
   name: string;                     // mis. "Trek Kawah"
   description?: string;
   basecampNodeId?: ID;
-  nodeIds: ID[];                    // berurutan, start → end
-  segmentIds: ID[];                 // panjang = nodeIds.length - 1
+  points: RoutePoint[];             // geometri bebas (>= 2 titik)
+  nodeIds: ID[];                    // turunan: anchor bernama saja
+  segmentIds: ID[];                 // metadata antar anchor (opsional)
   surface: RouteSurface | "campuran";
   grade: RouteGrade;                // grade dominan/terberat
   traversableBy: RouteTraversal[];
@@ -125,6 +133,11 @@ export interface TrailRoute {
   updatedAt: ISODateString;
 }
 ```
+
+> **Titik belokan tidak wajib bernama.** Jalur disimpan sebagai `points[]`
+> berurutan: admin bisa klik peta untuk menambah belokan bebas, lalu snap ke
+> titik bernama (basecamp/pos/puncak) bila perlu. Elevasi belokan yang kosong
+> diinterpolasi dari anchor terdekat saat profil dihitung.
 
 ### 2.4 Turunan (dihitung, tidak disimpan)
 
@@ -331,8 +344,8 @@ Semua endpoint admin (Bearer + role `admin`):
 | PATCH/DELETE | `/track-nodes/:id` | 409 bila masih dipakai ruas/jalur |
 | GET/POST | `/destinations/:id/segments` | 409 bila pasangan node duplikat |
 | PATCH/DELETE | `/segments/:id` | 409 bila masih dipakai jalur |
-| GET/POST | `/destinations/:id/routes` | ruas yang belum ada dibuat otomatis |
-| GET/PATCH/DELETE | `/routes/:id` | ubah nodeIds menyinkronkan ruas |
+| GET/POST | `/destinations/:id/routes` | `points[]` (geometri bebas) atau `nodeIds` (legacy) |
+| GET/PATCH/DELETE | `/routes/:id` | ubah `points`/`nodeIds` menyinkronkan ruas |
 | GET | `/routes/:id/profile` | jarak, gain/loss, grade, estimasi Naismith |
 
 UI: `/admin/destinasi/:id/rute` (preview) dan
