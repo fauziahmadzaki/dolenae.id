@@ -5,9 +5,9 @@ Spesifikasi fitur **Route Builder** di sisi admin: admin menyusun **titik**
 **jalur** bernama. Karena tiap titik punya **elevasi**, sistem dapat menggambar
 **profil elevasi** tiap jalur.
 
-> Status implementasi: **desain (Figma) + spesifikasi**. Kode
-> (`packages/types`, `packages/seed`, API, UI) menyusul sebagai fase lanjutan.
-> Bagian publik (web/mobile) belum dirancang.
+> Status implementasi: **backend + halaman admin (preview & editor peta)
+> sudah jalan**. Konsumsi publik (web/mobile) menyusul.
+> Data contoh jaringan Bromo tersedia lewat `pnpm db:seed`.
 
 ---
 
@@ -320,16 +320,28 @@ di dalam CRUD Destinasi (Step 3 Lokasi & Akses).
 
 ---
 
-## 6. API (rencana fase mendatang)
+## 6. API (terimplementasi)
 
-- `GET /destinations/:slug/routes` — daftar jalur destinasi.
-- `GET /routes/:id` — detail jalur + node/segment penyusun.
-- `GET /routes/:id/profile` — `RouteProfile` (untuk grafik elevasi).
-- `GET /track-nodes?destinationId=:id`
-- `GET /segments?destinationId=:id`
+Semua endpoint admin (Bearer + role `admin`):
 
-Pada fase prototype, data dilayani dari `packages/seed`. Endpoint tulis
-(POST/PATCH/DELETE) menyusul bersamaan dengan database/auth.
+| Method | Path | Catatan |
+| --- | --- | --- |
+| GET | `/destinations/:id/route-graph` | titik + ruas + jalur sekaligus |
+| GET/POST | `/destinations/:id/track-nodes` | daftar / tambah titik |
+| PATCH/DELETE | `/track-nodes/:id` | 409 bila masih dipakai ruas/jalur |
+| GET/POST | `/destinations/:id/segments` | 409 bila pasangan node duplikat |
+| PATCH/DELETE | `/segments/:id` | 409 bila masih dipakai jalur |
+| GET/POST | `/destinations/:id/routes` | ruas yang belum ada dibuat otomatis |
+| GET/PATCH/DELETE | `/routes/:id` | ubah nodeIds menyinkronkan ruas |
+| GET | `/routes/:id/profile` | jarak, gain/loss, grade, estimasi Naismith |
+
+UI: `/admin/destinasi/:id/rute` (preview) dan
+`/admin/destinasi/:id/rute/peta` (editor). Editor mendukung drag handle
+ala draw.io (fallback klik-klik), tambah titik, sambung ruas, dan menyusun
+jalur dari titik berurutan.
+
+Fase lanjutan: **publik (web + mobile)** — section "Jalur & Profil Elevasi" pada
+detail destinasi, serta integrasi trip planning.
 
 ---
 
