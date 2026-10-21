@@ -14,6 +14,7 @@ export const openApiDocument = {
     { name: "Users", description: "Admin user management" },
     { name: "Categories", description: "Destination categories (terrain/activity)" },
     { name: "Destinations", description: "Nature destinations catalog & admin CRUD" },
+    { name: "Regions", description: "Indonesian province/regency/district data & reverse geocoding" },
   ],
   components: {
     securitySchemes: {
@@ -648,6 +649,56 @@ export const openApiDocument = {
           "200": { description: "Deleted" },
           "403": { description: "Admin role required" },
           "404": { description: "Not found" },
+        },
+      },
+    },
+    "/api/regions/provinces": {
+      get: {
+        tags: ["Regions"],
+        summary: "List provinces (public)",
+        responses: {
+          "200": { description: "Province list" },
+        },
+      },
+    },
+    "/api/regions/regencies": {
+      get: {
+        tags: ["Regions"],
+        summary: "List regencies of a province (public)",
+        parameters: [
+          { name: "province", in: "query", required: true, schema: { type: "string", example: "35" } },
+        ],
+        responses: {
+          "200": { description: "Regency list" },
+          "422": { description: "Validation error" },
+        },
+      },
+    },
+    "/api/regions/districts": {
+      get: {
+        tags: ["Regions"],
+        summary: "List districts of a regency (public)",
+        parameters: [
+          { name: "regency", in: "query", required: true, schema: { type: "string", example: "35.13" } },
+        ],
+        responses: {
+          "200": { description: "District list" },
+          "422": { description: "Validation error" },
+        },
+      },
+    },
+    "/api/regions/reverse": {
+      get: {
+        tags: ["Regions"],
+        summary: "Approximate reverse geocode from a coordinate (public)",
+        description: "Returns the nearest district centroid, not an administrative boundary lookup.",
+        parameters: [
+          { name: "lat", in: "query", required: true, schema: { type: "number", minimum: -90, maximum: 90 } },
+          { name: "lng", in: "query", required: true, schema: { type: "number", minimum: -180, maximum: 180 } },
+        ],
+        responses: {
+          "200": { description: "Province, regency, district and distance in km" },
+          "422": { description: "Validation error" },
         },
       },
     },
