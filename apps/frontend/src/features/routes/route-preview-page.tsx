@@ -63,6 +63,15 @@ export function RoutePreviewPage({ destinationId }: { destinationId: string }) {
     [nodes],
   );
 
+  const selectedPath = useMemo(
+    () =>
+      selected?.points.map((point) => ({
+        latitude: point.latitude,
+        longitude: point.longitude,
+      })) ?? [],
+    [selected],
+  );
+
   useEffect(() => {
     if (auth.hydrated && !auth.token) router.replace("/auth/login");
   }, [auth.hydrated, auth.token, router]);
@@ -90,9 +99,11 @@ export function RoutePreviewPage({ destinationId }: { destinationId: string }) {
   }
 
   const routeNodes = (route: TrailRoute) =>
-    route.nodeIds
-      .map((id) => nodeById.get(id)?.name)
-      .filter((name): name is string => Boolean(name));
+    route.points.map(
+      (point, index) =>
+        (point.nodeId ? nodeById.get(point.nodeId)?.name : null) ??
+        `Belokan ${index + 1}`,
+    );
 
   return (
     <div className="space-y-6">
@@ -140,6 +151,7 @@ export function RoutePreviewPage({ destinationId }: { destinationId: string }) {
             segments={segments}
             routes={routes}
             selectedRouteId={selectedId}
+            selectedPath={selectedPath}
             mode="view"
           />
 
@@ -260,36 +272,62 @@ export function RoutePreviewPage({ destinationId }: { destinationId: string }) {
               <div>
                 <h4 className="mb-2 flex items-center gap-2 text-sm font-semibold text-ink">
                   <Ruler aria-hidden className="h-4 w-4" />
-                  Ruas penyusun
+                  {selected.segmentIds.length > 0
+                    ? "Ruas penyusun"
+                    : "Titik jalur"}
                 </h4>
-                <ul className="divide-y divide-hairline rounded-lg border border-hairline">
-                  {selected.segmentIds.map((segmentId, index) => {
-                    const segment = segments.find(
-                      (item) => item.id === segmentId,
-                    );
-                    if (!segment) return null;
-                    const from = nodeById.get(segment.fromNodeId)?.name ?? "?";
-                    const to = nodeById.get(segment.toNodeId)?.name ?? "?";
+                {selected.segmentIds.length > 0 ? (
+                  <ul className="divide-y divide-hairline rounded-lg border border-hairline">
+                    {selected.segmentIds.map((segmentId, index) => {
+                      const segment = segments.find(
+                        (item) => item.id === segmentId,
+                      );
+                      if (!segment) return null;
+                      const from =
+                        nodeById.get(segment.fromNodeId)?.name ?? "?";
+                      const to = nodeById.get(segment.toNodeId)?.name ?? "?";
 
-                    return (
+                      return (
+                        <li
+                          key={`${segmentId}-${index}`}
+                          className="flex flex-wrap items-center justify-between gap-2 px-3 py-2.5 text-sm"
+                        >
+                          <span className="font-medium text-ink">
+                            {from} → {to}
+                          </span>
+                          <span className="text-xs text-body">
+                            {surfaceLabels[segment.surface]} ·{" "}
+                            {gradeLabels[segment.grade]}
+                            {segment.distanceKm != null
+                              ? ` · ${segment.distanceKm} km`
+                              : ""}
+                          </span>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                ) : (
+                  <ul className="divide-y divide-hairline rounded-lg border border-hairline">
+                    {selected.points.map((point, index) => (
                       <li
-                        key={`${segmentId}-${index}`}
-                        className="flex flex-wrap items-center justify-between gap-2 px-3 py-2.5 text-sm"
+                        key={`${point.latitude}-${point.longitude}-${index}`}
+                        className="flex items-center justify-between gap-2 px-3 py-2.5 text-sm"
                       >
                         <span className="font-medium text-ink">
-                          {from} → {to}
+                          {index + 1}.{" "}
+                          {(point.nodeId
+                            ? nodeById.get(point.nodeId)?.name
+                            : null) ?? `Belokan ${index + 1}`}
                         </span>
                         <span className="text-xs text-body">
-                          {surfaceLabels[segment.surface]} ·{" "}
-                          {gradeLabels[segment.grade]}
-                          {segment.distanceKm != null
-                            ? ` · ${segment.distanceKm} km`
-                            : ""}
+                          {point.elevationMeters != null
+                            ? `${point.elevationMeters} m`
+                            : "elevasi belum diisi"}
                         </span>
                       </li>
-                    );
-                  })}
-                </ul>
+                    ))}
+                  </ul>
+                )}
               </div>
             </section>
           )}

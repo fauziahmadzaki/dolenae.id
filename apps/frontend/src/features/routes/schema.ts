@@ -49,6 +49,13 @@ export interface RouteSegment {
   updatedAt: string;
 }
 
+export interface RoutePoint {
+  latitude: number;
+  longitude: number;
+  elevationMeters: number | null;
+  nodeId: string | null;
+}
+
 export interface TrailRoute {
   id: string;
   destinationId: string;
@@ -57,6 +64,7 @@ export interface TrailRoute {
   basecampNodeId: string | null;
   nodeIds: string[];
   segmentIds: string[];
+  points: RoutePoint[];
   surface: string;
   grade: RouteGrade;
   traversableBy: string[];
@@ -78,7 +86,7 @@ export interface ElevationPoint {
   elevationMeters: number;
   nodeId: string;
   name: string;
-  type: TrackNodeType;
+  type: TrackNodeType | "belokan";
 }
 
 export interface RouteProfile {

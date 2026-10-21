@@ -18,6 +18,10 @@ export interface RouteMapProps {
   routes: TrailRoute[];
   selectedRouteId?: string | null;
   draftNodeIds?: string[];
+  /** Polyline of the selected route (free geometry). */
+  selectedPath?: { latitude: number; longitude: number }[];
+  /** Polyline being drawn for a new route. */
+  draftPath?: { latitude: number; longitude: number }[];
   mode?: "view" | "add-node" | "connect" | "route";
   onMapClick?: (lat: number, lng: number) => void;
   onNodeClick?: (node: TrackNode) => void;
@@ -50,6 +54,8 @@ export function RouteMap({
   routes,
   selectedRouteId = null,
   draftNodeIds = [],
+  selectedPath = [],
+  draftPath = [],
   mode = "view",
   onMapClick,
   onNodeClick,
@@ -158,6 +164,16 @@ export function RouteMap({
       });
     }
 
+    // Selected route geometry: free points may not map to segments.
+    if (selectedPath.length >= 2) {
+      L.polyline(
+        selectedPath.map(
+          (point) => [point.latitude, point.longitude] as [number, number],
+        ),
+        { color: "#1e3b2e", weight: 5, opacity: 0.95 },
+      ).addTo(layer);
+    }
+
     for (const node of nodes) {
       const draft = draftNodeIds.includes(node.id);
       const marker = L.marker(
@@ -223,7 +239,7 @@ export function RouteMap({
         document.addEventListener("pointerup", finish, { once: true });
       });
     }
-  }, [nodes, segments, routes, selectedRouteId, draftNodeIds, mode]);
+  }, [nodes, segments, routes, selectedRouteId, selectedPath, draftNodeIds, mode]);
 
   // Draft route preview while composing a route.
   useEffect(() => {
@@ -231,20 +247,23 @@ export function RouteMap({
     if (!layer) return;
     layer.clearLayers();
 
-    if (mode !== "route" || draftNodeIds.length < 2) return;
+    const path =
+      draftPath.length >= 2
+        ? draftPath
+        : mode === "route" && draftNodeIds.length >= 2
+          ? draftNodeIds
+              .map((id) => nodes.find((node) => node.id === id))
+              .filter((node): node is TrackNode => Boolean(node))
+              .map((node) => node.coordinate)
+          : [];
 
-    const nodeById = new Map(nodes.map((node) => [node.id, node]));
-    const points = draftNodeIds
-      .map((id) => nodeById.get(id))
-      .filter((node): node is TrackNode => Boolean(node))
-      .map((node) => [node.coordinate.latitude, node.coordinate.longitude] as [number, number]);
+    if (mode !== "route" || path.length < 2) return;
 
-    L.polyline(points, {
-      color: "#b5651d",
-      weight: 3,
-      dashArray: "4 6",
-    }).addTo(layer);
-  }, [mode, draftNodeIds, nodes]);
+    L.polyline(
+      path.map((point) => [point.latitude, point.longitude] as [number, number]),
+      { color: "#b5651d", weight: 3, dashArray: "4 6" },
+    ).addTo(layer);
+  }, [mode, draftPath, draftNodeIds, nodes]);
 
   return (
     <div

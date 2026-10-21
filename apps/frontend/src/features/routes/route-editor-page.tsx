@@ -35,6 +35,7 @@ import {
   difficultyLabels,
   nodeTypeLabels,
   statusLabels,
+  type RoutePoint,
   type RouteSegment,
   type TrackNode,
   type TrailRoute,
@@ -74,7 +75,7 @@ export function RouteEditorPage({ destinationId }: { destinationId: string }) {
 
   const [mode, setMode] = useState<Mode>("view");
   const [dialog, setDialog] = useState<DialogState>(null);
-  const [draftNodeIds, setDraftNodeIds] = useState<string[]>([]);
+  const [draftPoints, setDraftPoints] = useState<RoutePoint[]>([]);
   const [connectFrom, setConnectFrom] = useState<string | null>(null);
   const [selectedRouteId, setSelectedRouteId] = useState<string | null>(null);
   const [confirmDeleteRoute, setConfirmDeleteRoute] = useState<TrailRoute | null>(
@@ -137,9 +138,19 @@ export function RouteEditorPage({ destinationId }: { destinationId: string }) {
     }
 
     if (mode === "route") {
-      setDraftNodeIds((prev) =>
-        prev.at(-1) === node.id ? prev : [...prev, node.id],
-      );
+      setDraftPoints((prev) => {
+        const last = prev.at(-1);
+        if (last?.nodeId === node.id) return prev;
+        return [
+          ...prev,
+          {
+            latitude: node.coordinate.latitude,
+            longitude: node.coordinate.longitude,
+            elevationMeters: node.elevationMeters,
+            nodeId: node.id,
+          },
+        ];
+      });
       return;
     }
 
@@ -149,7 +160,7 @@ export function RouteEditorPage({ destinationId }: { destinationId: string }) {
   const toggleMode = (next: Mode) => {
     setMode((prev) => (prev === next ? "view" : next));
     setConnectFrom(null);
-    if (next !== "route") setDraftNodeIds([]);
+    if (next !== "route") setDraftPoints([]);
   };
 
   if (!auth.hydrated || !auth.token) {
@@ -172,9 +183,27 @@ export function RouteEditorPage({ destinationId }: { destinationId: string }) {
     );
   }
 
-  const draftNodes = draftNodeIds
-    .map((id) => nodeById.get(id))
-    .filter((node): node is TrackNode => Boolean(node));
+  const draftPath = useMemo(
+    () =>
+      draftPoints.map((point) => ({
+        latitude: point.latitude,
+        longitude: point.longitude,
+      })),
+    [draftPoints],
+  );
+
+  const selectedPath = useMemo(
+    () =>
+      selectedRoute?.points.map((point) => ({
+        latitude: point.latitude,
+        longitude: point.longitude,
+      })) ?? [],
+    [selectedRoute],
+  );
+
+  const pointLabel = (point: RoutePoint, index: number) =>
+    (point.nodeId ? nodeById.get(point.nodeId)?.name : null) ??
+    `Belokan ${index + 1}`;
 
   return (
     <div className="space-y-4">
@@ -244,7 +273,7 @@ export function RouteEditorPage({ destinationId }: { destinationId: string }) {
         {mode === "connect" &&
           "Tarik handle di sisi titik ke titik lain, atau klik titik asal lalu titik tujuan."}
         {mode === "route" &&
-          "Klik titik berurutan dari start ke finish, lalu simpan jalur."}
+          "Klik peta untuk menambah titik belokan; klik titik bernama untuk snap."}
         {mode === "view" && "Klik titik untuk mengedit, klik ruas untuk detail."}
         {connectFrom && mode === "connect" && (
           <span className="ml-1 font-semibold text-primary">
@@ -260,10 +289,27 @@ export function RouteEditorPage({ destinationId }: { destinationId: string }) {
           segments={segments}
           routes={routes}
           selectedRouteId={selectedRouteId}
-          draftNodeIds={draftNodeIds}
+          selectedPath={selectedPath}
+          draftPath={draftPath}
+          draftNodeIds={draftPoints
+            .map((point) => point.nodeId)
+            .filter((id): id is string => Boolean(id))}
           mode={mode}
           onMapClick={(lat, lng) => {
-            if (mode === "add-node") setDialog({ kind: "node", mode: "create", lat, lng });
+            if (mode === "add-node") {
+              setDialog({ kind: "node", mode: "create", lat, lng });
+            }
+            if (mode === "route") {
+              setDraftPoints((prev) => [
+                ...prev,
+                {
+                  latitude: lat,
+                  longitude: lng,
+                  elevationMeters: null,
+                  nodeId: null,
+                },
+              ]);
+            }
           }}
           onNodeClick={handleNodeClick}
           onSegmentClick={(segment) => setDialog({ kind: "segment", segment })}
@@ -274,34 +320,46 @@ export function RouteEditorPage({ destinationId }: { destinationId: string }) {
           {mode === "route" && (
             <div className="rounded-xl border border-hairline bg-surface p-3">
               <p className="text-xs font-semibold uppercase tracking-wide text-body">
-                Jalur baru ({draftNodes.length} titik)
+                Jalur baru ({draftPoints.length} titik)
               </p>
               <div className="mt-2 flex flex-wrap gap-1 text-xs">
-                {draftNodes.length === 0 ? (
-                  <span className="text-body">Belum ada titik dipilih.</span>
+                {draftPoints.length === 0 ? (
+                  <span className="text-body">
+                    Klik peta untuk titik belokan, klik titik bernama untuk snap.
+                  </span>
                 ) : (
-                  draftNodes.map((node, index) => (
+                  draftPoints.map((point, index) => (
                     <span
-                      key={`${node.id}-${index}`}
+                      key={`${point.nodeId ?? "bend"}-${index}`}
                       className="flex items-center gap-1 rounded-full bg-canvas-subtle px-2 py-0.5 text-ink"
                     >
-                      {index + 1}. {node.name}
+                      {index + 1}. {pointLabel(point, index)}
                     </span>
                   ))
                 )}
               </div>
-              <div className="mt-3 flex gap-2">
+              <div className="mt-3 flex flex-wrap gap-2">
                 <Button
                   size="sm"
-                  disabled={draftNodes.length < 2}
+                  disabled={draftPoints.length < 2}
                   onClick={() => setDialog({ kind: "route", mode: "create" })}
                 >
                   Simpan jalur
                 </Button>
                 <Button
                   size="sm"
+                  variant="secondary"
+                  disabled={draftPoints.length === 0}
+                  onClick={() =>
+                    setDraftPoints((prev) => prev.slice(0, -1))
+                  }
+                >
+                  Hapus terakhir
+                </Button>
+                <Button
+                  size="sm"
                   variant="ghost"
-                  onClick={() => setDraftNodeIds([])}
+                  onClick={() => setDraftPoints([])}
                 >
                   Reset
                 </Button>
@@ -528,7 +586,7 @@ export function RouteEditorPage({ destinationId }: { destinationId: string }) {
         <RouteDialog
           mode={dialog.mode}
           route={dialog.mode === "edit" ? dialog.route : undefined}
-          draftNodes={draftNodes}
+          pointLabels={draftPoints.map((point, index) => pointLabel(point, index))}
           isPending={mutations.createRoute.isPending || mutations.updateRoute.isPending}
           error={mutations.createRoute.error ?? mutations.updateRoute.error}
           onClose={() => setDialog(null)}
@@ -556,14 +614,15 @@ export function RouteEditorPage({ destinationId }: { destinationId: string }) {
               {
                 ...values,
                 description: values.description.trim() || null,
-                nodeIds: draftNodeIds,
-                basecampNodeId: draftNodeIds[0],
+                points: draftPoints,
+                basecampNodeId:
+                  draftPoints.find((point) => point.nodeId)?.nodeId ?? null,
               },
               {
                 onSuccess: (result) => {
                   setDialog(null);
                   setMode("view");
-                  setDraftNodeIds([]);
+                  setDraftPoints([]);
                   setSelectedRouteId(result.data.id);
                   toast({ title: "Jalur disimpan", variant: "success" });
                 },

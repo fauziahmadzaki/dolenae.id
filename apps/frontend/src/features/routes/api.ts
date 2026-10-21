@@ -35,6 +35,12 @@ export interface TrailRouteInput {
   description?: string | null;
   basecampNodeId?: string | null;
   nodeIds?: string[];
+  points?: {
+    latitude: number;
+    longitude: number;
+    elevationMeters?: number | null;
+    nodeId?: string | null;
+  }[];
   surface?: string;
   grade?: string;
   traversableBy?: string[];
