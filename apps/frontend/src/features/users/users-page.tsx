@@ -4,29 +4,31 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import {
-  ChevronLeft,
-  ChevronRight,
-  Loader2,
-  Plus,
-} from "lucide-react";
+import { Loader2, Plus } from "lucide-react";
 import { Button } from "~/components/ui/button";
+import {
+  DataTable,
+  useDataTableState,
+  type SortOption,
+} from "~/components/ui/data-table";
+import { Select } from "~/components/ui/select";
 import { useToast } from "~/components/ui/toaster";
 import { ApiError } from "~/lib/api/types";
 import { useAuth } from "~/features/auth/hooks/use-auth";
 import { UserDialog } from "./components/user-dialog";
-import { UsersTable } from "./components/users-table";
-import { UsersToolbar } from "./components/users-toolbar";
+import { userColumns } from "./components/users-columns";
 import { useUsers } from "./hooks/use-users";
-import type { UserMode } from "./schema";
-import { INACTIVE_AFTER_DAYS } from "./status";
+import { roleOptions, type ManagedUser, type UserMode } from "./schema";
+import { INACTIVE_AFTER_DAYS, userStatusOptions } from "./status";
 
-const PAGE_SIZE = 6;
-
-const message = (error: unknown) =>
-  error instanceof Error
-    ? error.message
-    : "Permintaan gagal. Silakan coba lagi.";
+const SORT_OPTIONS: SortOption[] = [
+  { value: "createdAt:desc", label: "Terbaru" },
+  { value: "createdAt:asc", label: "Terlama" },
+  { value: "name:asc", label: "Nama A–Z" },
+  { value: "name:desc", label: "Nama Z–A" },
+  { value: "email:asc", label: "Email A–Z" },
+  { value: "email:desc", label: "Email Z–A" },
+];
 
 export default function UsersPage() {
   const auth = useAuth();
@@ -34,8 +36,7 @@ export default function UsersPage() {
   const cache = useQueryClient();
   const { toast } = useToast();
 
-  const [page, setPage] = useState(1);
-  const [search, setSearch] = useState("");
+  const table = useDataTableState();
   const [role, setRole] = useState("");
   const [status, setStatus] = useState("");
   const [mode, setMode] = useState<UserMode | null>(null);
@@ -44,7 +45,7 @@ export default function UsersPage() {
     auth.hydrated && !!auth.token && auth.user?.role === "admin";
 
   const list = useUsers(
-    { page, limit: PAGE_SIZE, search, role, status },
+    { ...table.query, role, status },
     auth.token,
     enabled,
   );
@@ -60,13 +61,6 @@ export default function UsersPage() {
       router.replace("/auth/login");
     }
   }, [list.error, auth, cache, router]);
-
-  const total = Number(list.data?.meta?.total ?? 0);
-  const totalPages = Number(list.data?.meta?.totalPages ?? 1);
-
-  useEffect(() => {
-    if (list.data && page > totalPages) setPage(totalPages);
-  }, [list.data, page, totalPages]);
 
   if (!auth.hydrated || !auth.token) {
     return (
@@ -95,12 +89,20 @@ export default function UsersPage() {
   }
 
   const users = list.data?.data ?? [];
+  const total = Number(list.data?.meta?.total ?? 0);
 
   const open = (next: UserMode) => setMode(next);
 
-  const resetPage = <T,>(setter: (value: T) => void) => (value: T) => {
+  const columns = userColumns({
+    currentUserId: auth.user?.id,
+    onDetail: (user: ManagedUser) => open({ kind: "detail", user }),
+    onEdit: (user: ManagedUser) => open({ kind: "edit", user }),
+    onDelete: (user: ManagedUser) => open({ kind: "delete", user }),
+  });
+
+  const resetPageOn = <T,>(setter: (value: T) => void) => (value: T) => {
     setter(value);
-    setPage(1);
+    table.resetPage();
   };
 
   return (
@@ -122,89 +124,66 @@ export default function UsersPage() {
         </div>
       </div>
 
-      <UsersToolbar
-        search={search}
-        role={role}
-        status={status}
+      <DataTable
+        data={users}
+        columns={columns}
+        getRowId={(user) => user.id}
+        page={table.page}
+        pageSize={table.pageSize}
         total={total}
-        onSearchChange={resetPage(setSearch)}
-        onRoleChange={resetPage(setRole)}
-        onStatusChange={resetPage(setStatus)}
+        sort={table.sort}
+        search={table.search}
+        onPageChange={table.setPage}
+        onPageSizeChange={table.setPageSize}
+        onSortChange={table.setSort}
+        onSearchChange={table.setSearch}
+        sortOptions={SORT_OPTIONS}
+        searchPlaceholder="Cari pengguna"
+        itemLabel="pengguna"
+        isLoading={list.isPending}
+        isFetching={list.isFetching}
+        error={list.error}
+        onRetry={() => list.refetch()}
+        filters={
+          <>
+            <Select
+              ariaLabel="Filter role"
+              size="sm"
+              value={role}
+              onChange={resetPageOn(setRole)}
+              options={[{ value: "", label: "Semua role" }, ...roleOptions]}
+              className="w-full sm:w-44"
+            />
+            <Select
+              ariaLabel="Filter status"
+              size="sm"
+              value={status}
+              onChange={resetPageOn(setStatus)}
+              options={[{ value: "", label: "Semua status" }, ...userStatusOptions]}
+              className="w-full sm:w-44"
+            />
+          </>
+        }
+        emptyState={
+          <div className="rounded-lg border border-dashed border-hairline bg-surface p-10 text-center">
+            <h3 className="font-display font-semibold text-ink">
+              Tidak ada pengguna
+            </h3>
+            <p className="mt-1 text-sm text-body">
+              Coba ubah pencarian atau role, atau tambahkan pengguna.
+            </p>
+            <Button className="mt-4" onClick={() => open({ kind: "create" })}>
+              <Plus aria-hidden className="h-4 w-4" />
+              Tambah pengguna
+            </Button>
+          </div>
+        }
       />
 
       <p className="text-xs text-body">
         Status dihitung otomatis: aktif bila email terverifikasi dan login dalam{" "}
         {INACTIVE_AFTER_DAYS} hari terakhir. Undangan email belum tersedia.
       </p>
-
-      {list.isPending ? (
-        <p role="status" className="text-sm text-body">
-          Memuat pengguna…
-        </p>
-      ) : list.isError ? (
-        <div
-          role="alert"
-          className="rounded-lg border border-hairline bg-surface p-6"
-        >
-          <p className="text-sm text-danger">{message(list.error)}</p>
-          <Button variant="secondary" className="mt-3" onClick={() => list.refetch()}>
-            Coba lagi
-          </Button>
-        </div>
-      ) : users.length === 0 ? (
-        <div className="rounded-lg border border-dashed border-hairline bg-surface p-10 text-center">
-          <h3 className="font-display font-semibold text-ink">
-            Tidak ada pengguna
-          </h3>
-          <p className="mt-1 text-sm text-body">
-            Coba ubah pencarian atau role, atau tambahkan pengguna.
-          </p>
-          <Button className="mt-4" onClick={() => open({ kind: "create" })}>
-            <Plus aria-hidden className="h-4 w-4" />
-            Tambah pengguna
-          </Button>
-        </div>
-      ) : (
-        <UsersTable
-          users={users}
-          currentUserId={auth.user?.id}
-          onDetail={(user) => open({ kind: "detail", user })}
-          onEdit={(user) => open({ kind: "edit", user })}
-          onDelete={(user) => open({ kind: "delete", user })}
-        />
-      )}
-
-      {!list.isError && (
-        <div className="flex flex-wrap items-center justify-between gap-3 text-sm text-body">
-          <p>
-            Menampilkan {total ? (page - 1) * PAGE_SIZE + 1 : 0}–
-            {Math.min(page * PAGE_SIZE, total)} dari {total} pengguna
-          </p>
-          <div className="flex items-center gap-2">
-            <Button
-              variant="secondary"
-              size="sm"
-              aria-label="Halaman sebelumnya"
-              disabled={page <= 1 || list.isFetching}
-              onClick={() => setPage(page - 1)}
-            >
-              <ChevronLeft aria-hidden className="h-4 w-4" />
-            </Button>
-            <span className="rounded-md bg-primary px-3 py-1.5 text-on-primary">
-              {page}
-            </span>
-            <Button
-              variant="secondary"
-              size="sm"
-              aria-label="Halaman berikutnya"
-              disabled={page >= totalPages || list.isFetching}
-              onClick={() => setPage(page + 1)}
-            >
-              <ChevronRight aria-hidden className="h-4 w-4" />
-            </Button>
-          </div>
-        </div>
-      )}
 
       {mode && (
         <UserDialog
