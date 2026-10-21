@@ -11,9 +11,9 @@ import {
   DataTablePagination,
   DataTableToolbar,
   useDataTableState,
+  type DataTableFilter,
   type SortOption,
 } from "~/components/ui/data-table";
-import { Select } from "~/components/ui/select";
 import { ApiError } from "~/lib/api/types";
 import { useAuth } from "~/features/auth/hooks/use-auth";
 import { cn } from "~/lib/cn";
@@ -153,40 +153,35 @@ export default function DestinationsPage() {
     table.resetPage();
   };
 
-  const filters = (
-    <>
-      <Select
-        ariaLabel="Filter kesulitan"
-        size="sm"
-        value={difficulty}
-        onChange={resetPageOn(setDifficulty)}
-        options={[{ value: "", label: "Semua kesulitan" }, ...difficultyOptions]}
-        className="w-full sm:w-40"
-      />
-      <Select
-        ariaLabel="Filter status"
-        size="sm"
-        value={status}
-        onChange={resetPageOn(setStatus)}
-        options={[{ value: "", label: "Semua status" }, ...statusOptions]}
-        className="w-full sm:w-36"
-      />
-      <Select
-        ariaLabel="Filter kategori"
-        size="sm"
-        value={categoryId}
-        onChange={resetPageOn(setCategoryId)}
-        options={[
-          { value: "", label: "Semua kategori" },
-          ...categoryList.map((category) => ({
-            value: category.id,
-            label: category.name,
-          })),
-        ]}
-        className="w-full sm:w-44"
-      />
-    </>
-  );
+  const filters: DataTableFilter[] = [
+    {
+      key: "difficulty",
+      label: "Kesulitan",
+      value: difficulty,
+      allLabel: "Semua kesulitan",
+      options: difficultyOptions,
+      onChange: resetPageOn(setDifficulty),
+    },
+    {
+      key: "status",
+      label: "Status",
+      value: status,
+      allLabel: "Semua status",
+      options: statusOptions,
+      onChange: resetPageOn(setStatus),
+    },
+    {
+      key: "categoryId",
+      label: "Kategori",
+      value: categoryId,
+      allLabel: "Semua kategori",
+      options: categoryList.map((category) => ({
+        value: category.id,
+        label: category.name,
+      })),
+      onChange: resetPageOn(setCategoryId),
+    },
+  ];
 
   const emptyDestinations = (
     <div className="rounded-lg border border-dashed border-hairline bg-surface p-10 text-center">

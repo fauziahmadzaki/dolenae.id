@@ -2,13 +2,12 @@
 
 import { Search } from "lucide-react";
 import type { ReactNode } from "react";
-import { Select } from "~/components/ui/select";
 import { cn } from "~/lib/cn";
-import {
-  decodeSort,
-  encodeSort,
-  type SortOption,
-  type SortState,
+import { DataTableFilterPanel } from "./data-table-filter-panel";
+import type {
+  DataTableFilter,
+  SortOption,
+  SortState,
 } from "./data-table-types";
 
 export interface DataTableToolbarProps {
@@ -18,8 +17,8 @@ export interface DataTableToolbarProps {
   sort: SortState;
   onSortChange: (sort: SortState) => void;
   sortOptions: SortOption[];
-  /** Extra filter controls (Select, etc.). */
-  filters?: ReactNode;
+  /** Filter controls rendered inside the filter panel. */
+  filters?: DataTableFilter[];
   /** Extra controls on the right side, after the result count. */
   actions?: ReactNode;
   total: number;
@@ -55,16 +54,12 @@ export function DataTableToolbar({
         />
       </label>
 
-      <Select
-        ariaLabel="Urutkan"
-        size="sm"
-        value={encodeSort(sort)}
-        onChange={(value) => onSortChange(decodeSort(value))}
-        options={sortOptions}
-        className="w-full sm:w-44"
+      <DataTableFilterPanel
+        sort={sort}
+        onSortChange={onSortChange}
+        sortOptions={sortOptions}
+        filters={filters}
       />
-
-      {filters}
 
       <div className="ml-auto flex items-center gap-2">
         <span className="text-sm text-body" aria-live="polite">

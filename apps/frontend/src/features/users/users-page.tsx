@@ -9,9 +9,9 @@ import { Button } from "~/components/ui/button";
 import {
   DataTable,
   useDataTableState,
+  type DataTableFilter,
   type SortOption,
 } from "~/components/ui/data-table";
-import { Select } from "~/components/ui/select";
 import { useToast } from "~/components/ui/toaster";
 import { ApiError } from "~/lib/api/types";
 import { useAuth } from "~/features/auth/hooks/use-auth";
@@ -105,6 +105,25 @@ export default function UsersPage() {
     table.resetPage();
   };
 
+  const filters: DataTableFilter[] = [
+    {
+      key: "role",
+      label: "Role",
+      value: role,
+      allLabel: "Semua role",
+      options: roleOptions,
+      onChange: resetPageOn(setRole),
+    },
+    {
+      key: "status",
+      label: "Status",
+      value: status,
+      allLabel: "Semua status",
+      options: userStatusOptions,
+      onChange: resetPageOn(setStatus),
+    },
+  ];
+
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-end justify-between gap-4">
@@ -144,26 +163,7 @@ export default function UsersPage() {
         isFetching={list.isFetching}
         error={list.error}
         onRetry={() => list.refetch()}
-        filters={
-          <>
-            <Select
-              ariaLabel="Filter role"
-              size="sm"
-              value={role}
-              onChange={resetPageOn(setRole)}
-              options={[{ value: "", label: "Semua role" }, ...roleOptions]}
-              className="w-full sm:w-44"
-            />
-            <Select
-              ariaLabel="Filter status"
-              size="sm"
-              value={status}
-              onChange={resetPageOn(setStatus)}
-              options={[{ value: "", label: "Semua status" }, ...userStatusOptions]}
-              className="w-full sm:w-44"
-            />
-          </>
-        }
+        filters={filters}
         emptyState={
           <div className="rounded-lg border border-dashed border-hairline bg-surface p-10 text-center">
             <h3 className="font-display font-semibold text-ink">

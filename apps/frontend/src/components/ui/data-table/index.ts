@@ -9,8 +9,10 @@ export {
   encodeSort,
   sortOptionsFromColumns,
   type DataTableColumn,
+  type DataTableFilter,
   type SortOption,
   type SortOrder,
   type SortState,
 } from "./data-table-types";
+export { DataTableFilterPanel } from "./data-table-filter-panel";
 export { useDataTableState } from "./use-data-table";

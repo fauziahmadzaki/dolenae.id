@@ -10,6 +10,7 @@ import { DataTableToolbar } from "./data-table-toolbar";
 import {
   sortOptionsFromColumns,
   type DataTableColumn,
+  type DataTableFilter,
   type SortOption,
   type SortOrder,
   type SortState,
@@ -42,7 +43,7 @@ export interface DataTableProps<T> {
   error?: unknown;
   onRetry?: () => void;
   emptyState?: ReactNode;
-  filters?: ReactNode;
+  filters?: DataTableFilter[];
   actions?: ReactNode;
   minWidthClassName?: string;
 }

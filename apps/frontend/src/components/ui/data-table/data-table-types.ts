@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import type { SelectOption } from "~/components/ui/select";
 
 export type SortOrder = "asc" | "desc";
 
@@ -12,6 +13,17 @@ export interface SortOption {
   /** Encoded as `${sort}:${order}`. */
   value: string;
   label: string;
+}
+
+export interface DataTableFilter {
+  key: string;
+  label: string;
+  /** Currently applied value (`""` means "all"). */
+  value: string;
+  options: SelectOption[];
+  /** Label for the empty option, e.g. "Semua role". */
+  allLabel: string;
+  onChange: (value: string) => void;
 }
 
 export interface DataTableColumn<T> {
