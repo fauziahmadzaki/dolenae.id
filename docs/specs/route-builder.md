@@ -279,6 +279,13 @@ Fitur dipecah menjadi **dua halaman** dengan peran berbeda:
 > Catatan: Figma adalah desain **statis**; pan/zoom/klik-kanan tidak benar-benar
 > berfungsi — setiap menu diwakili **frame terpisah**.
 
+> **Status implementasi:** context menu klik kanan sudah berjalan di
+> `/admin/destinasi/:id/rute/peta` (tambah titik, mulai jalur, sambung, edit
+> titik/ruas, tambah belokan, salin koordinat) dan versi **read-only** di
+> `/admin/destinasi/:id/rute` (buka editor / salin koordinat).
+> Panel kanan hanya menampilkan ringkasan seperti `Jalur X · 3 titik`, bukan
+> daftar semua titik belokan.
+
 ### 5.3 Inventaris layar (Figma)
 
 **Status: sudah dibuat** (page `Hi-Fi Web`, deret `x=18300`, tema "Alam").
