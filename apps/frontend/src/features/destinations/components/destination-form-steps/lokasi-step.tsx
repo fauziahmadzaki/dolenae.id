@@ -4,6 +4,7 @@ import { LocationPicker } from "~/components/map/location-picker";
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
 import { Select } from "~/components/ui/select";
+import { cn } from "~/lib/cn";
 import { regionsApi, type ReverseRegion } from "~/features/regions/api";
 import {
   useDistricts,
@@ -12,6 +13,38 @@ import {
 } from "~/features/regions/hooks";
 import { Field, textareaClass } from "../form-field";
 import type { StepProps } from "./types";
+
+const TRANSPORT_OPTIONS = ["Sepeda motor", "Mobil", "Jeep", "Ojek lokal"];
+
+const TRANSPORT_ALIASES: Record<string, string> = {
+  motor: "Sepeda motor",
+  "sepeda motor": "Sepeda motor",
+  mobil: "Mobil",
+  jeep: "Jeep",
+  ojek: "Ojek lokal",
+  "ojek lokal": "Ojek lokal",
+};
+
+const parseTransport = (value: string): string[] => {
+  const tokens = value
+    .split(",")
+    .map((token) => token.trim())
+    .filter(Boolean)
+    .map((token) => TRANSPORT_ALIASES[token.toLowerCase()] ?? token);
+
+  return [...new Set(tokens)];
+};
+
+const toggleTransport = (
+  current: string,
+  option: string,
+  checked: boolean,
+): string => {
+  const selected = new Set(parseTransport(current));
+  if (checked) selected.add(option);
+  else selected.delete(option);
+  return [...selected].join(", ");
+};
 
 const toCoordinate = (value: string): number | null => {
   if (!value.trim()) return null;
@@ -252,17 +285,45 @@ export function LokasiStep({ values, errors, set }: StepProps) {
 
         <Field
           label="Moda transportasi"
-          htmlFor="accessTransport"
           optional
-          hint="Pisahkan dengan koma."
           error={errors.accessTransport}
         >
-          <Input
-            id="accessTransport"
-            placeholder="Mobil, Jeep, Motor"
-            value={values.accessTransport}
-            onChange={(event) => set("accessTransport", event.target.value)}
-          />
+          <div className="flex flex-wrap gap-2">
+            {TRANSPORT_OPTIONS.map((option) => {
+              const checked = parseTransport(values.accessTransport).includes(
+                option,
+              );
+
+              return (
+                <label
+                  key={option}
+                  className={cn(
+                    "flex cursor-pointer items-center gap-2 rounded-lg border px-3 py-2 text-sm font-medium",
+                    checked
+                      ? "border-primary bg-primary/5 text-ink"
+                      : "border-hairline bg-surface text-body hover:bg-canvas-subtle",
+                  )}
+                >
+                  <input
+                    type="checkbox"
+                    checked={checked}
+                    onChange={(event) =>
+                      set(
+                        "accessTransport",
+                        toggleTransport(
+                          values.accessTransport,
+                          option,
+                          event.target.checked,
+                        ),
+                      )
+                    }
+                    className="h-4 w-4 rounded border-border-strong text-primary focus-visible:ring-primary"
+                  />
+                  {option}
+                </label>
+              );
+            })}
+          </div>
         </Field>
         <Field
           label="Estimasi waktu tempuh"
