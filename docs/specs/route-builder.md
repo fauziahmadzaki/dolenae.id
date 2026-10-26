@@ -65,6 +65,7 @@ export interface TrackNode {
   type: TrackNodeType;
   coordinate: { latitude: number; longitude: number };
   elevationMeters: number;          // input manual (prototype)
+  imageUrl?: string | null;         // foto titik (opsional, satu foto)
   notes?: string;
   supportIds?: ID[];                // tautan TravelSupport di basecamp
 }
@@ -73,7 +74,8 @@ export interface TrackNode {
 ### 2.2 RouteSegment (Ruas)
 
 ```ts
-export type RouteSurface = "setapak" | "aspal" | "tanah" | "batu" | "pasir";
+export type RouteSurface =
+  | "setapak" | "aspal" | "tanah" | "tanah-liat" | "batu" | "pasir";
 export type RouteGrade   = "datar" | "landai" | "sedang" | "terjal" | "sangat-terjal";
 
 export type RouteTraversal =
@@ -128,11 +130,26 @@ export interface TrailRoute {
   traversableBy: RouteTraversal[];
   difficulty: DestinationCondition;
   recommended: boolean;
-  status: RouteStatus;
+  status: TrailRouteStatus;
   createdAt: ISODateString;
   updatedAt: ISODateString;
 }
 ```
+
+**Status kondisi jalur** (`TrailRouteStatus`): `terverifikasi` | `alternatif` |
+`dalam-perbaikan` | `rusak` | `terlarang`. Default jalur baru:
+`terverifikasi`. Ruas tetap memakai `route_status` lama
+(`draft`/`diterbitkan`/`terverifikasi`).
+
+**Render peta:** warna & pola garis mengikuti `surface` (aspal hitam solid,
+setapak putus-putus, tanah cokelat, tanah liat dash-dot, bebatuan titik, pasir
+titik renggang, campuran hijau), lalu status menimpa pola/warna (alternatif
+putus, dalam perbaikan amber, rusak merah, terlarang merah tua). Semua jalur
+digambar; jalur terpilih lebih tebal. Legenda tersedia di bawah peta.
+
+**Ikon titik** (Lucide): basecamp `house`, gerbang `door-open`, parkir
+`square-parking`, pos `flag`, sumber-air `droplet`, viewpoint `binoculars`,
+puncak `mountain`, persimpangan `git-fork`, area-camp `tent`.
 
 > **Titik belokan tidak wajib bernama.** Jalur disimpan sebagai `points[]`
 > berurutan: admin bisa klik peta untuk menambah belokan bebas, lalu snap ke
