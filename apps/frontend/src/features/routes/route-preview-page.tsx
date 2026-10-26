@@ -3,12 +3,21 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
-import { ArrowLeft, Loader2, Map as MapIcon, Ruler } from "lucide-react";
+import { ArrowLeft, Copy, Loader2, Map as MapIcon, Pencil } from "lucide-react";
+import { useToast } from "~/components/ui/toaster";
 import { useAuth } from "~/features/auth/hooks/use-auth";
 import { useDestination } from "~/features/destinations/hooks/use-destinations";
+import { copyText } from "~/lib/clipboard";
 import { cn } from "~/lib/cn";
 import { ElevationChart } from "./components/elevation-chart";
-import { RouteMap } from "./components/route-map-client";
+import {
+  MapContextMenu,
+  type ContextMenuItem,
+} from "./components/map-context-menu";
+import {
+  RouteMap,
+  type RouteMapContextPayload,
+} from "./components/route-map-client";
 import { useRouteGraph, useRouteProfile } from "./hooks";
 import {
   difficultyLabels,
@@ -31,12 +40,14 @@ const ID_FALLBACK = { latitude: -2.5, longitude: 118 };
 export function RoutePreviewPage({ destinationId }: { destinationId: string }) {
   const auth = useAuth();
   const router = useRouter();
+  const { toast } = useToast();
   const enabled = auth.hydrated && !!auth.token && auth.user?.role === "admin";
 
   const destination = useDestination(destinationId, enabled);
   const graph = useRouteGraph(destinationId, auth.token, enabled);
 
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [menu, setMenu] = useState<RouteMapContextPayload | null>(null);
   const profile = useRouteProfile(selectedId, auth.token, enabled);
 
   const nodes = graph.data?.data.nodes ?? [];
@@ -98,12 +109,51 @@ export function RoutePreviewPage({ destinationId }: { destinationId: string }) {
     );
   }
 
-  const routeNodes = (route: TrailRoute) =>
-    route.points.map(
-      (point, index) =>
-        (point.nodeId ? nodeById.get(point.nodeId)?.name : null) ??
-        `Belokan ${index + 1}`,
+  const openEditor = () => router.push(`/admin/destinasi/${destinationId}/rute/peta`);
+
+  const copyCoordinate = async (latitude: number, longitude: number) => {
+    const ok = await copyText(
+      `${latitude.toFixed(6)}, ${longitude.toFixed(6)}`,
     );
+    toast({
+      title: ok ? "Koordinat disalin" : "Gagal menyalin koordinat",
+      variant: ok ? "success" : "danger",
+    });
+  };
+
+  const contextMenuItems = (
+    payload: RouteMapContextPayload,
+  ): ContextMenuItem[] => {
+    const items: ContextMenuItem[] = [
+      {
+        id: "editor",
+        label: "Kelola di peta",
+        icon: MapIcon,
+        onSelect: openEditor,
+      },
+    ];
+
+    if (payload.target.kind !== "map") {
+      items.unshift({
+        id: "open",
+        label: "Buka di editor",
+        icon: Pencil,
+        onSelect: openEditor,
+      });
+    }
+
+    items.push({
+      id: "copy",
+      label: "Salin koordinat",
+      icon: Copy,
+      onSelect: () =>
+        void copyCoordinate(payload.latitude, payload.longitude),
+    });
+
+    return payload.target.kind === "map"
+      ? items
+      : items.filter((item) => item.id !== "editor");
+  };
 
   return (
     <div className="space-y-6">
@@ -162,6 +212,17 @@ export function RoutePreviewPage({ destinationId }: { destinationId: string }) {
             selectedRouteId={selectedId}
             selectedPath={selectedPath}
             mode="view"
+            onContextMenu={setMenu}
+            overlay={
+              menu ? (
+                <MapContextMenu
+                  x={menu.x}
+                  y={menu.y}
+                  items={contextMenuItems(menu)}
+                  onClose={() => setMenu(null)}
+                />
+              ) : null
+            }
           />
 
           <div className="flex flex-wrap gap-2 text-xs text-body">
@@ -215,10 +276,7 @@ export function RoutePreviewPage({ destinationId }: { destinationId: string }) {
                     )}
                   </div>
                   <p className="mt-1 truncate text-xs text-body">
-                    {routeNodes(route).slice(0, 2).join(" → ")}
-                    {routeNodes(route).length > 2 ? " → …" : ""}
-                  </p>
-                  <p className="mt-2 text-xs text-body">
+                    {route.points.length} titik ·{" "}
                     {difficultyLabels[route.difficulty]} ·{" "}
                     {statusLabels[route.status]}
                   </p>
@@ -235,7 +293,10 @@ export function RoutePreviewPage({ destinationId }: { destinationId: string }) {
                     {selected.name}
                   </h3>
                   <p className="text-sm text-body">
-                    {routeNodes(selected).join(" → ")}
+                    {selected.points.length} titik
+                    {profile.data
+                      ? ` · ${profile.data.data.totalDistanceKm} km`
+                      : ""}
                   </p>
                 </div>
                 <span className="rounded-full bg-surface-2 px-2.5 py-1 text-xs font-semibold text-body">
@@ -278,15 +339,16 @@ export function RoutePreviewPage({ destinationId }: { destinationId: string }) {
                 </>
               ) : null}
 
-              <div>
-                <h4 className="mb-2 flex items-center gap-2 text-sm font-semibold text-ink">
-                  <Ruler aria-hidden className="h-4 w-4" />
+              <details className="rounded-lg border border-hairline">
+                <summary className="cursor-pointer select-none px-3 py-2.5 text-sm font-semibold text-ink">
+                  Lihat{" "}
                   {selected.segmentIds.length > 0
-                    ? "Ruas penyusun"
-                    : "Titik jalur"}
-                </h4>
+                    ? `ruas penyusun (${selected.segmentIds.length})`
+                    : `titik jalur (${selected.points.length})`}
+                </summary>
+                <div className="border-t border-hairline">
                 {selected.segmentIds.length > 0 ? (
-                  <ul className="divide-y divide-hairline rounded-lg border border-hairline">
+                  <ul className="divide-y divide-hairline">
                     {selected.segmentIds.map((segmentId, index) => {
                       const segment = segments.find(
                         (item) => item.id === segmentId,
@@ -316,7 +378,7 @@ export function RoutePreviewPage({ destinationId }: { destinationId: string }) {
                     })}
                   </ul>
                 ) : (
-                  <ul className="divide-y divide-hairline rounded-lg border border-hairline">
+                  <ul className="divide-y divide-hairline">
                     {selected.points.map((point, index) => (
                       <li
                         key={`${point.latitude}-${point.longitude}-${index}`}
@@ -337,7 +399,8 @@ export function RoutePreviewPage({ destinationId }: { destinationId: string }) {
                     ))}
                   </ul>
                 )}
-              </div>
+                </div>
+              </details>
             </section>
           )}
         </>
