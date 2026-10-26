@@ -12,6 +12,7 @@ import {
 } from "~/components/ui/dialog";
 import { Input } from "~/components/ui/input";
 import { Select } from "~/components/ui/select";
+import { SingleImageField } from "./single-image-field";
 import {
   nodeTypeOptions,
   type TrackNode,
@@ -23,6 +24,7 @@ interface NodeDialogProps {
   latitude: number;
   longitude: number;
   node?: TrackNode;
+  token?: string | null;
   isPending: boolean;
   error?: unknown;
   onClose: () => void;
@@ -31,6 +33,7 @@ interface NodeDialogProps {
     type: TrackNodeType;
     elevationMeters: number;
     notes: string;
+    imageUrl: string | null;
   }) => void;
   onDelete?: () => void;
 }
@@ -43,6 +46,7 @@ export function NodeDialog({
   latitude,
   longitude,
   node,
+  token,
   isPending,
   error,
   onClose,
@@ -55,6 +59,9 @@ export function NodeDialog({
     node ? String(node.elevationMeters) : "",
   );
   const [notes, setNotes] = useState(node?.notes ?? "");
+  const [imageUrl, setImageUrl] = useState<string | null>(
+    node?.imageUrl ?? null,
+  );
 
   const valid = name.trim().length >= 2 && Number.isFinite(Number(elevation));
 
@@ -101,6 +108,14 @@ export function NodeDialog({
               />
             </label>
           </div>
+          <SingleImageField
+            value={imageUrl}
+            onChange={setImageUrl}
+            token={token}
+            folder="nodes"
+            disabled={isPending}
+          />
+
           <label className="block space-y-1.5">
             <span className="text-xs font-semibold text-body">
               Catatan (opsional)
@@ -147,6 +162,7 @@ export function NodeDialog({
                   type,
                   elevationMeters: Number(elevation),
                   notes,
+                  imageUrl,
                 })
               }
             >

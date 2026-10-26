@@ -13,8 +13,9 @@ import { Input } from "~/components/ui/input";
 import { Select } from "~/components/ui/select";
 import {
   statusOptions,
+  trailSurfaceOptions,
   type RouteDifficulty,
-  type RouteStatus,
+  type TrailRouteStatus,
   type TrailRoute,
 } from "../schema";
 
@@ -29,7 +30,8 @@ interface RouteDialogProps {
   onSubmit: (values: {
     name: string;
     description: string;
-    status: RouteStatus;
+    surface: string;
+    status: TrailRouteStatus;
     recommended: boolean;
     difficulty?: RouteDifficulty;
   }) => void;
@@ -49,7 +51,10 @@ export function RouteDialog({
 }: RouteDialogProps) {
   const [name, setName] = useState(route?.name ?? "");
   const [description, setDescription] = useState(route?.description ?? "");
-  const [status, setStatus] = useState<RouteStatus>(route?.status ?? "draft");
+  const [surface, setSurface] = useState(route?.surface ?? "campuran");
+  const [status, setStatus] = useState<TrailRouteStatus>(
+    route?.status ?? "terverifikasi",
+  );
   const [recommended, setRecommended] = useState(route?.recommended ?? false);
   const [difficulty, setDifficulty] = useState<RouteDifficulty>(
     route?.difficulty ?? "menengah",
@@ -98,14 +103,27 @@ export function RouteDialog({
           </label>
           <div className="grid grid-cols-2 gap-3">
             <label className="block space-y-1.5">
+              <span className="text-xs font-semibold text-body">
+                Jenis jalur
+              </span>
+              <Select
+                ariaLabel="Jenis jalur"
+                value={surface}
+                onChange={setSurface}
+                options={trailSurfaceOptions}
+              />
+            </label>
+            <label className="block space-y-1.5">
               <span className="text-xs font-semibold text-body">Status</span>
               <Select
                 ariaLabel="Status jalur"
                 value={status}
-                onChange={(value) => setStatus(value as RouteStatus)}
+                onChange={(value) => setStatus(value as TrailRouteStatus)}
                 options={statusOptions}
               />
             </label>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
             <label className="block space-y-1.5">
               <span className="text-xs font-semibold text-body">
                 Kesulitan
@@ -151,6 +169,7 @@ export function RouteDialog({
               onSubmit({
                 name: name.trim(),
                 description,
+                surface,
                 status,
                 recommended,
                 difficulty,

@@ -14,6 +14,7 @@ export interface TrackNodeInput {
   longitude: number;
   elevationMeters: number;
   notes?: string | null;
+  imageUrl?: string | null;
 }
 
 export interface RouteSegmentInput {

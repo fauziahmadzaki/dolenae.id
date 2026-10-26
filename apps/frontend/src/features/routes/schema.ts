@@ -9,14 +9,28 @@ export type TrackNodeType =
   | "persimpangan"
   | "area-camp";
 
-export type RouteSurface = "setapak" | "aspal" | "tanah" | "batu" | "pasir";
+export type RouteSurface =
+  | "setapak"
+  | "aspal"
+  | "tanah"
+  | "tanah-liat"
+  | "batu"
+  | "pasir";
 export type RouteGrade =
   | "datar"
   | "landai"
   | "sedang"
   | "terjal"
   | "sangat-terjal";
-export type RouteStatus = "draft" | "diterbitkan" | "terverifikasi";
+/** Legacy status kept for segments. */
+export type RouteSegmentStatus = "draft" | "diterbitkan" | "terverifikasi";
+/** Condition shown for a whole trail. */
+export type TrailRouteStatus =
+  | "terverifikasi"
+  | "alternatif"
+  | "dalam-perbaikan"
+  | "rusak"
+  | "terlarang";
 export type RouteDifficulty = "ramah-pemula" | "menengah" | "sulit";
 
 export interface TrackNode {
@@ -27,6 +41,7 @@ export interface TrackNode {
   coordinate: { latitude: number; longitude: number };
   elevationMeters: number;
   notes: string | null;
+  imageUrl: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -44,7 +59,7 @@ export interface RouteSegment {
   estimatedDurationMinutes: number | null;
   seasonal: boolean;
   notes: string | null;
-  status: RouteStatus;
+  status: RouteSegmentStatus;
   createdAt: string;
   updatedAt: string;
 }
@@ -70,7 +85,7 @@ export interface TrailRoute {
   traversableBy: string[];
   difficulty: RouteDifficulty;
   recommended: boolean;
-  status: RouteStatus;
+  status: TrailRouteStatus;
   createdAt: string;
   updatedAt: string;
 }
@@ -117,7 +132,8 @@ export const surfaceLabels: Record<RouteSurface, string> = {
   setapak: "Setapak",
   aspal: "Aspal",
   tanah: "Tanah",
-  batu: "Batu",
+  "tanah-liat": "Tanah liat",
+  batu: "Bebatuan",
   pasir: "Pasir",
 };
 
@@ -129,10 +145,12 @@ export const gradeLabels: Record<RouteGrade, string> = {
   "sangat-terjal": "Sangat terjal",
 };
 
-export const statusLabels: Record<RouteStatus, string> = {
-  draft: "Draf",
-  diterbitkan: "Diterbitkan",
+export const statusLabels: Record<TrailRouteStatus, string> = {
   terverifikasi: "Terverifikasi",
+  alternatif: "Alternatif",
+  "dalam-perbaikan": "Dalam perbaikan",
+  rusak: "Rusak",
+  terlarang: "Terlarang",
 };
 
 export const difficultyLabels: Record<RouteDifficulty, string> = {
@@ -160,6 +178,11 @@ export const nodeTypeOptions = Object.entries(nodeTypeLabels).map(
 export const surfaceOptions = Object.entries(surfaceLabels).map(
   ([value, label]) => ({ value, label }),
 );
+/** Trail-level surfaces include "campuran". */
+export const trailSurfaceOptions = [
+  { value: "campuran", label: "Campuran" },
+  ...surfaceOptions,
+];
 export const gradeOptions = Object.entries(gradeLabels).map(
   ([value, label]) => ({ value, label }),
 );

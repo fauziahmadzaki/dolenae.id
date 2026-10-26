@@ -10,6 +10,8 @@ import {
   type TrackNode,
   type TrailRoute,
 } from "~/features/routes/schema";
+import { nodeIconSvg } from "~/features/routes/node-icon";
+import { routeLineStyle } from "~/features/routes/style";
 
 export type RouteMapContextTarget =
   | { kind: "map" }
@@ -32,8 +34,6 @@ export interface RouteMapProps {
   routes: TrailRoute[];
   selectedRouteId?: string | null;
   draftNodeIds?: string[];
-  /** Polyline of the selected route (free geometry). */
-  selectedPath?: { latitude: number; longitude: number }[];
   /** Polyline being drawn for a new route. */
   draftPath?: { latitude: number; longitude: number }[];
   mode?: "view" | "add-node" | "connect" | "route";
@@ -50,14 +50,14 @@ export interface RouteMapProps {
 const markerHtml = (node: TrackNode, connectMode: boolean, draft: boolean) => {
   const color = NODE_TYPE_COLORS[node.type];
   return `
-    <div data-node-id="${node.id}" style="position:relative;width:14px;height:14px;cursor:pointer;">
-      <span style="display:block;width:14px;height:14px;border-radius:9999px;border:2px solid #fff;background:${color};box-shadow:0 1px 4px rgba(0,0,0,.35);${
+    <div data-node-id="${node.id}" style="position:relative;width:24px;height:24px;cursor:pointer;">
+      <span style="display:flex;align-items:center;justify-content:center;width:24px;height:24px;border-radius:9999px;border:2px solid #fff;background:${color};box-shadow:0 1px 4px rgba(0,0,0,.35);${
         draft ? "outline:2px solid #b5651d;outline-offset:2px;" : ""
-      }"></span>
-      <span style="position:absolute;left:18px;top:50%;transform:translateY(-50%);white-space:nowrap;font:600 10px/1.2 system-ui,sans-serif;background:#fff;border:1px solid #e3e0d6;color:#233;padding:1px 5px;border-radius:4px;">${node.name} · ${node.elevationMeters} m</span>
+      }">${nodeIconSvg(node.type)}</span>
+      <span style="position:absolute;left:28px;top:50%;transform:translateY(-50%);white-space:nowrap;font:600 10px/1.2 system-ui,sans-serif;background:#fff;border:1px solid #e3e0d6;color:#233;padding:1px 5px;border-radius:4px;">${node.name} · ${node.elevationMeters} m</span>
       ${
         connectMode
-          ? `<span class="connect-handle" title="Tarik ke titik lain" style="position:absolute;right:-9px;top:50%;transform:translateY(-50%);width:12px;height:12px;border-radius:9999px;background:#1e3b2e;border:2px solid #fff;cursor:crosshair;box-shadow:0 1px 3px rgba(0,0,0,.35);"></span>`
+          ? `<span class="connect-handle" title="Tarik ke titik lain" style="position:absolute;right:-10px;top:50%;transform:translateY(-50%);width:12px;height:12px;border-radius:9999px;background:#1e3b2e;border:2px solid #fff;cursor:crosshair;box-shadow:0 1px 3px rgba(0,0,0,.35);"></span>`
           : ""
       }
     </div>
@@ -71,7 +71,6 @@ export function RouteMap({
   routes,
   selectedRouteId = null,
   draftNodeIds = [],
-  selectedPath = [],
   draftPath = [],
   mode = "view",
   onMapClick,
@@ -224,14 +223,24 @@ export function RouteMap({
       });
     }
 
-    // Selected route geometry: free points may not map to segments.
-    if (selectedPath.length >= 2) {
+    // Draw every trail with its own surface/condition style, selected last.
+    const orderedRoutes = [...routes].sort((first, second) => {
+      if (first.id === selectedRouteId) return 1;
+      if (second.id === selectedRouteId) return -1;
+      return 0;
+    });
+
+    for (const route of orderedRoutes) {
+      if (route.points.length < 2) continue;
+      const selected = route.id === selectedRouteId;
       L.polyline(
-        selectedPath.map(
+        route.points.map(
           (point) => [point.latitude, point.longitude] as [number, number],
         ),
-        { color: "#1e3b2e", weight: 5, opacity: 0.95 },
-      ).addTo(layer);
+        routeLineStyle(route.surface, route.status, selected),
+      )
+        .bindTooltip(route.name, { sticky: true })
+        .addTo(layer);
     }
 
     for (const node of nodes) {
@@ -242,8 +251,8 @@ export function RouteMap({
           icon: L.divIcon({
             className: "",
             html: markerHtml(node, mode === "connect", draft),
-            iconSize: [14, 14],
-            iconAnchor: [7, 7],
+            iconSize: [24, 24],
+            iconAnchor: [12, 12],
           }),
           keyboard: false,
         },
@@ -312,7 +321,7 @@ export function RouteMap({
         document.addEventListener("pointerup", finish, { once: true });
       });
     }
-  }, [nodes, segments, routes, selectedRouteId, selectedPath, draftNodeIds, mode]);
+  }, [nodes, segments, routes, selectedRouteId, draftNodeIds, mode]);
 
   // Draft route preview while composing a route.
   useEffect(() => {

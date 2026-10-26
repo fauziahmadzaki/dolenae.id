@@ -32,8 +32,10 @@ import { cn } from "~/lib/cn";
 import { MapContextMenu, type ContextMenuItem } from "./components/map-context-menu";
 import { NodeDialog } from "./components/node-dialog";
 import { RouteDialog } from "./components/route-dialog";
+import { RouteLegend } from "./components/route-legend";
 import { RouteMap, type RouteMapContextPayload } from "./components/route-map-client";
 import { SegmentDialog } from "./components/segment-dialog";
+import { TrackNodeIcon } from "./node-icon";
 import { useRouteGraph, useRouteMutations, useRouteProfile } from "./hooks";
 import {
   difficultyLabels,
@@ -348,15 +350,6 @@ export function RouteEditorPage({ destinationId }: { destinationId: string }) {
     [draftPoints],
   );
 
-  const selectedPath = useMemo(
-    () =>
-      selectedRoute?.points.map((point) => ({
-        latitude: point.latitude,
-        longitude: point.longitude,
-      })) ?? [],
-    [selectedRoute],
-  );
-
   const draftAnchors = draftPoints.filter((point) => point.nodeId);
   const firstDraftAnchor = draftAnchors[0];
   const lastDraftAnchor = draftAnchors.at(-1);
@@ -448,18 +441,18 @@ export function RouteEditorPage({ destinationId }: { destinationId: string }) {
       </p>
 
       <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_340px]">
-        <RouteMap
-          center={center}
-          nodes={nodes}
-          segments={segments}
-          routes={routes}
-          selectedRouteId={selectedRouteId}
-          selectedPath={selectedPath}
-          draftPath={draftPath}
-          draftNodeIds={draftPoints
-            .map((point) => point.nodeId)
-            .filter((id): id is string => Boolean(id))}
-          mode={mode}
+        <div className="space-y-2">
+          <RouteMap
+            center={center}
+            nodes={nodes}
+            segments={segments}
+            routes={routes}
+            selectedRouteId={selectedRouteId}
+            draftPath={draftPath}
+            draftNodeIds={draftPoints
+              .map((point) => point.nodeId)
+              .filter((id): id is string => Boolean(id))}
+            mode={mode}
           onMapClick={(lat, lng) => {
             if (mode === "add-node") {
               setDialog({ kind: "node", mode: "create", lat, lng });
@@ -491,6 +484,8 @@ export function RouteEditorPage({ destinationId }: { destinationId: string }) {
             ) : null
           }
         />
+          <RouteLegend />
+        </div>
 
         <aside className="space-y-4">
           {mode === "route" && (
@@ -540,12 +535,29 @@ export function RouteEditorPage({ destinationId }: { destinationId: string }) {
                     onClick={() => setDialog({ kind: "node", mode: "edit", node })}
                     className="flex w-full items-center justify-between gap-2 rounded-md px-2 py-1.5 text-left text-xs hover:bg-canvas-subtle"
                   >
-                    <span className="min-w-0">
-                      <span className="block truncate font-semibold text-ink">
-                        {node.name}
-                      </span>
-                      <span className="text-body">
-                        {nodeTypeLabels[node.type]}
+                    <span className="flex min-w-0 items-center gap-2">
+                      {node.imageUrl ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          src={node.imageUrl}
+                          alt=""
+                          className="h-8 w-8 shrink-0 rounded-md object-cover"
+                        />
+                      ) : (
+                        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-canvas-subtle text-primary">
+                          <TrackNodeIcon
+                            type={node.type}
+                            className="h-4 w-4"
+                          />
+                        </span>
+                      )}
+                      <span className="min-w-0">
+                        <span className="block truncate font-semibold text-ink">
+                          {node.name}
+                        </span>
+                        <span className="text-body">
+                          {nodeTypeLabels[node.type]}
+                        </span>
                       </span>
                     </span>
                     <span className="shrink-0 text-body">
@@ -658,6 +670,7 @@ export function RouteEditorPage({ destinationId }: { destinationId: string }) {
           mode="create"
           latitude={dialog.lat}
           longitude={dialog.lng}
+          token={auth.token}
           isPending={mutations.createNode.isPending}
           error={mutations.createNode.error}
           onClose={() => setDialog(null)}
@@ -681,6 +694,7 @@ export function RouteEditorPage({ destinationId }: { destinationId: string }) {
           node={dialog.node}
           latitude={dialog.node.coordinate.latitude}
           longitude={dialog.node.coordinate.longitude}
+          token={auth.token}
           isPending={mutations.updateNode.isPending || mutations.deleteNode.isPending}
           error={mutations.updateNode.error ?? mutations.deleteNode.error}
           onClose={() => setDialog(null)}

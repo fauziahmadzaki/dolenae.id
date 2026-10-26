@@ -10,6 +10,7 @@ import { useDestination } from "~/features/destinations/hooks/use-destinations";
 import { copyText } from "~/lib/clipboard";
 import { cn } from "~/lib/cn";
 import { ElevationChart } from "./components/elevation-chart";
+import { RouteLegend } from "./components/route-legend";
 import {
   MapContextMenu,
   type ContextMenuItem,
@@ -72,15 +73,6 @@ export function RoutePreviewPage({ destinationId }: { destinationId: string }) {
   const nodeById = useMemo(
     () => new Map(nodes.map((node) => [node.id, node])),
     [nodes],
-  );
-
-  const selectedPath = useMemo(
-    () =>
-      selected?.points.map((point) => ({
-        latitude: point.latitude,
-        longitude: point.longitude,
-      })) ?? [],
-    [selected],
   );
 
   useEffect(() => {
@@ -210,7 +202,6 @@ export function RoutePreviewPage({ destinationId }: { destinationId: string }) {
             segments={segments}
             routes={routes}
             selectedRouteId={selectedId}
-            selectedPath={selectedPath}
             mode="view"
             onContextMenu={setMenu}
             overlay={
@@ -224,6 +215,7 @@ export function RoutePreviewPage({ destinationId }: { destinationId: string }) {
               ) : null
             }
           />
+          <RouteLegend />
 
           <div className="flex flex-wrap gap-2 text-xs text-body">
             {[...new Set(nodes.map((node) => node.type))].map((type) => (
@@ -277,8 +269,12 @@ export function RoutePreviewPage({ destinationId }: { destinationId: string }) {
                   </div>
                   <p className="mt-1 truncate text-xs text-body">
                     {route.points.length} titik ·{" "}
-                    {difficultyLabels[route.difficulty]} ·{" "}
-                    {statusLabels[route.status]}
+                    {route.surface === "campuran"
+                      ? "Campuran"
+                      : (surfaceLabels[
+                          route.surface as keyof typeof surfaceLabels
+                        ] ?? route.surface)}{" "}
+                    · {statusLabels[route.status]}
                   </p>
                 </button>
               ))}
@@ -379,24 +375,37 @@ export function RoutePreviewPage({ destinationId }: { destinationId: string }) {
                   </ul>
                 ) : (
                   <ul className="divide-y divide-hairline">
-                    {selected.points.map((point, index) => (
-                      <li
-                        key={`${point.latitude}-${point.longitude}-${index}`}
-                        className="flex items-center justify-between gap-2 px-3 py-2.5 text-sm"
-                      >
-                        <span className="font-medium text-ink">
-                          {index + 1}.{" "}
-                          {(point.nodeId
-                            ? nodeById.get(point.nodeId)?.name
-                            : null) ?? `Belokan ${index + 1}`}
-                        </span>
-                        <span className="text-xs text-body">
-                          {point.elevationMeters != null
-                            ? `${point.elevationMeters} m`
-                            : "elevasi belum diisi"}
-                        </span>
-                      </li>
-                    ))}
+                    {selected.points.map((point, index) => {
+                      const node = point.nodeId
+                        ? nodeById.get(point.nodeId)
+                        : undefined;
+                      return (
+                        <li
+                          key={`${point.latitude}-${point.longitude}-${index}`}
+                          className="flex items-center justify-between gap-2 px-3 py-2.5 text-sm"
+                        >
+                          <span className="flex min-w-0 items-center gap-2">
+                            {node?.imageUrl ? (
+                              // eslint-disable-next-line @next/next/no-img-element
+                              <img
+                                src={node.imageUrl}
+                                alt=""
+                                className="h-7 w-7 shrink-0 rounded-md object-cover"
+                              />
+                            ) : null}
+                            <span className="font-medium text-ink">
+                              {index + 1}.{" "}
+                              {node?.name ?? `Belokan ${index + 1}`}
+                            </span>
+                          </span>
+                          <span className="text-xs text-body">
+                            {point.elevationMeters != null
+                              ? `${point.elevationMeters} m`
+                              : "elevasi belum diisi"}
+                          </span>
+                        </li>
+                      );
+                    })}
                   </ul>
                 )}
                 </div>
