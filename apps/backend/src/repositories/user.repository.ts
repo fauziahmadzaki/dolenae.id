@@ -1,6 +1,7 @@
-import { and, asc, count, desc, eq, ilike, or, sql } from "drizzle-orm";
+import { and, asc, count, desc, eq, gt, ilike, isNotNull, isNull, lt, or, sql } from "drizzle-orm";
 import { getDb } from "../db/client";
 import { users, type NewUserRow, type UserRow } from "../db/schema";
+import type { UserStatusFilter } from "../types/auth";
 import type { Pagination } from "../utils/pagination";
 
 /** Fields a caller may update after the user exists. */
@@ -21,6 +22,32 @@ export type UserPatch = Partial<
 
 /** Alias kept for the user-management service. */
 export type UpdateUserInput = UserPatch;
+
+/** A verified account with no login for this long counts as inactive. */
+const INACTIVE_AFTER_DAYS = 90;
+
+/** SQL condition for the derived account status shown in the admin table. */
+function statusCondition(status: UserStatusFilter) {
+  const cutoff = new Date(
+    Date.now() - INACTIVE_AFTER_DAYS * 24 * 60 * 60 * 1000,
+  );
+
+  switch (status) {
+    case "unverified":
+      return isNull(users.emailVerifiedAt);
+    case "inactive":
+      return and(
+        isNotNull(users.emailVerifiedAt),
+        or(isNull(users.lastLoginAt), lt(users.lastLoginAt, cutoff)),
+      );
+    case "active":
+      return and(
+        isNotNull(users.emailVerifiedAt),
+        isNotNull(users.lastLoginAt),
+        gt(users.lastLoginAt, cutoff),
+      );
+  }
+}
 
 export const userRepository = {
   async emailExists(email: string): Promise<boolean> {
@@ -82,7 +109,7 @@ export const userRepository = {
   },
 
   async list(
-    params: Pagination & { role?: UserRow["role"] },
+    params: Pagination & { role?: UserRow["role"]; status?: UserStatusFilter },
   ): Promise<{ items: UserRow[]; total: number }> {
     const db = getDb();
     const { limit, offset, sort, order, search } = params;
@@ -92,6 +119,7 @@ export const userRepository = {
         ? or(ilike(users.name, `%${search}%`), ilike(users.email, `%${search}%`))
         : undefined,
       params.role ? eq(users.role, params.role) : undefined,
+      params.status ? statusCondition(params.status) : undefined,
     );
 
     const sortable = {

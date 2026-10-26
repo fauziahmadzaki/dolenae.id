@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:dolenae_mobile/src/shared/icons/app_icons.dart';
 
-import '../../app/theme/app_colors.dart';
-import '../../app/theme/app_radius.dart';
-import '../../app/theme/app_shadows.dart';
-import '../../app/theme/app_spacing.dart';
-import '../../data/models/destination.dart';
-import 'dn_difficulty_badge.dart';
-import 'dn_media_placeholder.dart';
+import 'package:dolenae_mobile/src/app/theme/app_colors.dart';
+import 'package:dolenae_mobile/src/app/theme/app_radius.dart';
+import 'package:dolenae_mobile/src/app/theme/app_shadows.dart';
+import 'package:dolenae_mobile/src/app/theme/app_spacing.dart';
+import 'package:dolenae_mobile/src/features/destinations/domain/entities/destination.dart';
+import 'package:dolenae_mobile/src/shared/widgets/dn_difficulty_badge.dart';
+import 'package:dolenae_mobile/src/shared/widgets/dn_media_placeholder.dart';
 
 /// Kartu destinasi vertikal (grid/beranda).
 class DnDestinationCard extends StatelessWidget {

@@ -6,6 +6,13 @@ export type UserRole = (typeof USER_ROLES)[number];
 export const AUTH_PROVIDERS = ["local", "google"] as const;
 export type AuthProvider = (typeof AUTH_PROVIDERS)[number];
 
+/** Derived account status for the admin user table (no extra column needed). */
+export const USER_STATUS_FILTERS = ["active", "unverified", "inactive"] as const;
+export type UserStatusFilter = (typeof USER_STATUS_FILTERS)[number];
+
+/** A verified account with no login for this long counts as inactive. */
+export const INACTIVE_AFTER_DAYS = 90;
+
 /** Public user shape returned by the API (never includes the password hash). */
 export interface AuthUser {
   id: string;
@@ -14,6 +21,8 @@ export interface AuthUser {
   role: UserRole;
   provider: AuthProvider;
   avatarUrl: string | null;
+  /** ISO timestamp once the email is confirmed (null while unverified). */
+  emailVerifiedAt: string | null;
   createdAt: string;
   updatedAt: string;
 }

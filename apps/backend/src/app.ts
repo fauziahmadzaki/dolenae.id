@@ -2,6 +2,7 @@ import { apiReference } from "@scalar/express-api-reference";
 import cors from "cors";
 import express from "express";
 import helmet from "helmet";
+import { resolve } from "node:path";
 import pinoHttp from "pino-http";
 import { corsOrigins, loadEnv } from "./config/env";
 import { requestId } from "./middleware/request-id";
@@ -23,7 +24,10 @@ export function createApp() {
       genReqId: (req) => (req as { requestId?: string }).requestId ?? "-",
     }),
   );
-  const helmetMiddleware = helmet();
+  const helmetMiddleware = helmet({
+    // Uploaded images are embedded by the web app on another origin.
+    crossOriginResourcePolicy: { policy: "cross-origin" },
+  });
   app.use((req, res, next) => {
     // Scalar docs load a CDN script + inline module; CSP would block them.
     if (req.path.startsWith("/api/docs")) {
@@ -45,6 +49,17 @@ export function createApp() {
 
   app.use(express.json({ limit: "1mb" }));
   app.use(express.urlencoded({ extended: true, limit: "1mb" }));
+
+  // Local storage driver: serve uploaded images from the API origin.
+  if (env.STORAGE_DRIVER === "local") {
+    app.use(
+      "/uploads",
+      express.static(resolve(env.UPLOAD_DIR), {
+        maxAge: "1y",
+        immutable: true,
+      }),
+    );
+  }
 
   if (env.DOCS_ENABLED) {
     app.get("/api/openapi.json", (_req, res) => res.json(openApiDocument));

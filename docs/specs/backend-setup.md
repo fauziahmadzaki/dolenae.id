@@ -151,6 +151,13 @@ S3-compatible (MinIO self-host; lihat ADR-0005). Batas ukuran `MAX_UPLOAD_MB`
 `DELETE /api/uploads?url=<publicUrl>` (admin) — hapus berkas (hanya URL dari
 base publik kita). Dipakai saat melepas foto destinasi/fasilitas.
 
+Driver storage dipilih lewat `STORAGE_DRIVER`:
+
+| Nilai | Perilaku |
+| --- | --- |
+| `s3` (default) | Upload ke MinIO/S3, URL dari `S3_PUBLIC_URL` |
+| `local` | Simpan di `UPLOAD_DIR` dan sajikan lewat `/uploads` (`PUBLIC_API_URL`) — fallback dev saat image Docker tidak tersedia |
+
 Setup storage (sekali):
 
 ```bash

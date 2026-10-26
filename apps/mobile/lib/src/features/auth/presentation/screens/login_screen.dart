@@ -1,0 +1,559 @@
+import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
+import 'package:provider/provider.dart';
+import 'package:dolenae_mobile/src/shared/icons/app_icons.dart';
+
+import 'package:dolenae_mobile/src/features/auth/presentation/controllers/auth_controller.dart';
+import 'package:dolenae_mobile/src/app/theme/app_colors.dart';
+import 'package:dolenae_mobile/src/app/theme/app_radius.dart';
+import 'package:dolenae_mobile/src/app/theme/app_spacing.dart';
+import 'package:dolenae_mobile/src/app/theme/app_text_styles.dart';
+import 'package:dolenae_mobile/src/shared/widgets/dn_buttons.dart';
+import 'package:dolenae_mobile/src/shared/widgets/dn_google_logo.dart';
+
+/// Login & daftar dengan validasi lokal + state error.
+class LoginScreen extends StatefulWidget {
+  const LoginScreen({super.key});
+
+  @override
+  State<LoginScreen> createState() => _LoginScreenState();
+}
+
+class _LoginScreenState extends State<LoginScreen> {
+  final _name = TextEditingController();
+  final _email = TextEditingController();
+  final _password = TextEditingController();
+  final _confirm = TextEditingController();
+  bool _isRegister = false;
+  bool _submitted = false;
+  bool _loading = false;
+  bool _googleLoading = false;
+  bool _rememberMe = true;
+  String? _errorMessage;
+
+  bool get _emailValid =>
+      _email.text.contains('@') && _email.text.contains('.');
+
+  bool get _passwordValid => _password.text.length >= 8;
+
+  bool get _nameValid => _name.text.trim().length >= 2;
+
+  bool get _confirmValid =>
+      _confirm.text.isNotEmpty && _confirm.text == _password.text;
+
+  bool get _hasError =>
+      _submitted &&
+      (!_emailValid ||
+          !_passwordValid ||
+          (_isRegister && (!_nameValid || !_confirmValid)));
+
+  @override
+  void initState() {
+    super.initState();
+    // Isi email terakhir bila pengguna memilih "Ingat saya" sebelumnya.
+    final remembered = context.read<AuthController>().rememberedEmail;
+    if (remembered != null && remembered.isNotEmpty) {
+      _email.text = remembered;
+    }
+  }
+
+  @override
+  void dispose() {
+    _name.dispose();
+    _email.dispose();
+    _password.dispose();
+    _confirm.dispose();
+    super.dispose();
+  }
+
+  Future<void> _submit() async {
+    setState(() {
+      _submitted = true;
+      _errorMessage = null;
+    });
+    final localValid =
+        _emailValid &&
+        _passwordValid &&
+        (!_isRegister || (_nameValid && _confirmValid));
+    if (!localValid || _loading) return;
+
+    final auth = context.read<AuthController>();
+    setState(() => _loading = true);
+    var success = false;
+    try {
+      final failure = _isRegister
+          ? await auth.register(
+              name: _name.text,
+              email: _email.text,
+              password: _password.text,
+            )
+          : await auth.login(email: _email.text, password: _password.text);
+      if (failure != null) {
+        if (mounted) setState(() => _errorMessage = failure.message);
+      } else {
+        await auth.setRememberedEmail(_rememberMe ? _email.text : null);
+        success = true;
+      }
+    } catch (_) {
+      if (mounted) {
+        setState(
+          () => _errorMessage = 'Terjadi kesalahan. Coba beberapa saat lagi.',
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _loading = false);
+    }
+
+    if (success && mounted) context.go('/home');
+  }
+
+  Future<void> _signInWithGoogle() async {
+    if (_googleLoading || _loading) return;
+
+    final auth = context.read<AuthController>();
+    setState(() {
+      _googleLoading = true;
+      _errorMessage = null;
+    });
+
+    var success = false;
+    try {
+      final failure = await auth.signInWithGoogle();
+      if (failure != null) {
+        // Batal memilih akun bukan error: jangan tampilkan apa pun.
+        if (failure.code != 'GOOGLE_CANCELLED' && mounted) {
+          setState(() => _errorMessage = failure.message);
+        }
+      } else {
+        await auth.setRememberedEmail(_rememberMe ? auth.user?.email : null);
+        success = true;
+      }
+    } catch (_) {
+      if (mounted) {
+        setState(
+          () => _errorMessage = 'Terjadi kesalahan. Coba beberapa saat lagi.',
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _googleLoading = false);
+    }
+
+    if (success && mounted) context.go('/home');
+  }
+
+  void _openForgotPassword() {
+    final email = _email.text.trim();
+    final path = email.isEmpty
+        ? '/auth/forgot-password'
+        : '/auth/forgot-password?email=${Uri.encodeQueryComponent(email)}';
+    context.push(path);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(AppSpacing.s5),
+          child: Column(
+            children: [
+              const SizedBox(height: AppSpacing.s4),
+              Container(
+                width: 56,
+                height: 56,
+                decoration: BoxDecoration(
+                  color: AppColors.primary,
+                  borderRadius: BorderRadius.circular(AppRadius.xl),
+                ),
+                child: const Icon(
+                  AppIcons.mountainSnow,
+                  size: 28,
+                  color: AppColors.onPrimary,
+                ),
+              ),
+              const SizedBox(height: AppSpacing.s3),
+              Text('Selamat datang', style: AppTextStyles.displayMd),
+              const SizedBox(height: 6),
+              Text(
+                'Masuk untuk lanjut menyiapkan perjalananmu.',
+                textAlign: TextAlign.center,
+                style: AppTextStyles.bodySm,
+              ),
+              const SizedBox(height: AppSpacing.s5),
+              if (_hasError || _errorMessage != null) ...[
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(AppSpacing.s3),
+                  decoration: BoxDecoration(
+                    color: AppColors.danger,
+                    borderRadius: BorderRadius.circular(AppRadius.lg),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(
+                        AppIcons.alertCircle,
+                        size: 20,
+                        color: AppColors.surface,
+                      ),
+                      const SizedBox(width: AppSpacing.s2),
+                      Expanded(
+                        child: Text(
+                          _errorMessage ??
+                              'Periksa kembali data yang kamu masukkan.',
+                          style: AppTextStyles.bodySm.copyWith(
+                            color: AppColors.surface,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: AppSpacing.s4),
+              ],
+              _Tabs(
+                isRegister: _isRegister,
+                onChanged: (value) => setState(() {
+                  _isRegister = value;
+                  _errorMessage = null;
+                  _confirm.clear();
+                }),
+              ),
+              const SizedBox(height: AppSpacing.s4),
+              if (_isRegister) ...[
+                _Field(
+                  label: 'Nama',
+                  controller: _name,
+                  hint: 'Nama lengkap',
+                  icon: AppIcons.user,
+                  error: _submitted && !_nameValid
+                      ? 'Nama minimal 2 karakter.'
+                      : null,
+                  onChanged: (_) => setState(() {}),
+                ),
+                const SizedBox(height: AppSpacing.s3),
+              ],
+              _Field(
+                label: 'Email',
+                controller: _email,
+                hint: 'nama@email.com',
+                icon: AppIcons.mail,
+                error: _submitted && !_emailValid
+                    ? 'Masukkan email yang valid, contoh: nama@email.com'
+                    : null,
+                onChanged: (_) => setState(() {}),
+              ),
+              const SizedBox(height: AppSpacing.s3),
+              _Field(
+                label: 'Kata sandi',
+                controller: _password,
+                hint: 'Minimal 8 karakter',
+                icon: AppIcons.lock,
+                obscure: true,
+                error: _submitted && !_passwordValid
+                    ? 'Kata sandi minimal 8 karakter.'
+                    : null,
+                onChanged: (_) => setState(() {}),
+              ),
+              if (_isRegister) ...[
+                const SizedBox(height: AppSpacing.s3),
+                _Field(
+                  label: 'Ulangi kata sandi',
+                  controller: _confirm,
+                  hint: 'Ketik ulang kata sandi',
+                  icon: AppIcons.lock,
+                  obscure: true,
+                  error: _submitted && !_confirmValid
+                      ? 'Konfirmasi kata sandi tidak cocok.'
+                      : null,
+                  onChanged: (_) => setState(() {}),
+                ),
+              ],
+              const SizedBox(height: AppSpacing.s3),
+              Row(
+                children: [
+                  Expanded(
+                    child: Semantics(
+                      checked: _rememberMe,
+                      label: 'Ingat saya',
+                      child: InkWell(
+                        onTap: () => setState(() => _rememberMe = !_rememberMe),
+                        borderRadius: BorderRadius.circular(AppRadius.sm),
+                        child: ConstrainedBox(
+                          constraints: const BoxConstraints(minHeight: 44),
+                          child: Row(
+                            children: [
+                              Container(
+                                width: 18,
+                                height: 18,
+                                decoration: BoxDecoration(
+                                  color: _rememberMe
+                                      ? AppColors.primary
+                                      : Colors.transparent,
+                                  borderRadius: BorderRadius.circular(
+                                    AppRadius.sm,
+                                  ),
+                                  border: Border.all(
+                                    color: _rememberMe
+                                        ? AppColors.primary
+                                        : AppColors.borderStrong,
+                                  ),
+                                ),
+                                child: _rememberMe
+                                    ? const Icon(
+                                        AppIcons.check,
+                                        size: 12,
+                                        color: AppColors.onPrimary,
+                                      )
+                                    : null,
+                              ),
+                              const SizedBox(width: AppSpacing.s2),
+                              Flexible(
+                                child: Text(
+                                  'Ingat saya',
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: AppTextStyles.bodySm,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: AppSpacing.s2),
+                  InkWell(
+                    onTap: _openForgotPassword,
+                    borderRadius: BorderRadius.circular(AppRadius.sm),
+                    child: ConstrainedBox(
+                      constraints: const BoxConstraints(minHeight: 44),
+                      child: Center(
+                        widthFactor: 1,
+                        child: Text(
+                          'Lupa kata sandi?',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: AppTextStyles.label.copyWith(
+                            color: AppColors.primary,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: AppSpacing.s4),
+              DnPrimaryButton(
+                label: _loading
+                    ? (_isRegister ? 'Mendaftar…' : 'Masuk…')
+                    : (_isRegister ? 'Daftar' : 'Masuk'),
+                onPressed: _loading ? null : _submit,
+              ),
+              const SizedBox(height: AppSpacing.s4),
+              Row(
+                children: [
+                  const Expanded(child: Divider()),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: AppSpacing.s3,
+                    ),
+                    child: Text(
+                      'atau lanjut dengan',
+                      style: AppTextStyles.caption,
+                    ),
+                  ),
+                  const Expanded(child: Divider()),
+                ],
+              ),
+              const SizedBox(height: AppSpacing.s4),
+              SizedBox(
+                height: 48,
+                width: double.infinity,
+                child: OutlinedButton.icon(
+                  onPressed: _googleLoading ? null : _signInWithGoogle,
+                  style: OutlinedButton.styleFrom(
+                    backgroundColor: AppColors.surface,
+                    foregroundColor: AppColors.ink,
+                    side: const BorderSide(color: AppColors.borderStrong),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(AppRadius.lg),
+                    ),
+                  ),
+                  icon: const DnGoogleLogo(size: 20),
+                  label: Text(
+                    _googleLoading ? 'Menghubungkan…' : 'Google',
+                    style: const TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: AppSpacing.s5),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text('Belum punya akun? ', style: AppTextStyles.bodySm),
+                  Text(
+                    'Daftar',
+                    style: AppTextStyles.label.copyWith(
+                      color: AppColors.primary,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: AppSpacing.s5),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _Tabs extends StatelessWidget {
+  const _Tabs({required this.isRegister, required this.onChanged});
+
+  final bool isRegister;
+  final ValueChanged<bool> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: 44,
+      padding: const EdgeInsets.all(4),
+      decoration: BoxDecoration(
+        color: AppColors.canvasSubtle,
+        borderRadius: BorderRadius.circular(AppRadius.pill),
+        border: Border.all(color: AppColors.hairline),
+      ),
+      child: Row(
+        children: [
+          _tab('Masuk', !isRegister, () => onChanged(false)),
+          _tab('Daftar', isRegister, () => onChanged(true)),
+        ],
+      ),
+    );
+  }
+
+  Widget _tab(String label, bool active, VoidCallback onTap) {
+    return Expanded(
+      child: GestureDetector(
+        onTap: onTap,
+        behavior: HitTestBehavior.opaque,
+        child: Container(
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            color: active ? AppColors.primary : Colors.transparent,
+            borderRadius: BorderRadius.circular(AppRadius.pill),
+          ),
+          child: Text(
+            label,
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: active ? FontWeight.w600 : FontWeight.w500,
+              color: active ? AppColors.onPrimary : AppColors.body,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _Field extends StatelessWidget {
+  const _Field({
+    required this.label,
+    required this.controller,
+    required this.hint,
+    required this.icon,
+    this.error,
+    this.obscure = false,
+    this.onChanged,
+  });
+
+  final String label;
+  final TextEditingController controller;
+  final String hint;
+  final IconData icon;
+  final String? error;
+  final bool obscure;
+  final ValueChanged<String>? onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: AppTextStyles.caption.copyWith(color: AppColors.body),
+        ),
+        const SizedBox(height: 6),
+        TextField(
+          controller: controller,
+          obscureText: obscure,
+          onChanged: onChanged,
+          style: AppTextStyles.bodySm.copyWith(color: AppColors.ink),
+          decoration: InputDecoration(
+            isDense: true,
+            hintText: hint,
+            hintStyle: AppTextStyles.bodySm,
+            prefixIcon: Icon(
+              icon,
+              size: 18,
+              color: error != null ? AppColors.danger : AppColors.body,
+            ),
+            prefixIconConstraints: const BoxConstraints(minWidth: 40),
+            filled: true,
+            fillColor: AppColors.canvasSubtle,
+            contentPadding: const EdgeInsets.symmetric(
+              vertical: 14,
+              horizontal: 12,
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(AppRadius.lg),
+              borderSide: BorderSide(
+                color: error != null ? AppColors.danger : AppColors.hairline,
+                width: error != null ? 2 : 1,
+              ),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(AppRadius.lg),
+              borderSide: BorderSide(
+                color: error != null
+                    ? AppColors.danger
+                    : AppColors.borderStrong,
+                width: 2,
+              ),
+            ),
+          ),
+        ),
+        if (error != null) ...[
+          const SizedBox(height: 6),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Icon(
+                AppIcons.alertCircle,
+                size: 14,
+                color: AppColors.danger,
+              ),
+              const SizedBox(width: 6),
+              Expanded(
+                child: Text(
+                  error!,
+                  style: AppTextStyles.caption.copyWith(
+                    color: AppColors.danger,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ],
+    );
+  }
+}

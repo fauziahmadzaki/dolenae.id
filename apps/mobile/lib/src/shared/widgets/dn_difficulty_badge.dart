@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
-import '../../app/theme/app_colors.dart';
-import '../../data/models/destination.dart';
+import 'package:dolenae_mobile/src/app/theme/app_colors.dart';
+import 'package:dolenae_mobile/src/features/destinations/domain/entities/destination.dart';
 
 /// Badge tingkat kesulitan: pemula=success, menengah=warning, sulit=danger.
 class DnDifficultyBadge extends StatelessWidget {

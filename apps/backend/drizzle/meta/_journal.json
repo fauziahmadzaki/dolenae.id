@@ -8,6 +8,48 @@
       "when": 1791579003772,
       "tag": "0000_parallel_toro",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1792423379658,
+      "tag": "0001_sleepy_harrier",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1792502393372,
+      "tag": "0002_secret_stardust",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1792572650661,
+      "tag": "0003_drop_legacy_classification",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1792577477478,
+      "tag": "0004_route_builder",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1792581705835,
+      "tag": "0005_route_points",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1793005637380,
+      "tag": "0006_trail_status_surfaces_node_photos",
+      "breakpoints": true
     }
   ]
 }

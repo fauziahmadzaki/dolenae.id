@@ -1,6 +1,10 @@
 import { z } from "zod";
 import { paginationSchema } from "../utils/pagination";
-export const userListQuerySchema = paginationSchema.extend({ role: z.enum(["wisatawan", "merchant", "admin"]).optional() });
+import { USER_STATUS_FILTERS } from "../types/auth";
+export const userListQuerySchema = paginationSchema.extend({
+  role: z.enum(["wisatawan", "merchant", "admin"]).optional(),
+  status: z.enum(USER_STATUS_FILTERS).optional(),
+});
 export type UserListQuery = z.infer<typeof userListQuerySchema>;
 
 /** Skema validasi pembuatan user baru. */

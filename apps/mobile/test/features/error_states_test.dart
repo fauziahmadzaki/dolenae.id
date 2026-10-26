@@ -1,8 +1,8 @@
-import 'package:dolenae_mobile/src/data/models/search_filter.dart';
-import 'package:dolenae_mobile/src/data/seed/seed_data.dart';
-import 'package:dolenae_mobile/src/features/ai/presentation/ai_results_screen.dart';
-import 'package:dolenae_mobile/src/features/explore/presentation/explore_screen.dart';
-import 'package:dolenae_mobile/src/features/home/presentation/beranda_screen.dart';
+import 'package:dolenae_mobile/src/features/destinations/domain/entities/search_filter.dart';
+import 'package:dolenae_mobile/src/features/ai/data/data_sources/ai_seed_data_source.dart';
+import 'package:dolenae_mobile/src/features/ai/presentation/screens/ai_results_screen.dart';
+import 'package:dolenae_mobile/src/features/explore/presentation/screens/explore_screen.dart';
+import 'package:dolenae_mobile/src/features/home/presentation/screens/beranda_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -178,7 +178,7 @@ void main() {
         wrapScreen(
           AiResultsScreen(
             hasError: true,
-            result: SeedData.demoAiResult,
+            result: AiSeedData.demoResult,
           ),
         ),
       );

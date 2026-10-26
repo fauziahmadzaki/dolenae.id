@@ -85,21 +85,24 @@ perjalanan gunung" yang tenang, tegas, dan meyakinkan — bukan SaaS pastel.
 ## 3. Tipografi
 
 ### Fonts
-- **Display/Heading:** Poppins (800 / ExtraBold, 700 / Bold) — Google Font, di
-  Flutter dipakai via package `google_fonts`.
+- **Display/Heading:** Plus Jakarta Sans (800 / ExtraBold, 700 / Bold, 600 /
+  SemiBold) — Google Font. Geometris-hangat dan lebih *friendly* daripada
+  grotesk formal; dipakai untuk semua heading agar terasa ramah, bukan kaku.
+  Di Flutter diambil via package `google_fonts`.
 - **Body/UI:** Inter (400 / Regular, 500 / Medium, 600 / SemiBold)
 
-> Catatan: jika Poppins belum terinstal di Figma, gunakan Inter untuk seluruh
-> skala agar rendering tetap konsisten.
+> Catatan: Plus Jakarta Sans & Inter sama-sama tersedia di Figma. Jika salah
+> satu belum terinstal, fallback ke Inter untuk seluruh skala agar rendering
+> tetap konsisten.
 
 ### Scale
 
 | Token | Family | Size | Weight | Line height | Penggunaan |
 | --- | --- | --- | --- | --- | --- |
-| `display-xl` | Poppins | 40px | 800 | 48px | Hero halaman destinasi |
-| `display-lg` | Poppins | 32px | 800 | 40px | Judul halaman/landing |
-| `display-md` | Poppins | 24px | 700 | 32px | Heading seksi |
-| `title` | Poppins | 20px | 700 | 28px | Judul kartu/komponen |
+| `display-xl` | Plus Jakarta Sans | 40px | 800 | 48px | Hero halaman destinasi |
+| `display-lg` | Plus Jakarta Sans | 32px | 800 | 40px | Judul halaman/landing |
+| `display-md` | Plus Jakarta Sans | 24px | 700 | 32px | Heading seksi |
+| `title` | Plus Jakarta Sans | 20px | 700 | 28px | Judul kartu/komponen |
 | `body-lg` | Inter | 18px | 400 | 28px | Deskripsi hero |
 | `body` | Inter | 16px | 400 | 24px | Teks utama |
 | `body-sm` | Inter | 14px | 400 | 20px | Metadata, keterangan |
@@ -189,7 +192,7 @@ perjalanan gunung" yang tenang, tegas, dan meyakinkan — bukan SaaS pastel.
 - Warna kesulitan diselaraskan sistem: ramah-pemula → `success`, menengah →
   `warning`, sulit → `danger`.
 - Bind warna ke variabel token (menggunakan `var:<nama>`), jangan hardcode hex.
-- Teks deskriptif panjang gunakan Inter Regular; heading gunakan Poppins Bold.
+- Teks deskriptif panjang gunakan Inter Regular; heading gunakan Plus Jakarta Sans Bold.
 
 ### Don't
 - Jangan menambah warna baru tanpa mencatat ke palette di dokumen ini.
@@ -268,10 +271,10 @@ perjalanan gunung" yang tenang, tegas, dan meyakinkan — bukan SaaS pastel.
     "radius-pill": "9999px"
   },
   "typography": {
-    "display-xl": { "fontFamily": "Poppins", "fontSize": 40, "fontWeight": 800, "lineHeight": 48 },
-    "display-lg": { "fontFamily": "Poppins", "fontSize": 32, "fontWeight": 800, "lineHeight": 40 },
-    "display-md": { "fontFamily": "Poppins", "fontSize": 24, "fontWeight": 700, "lineHeight": 32 },
-    "title": { "fontFamily": "Poppins", "fontSize": 20, "fontWeight": 700, "lineHeight": 28 },
+    "display-xl": { "fontFamily": "Plus Jakarta Sans", "fontSize": 40, "fontWeight": 800, "lineHeight": 48 },
+    "display-lg": { "fontFamily": "Plus Jakarta Sans", "fontSize": 32, "fontWeight": 800, "lineHeight": 40 },
+    "display-md": { "fontFamily": "Plus Jakarta Sans", "fontSize": 24, "fontWeight": 700, "lineHeight": 32 },
+    "title": { "fontFamily": "Plus Jakarta Sans", "fontSize": 20, "fontWeight": 700, "lineHeight": 28 },
     "body-lg": { "fontFamily": "Inter", "fontSize": 18, "fontWeight": 400, "lineHeight": 28 },
     "body": { "fontFamily": "Inter", "fontSize": 16, "fontWeight": 400, "lineHeight": 24 },
     "body-sm": { "fontFamily": "Inter", "fontSize": 14, "fontWeight": 400, "lineHeight": 20 },
@@ -283,6 +286,6 @@ perjalanan gunung" yang tenang, tegas, dan meyakinkan — bukan SaaS pastel.
     "shadow-md": "0 4px 12px rgba(23,27,20,.07), 0 2px 6px rgba(23,27,20,.04)",
     "shadow-lg": "0 12px 32px rgba(23,27,20,.12), 0 4px 12px rgba(23,27,20,.07)"
   },
-  "fonts": ["Poppins", "Inter"]
+  "fonts": ["Plus Jakarta Sans", "Inter"]
 }
 ```

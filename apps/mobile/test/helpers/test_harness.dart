@@ -1,10 +1,30 @@
 import 'dart:io';
 
-import 'package:dolenae_mobile/src/app/state/ai_state.dart';
-import 'package:dolenae_mobile/src/app/state/notifications_state.dart';
-import 'package:dolenae_mobile/src/app/state/saved_state.dart';
-import 'package:dolenae_mobile/src/app/state/search_state.dart';
-import 'package:dolenae_mobile/src/app/state/settings_state.dart';
+import 'package:dolenae_mobile/src/core/error/app_failure.dart';
+import 'package:dolenae_mobile/src/core/result/result.dart';
+import 'package:dolenae_mobile/src/features/ai/data/repositories/ai_repository_impl.dart';
+import 'package:dolenae_mobile/src/features/ai/presentation/controllers/ai_controller.dart';
+import 'package:dolenae_mobile/src/features/auth/domain/entities/auth_session.dart';
+import 'package:dolenae_mobile/src/features/auth/domain/repositories/auth_repository.dart';
+import 'package:dolenae_mobile/src/features/auth/presentation/controllers/auth_controller.dart';
+import 'package:dolenae_mobile/src/features/checklist/data/repositories/checklist_repository_impl.dart';
+import 'package:dolenae_mobile/src/features/checklist/presentation/controllers/checklist_controller.dart';
+import 'package:dolenae_mobile/src/features/destinations/data/data_sources/destination_seed_data_source.dart';
+import 'package:dolenae_mobile/src/features/destinations/domain/entities/destination_catalog.dart';
+import 'package:dolenae_mobile/src/features/destinations/domain/repositories/destination_repository.dart';
+import 'package:dolenae_mobile/src/features/destinations/presentation/controllers/destinations_controller.dart';
+import 'package:dolenae_mobile/src/features/explore/data/repositories/explore_repository_impl.dart';
+import 'package:dolenae_mobile/src/features/explore/presentation/controllers/explore_controller.dart';
+import 'package:dolenae_mobile/src/features/facilities/data/repositories/facility_repository_impl.dart';
+import 'package:dolenae_mobile/src/features/facilities/presentation/controllers/facilities_controller.dart';
+import 'package:dolenae_mobile/src/features/notifications/data/repositories/notification_repository_impl.dart';
+import 'package:dolenae_mobile/src/features/notifications/presentation/controllers/notifications_controller.dart';
+import 'package:dolenae_mobile/src/features/plan/data/repositories/plan_repository_impl.dart';
+import 'package:dolenae_mobile/src/features/plan/presentation/controllers/plan_controller.dart';
+import 'package:dolenae_mobile/src/features/saved/data/repositories/saved_repository_impl.dart';
+import 'package:dolenae_mobile/src/features/saved/presentation/controllers/saved_controller.dart';
+import 'package:dolenae_mobile/src/features/settings/data/repositories/settings_repository_impl.dart';
+import 'package:dolenae_mobile/src/features/settings/presentation/controllers/settings_controller.dart';
 import 'package:dolenae_mobile/src/app/theme/app_theme.dart';
 import 'package:dolenae_mobile/src/shared/widgets/dn_input.dart';
 import 'package:flutter/material.dart';
@@ -89,26 +109,57 @@ ByteData? _readAnyFontBytes() {
   return null;
 }
 
-/// Kumpulan state per-domain untuk diinjeksi ke layar saat pengujian.
+/// Kumpulan controller per-domain untuk diinjeksi ke layar saat pengujian.
 class TestStores {
-  TestStores()
-    : notifications = NotificationsState(),
-      saved = SavedState(),
-      ai = AiState(),
-      settings = SettingsState(),
-      search = SearchState();
+  TestStores({AuthRepository? authRepository, String? rememberedEmail})
+    : auth = AuthController(
+        repository: authRepository ?? const _TestAuthRepository(),
+        initialRememberedEmail: rememberedEmail,
+      ),
+      notifications = NotificationsController(NotificationRepositoryImpl()),
+      saved = SavedController(SavedRepositoryImpl()),
+      ai = AiController(repository: const AiRepositoryImpl()),
+      settings = SettingsController(SettingsRepositoryImpl()),
+      search = ExploreController(ExploreRepositoryImpl()),
+      destinations = DestinationsController(
+        repository: const _TestDestinationRepository(),
+        initialItems: DestinationSeedData.items,
+      ),
+      facilities = FacilitiesController(const FacilityRepositoryImpl()),
+      plan = PlanController(const PlanRepositoryImpl()),
+      checklist = ChecklistController(ChecklistRepositoryImpl());
 
-  final NotificationsState notifications;
-  final SavedState saved;
-  final AiState ai;
-  final SettingsState settings;
-  final SearchState search;
+  final AuthController auth;
+  final NotificationsController notifications;
+  final SavedController saved;
+  final AiController ai;
+  final SettingsController settings;
+  final ExploreController search;
+  final DestinationsController destinations;
+  final FacilitiesController facilities;
+  final PlanController plan;
+  final ChecklistController checklist;
 }
 
-/// Buat state baru untuk assert terhadap perubahan state di layar.
+/// Buat controller baru untuk assert terhadap perubahan state di layar.
 TestStores newStore() => TestStores();
 
-/// Bungkus [child] dengan tema aplikasi, state per-domain, dan router minimal.
+/// Repository destinasi sederhana yang langsung mengembalikan data seed.
+class _TestDestinationRepository implements DestinationRepository {
+  const _TestDestinationRepository();
+
+  @override
+  Stream<DestinationCatalog> watchCatalog() {
+    return Stream.value(
+      const DestinationCatalog(items: DestinationSeedData.items),
+    );
+  }
+
+  @override
+  Future<Result<void>> refresh() async => const Success(null);
+}
+
+/// Bungkus [child] dengan tema aplikasi, controller per-domain, dan router minimal.
 ///
 /// Router dipasang supaya `context.push` maupun `context.pop` di dalam layar
 /// tidak melempar error saat diuji; semua tujuan lain diarahkan ke [_StubScreen].
@@ -118,20 +169,27 @@ Widget wrapScreen(Widget child, {TestStores? store}) {
     initialLocation: '/',
     routes: [
       GoRoute(path: '/', builder: (_, _) => child),
+      GoRoute(path: '/home', builder: (_, _) => const _StubScreen()),
       GoRoute(path: '/susun/:lain', builder: (_, _) => const _StubScreen()),
       GoRoute(
-        path: '/destination/:id',
+        path: '/auth/forgot-password',
         builder: (_, _) => const _StubScreen(),
       ),
+      GoRoute(path: '/destination/:id', builder: (_, _) => const _StubScreen()),
     ],
   );
   return MultiProvider(
     providers: [
+      ChangeNotifierProvider.value(value: stores.auth),
       ChangeNotifierProvider.value(value: stores.notifications),
       ChangeNotifierProvider.value(value: stores.saved),
       ChangeNotifierProvider.value(value: stores.ai),
       ChangeNotifierProvider.value(value: stores.settings),
       ChangeNotifierProvider.value(value: stores.search),
+      ChangeNotifierProvider.value(value: stores.destinations),
+      ChangeNotifierProvider.value(value: stores.facilities),
+      ChangeNotifierProvider.value(value: stores.plan),
+      ChangeNotifierProvider.value(value: stores.checklist),
     ],
     child: MaterialApp.router(
       debugShowCheckedModeBanner: false,
@@ -174,6 +232,64 @@ Finder inputFor(String label) => find.descendant(
   of: find.ancestor(of: find.text(label), matching: find.byType(DnInput)),
   matching: find.byType(TextField),
 );
+
+/// Repository auth palsu untuk widget test: tanpa jaringan dan tanpa storage.
+class _TestAuthRepository implements AuthRepository {
+  const _TestAuthRepository();
+
+  static const _user = AuthUser(
+    id: 'user-1',
+    name: 'Dimas Pratama',
+    email: 'dimas@dolenae.id',
+    role: 'wisatawan',
+  );
+
+  static const _session = AuthSession(token: 'token-uji', user: _user);
+
+  @override
+  Future<Result<AuthSession>> restore() async =>
+      const Failure(AuthFailure('Sesi tidak ditemukan.'));
+
+  @override
+  Future<Result<AuthSession>> verify() async =>
+      const Failure(AuthFailure('Sesi tidak ditemukan.'));
+
+  @override
+  Future<Result<AuthSession>> login({
+    required String email,
+    required String password,
+  }) async => const Success(_session);
+
+  @override
+  Future<Result<AuthSession>> register({
+    required String name,
+    required String email,
+    required String password,
+  }) async => const Success(_session);
+
+  @override
+  Future<Result<AuthSession>> googleSignIn() async => const Failure(
+    AuthFailure('Google belum dikonfigurasi.', code: 'GOOGLE_FAILED'),
+  );
+
+  @override
+  Future<Result<String>> forgotPassword({required String email}) async =>
+      const Success('Tautan sudah dikirim.');
+
+  @override
+  Future<Result<String>> resendVerificationEmail({
+    required String email,
+  }) async => const Success('Tautan verifikasi sudah dikirim.');
+
+  @override
+  Future<Result<void>> logout() async => const Success(null);
+
+  @override
+  Future<String?> readRememberedEmail() async => null;
+
+  @override
+  Future<void> writeRememberedEmail(String? email) async {}
+}
 
 /// Placeholder untuk navigasi yang tidak sedang diuji.
 class _StubScreen extends StatelessWidget {

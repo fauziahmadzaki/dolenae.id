@@ -16,7 +16,8 @@ Destinasi alam (gunung, bukit, danau, air terjun, dsb).
 
 **Field inti:**
 - identitas: `id`, `name`, `slug`, `tagline`, `description`
-- klasifikasi: `terrain[]`, `activities[]`, `difficulty`, `bestSeason[]`, `tags[]`
+- klasifikasi: `difficulty`, `bestSeason[]`, `tags[]`, serta `terrain[]` &
+  `activities[]` yang **diturunkan** dari kategori (lihat catatan di bawah)
 - geografi: `location` (provinsi, kabupaten/kota, **kecamatan `district?`**,
   koordinat, serta `accessPoint?` berupa basecamp/titik akses terdekat — dipakai
   untuk peta lokasi). Nama wilayah diambil dari dataset `@dolenae/regions`
@@ -24,7 +25,16 @@ Destinasi alam (gunung, bukit, danau, air terjun, dsb).
 - `access`: deskripsi akses, moda transportasi, estimasi waktu, jarak
 - `facilities`: toilet, warung, mushola, parkir, homestay dekat, dll
 - ekonomi: `entryFee`, `elevationMeters`
+- publikasi: `status` (`draft` | `published` | `archived`), `verified`
 - meta: `images`, `guideRequired`, `categoryIds[]`, `createdAt`, `updatedAt`
+
+Nilai `difficulty`: `ramah-pemula` | `menengah` | `sulit`.
+
+> Implementasi backend (`apps/backend/src/db/schema.ts`) menyimpan geografi dan
+> akses sebagai kolom datar (`province`, `regency`, `district`, `latitude`,
+> `longitude`, `accessPoint`, `accessDescription`, `accessTransport`,
+> `accessDuration`, `accessDistanceKm`), sedangkan API mengeksposnya sebagai
+> objek bersarang `location` dan `access`.
 
 **Relasi:** satu destinasi memiliki banyak `TravelSupport`
 (`DestinationDetail = Destination + supports[]`) dan banyak `Category`
@@ -38,11 +48,11 @@ data yang bisa dikelola admin (tambah/edit/hapus).
 - field: `id`, `name`, `slug`, `type`, `icon` (nama ikon Lucide, mis.
   `lucide:mountain`), `description?`, `createdAt`, `updatedAt`.
 
-> Destinasi masih menyimpan `terrain[]`/`activities[]` (union string) untuk
-> kompatibilitas tampilan, sementara relasi resmi ke kategori disimpan di
-> `categoryIds`/`destination_categories`. Saat seed, tiap nilai
-> terrain/aktivitas dibuatkan satu kategori dengan `slug` sama sehingga
-> keduanya konsisten.
+> Destinasi **tidak lagi menyimpan** `terrain[]`/`activities[]` sebagai kolom.
+> Keduanya diturunkan saat read dari kategori yang terhubung
+> (`type: terrain` → `terrain`, `type: activity` → `activities`), sehingga rename
+> kategori langsung tercermin di API. Admin mengisi klasifikasi hanya lewat chip
+> kategori; field `tags[]` tetap bebas untuk label seperti `sunrise`.
 
 ### TravelSupport (Kebutuhan Pendukung)
 Diskriminator `type`:

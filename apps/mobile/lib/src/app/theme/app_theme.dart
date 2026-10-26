@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
-import 'app_colors.dart';
-import 'app_text_styles.dart';
+import 'package:dolenae_mobile/src/app/theme/app_colors.dart';
+import 'package:dolenae_mobile/src/app/theme/app_text_styles.dart';
 
 /// ThemeData aplikasi berdasarkan token tema "Alam".
 abstract final class AppTheme {

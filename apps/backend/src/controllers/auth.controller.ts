@@ -8,7 +8,9 @@ import type {
   GoogleInput,
   LoginInput,
   RegisterInput,
+  ResendVerificationInput,
   ResetPasswordInput,
+  VerifyEmailInput,
 } from "./auth.schema";
 
 export const authController = {
@@ -41,6 +43,18 @@ export const authController = {
   resetPassword: (async (req, res) => {
     const body = getValidated<ResetPasswordInput>(req, "body");
     ok(res, await authService.resetPassword(body));
+  }) satisfies RequestHandler,
+
+  /** POST /api/auth/verify-email */
+  verifyEmail: (async (req, res) => {
+    const body = getValidated<VerifyEmailInput>(req, "body");
+    ok(res, await authService.verifyEmail(body));
+  }) satisfies RequestHandler,
+
+  /** POST /api/auth/resend-verification */
+  resendVerification: (async (req, res) => {
+    const body = getValidated<ResendVerificationInput>(req, "body");
+    ok(res, await authService.resendVerification(body));
   }) satisfies RequestHandler,
 
   /** GET /api/auth/me (protected) */

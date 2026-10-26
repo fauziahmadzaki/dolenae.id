@@ -2,12 +2,13 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { Check, Eye, EyeOff, Globe, Loader2 } from "lucide-react";
+import { Check, Eye, EyeOff, Loader2 } from "lucide-react";
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
 import { useToast } from "~/components/ui/toaster";
 import { cn } from "~/lib/cn";
 import { BrandMark } from "~/components/brand-mark";
+import { GoogleIcon } from "~/components/icons/google-icon";
 import { useLoginForm } from "../hooks/use-login-form";
 import { LoginTabs } from "./login-tabs";
 
@@ -53,7 +54,7 @@ export function LoginForm() {
 
           <LoginTabs />
 
-          <div className="space-y-5">
+          <form className="space-y-5" onSubmit={onSubmit} noValidate>
             <div className="space-y-2">
               <label
                 htmlFor="email"
@@ -137,7 +138,6 @@ export function LoginForm() {
                 Ingat saya
               </label>
 
-              {/* TODO: forgot-password page */}
               <Link
                 href="/auth/forgot-password"
                 className="text-sm font-semibold text-primary hover:text-primary-hover"
@@ -152,14 +152,15 @@ export function LoginForm() {
               size="lg"
               className="w-full"
               disabled={isSubmitting}
-              onClick={onSubmit}
             >
               {isSubmitting && (
                 <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
               )}
               Masuk
             </Button>
+          </form>
 
+          <div className="space-y-5">
             <div className="flex items-center gap-3">
               <span className="h-px flex-1 bg-hairline" />
               <span className="text-xs font-medium text-body">
@@ -176,7 +177,7 @@ export function LoginForm() {
               onClick={handleGoogle}
               disabled={isSubmitting}
             >
-              <Globe className="h-[18px] w-[18px]" aria-hidden />
+              <GoogleIcon className="h-[18px] w-[18px]" />
               Google
             </Button>
 

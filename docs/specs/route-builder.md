@@ -5,9 +5,9 @@ Spesifikasi fitur **Route Builder** di sisi admin: admin menyusun **titik**
 **jalur** bernama. Karena tiap titik punya **elevasi**, sistem dapat menggambar
 **profil elevasi** tiap jalur.
 
-> Status implementasi: **desain (Figma) + spesifikasi**. Kode
-> (`packages/types`, `packages/seed`, API, UI) menyusul sebagai fase lanjutan.
-> Bagian publik (web/mobile) belum dirancang.
+> Status implementasi: **backend + halaman admin (preview & editor peta)
+> sudah jalan**. Konsumsi publik (web/mobile) menyusul.
+> Data contoh jaringan Bromo tersedia lewat `pnpm db:seed`.
 
 ---
 
@@ -65,6 +65,7 @@ export interface TrackNode {
   type: TrackNodeType;
   coordinate: { latitude: number; longitude: number };
   elevationMeters: number;          // input manual (prototype)
+  imageUrl?: string | null;         // foto titik (opsional, satu foto)
   notes?: string;
   supportIds?: ID[];                // tautan TravelSupport di basecamp
 }
@@ -73,7 +74,8 @@ export interface TrackNode {
 ### 2.2 RouteSegment (Ruas)
 
 ```ts
-export type RouteSurface = "setapak" | "aspal" | "tanah" | "batu" | "pasir";
+export type RouteSurface =
+  | "setapak" | "aspal" | "tanah" | "tanah-liat" | "batu" | "pasir";
 export type RouteGrade   = "datar" | "landai" | "sedang" | "terjal" | "sangat-terjal";
 
 export type RouteTraversal =
@@ -107,24 +109,52 @@ export interface RouteSegment {
 ### 2.3 TrailRoute (Jalur)
 
 ```ts
+export interface RoutePoint {
+  latitude: number;
+  longitude: number;
+  elevationMeters: number | null;   // null pada titik belokan
+  nodeId: string | null;            // terisi bila snap ke titik bernama
+}
+
 export interface TrailRoute {
   id: ID;
   destinationId: ID;
   name: string;                     // mis. "Trek Kawah"
   description?: string;
   basecampNodeId?: ID;
-  nodeIds: ID[];                    // berurutan, start → end
-  segmentIds: ID[];                 // panjang = nodeIds.length - 1
+  points: RoutePoint[];             // geometri bebas (>= 2 titik)
+  nodeIds: ID[];                    // turunan: anchor bernama saja
+  segmentIds: ID[];                 // metadata antar anchor (opsional)
   surface: RouteSurface | "campuran";
   grade: RouteGrade;                // grade dominan/terberat
   traversableBy: RouteTraversal[];
   difficulty: DestinationCondition;
   recommended: boolean;
-  status: RouteStatus;
+  status: TrailRouteStatus;
   createdAt: ISODateString;
   updatedAt: ISODateString;
 }
 ```
+
+**Status kondisi jalur** (`TrailRouteStatus`): `terverifikasi` | `alternatif` |
+`dalam-perbaikan` | `rusak` | `terlarang`. Default jalur baru:
+`terverifikasi`. Ruas tetap memakai `route_status` lama
+(`draft`/`diterbitkan`/`terverifikasi`).
+
+**Render peta:** warna & pola garis mengikuti `surface` (aspal hitam solid,
+setapak putus-putus, tanah cokelat, tanah liat dash-dot, bebatuan titik, pasir
+titik renggang, campuran hijau), lalu status menimpa pola/warna (alternatif
+putus, dalam perbaikan amber, rusak merah, terlarang merah tua). Semua jalur
+digambar; jalur terpilih lebih tebal. Legenda tersedia di bawah peta.
+
+**Ikon titik** (Lucide): basecamp `house`, gerbang `door-open`, parkir
+`square-parking`, pos `flag`, sumber-air `droplet`, viewpoint `binoculars`,
+puncak `mountain`, persimpangan `git-fork`, area-camp `tent`.
+
+> **Titik belokan tidak wajib bernama.** Jalur disimpan sebagai `points[]`
+> berurutan: admin bisa klik peta untuk menambah belokan bebas, lalu snap ke
+> titik bernama (basecamp/pos/puncak) bila perlu. Elevasi belokan yang kosong
+> diinterpolasi dari anchor terdekat saat profil dihitung.
 
 ### 2.4 Turunan (dihitung, tidak disimpan)
 
@@ -266,6 +296,13 @@ Fitur dipecah menjadi **dua halaman** dengan peran berbeda:
 > Catatan: Figma adalah desain **statis**; pan/zoom/klik-kanan tidak benar-benar
 > berfungsi — setiap menu diwakili **frame terpisah**.
 
+> **Status implementasi:** context menu klik kanan sudah berjalan di
+> `/admin/destinasi/:id/rute/peta` (tambah titik, mulai jalur, sambung, edit
+> titik/ruas, tambah belokan, salin koordinat) dan versi **read-only** di
+> `/admin/destinasi/:id/rute` (buka editor / salin koordinat).
+> Panel kanan hanya menampilkan ringkasan seperti `Jalur X · 3 titik`, bukan
+> daftar semua titik belokan.
+
 ### 5.3 Inventaris layar (Figma)
 
 **Status: sudah dibuat** (page `Hi-Fi Web`, deret `x=18300`, tema "Alam").
@@ -320,16 +357,28 @@ di dalam CRUD Destinasi (Step 3 Lokasi & Akses).
 
 ---
 
-## 6. API (rencana fase mendatang)
+## 6. API (terimplementasi)
 
-- `GET /destinations/:slug/routes` — daftar jalur destinasi.
-- `GET /routes/:id` — detail jalur + node/segment penyusun.
-- `GET /routes/:id/profile` — `RouteProfile` (untuk grafik elevasi).
-- `GET /track-nodes?destinationId=:id`
-- `GET /segments?destinationId=:id`
+Semua endpoint admin (Bearer + role `admin`):
 
-Pada fase prototype, data dilayani dari `packages/seed`. Endpoint tulis
-(POST/PATCH/DELETE) menyusul bersamaan dengan database/auth.
+| Method | Path | Catatan |
+| --- | --- | --- |
+| GET | `/destinations/:id/route-graph` | titik + ruas + jalur sekaligus |
+| GET/POST | `/destinations/:id/track-nodes` | daftar / tambah titik |
+| PATCH/DELETE | `/track-nodes/:id` | 409 bila masih dipakai ruas/jalur |
+| GET/POST | `/destinations/:id/segments` | 409 bila pasangan node duplikat |
+| PATCH/DELETE | `/segments/:id` | 409 bila masih dipakai jalur |
+| GET/POST | `/destinations/:id/routes` | `points[]` (geometri bebas) atau `nodeIds` (legacy) |
+| GET/PATCH/DELETE | `/routes/:id` | ubah `points`/`nodeIds` menyinkronkan ruas |
+| GET | `/routes/:id/profile` | jarak, gain/loss, grade, estimasi Naismith |
+
+UI: `/admin/destinasi/:id/rute` (preview) dan
+`/admin/destinasi/:id/rute/peta` (editor). Editor mendukung drag handle
+ala draw.io (fallback klik-klik), tambah titik, sambung ruas, dan menyusun
+jalur dari titik berurutan.
+
+Fase lanjutan: **publik (web + mobile)** — section "Jalur & Profil Elevasi" pada
+detail destinasi, serta integrasi trip planning.
 
 ---
 
