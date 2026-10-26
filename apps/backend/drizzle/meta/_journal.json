@@ -43,6 +43,13 @@
       "when": 1792581705835,
       "tag": "0005_route_points",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1793005637380,
+      "tag": "0006_trail_status_surfaces_node_photos",
+      "breakpoints": true
     }
   ]
 }

@@ -2,7 +2,7 @@ import { z } from "zod";
 
 /** Upload target folder; only known folders are accepted. */
 export const uploadQuerySchema = z.object({
-  folder: z.enum(["destinations"]).default("destinations"),
+  folder: z.enum(["destinations", "nodes"]).default("destinations"),
 });
 
 /** Delete by public URL — validated by storageService before deleting. */

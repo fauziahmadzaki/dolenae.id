@@ -12,6 +12,10 @@ vi.mock("../../src/repositories/destination.repository", () => ({
   destinationRepository: { findById: vi.fn() },
 }));
 
+vi.mock("../../src/services/storage.service", () => ({
+  storageService: { deleteByUrl: vi.fn().mockResolvedValue({ deleted: true }) },
+}));
+
 vi.mock("../../src/repositories/route.repository", () => ({
   routeRepository: {
     listNodes: vi.fn(),
@@ -47,6 +51,7 @@ vi.mock("../../src/repositories/route.repository", () => ({
 import { createApp } from "../../src/app";
 import { destinationRepository } from "../../src/repositories/destination.repository";
 import { routeRepository } from "../../src/repositories/route.repository";
+import { storageService } from "../../src/services/storage.service";
 import { signAccessToken } from "../../src/utils/jwt";
 
 const app = createApp();
@@ -75,6 +80,7 @@ const nodeA = {
   longitude: "112.9530000",
   elevationMeters: 2200,
   notes: null,
+  imageUrl: null,
   createdAt: now,
   updatedAt: now,
 };
@@ -118,7 +124,7 @@ const routeRow = {
   traversableBy: ["jeep"],
   difficulty: "menengah" as const,
   recommended: true,
-  status: "draft" as const,
+  status: "terverifikasi" as const,
   createdAt: now,
   updatedAt: now,
 };
@@ -248,6 +254,47 @@ describe("Route builder API", () => {
     expect(res.body.data.maxElevationMeters).toBe(2770);
     expect(res.body.data.points).toHaveLength(2);
     expect(res.body.data.totalDistanceKm).toBeGreaterThan(0);
+  });
+
+  it("creates a track node with a photo", async () => {
+    vi.mocked(routeRepository.createNode).mockResolvedValueOnce({
+      ...nodeA,
+      imageUrl: "http://localhost:9000/dolenae/nodes/basecamp.png",
+    });
+
+    const res = await request(app)
+      .post(`/api/destinations/${destinationId}/track-nodes`)
+      .auth(token, { type: "bearer" })
+      .send({
+        name: "Cemoro Lawang",
+        type: "basecamp",
+        latitude: -7.9425,
+        longitude: 112.953,
+        elevationMeters: 2200,
+        imageUrl: "http://localhost:9000/dolenae/nodes/basecamp.png",
+      });
+
+    expect(res.status).toBe(201);
+    expect(res.body.data.imageUrl).toContain("/nodes/");
+  });
+
+  it("removes the node photo when the node is deleted", async () => {
+    vi.mocked(routeRepository.findNodeById).mockResolvedValue({
+      ...nodeA,
+      imageUrl: "http://localhost:9000/dolenae/nodes/basecamp.png",
+    });
+    vi.mocked(routeRepository.countNodeRoutes).mockResolvedValue(0);
+    vi.mocked(routeRepository.countSegmentRoutes).mockResolvedValue(0);
+    vi.mocked(routeRepository.deleteNode).mockResolvedValue(true);
+
+    const res = await request(app)
+      .delete(`/api/track-nodes/${nodeAId}`)
+      .auth(token, { type: "bearer" });
+
+    expect(res.status).toBe(200);
+    expect(storageService.deleteByUrl).toHaveBeenCalledWith(
+      "http://localhost:9000/dolenae/nodes/basecamp.png",
+    );
   });
 
   it("creates a route from free bend points without named nodes", async () => {

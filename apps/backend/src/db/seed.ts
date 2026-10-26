@@ -519,7 +519,7 @@ async function seedBromoRoutes(db: SeedDb) {
       surface: "aspal",
       grade: "terjal" as const,
       traversableBy: ["jeep"],
-      status: "diterbitkan" as const,
+      status: "terverifikasi" as const,
     },
     {
       name: "Trek Kawah",
@@ -533,7 +533,7 @@ async function seedBromoRoutes(db: SeedDb) {
       surface: "setapak",
       grade: "sedang" as const,
       traversableBy: ["pejalan-kaki"],
-      status: "diterbitkan" as const,
+      status: "terverifikasi" as const,
     },
     {
       name: "Savana + Kawah",
@@ -552,10 +552,10 @@ async function seedBromoRoutes(db: SeedDb) {
         segmentIdOf("Pasir Berbisik", "Kawah Bromo"),
       ],
       recommended: false,
-      surface: "setapak",
+      surface: "campuran",
       grade: "sedang" as const,
       traversableBy: ["pejalan-kaki"],
-      status: "draft" as const,
+      status: "alternatif" as const,
     },
   ];
 

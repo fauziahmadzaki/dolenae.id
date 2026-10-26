@@ -8,9 +8,11 @@ import type {
   TrackNodeType,
   TrailRoutePointRow,
   TrailRouteRow,
+  TrailRouteStatus,
 } from "../db/schema";
 import { destinationRepository } from "../repositories/destination.repository";
 import { routeRepository } from "../repositories/route.repository";
+import { storageService } from "./storage.service";
 import {
   BadRequestError,
   ConflictError,
@@ -35,6 +37,7 @@ export interface TrackNodeDto {
   coordinate: { latitude: number; longitude: number };
   elevationMeters: number;
   notes: string | null;
+  imageUrl: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -80,7 +83,7 @@ export interface TrailRouteDto {
   traversableBy: string[];
   difficulty: Difficulty;
   recommended: boolean;
-  status: RouteStatus;
+  status: TrailRouteStatus;
   createdAt: string;
   updatedAt: string;
 }
@@ -120,6 +123,7 @@ export interface CreateTrackNodeDto {
   longitude: number;
   elevationMeters: number;
   notes?: string | null;
+  imageUrl?: string | null;
 }
 
 export type UpdateTrackNodeDto = Partial<CreateTrackNodeDto>;
@@ -163,7 +167,7 @@ export interface CreateTrailRouteDto {
   traversableBy?: string[];
   difficulty?: Difficulty;
   recommended?: boolean;
-  status?: RouteStatus;
+  status?: TrailRouteStatus;
 }
 
 export type UpdateTrailRouteDto = Partial<CreateTrailRouteDto>;
@@ -190,6 +194,7 @@ function toNodeDto(row: TrackNodeRow): TrackNodeDto {
     coordinate: nodeCoordinate(row),
     elevationMeters: row.elevationMeters,
     notes: row.notes,
+    imageUrl: row.imageUrl,
     createdAt: row.createdAt.toISOString(),
     updatedAt: row.updatedAt.toISOString(),
   };
@@ -642,6 +647,7 @@ export const routeService = {
       longitude: toNumeric(input.longitude)!,
       elevationMeters: input.elevationMeters,
       notes: input.notes ?? null,
+      imageUrl: input.imageUrl ?? null,
     });
 
     return toNodeDto(row);
@@ -665,9 +671,20 @@ export const routeService = {
       patch.elevationMeters = input.elevationMeters;
     }
     if (input.notes !== undefined) patch.notes = input.notes;
+    if (input.imageUrl !== undefined) patch.imageUrl = input.imageUrl;
 
     const updated = await routeRepository.updateNode(id, patch);
     if (!updated) throw new NotFoundError("Titik tidak ditemukan");
+
+    // Remove the previous photo when it is replaced or cleared.
+    if (
+      input.imageUrl !== undefined &&
+      node.imageUrl &&
+      node.imageUrl !== input.imageUrl
+    ) {
+      await storageService.deleteByUrl(node.imageUrl).catch(() => undefined);
+    }
+
     return toNodeDto(updated);
   },
 
@@ -697,6 +714,9 @@ export const routeService = {
     }
 
     await routeRepository.deleteNode(id);
+    if (node.imageUrl) {
+      await storageService.deleteByUrl(node.imageUrl).catch(() => undefined);
+    }
     return { id, deleted: true };
   },
 
@@ -850,7 +870,7 @@ export const routeService = {
           profile.steepestGradePercent,
         ),
       recommended: input.recommended ?? false,
-      status: input.status ?? "draft",
+      status: input.status ?? "terverifikasi",
     });
 
     await persistGeometry(

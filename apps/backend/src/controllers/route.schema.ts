@@ -20,7 +20,14 @@ const trackNodeType = z.enum([
   "area-camp",
 ]);
 
-const routeSurface = z.enum(["setapak", "aspal", "tanah", "batu", "pasir"]);
+const routeSurface = z.enum([
+  "setapak",
+  "aspal",
+  "tanah",
+  "tanah-liat",
+  "batu",
+  "pasir",
+]);
 const routeGrade = z.enum([
   "datar",
   "landai",
@@ -28,7 +35,14 @@ const routeGrade = z.enum([
   "terjal",
   "sangat-terjal",
 ]);
-const routeStatus = z.enum(["draft", "diterbitkan", "terverifikasi"]);
+const segmentStatus = z.enum(["draft", "diterbitkan", "terverifikasi"]);
+const trailStatus = z.enum([
+  "terverifikasi",
+  "alternatif",
+  "dalam-perbaikan",
+  "rusak",
+  "terlarang",
+]);
 const traversal = z.enum([
   "pejalan-kaki",
   "sepeda",
@@ -53,6 +67,7 @@ export const createTrackNodeSchema = z.object({
   longitude: z.number().min(-180).max(180),
   elevationMeters: z.number().int().min(-500).max(9000),
   notes,
+  imageUrl: z.string().trim().url("URL foto tidak valid").nullable().optional(),
 });
 
 export const updateTrackNodeSchema = createTrackNodeSchema
@@ -73,7 +88,7 @@ export const createRouteSegmentSchema = z.object({
   estimatedDurationMinutes: z.number().int().min(1).max(100000).nullable().optional(),
   seasonal: z.boolean().optional(),
   notes,
-  status: routeStatus.optional(),
+  status: segmentStatus.optional(),
 });
 
 export const updateRouteSegmentSchema = createRouteSegmentSchema
@@ -114,7 +129,7 @@ const trailRouteFields = {
   traversableBy: traversalList,
   difficulty: z.enum(["ramah-pemula", "menengah", "sulit"]).optional(),
   recommended: z.boolean().optional(),
-  status: routeStatus.optional(),
+  status: trailStatus.optional(),
 };
 
 export const createTrailRouteSchema = z

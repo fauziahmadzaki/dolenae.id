@@ -52,7 +52,10 @@ async function allowPublicRead() {
         Effect: "Allow",
         Principal: { AWS: ["*"] },
         Action: ["s3:GetObject"],
-        Resource: [`arn:aws:s3:::${env.S3_BUCKET}/destinations/*`],
+        Resource: [
+          `arn:aws:s3:::${env.S3_BUCKET}/destinations/*`,
+          `arn:aws:s3:::${env.S3_BUCKET}/nodes/*`,
+        ],
       },
     ],
   };

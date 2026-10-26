@@ -24,6 +24,7 @@ export type TrackNodePatch = Partial<
     | "longitude"
     | "elevationMeters"
     | "notes"
+    | "imageUrl"
   >
 >;
 

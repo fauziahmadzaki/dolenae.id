@@ -233,6 +233,7 @@ export const routeSurfaceEnum = pgEnum("route_surface", [
   "setapak",
   "aspal",
   "tanah",
+  "tanah-liat",
   "batu",
   "pasir",
 ]);
@@ -251,6 +252,15 @@ export const routeStatusEnum = pgEnum("route_status", [
   "terverifikasi",
 ]);
 
+/** Condition shown for a whole trail (segments keep `routeStatusEnum`). */
+export const trailRouteStatusEnum = pgEnum("trail_route_status", [
+  "terverifikasi",
+  "alternatif",
+  "dalam-perbaikan",
+  "rusak",
+  "terlarang",
+]);
+
 export const trackNodes = pgTable(
   "track_nodes",
   {
@@ -264,6 +274,7 @@ export const trackNodes = pgTable(
     longitude: numeric("longitude", { precision: 10, scale: 7 }).notNull(),
     elevationMeters: integer("elevation_meters").notNull(),
     notes: text("notes"),
+    imageUrl: text("image_url"),
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
       .defaultNow(),
@@ -332,7 +343,7 @@ export const trailRoutes = pgTable(
     traversableBy: text("traversable_by").array().notNull().default([]),
     difficulty: difficultyEnum("difficulty").notNull().default("menengah"),
     recommended: boolean("recommended").notNull().default(false),
-    status: routeStatusEnum("status").notNull().default("draft"),
+    status: trailRouteStatusEnum("status").notNull().default("terverifikasi"),
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
       .defaultNow(),
@@ -413,3 +424,4 @@ export type TrackNodeType = typeof trackNodes.$inferSelect.type;
 export type RouteSurface = typeof routeSegments.$inferSelect.surface;
 export type RouteGrade = typeof routeSegments.$inferSelect.grade;
 export type RouteStatus = typeof routeSegments.$inferSelect.status;
+export type TrailRouteStatus = typeof trailRoutes.$inferSelect.status;
