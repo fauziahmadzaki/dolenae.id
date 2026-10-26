@@ -2,6 +2,11 @@
 
 import dynamic from "next/dynamic";
 
+export type {
+  RouteMapContextPayload,
+  RouteMapContextTarget,
+} from "./route-map";
+
 /** Leaflet needs `window`, so the route map is client-only. */
 export const RouteMap = dynamic(
   () => import("./route-map").then((module) => module.RouteMap),

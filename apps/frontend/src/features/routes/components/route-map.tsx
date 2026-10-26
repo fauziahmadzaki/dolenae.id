@@ -2,7 +2,7 @@
 
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, type ReactNode } from "react";
 import { cn } from "~/lib/cn";
 import {
   NODE_TYPE_COLORS,
@@ -10,6 +10,20 @@ import {
   type TrackNode,
   type TrailRoute,
 } from "~/features/routes/schema";
+
+export type RouteMapContextTarget =
+  | { kind: "map" }
+  | { kind: "node"; node: TrackNode }
+  | { kind: "segment"; segment: RouteSegment };
+
+export interface RouteMapContextPayload {
+  /** Position relative to the map container (for the floating menu). */
+  x: number;
+  y: number;
+  latitude: number;
+  longitude: number;
+  target: RouteMapContextTarget;
+}
 
 export interface RouteMapProps {
   center: { latitude: number; longitude: number };
@@ -27,6 +41,9 @@ export interface RouteMapProps {
   onNodeClick?: (node: TrackNode) => void;
   onSegmentClick?: (segment: RouteSegment) => void;
   onConnect?: (fromNodeId: string, toNodeId: string) => void;
+  onContextMenu?: (payload: RouteMapContextPayload | null) => void;
+  /** Rendered inside the map wrapper (e.g. the context menu). */
+  overlay?: ReactNode;
   className?: string;
 }
 
@@ -61,6 +78,8 @@ export function RouteMap({
   onNodeClick,
   onSegmentClick,
   onConnect,
+  onContextMenu,
+  overlay,
   className,
 }: RouteMapProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -68,13 +87,25 @@ export function RouteMap({
   const segmentLayer = useRef<L.LayerGroup | null>(null);
   const nodeLayer = useRef<L.LayerGroup | null>(null);
   const draftLayer = useRef<L.LayerGroup | null>(null);
-  const callbacks = useRef({ onMapClick, onNodeClick, onSegmentClick, onConnect });
+  const callbacks = useRef({
+    onMapClick,
+    onNodeClick,
+    onSegmentClick,
+    onConnect,
+    onContextMenu,
+  });
   const nodesRef = useRef(nodes);
   const modeRef = useRef(mode);
 
   useEffect(() => {
-    callbacks.current = { onMapClick, onNodeClick, onSegmentClick, onConnect };
-  }, [onMapClick, onNodeClick, onSegmentClick, onConnect]);
+    callbacks.current = {
+      onMapClick,
+      onNodeClick,
+      onSegmentClick,
+      onConnect,
+      onContextMenu,
+    };
+  }, [onMapClick, onNodeClick, onSegmentClick, onConnect, onContextMenu]);
 
   useEffect(() => {
     nodesRef.current = nodes;
@@ -104,7 +135,23 @@ export function RouteMap({
     nodeLayer.current = L.layerGroup().addTo(map);
 
     map.on("click", (event: L.LeafletMouseEvent) => {
+      callbacks.current.onContextMenu?.(null);
       callbacks.current.onMapClick?.(event.latlng.lat, event.latlng.lng);
+    });
+
+    map.on("contextmenu", (event: L.LeafletMouseEvent) => {
+      event.originalEvent.preventDefault();
+      callbacks.current.onContextMenu?.({
+        x: event.containerPoint.x,
+        y: event.containerPoint.y,
+        latitude: event.latlng.lat,
+        longitude: event.latlng.lng,
+        target: { kind: "map" },
+      });
+    });
+
+    map.on("movestart zoomstart", () => {
+      callbacks.current.onContextMenu?.(null);
     });
 
     mapRef.current = map;
@@ -162,6 +209,19 @@ export function RouteMap({
         L.DomEvent.stopPropagation(event);
         callbacks.current.onSegmentClick?.(segment);
       });
+
+      line.on("contextmenu", (event) => {
+        L.DomEvent.stopPropagation(event);
+        event.originalEvent.preventDefault();
+        const point = map.mouseEventToContainerPoint(event.originalEvent);
+        callbacks.current.onContextMenu?.({
+          x: point.x,
+          y: point.y,
+          latitude: event.latlng.lat,
+          longitude: event.latlng.lng,
+          target: { kind: "segment", segment },
+        });
+      });
     }
 
     // Selected route geometry: free points may not map to segments.
@@ -192,6 +252,19 @@ export function RouteMap({
       marker.on("click", (event) => {
         L.DomEvent.stopPropagation(event);
         callbacks.current.onNodeClick?.(node);
+      });
+
+      marker.on("contextmenu", (event) => {
+        L.DomEvent.stopPropagation(event);
+        event.originalEvent.preventDefault();
+        const point = map.mouseEventToContainerPoint(event.originalEvent);
+        callbacks.current.onContextMenu?.({
+          x: point.x,
+          y: point.y,
+          latitude: event.latlng.lat,
+          longitude: event.latlng.lng,
+          target: { kind: "node", node },
+        });
       });
 
       const element = marker.getElement();
@@ -267,11 +340,13 @@ export function RouteMap({
 
   return (
     <div
-      ref={containerRef}
       className={cn(
         "relative z-0 h-[420px] w-full overflow-hidden rounded-xl border border-hairline",
         className,
       )}
-    />
+    >
+      <div ref={containerRef} className="h-full w-full" />
+      {overlay}
+    </div>
   );
 }

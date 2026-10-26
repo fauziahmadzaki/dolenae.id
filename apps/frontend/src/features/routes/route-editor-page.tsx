@@ -5,12 +5,14 @@ import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import {
   ArrowLeft,
+  Copy,
   Eye,
   GitBranch,
   Loader2,
   MapPin,
   Pencil,
   Plus,
+  Route,
   Trash2,
   X,
 } from "lucide-react";
@@ -25,10 +27,12 @@ import {
 import { useToast } from "~/components/ui/toaster";
 import { useAuth } from "~/features/auth/hooks/use-auth";
 import { useDestination } from "~/features/destinations/hooks/use-destinations";
+import { copyText } from "~/lib/clipboard";
 import { cn } from "~/lib/cn";
+import { MapContextMenu, type ContextMenuItem } from "./components/map-context-menu";
 import { NodeDialog } from "./components/node-dialog";
 import { RouteDialog } from "./components/route-dialog";
-import { RouteMap } from "./components/route-map-client";
+import { RouteMap, type RouteMapContextPayload } from "./components/route-map-client";
 import { SegmentDialog } from "./components/segment-dialog";
 import { useRouteGraph, useRouteMutations, useRouteProfile } from "./hooks";
 import {
@@ -77,6 +81,7 @@ export function RouteEditorPage({ destinationId }: { destinationId: string }) {
   const [dialog, setDialog] = useState<DialogState>(null);
   const [draftPoints, setDraftPoints] = useState<RoutePoint[]>([]);
   const [connectFrom, setConnectFrom] = useState<string | null>(null);
+  const [menu, setMenu] = useState<RouteMapContextPayload | null>(null);
   const [selectedRouteId, setSelectedRouteId] = useState<string | null>(null);
   const [confirmDeleteRoute, setConfirmDeleteRoute] = useState<TrailRoute | null>(
     null,
@@ -167,7 +172,151 @@ export function RouteEditorPage({ destinationId }: { destinationId: string }) {
   const toggleMode = (next: Mode) => {
     setMode((prev) => (prev === next ? "view" : next));
     setConnectFrom(null);
+    setMenu(null);
     if (next !== "route") setDraftPoints([]);
+  };
+
+  const copyCoordinate = async (latitude: number, longitude: number) => {
+    const ok = await copyText(
+      `${latitude.toFixed(6)}, ${longitude.toFixed(6)}`,
+    );
+    toast({
+      title: ok ? "Koordinat disalin" : "Gagal menyalin koordinat",
+      variant: ok ? "success" : "danger",
+    });
+  };
+
+  const contextMenuItems = (
+    payload: RouteMapContextPayload,
+  ): ContextMenuItem[] => {
+    const bend: RoutePoint = {
+      latitude: payload.latitude,
+      longitude: payload.longitude,
+      elevationMeters: null,
+      nodeId: null,
+    };
+
+    if (payload.target.kind === "node") {
+      const { node } = payload.target;
+      return [
+        {
+          id: "route",
+          label: "Mulai jalur dari titik ini",
+          icon: Route,
+          onSelect: () => {
+            setMode("route");
+            setConnectFrom(null);
+            setDraftPoints([
+              {
+                latitude: node.coordinate.latitude,
+                longitude: node.coordinate.longitude,
+                elevationMeters: node.elevationMeters,
+                nodeId: node.id,
+              },
+            ]);
+          },
+        },
+        {
+          id: "connect",
+          label: "Sambungkan ke titik lain",
+          icon: GitBranch,
+          onSelect: () => {
+            setMode("connect");
+            setConnectFrom(node.id);
+          },
+        },
+        {
+          id: "edit",
+          label: "Edit titik",
+          icon: Pencil,
+          onSelect: () => setDialog({ kind: "node", mode: "edit", node }),
+        },
+        {
+          id: "copy",
+          label: "Salin koordinat",
+          icon: Copy,
+          onSelect: () =>
+            void copyCoordinate(
+              node.coordinate.latitude,
+              node.coordinate.longitude,
+            ),
+        },
+      ];
+    }
+
+    if (payload.target.kind === "segment") {
+      const { segment } = payload.target;
+      return [
+        {
+          id: "edit",
+          label: "Edit ruas",
+          icon: Pencil,
+          onSelect: () => setDialog({ kind: "segment", segment }),
+        },
+        {
+          id: "copy",
+          label: "Salin koordinat",
+          icon: Copy,
+          onSelect: () =>
+            void copyCoordinate(payload.latitude, payload.longitude),
+        },
+      ];
+    }
+
+    const items: ContextMenuItem[] = [];
+
+    if (mode === "route") {
+      items.push(
+        {
+          id: "add-bend",
+          label: "Tambah belokan di sini",
+          icon: Plus,
+          onSelect: () => setDraftPoints((prev) => [...prev, bend]),
+        },
+        {
+          id: "cancel-route",
+          label: "Batalkan jalur",
+          icon: X,
+          danger: true,
+          onSelect: () => setDraftPoints([]),
+        },
+      );
+    } else {
+      items.push({
+        id: "start-route",
+        label: "Mulai jalur dari sini",
+        icon: Route,
+        onSelect: () => {
+          setMode("route");
+          setConnectFrom(null);
+          setDraftPoints([bend]);
+        },
+      });
+    }
+
+    items.push(
+      {
+        id: "add-node",
+        label: "Tambah titik di sini",
+        icon: MapPin,
+        onSelect: () =>
+          setDialog({
+            kind: "node",
+            mode: "create",
+            lat: payload.latitude,
+            lng: payload.longitude,
+          }),
+      },
+      {
+        id: "copy",
+        label: "Salin koordinat",
+        icon: Copy,
+        onSelect: () =>
+          void copyCoordinate(payload.latitude, payload.longitude),
+      },
+    );
+
+    return items;
   };
 
   if (!auth.hydrated || !auth.token) {
@@ -208,9 +357,17 @@ export function RouteEditorPage({ destinationId }: { destinationId: string }) {
     [selectedRoute],
   );
 
-  const pointLabel = (point: RoutePoint, index: number) =>
-    (point.nodeId ? nodeById.get(point.nodeId)?.name : null) ??
-    `Belokan ${index + 1}`;
+  const draftAnchors = draftPoints.filter((point) => point.nodeId);
+  const firstDraftAnchor = draftAnchors[0];
+  const lastDraftAnchor = draftAnchors.at(-1);
+  const draftSummary =
+    draftPoints.length === 0
+      ? "Klik peta untuk titik belokan, klik titik bernama untuk snap."
+      : draftAnchors.length >= 2 && firstDraftAnchor && lastDraftAnchor
+        ? `${nodeById.get(firstDraftAnchor.nodeId!)?.name ?? "Titik"} → ${
+            nodeById.get(lastDraftAnchor.nodeId!)?.name ?? "Titik"
+          } · ${draftPoints.length} titik`
+        : `Jalur bebas · ${draftPoints.length} titik`;
 
   return (
     <div className="space-y-4">
@@ -281,7 +438,8 @@ export function RouteEditorPage({ destinationId }: { destinationId: string }) {
           "Tarik handle di sisi titik ke titik lain, atau klik titik asal lalu titik tujuan."}
         {mode === "route" &&
           "Klik peta untuk menambah titik belokan; klik titik bernama untuk snap. Minimal dua titik lalu Simpan jalur."}
-        {mode === "view" && "Klik titik untuk mengedit, klik ruas untuk detail."}
+        {mode === "view" &&
+          "Klik titik untuk mengedit, klik ruas untuk detail, atau klik kanan peta untuk menu cepat."}
         {connectFrom && mode === "connect" && (
           <span className="ml-1 font-semibold text-primary">
             Titik asal: {nodeById.get(connectFrom)?.name}
@@ -321,6 +479,17 @@ export function RouteEditorPage({ destinationId }: { destinationId: string }) {
           onNodeClick={handleNodeClick}
           onSegmentClick={(segment) => setDialog({ kind: "segment", segment })}
           onConnect={connect}
+          onContextMenu={setMenu}
+          overlay={
+            menu ? (
+              <MapContextMenu
+                x={menu.x}
+                y={menu.y}
+                items={contextMenuItems(menu)}
+                onClose={() => setMenu(null)}
+              />
+            ) : null
+          }
         />
 
         <aside className="space-y-4">
@@ -329,22 +498,7 @@ export function RouteEditorPage({ destinationId }: { destinationId: string }) {
               <p className="text-xs font-semibold uppercase tracking-wide text-body">
                 Jalur baru ({draftPoints.length} titik)
               </p>
-              <div className="mt-2 flex flex-wrap gap-1 text-xs">
-                {draftPoints.length === 0 ? (
-                  <span className="text-body">
-                    Klik peta untuk titik belokan, klik titik bernama untuk snap.
-                  </span>
-                ) : (
-                  draftPoints.map((point, index) => (
-                    <span
-                      key={`${point.nodeId ?? "bend"}-${index}`}
-                      className="flex items-center gap-1 rounded-full bg-canvas-subtle px-2 py-0.5 text-ink"
-                    >
-                      {index + 1}. {pointLabel(point, index)}
-                    </span>
-                  ))
-                )}
-              </div>
+              <div className="mt-2 text-xs text-body">{draftSummary}</div>
               <div className="mt-3 flex flex-wrap gap-2">
                 <Button
                   size="sm"
@@ -593,7 +747,7 @@ export function RouteEditorPage({ destinationId }: { destinationId: string }) {
         <RouteDialog
           mode={dialog.mode}
           route={dialog.mode === "edit" ? dialog.route : undefined}
-          pointLabels={draftPoints.map((point, index) => pointLabel(point, index))}
+          pointSummary={draftSummary}
           isPending={mutations.createRoute.isPending || mutations.updateRoute.isPending}
           error={mutations.createRoute.error ?? mutations.updateRoute.error}
           onClose={() => setDialog(null)}

@@ -21,7 +21,8 @@ import {
 interface RouteDialogProps {
   mode: "create" | "edit";
   route?: TrailRoute;
-  pointLabels: string[];
+  /** Compact summary, e.g. "Jalur bebas · 3 titik". */
+  pointSummary: string;
   isPending: boolean;
   error?: unknown;
   onClose: () => void;
@@ -40,7 +41,7 @@ const message = (error: unknown) =>
 export function RouteDialog({
   mode,
   route,
-  pointLabels,
+  pointSummary,
   isPending,
   error,
   onClose,
@@ -63,22 +64,15 @@ export function RouteDialog({
           </DialogTitle>
           <DialogDescription className="mt-1">
             {mode === "create"
-              ? `${pointLabels.length} titik jalur`
+              ? pointSummary
               : `${route?.points.length ?? 0} titik`}
           </DialogDescription>
         </div>
 
         {mode === "create" && (
-          <div className="flex flex-wrap gap-1.5 rounded-lg bg-canvas-subtle p-2.5 text-xs text-body">
-            {pointLabels.map((label, index) => (
-              <span key={`${label}-${index}`} className="flex items-center gap-1">
-                {index > 0 && <span aria-hidden>→</span>}
-                <span className="rounded-full bg-surface px-2 py-0.5 font-semibold text-ink">
-                  {label}
-                </span>
-              </span>
-            ))}
-          </div>
+          <p className="rounded-lg bg-canvas-subtle p-2.5 text-xs text-body">
+            {pointSummary}
+          </p>
         )}
 
         <div className="space-y-3">
