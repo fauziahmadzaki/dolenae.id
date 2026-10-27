@@ -41,6 +41,72 @@ flutter pub get
 flutter run
 ```
 
+### Menjalankan di HP asli dengan IP lokal
+
+Default aplikasi hanya cocok untuk emulator (`10.0.2.2`) atau simulator
+(`localhost`). Untuk HP asli, arahkan base URL ke **IP LAN komputer**.
+
+1. **Cari IP LAN komputer** (adapter Wi-Fi, bukan VMware/Hyper-V/WSL):
+
+   ```powershell
+   ipconfig
+   ```
+
+   Contoh hasil: `192.168.1.10`. HP dan komputer harus berada di Wi-Fi yang
+   sama (hindari Wi-Fi tamu yang memisahkan client).
+
+2. **Jalankan backend** di komputer:
+
+   ```bash
+   cd apps/backend
+   pnpm dev
+   ```
+
+3. **Cek dari browser HP** sebelum menjalankan Flutter:
+
+   ```text
+   http://192.168.1.10:3001/api/health
+   ```
+
+   Jika tidak terbuka, izinkan port 3001 di Windows Firewall (PowerShell
+   sebagai Administrator):
+
+   ```powershell
+   New-NetFirewallRule -DisplayName "Dolenae API 3001" -Direction Inbound -Protocol TCP -LocalPort 3001 -Action Allow -Profile Private
+   ```
+
+   Pastikan juga profil jaringan Windows diset **Private**.
+
+4. **Sambungkan HP** dengan USB debugging aktif, lalu cek perangkat:
+
+   ```bash
+   flutter devices
+   ```
+
+5. **Jalankan aplikasi** dengan override base URL:
+
+   ```bash
+   flutter run -d <device-id> --dart-define=API_BASE_URL=http://192.168.1.10:3001/api
+   ```
+
+   Base URL **wajib berakhir `/api`**. Nilai `--dart-define` dibaca saat
+   compile-time — jika IP berubah, hentikan aplikasi lalu `flutter run` ulang
+   (hot reload tidak mengubahnya).
+
+**Alternatif lewat USB** (tanpa satu Wi-Fi / firewall rewel, Android saja):
+
+```bash
+adb reverse tcp:3001 tcp:3001
+flutter run -d <device-id> --dart-define=API_BASE_URL=http://localhost:3001/api
+```
+
+**Catatan foto/upload:** jika backend memakai `STORAGE_DRIVER=local`, set juga
+`PUBLIC_API_URL=http://192.168.1.10:3001` di `apps/backend/.env` lalu restart
+backend, supaya URL gambar tidak menunjuk ke `localhost`.
+
+**iOS:** HTTP ke IP lokal dapat diblokir ATS. Tambahkan pengecualian
+`NSAppTransportSecurity` di `ios/Runner/Info.plist` atau gunakan HTTPS.
+
 ## Sinkronisasi destinasi
 
 Jalankan backend `apps/backend` dengan database dan konfigurasi lokal yang valid.
@@ -48,9 +114,8 @@ Base URL harus berakhir `/api`:
 
 - Emulator Android: bawaan `http://10.0.2.2:3001/api` (host komputer).
 - Chrome/desktop/iOS simulator: bawaan `http://localhost:3001/api`.
-- Perangkat fisik: gunakan IP LAN komputer, bukan `localhost`; perangkat dan
-  komputer harus saling terhubung, backend mendengarkan antarmuka LAN dan
-  firewall mengizinkan port. Contoh:
+- Perangkat fisik: gunakan IP LAN seperti pada bagian
+  **“Menjalankan di HP asli dengan IP lokal”** di atas.
 
 ```bash
 flutter run --dart-define=API_BASE_URL=http://192.168.1.10:3001/api
