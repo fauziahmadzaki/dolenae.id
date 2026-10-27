@@ -7,13 +7,17 @@ import {
 } from "../services/destination.service";
 import type { DestinationListQuery } from "./destination.schema";
 import { ok } from "../utils/response";
+import { NotFoundError } from "../utils/errors";
 
 export const destinationController = {
   /** GET /api/destinations — daftar destinasi (publik) dengan pagination & filter. */
   list: (async (req, res, next) => {
     try {
       const query = getValidated<DestinationListQuery>(req, "query");
-      const result = await destinationService.list(query);
+      const result = await destinationService.list({
+        ...query,
+        status: req.user?.role === "admin" ? query.status : "published",
+      });
       return ok(res, result.items, result.meta);
     } catch (err) {
       next(err);
@@ -25,6 +29,9 @@ export const destinationController = {
     try {
       const params = getValidated<{ id: string }>(req, "params");
       const destination = await destinationService.getById(params.id);
+      if (req.user?.role !== "admin" && destination.status !== "published") {
+        throw new NotFoundError("Destinasi tidak ditemukan");
+      }
       return ok(res, destination);
     } catch (err) {
       next(err);

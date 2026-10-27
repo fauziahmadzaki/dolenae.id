@@ -75,8 +75,6 @@ class _DolenaeAppState extends State<DolenaeApp> {
     _checklist = ChecklistController(dependencies.checklistRepository);
 
     _router = AppRouter.create(_auth);
-    // Show cached data first, then sync with the API in the background.
-    _destinations.load();
     // Validate the restored token; a revoked session redirects to /login.
     unawaited(_auth.verifySession());
   }

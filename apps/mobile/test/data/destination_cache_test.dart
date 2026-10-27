@@ -2,25 +2,28 @@ import 'package:dolenae_mobile/src/core/database/app_database.dart';
 import 'package:dolenae_mobile/src/features/destinations/data/mappers/destination_cache_mapper.dart';
 import 'package:dolenae_mobile/src/features/destinations/data/data_sources/destination_local_data_source.dart';
 import 'package:drift/native.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   late AppDatabase db;
   late DestinationLocalDataSource dao;
 
-  setUp(() {
+  setUp(() async {
+    SharedPreferences.setMockInitialValues({});
     db = AppDatabase.forTesting(NativeDatabase.memory());
-    dao = DestinationLocalDataSource(db);
+    dao = DestinationLocalDataSource(db, await SharedPreferences.getInstance());
   });
 
   tearDown(() => db.close());
 
-  test('replaceAll menyimpan list secara atomik dan stream ter-update', () async {
-    final fetchedAt = DateTime.utc(2026, 10, 19, 8, 30);
-    final emitted = dao.watch().firstWhere((snapshot) => !snapshot.isEmpty);
+  test(
+    'replaceAll menyimpan list secara atomik dan stream ter-update',
+    () async {
+      final fetchedAt = DateTime.utc(2026, 10, 19, 8, 30);
+      final emitted = dao.watch().firstWhere((snapshot) => !snapshot.isEmpty);
 
-    await dao.replaceAll(
-      [
+      await dao.replaceAll([
         DestinationCacheMapper.toCompanion(
           _json(name: 'Gunung Bromo', slug: 'gunung-bromo', fee: 29000),
           sortOrder: 0,
@@ -31,40 +34,33 @@ void main() {
           sortOrder: 1,
           fetchedAt: fetchedAt.millisecondsSinceEpoch,
         ),
-      ],
-      fetchedAt: fetchedAt.millisecondsSinceEpoch,
-    );
+      ], fetchedAt: fetchedAt.millisecondsSinceEpoch);
 
-    final snapshot = await emitted;
-    expect(snapshot.items, hasLength(2));
-    expect(snapshot.items.first.name, 'Gunung Bromo');
-    expect(snapshot.items.last.slug, 'gunung-prau');
-    expect(snapshot.items.first.entryFee, 'Rp 29.000');
-    expect(snapshot.lastFetched, fetchedAt);
-  });
+      final snapshot = await emitted;
+      expect(snapshot.items, hasLength(2));
+      expect(snapshot.items.first.name, 'Gunung Bromo');
+      expect(snapshot.items.last.slug, 'gunung-prau');
+      expect(snapshot.items.first.entryFee, 'Rp 29.000');
+      expect(snapshot.lastFetched, fetchedAt);
+    },
+  );
 
   test('replaceAll menghapus baris cache lama', () async {
-    await dao.replaceAll(
-      [
-        DestinationCacheMapper.toCompanion(
-          _json(name: 'Lama', slug: 'lama'),
-          sortOrder: 0,
-          fetchedAt: 1,
-        ),
-      ],
-      fetchedAt: 1,
-    );
+    await dao.replaceAll([
+      DestinationCacheMapper.toCompanion(
+        _json(name: 'Lama', slug: 'lama'),
+        sortOrder: 0,
+        fetchedAt: 1,
+      ),
+    ], fetchedAt: 1);
 
-    await dao.replaceAll(
-      [
-        DestinationCacheMapper.toCompanion(
-          _json(name: 'Baru', slug: 'baru'),
-          sortOrder: 0,
-          fetchedAt: 2,
-        ),
-      ],
-      fetchedAt: 2,
-    );
+    await dao.replaceAll([
+      DestinationCacheMapper.toCompanion(
+        _json(name: 'Baru', slug: 'baru'),
+        sortOrder: 0,
+        fetchedAt: 2,
+      ),
+    ], fetchedAt: 2);
 
     final snapshot = await dao.watch().first;
     expect(snapshot.items, hasLength(1));
