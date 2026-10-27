@@ -39,7 +39,31 @@ class DestinationDetailScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final controller = context.watch<DestinationsController>();
-    final destination = controller.find(destinationId) ?? controller.items.first;
+    final destination = controller.find(destinationId);
+    if (destination == null) {
+      return Scaffold(
+        backgroundColor: AppColors.canvas,
+        appBar: AppBar(
+          title: const Text('Detail destinasi'),
+          leading: IconButton(
+            tooltip: 'Kembali',
+            icon: const Icon(AppIcons.chevronLeft),
+            onPressed:
+                onBack ??
+                () {
+                  if (context.canPop()) {
+                    context.pop();
+                  } else {
+                    context.go('/home');
+                  }
+                },
+          ),
+        ),
+        body: Center(
+          child: Text('Destinasi tidak tersedia.', style: AppTextStyles.bodySm),
+        ),
+      );
+    }
 
     return Scaffold(
       backgroundColor: AppColors.canvas,

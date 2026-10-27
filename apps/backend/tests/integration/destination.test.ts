@@ -92,7 +92,7 @@ describe("Destination CRUD API (/api/destinations)", () => {
   describe("GET /api/destinations", () => {
     it("returns a paginated public list with category links", async () => {
       vi.spyOn(destinationRepository, "list").mockResolvedValueOnce({
-        items: [mockDestination],
+        items: [{ ...mockDestination, status: "published" }],
         total: 1,
       });
       vi.spyOn(destinationRepository, "findCategoryLinks").mockResolvedValueOnce([
@@ -122,6 +122,43 @@ describe("Destination CRUD API (/api/destinations)", () => {
       expect(res.body.meta).toMatchObject({ page: 1, limit: 10, total: 1 });
     });
 
+    it.each(["", "?status=draft", "?status=archived"])(
+      "restricts anonymous list %s to published destinations",
+      async (query) => {
+        const list = vi.spyOn(destinationRepository, "list").mockImplementation(async (options) => {
+          const rows = [mockDestination, { ...mockDestination, status: "published" as const }];
+          const items = rows.filter((row) => !options.status || row.status === options.status);
+          return { items, total: items.length };
+        });
+        vi.spyOn(destinationRepository, "findCategoryLinks").mockResolvedValue([]);
+
+        const res = await request(app).get(`/api/destinations${query}`);
+        expect(res.status).toBe(200);
+        expect(res.body.data.map((row: { status: string }) => row.status)).toEqual(["published"]);
+        expect(res.body.meta.total).toBe(1);
+        expect(list).toHaveBeenCalledWith(expect.objectContaining({ status: "published" }));
+      },
+    );
+
+    it.each([undefined, "draft", "archived"])("preserves admin list status %s", async (status) => {
+      const list = vi.spyOn(destinationRepository, "list").mockResolvedValue({ items: [{ ...mockDestination, status: status ?? "draft" }], total: 1 });
+      vi.spyOn(destinationRepository, "findCategoryLinks").mockResolvedValue([]);
+      const res = await request(app)
+        .get(`/api/destinations${status ? `?status=${status}` : ""}`)
+        .auth(adminToken, { type: "bearer" });
+      expect(res.status).toBe(200);
+      expect(res.body.data[0].status).toBe(status ?? "draft");
+      expect(list).toHaveBeenCalledWith(expect.objectContaining({ status }));
+    });
+
+    it.each(["", "?status=draft", "?status=archived"])("restricts non-admin list %s to published", async (query) => {
+      const list = vi.spyOn(destinationRepository, "list").mockResolvedValue({ items: [], total: 0 });
+      vi.spyOn(destinationRepository, "findCategoryLinks").mockResolvedValue([]);
+      const res = await request(app).get(`/api/destinations${query}`).auth(userToken, { type: "bearer" });
+      expect(res.status).toBe(200);
+      expect(list).toHaveBeenCalledWith(expect.objectContaining({ status: "published" }));
+    });
+
     it("passes filters to the repository", async () => {
       const list = vi
         .spyOn(destinationRepository, "list")
@@ -139,6 +176,70 @@ describe("Destination CRUD API (/api/destinations)", () => {
           categoryId,
         }),
       );
+    });
+  });
+
+  describe("GET /api/destinations/:id", () => {
+    it.each(["draft", "archived", "published"] as const)("allows admin to read %s detail", async (status) => {
+      vi.spyOn(destinationRepository, "findById").mockResolvedValue({ ...mockDestination, status });
+      vi.spyOn(destinationRepository, "findCategoryIds").mockResolvedValue([categoryId]);
+      vi.spyOn(categoryRepository, "findByIds").mockResolvedValue([mockCategory]);
+      const res = await request(app).get(`/api/destinations/${mockDestination.id}`).auth(adminToken, { type: "bearer" });
+      expect(res.status).toBe(200);
+      expect(res.body.data).toMatchObject({ id: mockDestination.id, status, categoryIds: [categoryId] });
+      expect(res.body.data.categories[0].id).toBe(categoryId);
+    });
+
+    it("allows anonymous and non-admin readers to read published detail", async () => {
+      vi.spyOn(destinationRepository, "findById").mockResolvedValue({ ...mockDestination, status: "published" });
+      vi.spyOn(destinationRepository, "findCategoryIds").mockResolvedValue([]);
+      vi.spyOn(categoryRepository, "findByIds").mockResolvedValue([]);
+      for (const token of [undefined, userToken]) {
+        const req = request(app).get(`/api/destinations/${mockDestination.id}`);
+        if (token) req.auth(token, { type: "bearer" });
+        const res = await req;
+        expect(res.status).toBe(200);
+        expect(res.body.data.status).toBe("published");
+      }
+    });
+
+    it("returns 404 for missing detail", async () => {
+      vi.spyOn(destinationRepository, "findById").mockResolvedValue(undefined);
+      const res = await request(app).get(`/api/destinations/${mockDestination.id}`);
+      expect(res.status).toBe(404);
+      expect(res.body.error.code).toBe("NOT_FOUND");
+    });
+    it.each(["draft", "archived"] as const)("hides %s detail from anonymous and non-admin readers", async (status) => {
+      vi.spyOn(destinationRepository, "findById").mockResolvedValue({ ...mockDestination, status });
+      vi.spyOn(destinationRepository, "findCategoryIds").mockResolvedValue([]);
+      vi.spyOn(categoryRepository, "findByIds").mockResolvedValue([]);
+      for (const token of [undefined, userToken]) {
+        const req = request(app).get(`/api/destinations/${mockDestination.id}`);
+        if (token) req.auth(token, { type: "bearer" });
+        const res = await req;
+        expect(res.status).toBe(404);
+        expect(res.body.error.code).toBe("NOT_FOUND");
+        expect(res.body.data).toBeUndefined();
+      }
+    });
+  });
+
+  describe("read authorization", () => {
+    it("rejects malformed credentials instead of treating them as anonymous or admin", async () => {
+      const list = vi.spyOn(destinationRepository, "list").mockResolvedValue({ items: [], total: 0 });
+      const find = vi.spyOn(destinationRepository, "findById").mockResolvedValue(mockDestination);
+      vi.spyOn(destinationRepository, "findCategoryLinks").mockResolvedValue([]);
+      vi.spyOn(destinationRepository, "findCategoryIds").mockResolvedValue([]);
+      vi.spyOn(categoryRepository, "findByIds").mockResolvedValue([]);
+      for (const header of ["", "Basic abc", "Bearer invalid", `Bearer ${adminToken} extra`]) {
+        for (const path of ["/api/destinations", `/api/destinations/${mockDestination.id}`]) {
+          const res = await request(app).get(path).set("Authorization", header);
+          expect(res.status).toBe(401);
+          expect(res.body.error.code).toBe("UNAUTHORIZED");
+        }
+      }
+      expect(list).not.toHaveBeenCalled();
+      expect(find).not.toHaveBeenCalled();
     });
   });
 

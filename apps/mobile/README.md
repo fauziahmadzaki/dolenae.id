@@ -4,8 +4,8 @@ Flutter (Android/iOS) app untuk pengalaman **Wisatawan** di Dolenae.id:
 discovery destinasi alam, detail destinasi, kebutuhan pendukung, AI
 rekomendasi, dan trip planning.
 
-Saat ini berisi **slice awal 4 halaman** (data statis): splash/onboarding,
-login, beranda, dan eksplor.
+Katalog destinasi tersinkron dari backend Express; fitur lain masih memakai
+sebagian data prototipe.
 
 ## Struktur
 
@@ -17,9 +17,11 @@ lib/
       app.dart                 # MaterialApp.router
       router/app_router.dart   # go_router
       theme/                   # token "Alam": warna, tipografi, spacing, radius, shadow
-    data/
-      models/                  # Destination, TravelSupport (subset packages/types)
-      seed/seed_data.dart      # data statis sementara (mirror packages/seed)
+    core/                    # HTTP, konfigurasi, database, Result
+    features/<fitur>/
+      domain/                # entitas, kontrak repository, usecase
+      data/                  # HTTP, Drift/SharedPreferences, seed
+      presentation/          # controller provider, layar
     shared/
       icons/app_icons.dart     # pemetaan ikon (Material; mudah ditukar)
       widgets/                 # design-system widget (DnCard, DnChip, ...)
@@ -38,6 +40,39 @@ test/                          # smoke test widget + seed
 flutter pub get
 flutter run
 ```
+
+## Sinkronisasi destinasi
+
+Jalankan backend `apps/backend` dengan database dan konfigurasi lokal yang valid.
+Base URL harus berakhir `/api`:
+
+- Emulator Android: bawaan `http://10.0.2.2:3001/api` (host komputer).
+- Chrome/desktop/iOS simulator: bawaan `http://localhost:3001/api`.
+- Perangkat fisik: gunakan IP LAN komputer, bukan `localhost`; perangkat dan
+  komputer harus saling terhubung, backend mendengarkan antarmuka LAN dan
+  firewall mengizinkan port. Contoh:
+
+```bash
+flutter run --dart-define=API_BASE_URL=http://192.168.1.10:3001/api
+flutter build apk --debug --dart-define=API_BASE_URL=http://192.168.1.10:3001/api
+```
+
+- Katalog `published` diperiksa segera saat mulai/resume dan setiap **5 detik
+  hanya saat foreground/resumed**. Perubahan biasanya tampak dalam 5 detik
+  ditambah latensi HTTP, seluruh halaman, dan penulisan cache; bukan push instan.
+  Jika permintaan masih berjalan, tick dilewati, bukan ditumpuk. Timer berhenti
+  saat inactive/hidden/paused/detached dan saat controller dibuang. Permintaan
+  yang sudah berjalan boleh selesai dan menyimpan cache.
+- Semua halaman diambil sebelum mengganti cache. Respons rusak, halaman tidak
+  lengkap, atau jaringan gagal mempertahankan cache terakhir; sinkron berikutnya
+  mencoba lagi. Pagination bukan snapshot transaksi server: perubahan bersamaan
+  yang terdeteksi ditolak agar katalog parsial tidak mengganti cache.
+- Delete/unpublish hilang dari daftar setelah sinkron berhasil, termasuk katalog
+  kosong. Status kosong tersimpan lewat SharedPreferences dan tidak berubah
+  menjadi seed setelah restart offline. Seed hanya untuk instalasi yang belum
+  pernah menyimpan katalog. Detail yang hilang menampilkan pesan tidak tersedia.
+- Sinkron ini hanya katalog/detail destinasi. Tidak menambahkan rendering jalur,
+  Route Builder, profil elevasi, atau navigasi GPS.
 
 ## Cek & test
 
@@ -98,8 +133,7 @@ fitur lain tetap berjalan normal.
 ## Catatan
 
 - Tema mengikuti `DESIGN.md` (tema "Alam"); `accent` hanya untuk penanda AI.
-- Data dari `seed_data.dart` (statis). Sumber kebenaran tetap `packages/types`
-  + `packages/seed` (TS); nanti diganti `@dolenae/server` (Hono API).
+- Data destinasi dari API backend dan cache Drift; seed hanya fallback awal.
 - Media destinasi masih placeholder (scene bukit + matahari), belum foto.
 - Font memakai `google_fonts` (Poppins/Inter); saat offline bisa dibundel
   sebagai asset.

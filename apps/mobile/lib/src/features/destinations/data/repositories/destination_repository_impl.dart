@@ -17,7 +17,7 @@ class DestinationRepositoryImpl implements DestinationRepository {
   @override
   Stream<DestinationCatalog> watchCatalog() {
     return _local.watch().map((catalog) {
-      return catalog.isEmpty
+      return catalog.isEmpty && catalog.lastFetched == null
           ? const DestinationCatalog(items: DestinationSeedData.items)
           : catalog;
     });
@@ -32,22 +32,21 @@ class DestinationRepositoryImpl implements DestinationRepository {
       var order = 0;
 
       for (final model in models) {
-        if ((model.json['id'] as String? ?? '').isEmpty) continue;
         rows.add(
           model.toCacheCompanion(sortOrder: order++, fetchedAt: fetchedAt),
         );
       }
 
-      if (rows.isNotEmpty) {
-        await _local.replaceAll(rows, fetchedAt: fetchedAt);
-      }
+      await _local.replaceAll(rows, fetchedAt: fetchedAt);
       return const Success(null);
     } on ApiException catch (error) {
       return Failure(error.toFailure());
     } on CacheFailure catch (error) {
       return Failure(error);
     } catch (_) {
-      return const Failure(UnknownFailure('Gagal memuat destinasi. Coba lagi.'));
+      return const Failure(
+        UnknownFailure('Gagal memuat destinasi. Coba lagi.'),
+      );
     }
   }
 }

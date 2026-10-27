@@ -272,6 +272,7 @@ void main() {
                 'id': 'dest-1',
                 'name': 'Gunung Bromo',
                 'slug': 'gunung-bromo',
+                'status': 'published',
                 'tagline': 'Sunrise di lautan pasir',
                 'difficulty': 'ramah-pemula',
                 'entryFee': 29000,
@@ -289,7 +290,14 @@ void main() {
                 'guideRequired': false,
               },
             ],
-            'meta': {'page': 1, 'limit': 50, 'total': 1},
+            'meta': {
+              'page': 1,
+              'limit': 50,
+              'total': 1,
+              'totalPages': 1,
+              'hasNext': false,
+              'hasPrev': false,
+            },
           });
         }),
       );
@@ -300,6 +308,9 @@ void main() {
       expect(request.url.queryParameters, {
         'status': 'published',
         'limit': '50',
+        'page': '1',
+        'sort': 'id',
+        'order': 'asc',
       });
       expect(items, hasLength(1));
 
