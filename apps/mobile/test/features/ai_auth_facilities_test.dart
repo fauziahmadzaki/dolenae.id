@@ -469,14 +469,15 @@ void main() {
       expect(contacted, 1);
     });
 
-    testWidgets('id tak dikenal jatuh ke fasilitas pertama', (tester) async {
+    testWidgets('id tak dikenal tidak jatuh ke fasilitas pertama', (tester) async {
       await usePhone(tester);
       await tester.pumpWidget(
         wrapScreen(const FacilityDetailScreen(supportId: 'sup-tidak-ada')),
       );
       await tester.pumpAndSettle();
-      expect(find.text('TENTANG'), findsOneWidget);
-      expect(find.text(FacilitySeedData.supports.first.name), findsWidgets);
+      expect(find.text('TENTANG'), findsNothing);
+      expect(find.text('Fasilitas tidak tersedia.'), findsOneWidget);
+      expect(find.text(FacilitySeedData.supports.first.name), findsNothing);
     });
   });
 

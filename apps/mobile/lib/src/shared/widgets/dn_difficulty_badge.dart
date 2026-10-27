@@ -7,7 +7,7 @@ import 'package:dolenae_mobile/src/features/destinations/domain/entities/destina
 class DnDifficultyBadge extends StatelessWidget {
   const DnDifficultyBadge({super.key, required this.level});
 
-  final DifficultyLevel level;
+  final DifficultyLevel? level;
 
   @override
   Widget build(BuildContext context) {
@@ -15,6 +15,7 @@ class DnDifficultyBadge extends StatelessWidget {
       DifficultyLevel.pemula => ('Ramah pemula', AppColors.success),
       DifficultyLevel.menengah => ('Menengah', AppColors.warning),
       DifficultyLevel.sulit => ('Sulit', AppColors.danger),
+      null => ('Belum tersedia', AppColors.body),
     };
 
     return Container(
@@ -28,7 +29,11 @@ class DnDifficultyBadge extends StatelessWidget {
       alignment: Alignment.center,
       child: Text(
         label,
-        style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: color),
+        style: TextStyle(
+          fontSize: 11,
+          fontWeight: FontWeight.w600,
+          color: color,
+        ),
       ),
     );
   }

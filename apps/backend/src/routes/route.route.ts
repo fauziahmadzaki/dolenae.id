@@ -15,6 +15,18 @@ import { validate } from "../middleware/validate";
 
 export const routeBuilderRouter = Router();
 
+routeBuilderRouter.get(
+  "/public/destinations/:destinationId/route-graph",
+  validate({ params: destinationIdParamsSchema }),
+  routeController.publicGraph,
+);
+
+routeBuilderRouter.get(
+  "/public/routes/:id/profile",
+  validate({ params: routeEntityIdParamsSchema }),
+  routeController.publicProfile,
+);
+
 // Admin-only while the builder is still a curation tool. Applied per route so
 // unknown /api paths still fall through to the 404 handler.
 const admin = [authRequired, requireRole("admin")] as const;

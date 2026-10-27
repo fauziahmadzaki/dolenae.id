@@ -4,7 +4,6 @@ import 'package:dolenae_mobile/src/core/network/api_client.dart';
 import 'package:dolenae_mobile/src/core/result/result.dart';
 import 'package:dolenae_mobile/src/features/destinations/data/data_sources/destination_local_data_source.dart';
 import 'package:dolenae_mobile/src/features/destinations/data/data_sources/destination_remote_data_source.dart';
-import 'package:dolenae_mobile/src/features/destinations/data/data_sources/destination_seed_data_source.dart';
 import 'package:dolenae_mobile/src/features/destinations/domain/entities/destination_catalog.dart';
 import 'package:dolenae_mobile/src/features/destinations/domain/repositories/destination_repository.dart';
 
@@ -16,11 +15,7 @@ class DestinationRepositoryImpl implements DestinationRepository {
 
   @override
   Stream<DestinationCatalog> watchCatalog() {
-    return _local.watch().map((catalog) {
-      return catalog.isEmpty && catalog.lastFetched == null
-          ? const DestinationCatalog(items: DestinationSeedData.items)
-          : catalog;
-    });
+    return _local.watch();
   }
 
   @override

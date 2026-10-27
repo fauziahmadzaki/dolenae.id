@@ -20,10 +20,15 @@ class SearchDestinationsUseCase {
 
   List<Destination> call(List<Destination> source, SearchFilter filter) {
     final query = filter.query.trim().toLowerCase();
-    if (query.isEmpty) return source;
+    if (query.isEmpty && filter.categoryId.isEmpty) return source;
 
     return source
-        .where((destination) => _haystack(destination).contains(query))
+        .where(
+          (destination) =>
+              (filter.categoryId.isEmpty ||
+                  destination.categoryIds.contains(filter.categoryId)) &&
+              _haystack(destination).contains(query),
+        )
         .toList(growable: false);
   }
 }
@@ -56,12 +61,27 @@ class SearchRecommendationsUseCase {
     List<Destination> source,
     String query, {
     int limit = 5,
+    String categoryId = '',
   }) {
     final needle = query.trim().toLowerCase();
-    if (needle.isEmpty) return const [];
+    if (needle.isEmpty && categoryId.isEmpty) return const [];
 
     final matches = <DestinationMatch>[];
     for (final destination in source) {
+      if (categoryId.isNotEmpty &&
+          !destination.categoryIds.contains(categoryId)) {
+        continue;
+      }
+      if (needle.isEmpty) {
+        matches.add(
+          DestinationMatch(
+            destination: destination,
+            score: 100,
+            reasons: const ['Sesuai kategori pilihan'],
+          ),
+        );
+        continue;
+      }
       final reasons = <String>[];
       var score = 0;
 

@@ -278,13 +278,12 @@ class $CachedDestinationsTable extends CachedDestinations
   late final GeneratedColumn<bool> guideRequired = GeneratedColumn<bool>(
     'guide_required',
     aliasedName,
-    false,
+    true,
     type: DriftSqlType.bool,
     requiredDuringInsert: false,
     defaultConstraints: GeneratedColumn.constraintIsAlways(
       'CHECK ("guide_required" IN (0, 1))',
     ),
-    defaultValue: const Constant(false),
   );
   static const VerificationMeta _verifiedMeta = const VerificationMeta(
     'verified',
@@ -721,7 +720,7 @@ class $CachedDestinationsTable extends CachedDestinations
       guideRequired: attachedDatabase.typeMapping.read(
         DriftSqlType.bool,
         data['${effectivePrefix}guide_required'],
-      )!,
+      ),
       verified: attachedDatabase.typeMapping.read(
         DriftSqlType.bool,
         data['${effectivePrefix}verified'],
@@ -777,15 +776,11 @@ class CachedDestination extends DataClass
   final int? entryFee;
   final int? elevationMeters;
   final String images;
-  final bool guideRequired;
+  final bool? guideRequired;
   final bool verified;
   final String categoryIds;
   final int sortOrder;
-
-  /// UTC millis saat baris ini terakhir diambil dari API.
   final int lastFetched;
-
-  /// UTC millis `updatedAt` dari server (null bila tidak tersedia).
   final int? serverUpdatedAt;
   const CachedDestination({
     required this.id,
@@ -812,7 +807,7 @@ class CachedDestination extends DataClass
     this.entryFee,
     this.elevationMeters,
     required this.images,
-    required this.guideRequired,
+    this.guideRequired,
     required this.verified,
     required this.categoryIds,
     required this.sortOrder,
@@ -872,7 +867,9 @@ class CachedDestination extends DataClass
       map['elevation_meters'] = Variable<int>(elevationMeters);
     }
     map['images'] = Variable<String>(images);
-    map['guide_required'] = Variable<bool>(guideRequired);
+    if (!nullToAbsent || guideRequired != null) {
+      map['guide_required'] = Variable<bool>(guideRequired);
+    }
     map['verified'] = Variable<bool>(verified);
     map['category_ids'] = Variable<String>(categoryIds);
     map['sort_order'] = Variable<int>(sortOrder);
@@ -935,7 +932,9 @@ class CachedDestination extends DataClass
           ? const Value.absent()
           : Value(elevationMeters),
       images: Value(images),
-      guideRequired: Value(guideRequired),
+      guideRequired: guideRequired == null && nullToAbsent
+          ? const Value.absent()
+          : Value(guideRequired),
       verified: Value(verified),
       categoryIds: Value(categoryIds),
       sortOrder: Value(sortOrder),
@@ -978,7 +977,7 @@ class CachedDestination extends DataClass
       entryFee: serializer.fromJson<int?>(json['entryFee']),
       elevationMeters: serializer.fromJson<int?>(json['elevationMeters']),
       images: serializer.fromJson<String>(json['images']),
-      guideRequired: serializer.fromJson<bool>(json['guideRequired']),
+      guideRequired: serializer.fromJson<bool?>(json['guideRequired']),
       verified: serializer.fromJson<bool>(json['verified']),
       categoryIds: serializer.fromJson<String>(json['categoryIds']),
       sortOrder: serializer.fromJson<int>(json['sortOrder']),
@@ -1014,7 +1013,7 @@ class CachedDestination extends DataClass
       'entryFee': serializer.toJson<int?>(entryFee),
       'elevationMeters': serializer.toJson<int?>(elevationMeters),
       'images': serializer.toJson<String>(images),
-      'guideRequired': serializer.toJson<bool>(guideRequired),
+      'guideRequired': serializer.toJson<bool?>(guideRequired),
       'verified': serializer.toJson<bool>(verified),
       'categoryIds': serializer.toJson<String>(categoryIds),
       'sortOrder': serializer.toJson<int>(sortOrder),
@@ -1048,7 +1047,7 @@ class CachedDestination extends DataClass
     Value<int?> entryFee = const Value.absent(),
     Value<int?> elevationMeters = const Value.absent(),
     String? images,
-    bool? guideRequired,
+    Value<bool?> guideRequired = const Value.absent(),
     bool? verified,
     String? categoryIds,
     int? sortOrder,
@@ -1087,7 +1086,9 @@ class CachedDestination extends DataClass
         ? elevationMeters.value
         : this.elevationMeters,
     images: images ?? this.images,
-    guideRequired: guideRequired ?? this.guideRequired,
+    guideRequired: guideRequired.present
+        ? guideRequired.value
+        : this.guideRequired,
     verified: verified ?? this.verified,
     categoryIds: categoryIds ?? this.categoryIds,
     sortOrder: sortOrder ?? this.sortOrder,
@@ -1292,7 +1293,7 @@ class CachedDestinationsCompanion extends UpdateCompanion<CachedDestination> {
   final Value<int?> entryFee;
   final Value<int?> elevationMeters;
   final Value<String> images;
-  final Value<bool> guideRequired;
+  final Value<bool?> guideRequired;
   final Value<bool> verified;
   final Value<String> categoryIds;
   final Value<int> sortOrder;
@@ -1463,7 +1464,7 @@ class CachedDestinationsCompanion extends UpdateCompanion<CachedDestination> {
     Value<int?>? entryFee,
     Value<int?>? elevationMeters,
     Value<String>? images,
-    Value<bool>? guideRequired,
+    Value<bool?>? guideRequired,
     Value<bool>? verified,
     Value<String>? categoryIds,
     Value<int>? sortOrder,
@@ -1682,7 +1683,7 @@ typedef $$CachedDestinationsTableCreateCompanionBuilder =
       Value<int?> entryFee,
       Value<int?> elevationMeters,
       Value<String> images,
-      Value<bool> guideRequired,
+      Value<bool?> guideRequired,
       Value<bool> verified,
       Value<String> categoryIds,
       required int sortOrder,
@@ -1716,7 +1717,7 @@ typedef $$CachedDestinationsTableUpdateCompanionBuilder =
       Value<int?> entryFee,
       Value<int?> elevationMeters,
       Value<String> images,
-      Value<bool> guideRequired,
+      Value<bool?> guideRequired,
       Value<bool> verified,
       Value<String> categoryIds,
       Value<int> sortOrder,
@@ -2239,7 +2240,7 @@ class $$CachedDestinationsTableTableManager
                 Value<int?> entryFee = const Value.absent(),
                 Value<int?> elevationMeters = const Value.absent(),
                 Value<String> images = const Value.absent(),
-                Value<bool> guideRequired = const Value.absent(),
+                Value<bool?> guideRequired = const Value.absent(),
                 Value<bool> verified = const Value.absent(),
                 Value<String> categoryIds = const Value.absent(),
                 Value<int> sortOrder = const Value.absent(),
@@ -2305,7 +2306,7 @@ class $$CachedDestinationsTableTableManager
                 Value<int?> entryFee = const Value.absent(),
                 Value<int?> elevationMeters = const Value.absent(),
                 Value<String> images = const Value.absent(),
-                Value<bool> guideRequired = const Value.absent(),
+                Value<bool?> guideRequired = const Value.absent(),
                 Value<bool> verified = const Value.absent(),
                 Value<String> categoryIds = const Value.absent(),
                 required int sortOrder,

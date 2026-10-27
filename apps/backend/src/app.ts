@@ -40,7 +40,16 @@ export function createApp() {
   const origins = corsOrigins();
   app.use(
     cors({
-      origin: origins.length > 0 ? origins : true,
+      origin: (origin, callback) => {
+        if (!origin || origins.length === 0 || origins.includes(origin)) {
+          return callback(null, true);
+        }
+        if (env.NODE_ENV !== "production") {
+          const isLocalhost = /^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin);
+          if (isLocalhost) return callback(null, true);
+        }
+        return callback(null, false);
+      },
       credentials: true,
       allowedHeaders: ["Content-Type", "Authorization", "X-Request-Id"],
       exposedHeaders: ["X-Request-Id"],

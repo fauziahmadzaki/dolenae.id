@@ -5,16 +5,17 @@ import 'package:provider/provider.dart';
 import 'package:dolenae_mobile/src/features/destinations/presentation/controllers/destinations_controller.dart';
 import 'package:dolenae_mobile/src/app/theme/app_colors.dart';
 import 'package:dolenae_mobile/src/app/theme/app_radius.dart';
-import 'package:dolenae_mobile/src/app/theme/app_shadows.dart';
 import 'package:dolenae_mobile/src/app/theme/app_spacing.dart';
 import 'package:dolenae_mobile/src/app/theme/app_text_styles.dart';
 import 'package:dolenae_mobile/src/features/destinations/domain/entities/destination.dart';
 import 'package:dolenae_mobile/src/shared/icons/app_icons.dart';
 import 'package:dolenae_mobile/src/shared/widgets/dn_buttons.dart';
 import 'package:dolenae_mobile/src/shared/widgets/dn_difficulty_badge.dart';
-import 'package:dolenae_mobile/src/shared/widgets/dn_icon_circle.dart';
-import 'package:dolenae_mobile/src/shared/widgets/dn_media_placeholder.dart';
-import 'package:dolenae_mobile/src/shared/widgets/dn_section_header.dart';
+import 'package:dolenae_mobile/src/shared/widgets/dn_remote_image.dart';
+import 'package:flutter_map/flutter_map.dart';
+import 'package:latlong2/latlong.dart';
+import 'package:dolenae_mobile/src/features/facilities/presentation/widgets/facilities_section.dart';
+import 'package:dolenae_mobile/src/features/routes/presentation/widgets/routes_section.dart';
 
 /// Layar Detail Destinasi (Node Figma: 65:215).
 ///
@@ -23,7 +24,7 @@ import 'package:dolenae_mobile/src/shared/widgets/dn_section_header.dart';
 class DestinationDetailScreen extends StatelessWidget {
   const DestinationDetailScreen({
     super.key,
-    this.destinationId = 'dest-bromo',
+    this.destinationId = '',
     this.onBack,
     this.onChecklist,
     this.onAddToPlan,
@@ -78,7 +79,7 @@ class DestinationDetailScreen extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     const SizedBox(height: AppSpacing.s3),
-                    _buildHero(),
+                    _buildHero(destination),
                     const SizedBox(height: AppSpacing.s3),
                     _buildTitleSection(destination),
                     const SizedBox(height: AppSpacing.s3),
@@ -90,7 +91,9 @@ class DestinationDetailScreen extends StatelessWidget {
                     const SizedBox(height: AppSpacing.s4),
                     _buildFacilitiesSection(destination),
                     const SizedBox(height: AppSpacing.s4),
-                    _buildSupportsSection(context),
+                    _buildRoutesSection(destination),
+                    const SizedBox(height: AppSpacing.s4),
+                    _buildSupportsSection(destination),
                     const SizedBox(height: AppSpacing.s6),
                   ],
                 ),
@@ -169,11 +172,13 @@ class DestinationDetailScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildHero() {
+  Widget _buildHero(Destination destination) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: AppSpacing.s4),
-      child: DnMediaPlaceholder(
-        icon: AppIcons.mountainSnow,
+      child: DnRemoteImage(
+        url: destination.images.firstOrNull,
+        semanticLabel: destination.name,
+        fallbackIcon: AppIcons.mountainSnow,
         height: 200,
         borderRadius: BorderRadius.circular(AppRadius.xl),
       ),
@@ -234,7 +239,7 @@ class DestinationDetailScreen extends StatelessWidget {
               Expanded(
                 child: _buildSpecCard(
                   label: 'Tiket masuk',
-                  value: destination.entryFee ?? 'Rp29rb - 34rb',
+                  value: destination.priceLabel,
                 ),
               ),
               const SizedBox(width: 12),
@@ -252,7 +257,9 @@ class DestinationDetailScreen extends StatelessWidget {
               Expanded(
                 child: _buildSpecCard(
                   label: 'Guide',
-                  value: destination.guideRequired == true
+                  value: destination.guideRequired == null
+                      ? 'Belum tersedia'
+                      : destination.guideRequired!
                       ? 'Wajib'
                       : 'Tidak wajib',
                 ),
@@ -261,7 +268,7 @@ class DestinationDetailScreen extends StatelessWidget {
               Expanded(
                 child: _buildSpecCard(
                   label: 'Musim terbaik',
-                  value: destination.bestSeason ?? 'Kering (Jul-Okt)',
+                  value: destination.bestSeason ?? 'Belum tersedia',
                 ),
               ),
             ],
@@ -329,7 +336,8 @@ class DestinationDetailScreen extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  destination.accessDescription ?? 'Dari Surabaya via Probolinggo, lanjut ke Cemoro Lawang. Bisa kendaraan pribadi atau sewa jeep.',
+                  destination.accessDescription ??
+                      'Informasi akses belum tersedia.',
                   style: AppTextStyles.bodySm,
                 ),
                 const SizedBox(height: 10),
@@ -337,9 +345,8 @@ class DestinationDetailScreen extends StatelessWidget {
                   spacing: 8,
                   runSpacing: 6,
                   children: [
-                    _buildTransportChip(AppIcons.car, 'Mobil'),
-                    _buildTransportChip(AppIcons.truck, 'Jeep'),
-                    _buildTransportChip(AppIcons.bike, 'Motor'),
+                    for (final mode in destination.accessTransportModes)
+                      _buildTransportChip(AppIcons.route, mode),
                   ],
                 ),
                 const SizedBox(height: 10),
@@ -348,7 +355,7 @@ class DestinationDetailScreen extends StatelessWidget {
                     const Icon(AppIcons.clock, size: 14, color: AppColors.body),
                     const SizedBox(width: 6),
                     Text(
-                      destination.accessTravelTime ?? '≈ 4 jam dari Surabaya',
+                      destination.accessTravelTime ?? 'Belum tersedia',
                       style: AppTextStyles.caption,
                     ),
                   ],
@@ -359,7 +366,7 @@ class DestinationDetailScreen extends StatelessWidget {
                     const Icon(AppIcons.route, size: 14, color: AppColors.body),
                     const SizedBox(width: 6),
                     Text(
-                      destination.accessDistance ?? '140 km dari kota terdekat',
+                      destination.accessDistance ?? 'Belum tersedia',
                       style: AppTextStyles.caption,
                     ),
                   ],
@@ -392,130 +399,84 @@ class DestinationDetailScreen extends StatelessWidget {
   }
 
   Widget _buildLocationSection(Destination destination) {
-    final accessPoint = destination.accessPointName ?? 'Cemoro Lawang';
+    final hasCoords = destination.latitude != null && destination.longitude != null;
+
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: AppSpacing.s4),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          DnSectionHeader(
-            title: 'Lokasi',
-            actionLabel: 'Buka di peta',
-            onAction: () {},
-          ),
+          Text('Lokasi', style: AppTextStyles.title),
           const SizedBox(height: AppSpacing.s2),
-          Container(
-            height: 180,
-            width: double.infinity,
-            decoration: BoxDecoration(
-              color: AppColors.canvasSubtle,
-              borderRadius: BorderRadius.circular(AppRadius.xl),
-              border: Border.all(color: AppColors.hairline),
-            ),
-            child: Stack(
-              children: [
-                // Mock grid peta
-                Positioned.fill(child: CustomPaint(painter: _MapGridPainter())),
-                // Marker utama
-                const Center(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(AppIcons.mapPin, size: 32, color: AppColors.accent),
-                    ],
-                  ),
+          Text(
+            destination.locationLabel.isEmpty
+                ? 'Lokasi belum tersedia.'
+                : destination.locationLabel,
+            style: AppTextStyles.bodySm,
+          ),
+          Text(
+            destination.accessPointName == null
+                ? 'Titik akses belum tersedia.'
+                : 'Titik akses: ${destination.accessPointName}',
+            style: AppTextStyles.caption,
+          ),
+          if (hasCoords) ...[
+            const SizedBox(height: AppSpacing.s3),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(AppRadius.lg),
+              child: Container(
+                height: 190,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(AppRadius.lg),
+                  border: Border.all(color: AppColors.hairline),
                 ),
-                // Tombol Zoom controls
-                Positioned(
-                  top: 10,
-                  right: 10,
-                  child: Column(
-                    children: [
-                      _buildMapIconButton(AppIcons.plus),
-                      const SizedBox(height: 6),
-                      _buildMapIconButton(AppIcons.minus),
-                    ],
-                  ),
-                ),
-                // Tombol Recenter
-                Positioned(
-                  bottom: 12,
-                  right: 10,
-                  child: Material(
-                    color: AppColors.canvas,
-                    shape: const CircleBorder(),
-                    elevation: 1,
-                    child: const SizedBox(
-                      width: 36,
-                      height: 36,
-                      child: Icon(
-                        AppIcons.locateFixed,
-                        size: 16,
-                        color: AppColors.primary,
-                      ),
+                child: FlutterMap(
+                  options: MapOptions(
+                    initialCenter: LatLng(destination.latitude!, destination.longitude!),
+                    initialZoom: 13.0,
+                    interactionOptions: const InteractionOptions(
+                      flags: InteractiveFlag.all & ~InteractiveFlag.rotate,
                     ),
                   ),
-                ),
-                // Chip nama titik akses
-                Positioned(
-                  bottom: 12,
-                  left: 12,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 10,
-                      vertical: 5,
+                  children: [
+                    TileLayer(
+                      urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                      userAgentPackageName: 'id.dolenae.mobile',
                     ),
-                    decoration: BoxDecoration(
-                      color: AppColors.canvas,
-                      borderRadius: BorderRadius.circular(AppRadius.md),
-                      boxShadow: AppShadows.sm,
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const Icon(
-                          AppIcons.mapPin,
-                          size: 13,
-                          color: AppColors.primary,
-                        ),
-                        const SizedBox(width: 4),
-                        Text(
-                          accessPoint,
-                          style: AppTextStyles.caption.copyWith(
-                            color: AppColors.primary,
-                            fontWeight: FontWeight.w600,
+                    MarkerLayer(
+                      markers: [
+                        Marker(
+                          point: LatLng(destination.latitude!, destination.longitude!),
+                          width: 38,
+                          height: 38,
+                          child: Container(
+                            decoration: const BoxDecoration(
+                              color: AppColors.primary,
+                              shape: BoxShape.circle,
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black26,
+                                  blurRadius: 6,
+                                  offset: Offset(0, 3),
+                                ),
+                              ],
+                            ),
+                            child: const Icon(
+                              AppIcons.mapPin,
+                              size: 20,
+                              color: AppColors.onPrimary,
+                            ),
                           ),
                         ),
                       ],
                     ),
-                  ),
+                  ],
                 ),
-              ],
+              ),
             ),
-          ),
-          const SizedBox(height: 8),
-          Row(
-            children: [
-              const Icon(AppIcons.mapPin, size: 14, color: AppColors.body),
-              const SizedBox(width: 4),
-              Text('Titik akses: $accessPoint', style: AppTextStyles.caption),
-            ],
-          ),
+          ],
         ],
       ),
-    );
-  }
-
-  Widget _buildMapIconButton(IconData icon) {
-    return Container(
-      width: 32,
-      height: 32,
-      decoration: BoxDecoration(
-        color: AppColors.canvas,
-        borderRadius: BorderRadius.circular(AppRadius.md),
-        border: Border.all(color: AppColors.hairline),
-      ),
-      child: Icon(icon, size: 16, color: AppColors.ink),
     );
   }
 
@@ -527,20 +488,20 @@ class DestinationDetailScreen extends StatelessWidget {
         children: [
           Text('Fasilitas', style: AppTextStyles.title),
           const SizedBox(height: AppSpacing.s2),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: [
-              _buildFacilityBadge('Toilet', destination.facilityToilet),
-              _buildFacilityBadge('Warung', destination.facilityWarung),
-              _buildFacilityBadge('Parkir', destination.facilityParking),
-              _buildFacilityBadge(
-                'Homestay dekat',
-                destination.facilityHomestay,
-              ),
-              _buildFacilityBadge('Mushola', destination.facilityMushola),
-            ],
-          ),
+          if (destination.facilities.isEmpty)
+            Text(
+              'Informasi fasilitas belum tersedia.',
+              style: AppTextStyles.bodySm,
+            )
+          else
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                for (final facility in destination.facilities)
+                  _buildFacilityBadge(facility, true),
+              ],
+            ),
         ],
       ),
     );
@@ -574,119 +535,17 @@ class DestinationDetailScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildSupportsSection(BuildContext context) {
+  Widget _buildRoutesSection(Destination destination) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: AppSpacing.s4),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          DnSectionHeader(
-            title: 'Kebutuhan pendukung',
-            actionLabel: 'Lihat semua',
-            onAction: () => context.push('/facilities'),
-          ),
-          const SizedBox(height: AppSpacing.s2),
-          _buildSupportRow(
-            icon: AppIcons.car,
-            name: 'Bromo Jeep Tour',
-            subtitle: 'Probolinggo ke Cemoro Lawang',
-            price: 'Rp650rb',
-            unit: '/trip',
-            verified: true,
-          ),
-          const SizedBox(height: AppSpacing.s2),
-          _buildSupportRow(
-            icon: AppIcons.bedDouble,
-            name: 'Homestay Cemoro Indah',
-            subtitle: '1,2 km dari basecamp',
-            price: 'Rp250rb',
-            unit: '/malam',
-            verified: true,
-          ),
-        ],
-      ),
+      child: RoutesSection(destinationId: destination.id),
     );
   }
 
-  Widget _buildSupportRow({
-    required IconData icon,
-    required String name,
-    required String subtitle,
-    required String price,
-    required String unit,
-    required bool verified,
-  }) {
-    return Container(
-      padding: const EdgeInsets.all(AppSpacing.s3),
-      decoration: BoxDecoration(
-        color: AppColors.canvasSubtle,
-        borderRadius: BorderRadius.circular(AppRadius.lg),
-        border: Border.all(color: AppColors.hairline),
-        boxShadow: AppShadows.sm,
-      ),
-      child: Row(
-        children: [
-          DnIconCircle(icon: icon, size: 36, iconSize: 18),
-          const SizedBox(width: AppSpacing.s3),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  name,
-                  style: AppTextStyles.label.copyWith(color: AppColors.ink),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  subtitle,
-                  style: AppTextStyles.overline.copyWith(color: AppColors.body),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                if (verified) ...[
-                  const SizedBox(height: 4),
-                  Row(
-                    children: [
-                      const Icon(
-                        AppIcons.badgeCheck,
-                        size: 13,
-                        color: AppColors.success,
-                      ),
-                      const SizedBox(width: 4),
-                      Text(
-                        'Terverifikasi',
-                        style: AppTextStyles.caption.copyWith(
-                          fontSize: 11,
-                          color: AppColors.success,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ],
-            ),
-          ),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              Text(
-                price,
-                style: AppTextStyles.label.copyWith(
-                  fontWeight: FontWeight.w700,
-                  color: AppColors.ink,
-                ),
-              ),
-              Text(
-                unit,
-                style: AppTextStyles.overline.copyWith(color: AppColors.body),
-              ),
-            ],
-          ),
-        ],
-      ),
+  Widget _buildSupportsSection(Destination destination) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.s4),
+      child: FacilitiesSection(destinationId: destination.id),
     );
   }
 
@@ -721,40 +580,4 @@ class DestinationDetailScreen extends StatelessWidget {
       ),
     );
   }
-}
-
-class _MapGridPainter extends CustomPainter {
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = AppColors.hairline
-      ..strokeWidth = 1.0;
-
-    // Garis vertikal
-    canvas.drawLine(
-      Offset(size.width * 0.28, 0),
-      Offset(size.width * 0.28, size.height),
-      paint,
-    );
-    canvas.drawLine(
-      Offset(size.width * 0.70, 0),
-      Offset(size.width * 0.70, size.height),
-      paint,
-    );
-
-    // Garis horizontal
-    canvas.drawLine(
-      Offset(0, size.height * 0.35),
-      Offset(size.width, size.height * 0.35),
-      paint,
-    );
-    canvas.drawLine(
-      Offset(0, size.height * 0.70),
-      Offset(size.width, size.height * 0.70),
-      paint,
-    );
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }

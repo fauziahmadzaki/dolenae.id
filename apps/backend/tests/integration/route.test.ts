@@ -165,6 +165,144 @@ beforeEach(() => {
   vi.mocked(routeRepository.createNode).mockResolvedValue(nodeA);
 });
 
+describe("Public route API", () => {
+  beforeEach(() => {
+    vi.mocked(destinationRepository.findById).mockResolvedValue({
+      ...destinationRow, status: "published",
+    } as never);
+    vi.mocked(routeRepository.findRouteById).mockResolvedValue(routeRow);
+  });
+
+  it.each(["draft", "archived", undefined])("hides %s parents from anonymous and admin public reads", async (status) => {
+    vi.mocked(destinationRepository.findById).mockResolvedValue(status ? { ...destinationRow, status } as never : undefined);
+    for (const path of [`/api/public/destinations/${destinationId}/route-graph`, `/api/public/routes/${routeId}/profile`]) {
+      for (const admin of [false, true]) {
+        const req = request(app).get(path).query({ destinationId, preview: true });
+        if (admin) req.auth(token, { type: "bearer" });
+        const res = await req;
+        expect(res.status).toBe(404);
+        expect(res.body.success).toBe(false);
+      }
+    }
+    expect(routeRepository.listNodes).not.toHaveBeenCalled();
+    expect(routeRepository.findRoutePoints).not.toHaveBeenCalled();
+  });
+
+  it("checks profile parent from stored route, not client destination", async () => {
+    const privateParent = "11111111-1111-4111-a111-111111111111";
+    vi.mocked(routeRepository.findRouteById).mockResolvedValue({ ...routeRow, destinationId: privateParent });
+    vi.mocked(destinationRepository.findById).mockImplementation(async (id) => ({ ...destinationRow, status: id === destinationId ? "published" : "draft" }) as never);
+    const res = await request(app).get(`/api/public/routes/${routeId}/profile`).query({ destinationId });
+    expect(res.status).toBe(404);
+    expect(destinationRepository.findById).toHaveBeenCalledWith(privateParent);
+  });
+
+  it("returns 404 for missing route", async () => {
+    vi.mocked(routeRepository.findRouteById).mockResolvedValue(undefined);
+    expect((await request(app).get(`/api/public/routes/${routeId}/profile`)).status).toBe(404);
+    expect(destinationRepository.findById).not.toHaveBeenCalled();
+  });
+
+  it.each(["/api/public/destinations/not-a-uuid/route-graph", "/api/public/routes/not-a-uuid/profile"])("validates UUID on %s", async (path) => {
+    expect((await request(app).get(path)).status).toBe(422);
+    expect(destinationRepository.findById).not.toHaveBeenCalled();
+    expect(routeRepository.findRouteById).not.toHaveBeenCalled();
+  });
+
+  it("returns all trail statuses and full ordered geometry including bends", async () => {
+    const statuses = ["terverifikasi", "alternatif", "dalam-perbaikan", "rusak", "terlarang"] as const;
+    vi.mocked(routeRepository.listRoutes).mockResolvedValue(statuses.map((status) => ({ ...routeRow, status })));
+    const points = [["0", "0"], ["0", "0.00003"], ["0.00003", "0.00003"], ["0.00003", "0.00003"]].map(([latitude, longitude], position) => ({
+      routeId, position, latitude: latitude!, longitude: longitude!, elevationMeters: null, nodeId: null,
+    }));
+    vi.mocked(routeRepository.findRoutePoints).mockResolvedValue(points);
+    const res = await request(app).get(`/api/public/destinations/${destinationId}/route-graph`).auth("invalid-token", { type: "bearer" });
+    expect(res.status).toBe(200);
+    expect(res.body.data.routes.map((route: { status: string }) => route.status)).toEqual(statuses);
+    expect(res.body.data.routes[0].points).toEqual(points.map(({ latitude, longitude, elevationMeters, nodeId }) => ({ latitude: Number(latitude), longitude: Number(longitude), elevationMeters, nodeId })));
+  });
+
+  it("does not grant anonymous access to admin reads or mutations", async () => {
+    for (const path of [`/api/destinations/${destinationId}/routes`, `/api/routes/${routeId}`, `/api/routes/${routeId}/profile`]) {
+      expect((await request(app).get(path)).status).toBe(401);
+    }
+    expect((await request(app).post(`/api/destinations/${destinationId}/routes`).send({})).status).toBe(401);
+    expect((await request(app).patch(`/api/routes/${routeId}`).send({})).status).toBe(401);
+    expect((await request(app).delete(`/api/routes/${routeId}`)).status).toBe(401);
+  });
+
+  it("preserves admin route list array and draft preview access", async () => {
+    vi.mocked(destinationRepository.findById).mockResolvedValue({ ...destinationRow, status: "draft" } as never);
+    const list = await request(app).get(`/api/destinations/${destinationId}/routes`).auth(token, { type: "bearer" });
+    expect(list.status).toBe(200);
+    expect(Array.isArray(list.body.data)).toBe(true);
+    expect((await request(app).get(`/api/destinations/${destinationId}/route-graph`).auth(token, { type: "bearer" })).status).toBe(200);
+    expect((await request(app).get(`/api/routes/${routeId}/profile`).auth(token, { type: "bearer" })).status).toBe(200);
+  });
+
+  it("accumulates short bent edges before rounding and keeps duplicates", async () => {
+    const coordinates = [[0, 0], [0, 0.00003], [0.00003, 0.00003], [0.00003, 0.00003], [0.00003, 0.00006], [0, 0.00006]];
+    vi.mocked(routeRepository.findRoutePoints).mockResolvedValue(coordinates.map(([latitude, longitude], position) => ({
+      routeId, position, latitude: String(latitude), longitude: String(longitude), elevationMeters: 100 + position, nodeId: null,
+    })));
+    const res = await request(app).get(`/api/public/routes/${routeId}/profile`);
+    expect(res.status).toBe(200);
+    expect(res.body.data.totalDistanceKm).toBe(0.01);
+    expect(res.body.data.points).toHaveLength(6);
+    expect(res.body.data.points.map((point: { distanceKm: number }) => point.distanceKm)).toEqual([0, 0, 0.01, 0.01, 0.01, 0.01]);
+    expect(res.body.data.steepestGradePercent).toBe(30);
+  });
+
+  it("interpolates short edges using unrounded cumulative distances", async () => {
+    vi.mocked(routeRepository.findRoutePoints).mockResolvedValue([100, null, 200].map((elevationMeters, position) => ({
+      routeId, position, latitude: "0", longitude: String(position * 0.00003), elevationMeters, nodeId: null,
+    })));
+    const res = await request(app).get(`/api/public/routes/${routeId}/profile`);
+    expect(res.body.data.points[1].elevationMeters).toBe(150);
+  });
+
+  it("does not fabricate elevations when geometry has no elevation data", async () => {
+    vi.mocked(routeRepository.findRoutePoints).mockResolvedValue([0, 1].map((position) => ({
+      routeId, position, latitude: "0", longitude: String(position / 100),
+      elevationMeters: null, nodeId: null,
+    })));
+    const res = await request(app).get(`/api/public/routes/${routeId}/profile`);
+    expect(res.status).toBe(200);
+    expect(res.body.data).toMatchObject({ elevationAvailable: false, elevationEstimated: false,
+      totalGainMeters: null, totalLossMeters: null, maxElevationMeters: null,
+      minElevationMeters: null, steepestGradePercent: null, estimatedDurationMinutes: null });
+    expect(res.body.data.points.map((point: { elevationMeters: unknown }) => point.elevationMeters)).toEqual([null, null]);
+    const admin = await request(app).get(`/api/routes/${routeId}/profile`).auth(token, { type: "bearer" });
+    expect(admin.body.data.points[0].elevationMeters).toBe(0);
+    expect(admin.body.data).not.toHaveProperty("elevationAvailable");
+  });
+
+  it("marks interpolated elevation as estimated", async () => {
+    vi.mocked(routeRepository.findRoutePoints).mockResolvedValue([100, null, 200].map((elevationMeters, position) => ({
+      routeId, position, latitude: "0", longitude: String(position / 100), elevationMeters, nodeId: null,
+    })));
+    const res = await request(app).get(`/api/public/routes/${routeId}/profile`);
+    expect(res.body.data).toMatchObject({ elevationAvailable: true, elevationEstimated: true });
+    expect(res.body.data.points[1].elevationMeters).toBe(150);
+  });
+
+  it("returns public elevation availability without authentication", async () => {
+    const res = await request(app).get(`/api/public/routes/${routeId}/profile`);
+    expect(res.status).toBe(200);
+    expect(res.body.data).toMatchObject({ routeId, elevationAvailable: true, elevationEstimated: false, totalGainMeters: 570 });
+  });
+
+  it("returns published destination graph without authentication", async () => {
+    const res = await request(app).get(`/api/public/destinations/${destinationId}/route-graph`);
+    expect(res.status).toBe(200);
+    expect(res.body.success).toBe(true);
+    expect(res.body.data.routes[0]).toMatchObject({ id: routeId, points: [
+      { latitude: -7.9425, longitude: 112.953, elevationMeters: 2200, nodeId: nodeAId },
+      { latitude: -7.95, longitude: 112.96, elevationMeters: 2770, nodeId: nodeBId },
+    ] });
+  });
+});
+
 describe("Route builder API", () => {
   it("requires an admin token", async () => {
     const res = await request(app).get(

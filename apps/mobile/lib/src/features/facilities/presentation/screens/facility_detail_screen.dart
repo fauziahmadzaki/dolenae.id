@@ -18,7 +18,7 @@ import 'package:dolenae_mobile/src/shared/widgets/dn_toast.dart';
 ///
 /// Satu template untuk tiga jenis fasilitas; perbedaan isi diambil dari
 /// [TravelSupport.infoRows] dan [TravelSupport.specLabels].
-class FacilityDetailScreen extends StatelessWidget {
+class FacilityDetailScreen extends StatefulWidget {
   const FacilityDetailScreen({
     super.key,
     this.supportId = 'sup-homestay',
@@ -32,6 +32,26 @@ class FacilityDetailScreen extends StatelessWidget {
   final VoidCallback? onContact;
   final VoidCallback? onBack;
 
+  @override
+  State<FacilityDetailScreen> createState() => _FacilityDetailScreenState();
+}
+class _FacilityDetailScreenState extends State<FacilityDetailScreen> {
+  String get supportId => widget.supportId;
+  VoidCallback? get onSave => widget.onSave;
+  VoidCallback? get onContact => widget.onContact;
+  VoidCallback? get onBack => widget.onBack;
+  @override
+  void initState() { super.initState(); _load(); }
+  @override
+  void didUpdateWidget(covariant FacilityDetailScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.supportId != widget.supportId) _load();
+  }
+  void _load() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) context.read<FacilitiesController>().loadDetail(supportId);
+    });
+  }
   static IconData _iconFor(SupportCategory category) => switch (category) {
     SupportCategory.penginapan => AppIcons.bedDouble,
     SupportCategory.transportasi => AppIcons.car,
@@ -40,7 +60,19 @@ class FacilityDetailScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final support = context.watch<FacilitiesController>().resolve(supportId);
+    final state = context.watch<FacilitiesController>();
+    final support = state.resolve(supportId);
+    if (support == null) {
+      return Scaffold(
+        appBar: DnAppBar(title: 'Fasilitas', showBack: true, onBack: onBack ?? () { if (context.canPop()) context.pop(); }),
+        body: SafeArea(child: Center(child: state.detailId != supportId || state.detailLoading
+          ? const CircularProgressIndicator()
+          : Column(mainAxisSize: MainAxisSize.min, children: [
+              Text(state.detailFailure?.message ?? 'Fasilitas tidak tersedia.'),
+              TextButton(onPressed: () => state.loadDetail(supportId), child: const Text('Coba lagi')),
+            ]))),
+      );
+    }
 
     return Scaffold(
       backgroundColor: AppColors.canvas,

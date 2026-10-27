@@ -136,8 +136,38 @@ flutter build apk --debug --dart-define=API_BASE_URL=http://192.168.1.10:3001/ap
   kosong. Status kosong tersimpan lewat SharedPreferences dan tidak berubah
   menjadi seed setelah restart offline. Seed hanya untuk instalasi yang belum
   pernah menyimpan katalog. Detail yang hilang menampilkan pesan tidak tersedia.
-- Sinkron ini hanya katalog/detail destinasi. Tidak menambahkan rendering jalur,
-  Route Builder, profil elevasi, atau navigasi GPS.
+
+## Integrasi Backend Mobile (F1-F5)
+
+Aplikasi mobile mengintegrasikan backend Express untuk data katalog dan navigasi:
+
+1. **F1 — Dynamic Destination Images**
+   - Menggunakan `DnRemoteImage` untuk memuat foto destinasi secara dinamis dengan placeholder stabil saat kosong, memuat, atau gagal.
+   - Host rewriting otomatis lewat `resolveMediaUrl`: mengubah host URL media lokal (`localhost`, `127.0.0.1`, `10.0.2.2`) agar cocok dengan host backend aktif (termasuk saat pengujian fisik di LAN).
+   - Backend dengan `STORAGE_DRIVER=local` membutuhkan `PUBLIC_API_URL` agar URL gambar menunjuk ke antarmuka yang dapat diakses perangkat.
+
+2. **F2 — Backend-Driven Categories**
+   - Kategori dimuat dinamis dari endpoint `/api/categories`.
+   - Caching lokal menggunakan `SharedPreferences` dengan masa berlaku (TTL) 24 jam untuk ketahanan offline.
+   - Filter katalog eksplorasi dan beranda menyaring destinasi berdasarkan `categoryIds` yang sinkron dengan backend.
+
+3. **F3 — Live Detail Fields**
+   - Menghapus nilai palsu statis (*fake static values*) pada harga tiket, musim terbaik, titik akses, dan kebutuhan pemandu (guide).
+   - Data langsung dari backend; menampilkan label "Belum ada data" / "Belum tersedia" saat nilai field bernilai `null` tanpa fallback palsu.
+
+4. **F4 — Travel Support (Kebutuhan Pendukung)**
+   - Integrasi kebutuhan pendukung dari endpoint `/api/destinations/:id/supports` dan detail per item `/api/supports/:id`.
+   - Cache lokal terintegrasi sebagai cadangan (*fallback*) saat offline.
+   - Mendukung penyaringan kategori kebutuhan pendukung: Penginapan (`accommodation`), Transportasi (`transport`), dan Makanan (`food`).
+
+5. **F5 — Routes & Elevation Profile**
+   - Integrasi peta rute berbasis `flutter_map` dengan visualisasi koordinat titik jalur destinasi.
+   - Pengambilan graf rute `/api/public/destinations/:id/route-graph` dan profil elevasi `/api/public/routes/:id/profile`.
+   - Penataan gaya jalur berdasarkan status rute (utama, alternatif, darurat) serta jenis permukaan (aspal, setapak, tanah, batu, pasir, campuran).
+   - Visualisasi profil elevasi dengan statistik akumulasi jarak, kenaikan/penurunan elevasi, dan kemiringan.
+
+> **Catatan Status Fitur Lain:**
+> Fitur AI trip planning (rekomendasi & itinerary), checklist perlengkapan, dan destinasi tersimpan (saved trips) saat ini masih menggunakan seed data di sisi klien (*client-side seed data*).
 
 ## Cek & test
 
@@ -198,7 +228,6 @@ fitur lain tetap berjalan normal.
 ## Catatan
 
 - Tema mengikuti `DESIGN.md` (tema "Alam"); `accent` hanya untuk penanda AI.
-- Data destinasi dari API backend dan cache Drift; seed hanya fallback awal.
-- Media destinasi masih placeholder (scene bukit + matahari), belum foto.
-- Font memakai `google_fonts` (Poppins/Inter); saat offline bisa dibundel
-  sebagai asset.
+- Data destinasi dari API backend dan cache Drift; seed hanya fallback awal saat pertama kali dipasang tanpa koneksi.
+- Foto destinasi dan kebutuhan pendukung dimuat melalui `DnRemoteImage` dengan resolusi URL media dinamis.
+- Font memakai `google_fonts` (Poppins/Inter); saat offline bisa dibundel sebagai asset.

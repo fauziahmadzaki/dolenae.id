@@ -15,6 +15,7 @@ export const openApiDocument = {
     { name: "Categories", description: "Destination categories (terrain/activity)" },
     { name: "Destinations", description: "Nature destinations catalog & admin CRUD" },
     { name: "Regions", description: "Indonesian province/regency/district data & reverse geocoding" },
+    { name: "Supports", description: "Published-destination travel support discovery" },
     { name: "Routes", description: "Route builder: track nodes, segments, trails and elevation profiles" },
   ],
   components: {
@@ -156,6 +157,221 @@ export const openApiDocument = {
           meta: { $ref: "#/components/schemas/PageMeta" },
         },
       },
+      "TravelSupport": {
+        "type": "object",
+        "required": ["id", "destinationId", "name", "category", "description", "locationLabel", "capacity", "distanceLabel", "priceLabel", "priceUnit", "contactPhone", "contactWhatsapp", "contactInstagram", "imageUrl", "facilities", "routes", "cuisine", "includesDriver", "verified", "relatedDestinationName", "createdAt", "updatedAt"],
+        "properties": {
+          "id": {"type": "string", "format": "uuid"},
+          "destinationId": {"type": "string", "format": "uuid"},
+          "name": {"type": "string"},
+          "category": {"type": "string", "enum": ["accommodation", "transport", "food"]},
+          "description": {"type": ["string", "null"]},
+          "locationLabel": {"type": ["string", "null"]},
+          "capacity": {"type": ["string", "null"]},
+          "distanceLabel": {"type": ["string", "null"]},
+          "priceLabel": {"type": ["string", "null"]},
+          "priceUnit": {"type": ["string", "null"]},
+          "contactPhone": {"type": ["string", "null"]},
+          "contactWhatsapp": {"type": ["string", "null"]},
+          "contactInstagram": {"type": ["string", "null"]},
+          "imageUrl": {"type": ["string", "null"]},
+          "facilities": {
+            "type": "array",
+            "items": {"type": "string"}
+          },
+          "routes": {
+            "type": "array",
+            "items": {"type": "string"}
+          },
+          "cuisine": {
+            "type": "array",
+            "items": {"type": "string"}
+          },
+          "includesDriver": {"type": "boolean"},
+          "verified": {"type": "boolean"},
+          "relatedDestinationName": {"type": "string"},
+          "createdAt": {"type": "string", "format": "date-time"},
+          "updatedAt": {"type": "string", "format": "date-time"}
+        }
+      },
+      "SupportResponse": {
+        "type": "object",
+        "required": ["success", "data"],
+        "properties": {
+          "success": {"type": "boolean", "enum": [true]},
+          "data": {"$ref": "#/components/schemas/TravelSupport"}
+        }
+      },
+      "PagedSupports": {
+        "type": "object",
+        "required": ["success", "data", "meta"],
+        "properties": {
+          "success": {"type": "boolean", "enum": [true]},
+          "data": {
+            "type": "array",
+            "items": {"$ref": "#/components/schemas/TravelSupport"}
+          },
+          "meta": {"$ref": "#/components/schemas/PageMeta"}
+        }
+      },
+      "TrackNode": {
+        "type": "object",
+        "required": ["id", "destinationId", "name", "type", "coordinate", "elevationMeters", "notes", "imageUrl", "createdAt", "updatedAt"],
+        "properties": {
+          "id": {"type": "string", "format": "uuid"},
+          "destinationId": {"type": "string", "format": "uuid"},
+          "name": {"type": "string"},
+          "type": {"type": "string", "enum": ["basecamp", "gerbang", "parkir", "pos", "sumber-air", "viewpoint", "puncak", "persimpangan", "area-camp"]},
+          "coordinate": {
+            "type": "object",
+            "required": ["latitude", "longitude"],
+            "properties": {
+              "latitude": {"type": "number"},
+              "longitude": {"type": "number"}
+            }
+          },
+          "elevationMeters": {"type": "number"},
+          "notes": {"type": ["string", "null"]},
+          "imageUrl": {"type": ["string", "null"]},
+          "createdAt": {"type": "string", "format": "date-time"},
+          "updatedAt": {"type": "string", "format": "date-time"}
+        }
+      },
+      "RouteSegment": {
+        "type": "object",
+        "required": ["id", "destinationId", "fromNodeId", "toNodeId", "surface", "grade", "traversableBy", "bidirectional", "distanceKm", "estimatedDurationMinutes", "seasonal", "notes", "status", "createdAt", "updatedAt"],
+        "properties": {
+          "id": {"type": "string", "format": "uuid"},
+          "destinationId": {"type": "string", "format": "uuid"},
+          "fromNodeId": {"type": "string", "format": "uuid"},
+          "toNodeId": {"type": "string", "format": "uuid"},
+          "surface": {"type": "string", "enum": ["setapak", "aspal", "tanah", "tanah-liat", "batu", "pasir"]},
+          "grade": {"type": "string", "enum": ["datar", "landai", "sedang", "terjal", "sangat-terjal"]},
+          "traversableBy": {
+            "type": "array",
+            "items": {"type": "string"}
+          },
+          "bidirectional": {"type": "boolean"},
+          "distanceKm": {"type": ["number", "null"]},
+          "estimatedDurationMinutes": {"type": ["number", "null"]},
+          "seasonal": {"type": "boolean"},
+          "notes": {"type": ["string", "null"]},
+          "status": {"type": "string", "enum": ["draft", "diterbitkan", "terverifikasi"]},
+          "createdAt": {"type": "string", "format": "date-time"},
+          "updatedAt": {"type": "string", "format": "date-time"}
+        }
+      },
+      "RoutePoint": {
+        "type": "object",
+        "required": ["latitude", "longitude", "elevationMeters", "nodeId"],
+        "properties": {
+          "latitude": {"type": "number"},
+          "longitude": {"type": "number"},
+          "elevationMeters": {"type": ["number", "null"]},
+          "nodeId": {"type": ["string", "null"], "format": "uuid"}
+        }
+      },
+      "TrailRoute": {
+        "type": "object",
+        "required": ["id", "destinationId", "name", "description", "basecampNodeId", "nodeIds", "segmentIds", "points", "surface", "grade", "traversableBy", "difficulty", "recommended", "status", "createdAt", "updatedAt"],
+        "properties": {
+          "id": {"type": "string", "format": "uuid"},
+          "destinationId": {"type": "string", "format": "uuid"},
+          "name": {"type": "string"},
+          "description": {"type": ["string", "null"]},
+          "basecampNodeId": {"type": ["string", "null"], "format": "uuid"},
+          "nodeIds": {
+            "type": "array",
+            "items": {"type": "string", "format": "uuid"}
+          },
+          "segmentIds": {
+            "type": "array",
+            "items": {"type": "string", "format": "uuid"}
+          },
+          "points": {
+            "type": "array",
+            "items": {"$ref": "#/components/schemas/RoutePoint"},
+            "description": "Full ordered geometry, including free bends with nodeId null. Legacy node-only routes derive points from anchors."
+          },
+          "surface": {"type": "string"},
+          "grade": {"type": "string", "enum": ["datar", "landai", "sedang", "terjal", "sangat-terjal"]},
+          "traversableBy": {
+            "type": "array",
+            "items": {"type": "string"}
+          },
+          "difficulty": {"type": "string", "enum": ["ramah-pemula", "menengah", "sulit"]},
+          "recommended": {"type": "boolean"},
+          "status": {"type": "string", "enum": ["terverifikasi", "alternatif", "dalam-perbaikan", "rusak", "terlarang"]},
+          "createdAt": {"type": "string", "format": "date-time"},
+          "updatedAt": {"type": "string", "format": "date-time"}
+        }
+      },
+      "RouteGraph": {
+        "type": "object",
+        "required": ["nodes", "segments", "routes"],
+        "properties": {
+          "nodes": {
+            "type": "array",
+            "items": {"$ref": "#/components/schemas/TrackNode"}
+          },
+          "segments": {
+            "type": "array",
+            "items": {"$ref": "#/components/schemas/RouteSegment"}
+          },
+          "routes": {
+            "type": "array",
+            "items": {"$ref": "#/components/schemas/TrailRoute"}
+          }
+        }
+      },
+      "PublicElevationPoint": {
+        "type": "object",
+        "required": ["distanceKm", "elevationMeters", "nodeId", "name", "type"],
+        "properties": {
+          "distanceKm": {"type": "number"},
+          "elevationMeters": {"type": ["number", "null"]},
+          "nodeId": {"type": "string", "description": "UUID for an anchor; empty string for an unanchored bend."},
+          "name": {"type": "string"},
+          "type": {"type": "string", "enum": ["basecamp", "gerbang", "parkir", "pos", "sumber-air", "viewpoint", "puncak", "persimpangan", "area-camp", "belokan"]}
+        }
+      },
+      "PublicRouteProfile": {
+        "type": "object",
+        "required": ["routeId", "points", "totalDistanceKm", "totalGainMeters", "totalLossMeters", "maxElevationMeters", "minElevationMeters", "steepestGradePercent", "estimatedDurationMinutes", "elevationAvailable", "elevationEstimated"],
+        "properties": {
+          "routeId": {"type": "string", "format": "uuid"},
+          "points": {
+            "type": "array",
+            "items": {"$ref": "#/components/schemas/PublicElevationPoint"}
+          },
+          "totalDistanceKm": {"type": "number"},
+          "totalGainMeters": {"type": ["number", "null"]},
+          "totalLossMeters": {"type": ["number", "null"]},
+          "maxElevationMeters": {"type": ["number", "null"]},
+          "minElevationMeters": {"type": ["number", "null"]},
+          "steepestGradePercent": {"type": ["number", "null"]},
+          "estimatedDurationMinutes": {"type": ["number", "null"]},
+          "elevationAvailable": {"type": "boolean"},
+          "elevationEstimated": {"type": "boolean"}
+        },
+        "description": "Public profile only. No known elevation: elevationAvailable=false, elevationEstimated=false, every point elevation and elevation-dependent statistic (including duration) is null; totalDistanceKm remains numeric. Some known elevations: missing values interpolated or nearest-known filled, elevationEstimated=true. All known: elevationEstimated=false. Admin profile unchanged."
+      },
+      "PublicRouteGraphResponse": {
+        "type": "object",
+        "required": ["success", "data"],
+        "properties": {
+          "success": {"type": "boolean", "enum": [true]},
+          "data": {"$ref": "#/components/schemas/RouteGraph"}
+        }
+      },
+      "PublicRouteProfileResponse": {
+        "type": "object",
+        "required": ["success", "data"],
+        "properties": {
+          "success": {"type": "boolean", "enum": [true]},
+          "data": {"$ref": "#/components/schemas/PublicRouteProfile"}
+        }
+      },
       PageMeta: {
         type: "object",
         properties: {
@@ -170,6 +386,171 @@ export const openApiDocument = {
     },
   },
   paths: {
+    "/api/supports/{id}": {
+      "get": {
+        "tags": ["Supports"],
+        "summary": "Get travel support (public)",
+        "description": "Only supports joined to a published destination, even with an admin token. relatedDestinationName comes from that join. Anonymous access allowed; supplied invalid credentials return 401.",
+        "security": [],
+        "parameters": [{"name": "id", "in": "path", "required": true, "schema": {"type": "string", "format": "uuid"}}],
+        "responses": {
+          "200": {
+            "description": "Success envelope",
+            "content": {
+              "application/json": {
+                "schema": {"$ref": "#/components/schemas/SupportResponse"}
+              }
+            }
+          },
+          "400": {
+            "description": "BAD_REQUEST: invalid UUID",
+            "content": {
+              "application/json": {
+                "schema": {"$ref": "#/components/schemas/ApiError"}
+              }
+            }
+          },
+          "404": {
+            "description": "NOT_FOUND: missing entity or parent destination not published",
+            "content": {
+              "application/json": {
+                "schema": {"$ref": "#/components/schemas/ApiError"}
+              }
+            }
+          },
+          "401": {
+            "description": "UNAUTHORIZED: supplied Authorization header is invalid",
+            "content": {
+              "application/json": {
+                "schema": {"$ref": "#/components/schemas/ApiError"}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/destinations/{id}/supports": {
+      "get": {
+        "tags": ["Supports"],
+        "summary": "List destination supports (public)",
+        "description": "Published destinations only, even with an admin token. Stable category/name/id ascending order. Empty published destination returns [] and meta; missing/draft/archived destination returns 404. Only page and limit are supported.",
+        "security": [],
+        "parameters": [{"name": "id", "in": "path", "required": true, "schema": {"type": "string", "format": "uuid"}}, {"name": "page", "in": "query", "schema": {"type": "integer", "minimum": 1, "default": 1}}, {"name": "limit", "in": "query", "schema": {"type": "integer", "minimum": 1, "default": 20, "maximum": 100}}],
+        "responses": {
+          "200": {
+            "description": "Success envelope",
+            "content": {
+              "application/json": {
+                "schema": {"$ref": "#/components/schemas/PagedSupports"}
+              }
+            }
+          },
+          "400": {
+            "description": "BAD_REQUEST: invalid UUID",
+            "content": {
+              "application/json": {
+                "schema": {"$ref": "#/components/schemas/ApiError"}
+              }
+            }
+          },
+          "404": {
+            "description": "NOT_FOUND: missing entity or parent destination not published",
+            "content": {
+              "application/json": {
+                "schema": {"$ref": "#/components/schemas/ApiError"}
+              }
+            }
+          },
+          "401": {
+            "description": "UNAUTHORIZED: supplied Authorization header is invalid",
+            "content": {
+              "application/json": {
+                "schema": {"$ref": "#/components/schemas/ApiError"}
+              }
+            }
+          },
+          "422": {
+            "description": "VALIDATION_ERROR: invalid page or limit",
+            "content": {
+              "application/json": {
+                "schema": {"$ref": "#/components/schemas/ApiError"}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/public/destinations/{destinationId}/route-graph": {
+      "get": {
+        "tags": ["Routes"],
+        "summary": "Get full destination route graph (public)",
+        "description": "Strict published destination gate, regardless of supplied credentials. Includes all nodes, segments and trails with full ordered geometry; route/segment status is descriptive, not a publication filter. No authentication middleware.",
+        "security": [],
+        "parameters": [{"name": "destinationId", "in": "path", "required": true, "schema": {"type": "string", "format": "uuid"}}],
+        "responses": {
+          "200": {
+            "description": "Success envelope",
+            "content": {
+              "application/json": {
+                "schema": {"$ref": "#/components/schemas/PublicRouteGraphResponse"}
+              }
+            }
+          },
+          "422": {
+            "description": "VALIDATION_ERROR: invalid UUID",
+            "content": {
+              "application/json": {
+                "schema": {"$ref": "#/components/schemas/ApiError"}
+              }
+            }
+          },
+          "404": {
+            "description": "NOT_FOUND: missing entity or parent destination not published",
+            "content": {
+              "application/json": {
+                "schema": {"$ref": "#/components/schemas/ApiError"}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/public/routes/{id}/profile": {
+      "get": {
+        "tags": ["Routes"],
+        "summary": "Get trail elevation profile (public)",
+        "description": "Strict published parent destination gate. Route status is descriptive, not a publication filter. Public elevation flags/nulls distinguish unknown from zero. No authentication middleware.",
+        "security": [],
+        "parameters": [{"name": "id", "in": "path", "required": true, "schema": {"type": "string", "format": "uuid"}}],
+        "responses": {
+          "200": {
+            "description": "Success envelope",
+            "content": {
+              "application/json": {
+                "schema": {"$ref": "#/components/schemas/PublicRouteProfileResponse"}
+              }
+            }
+          },
+          "422": {
+            "description": "VALIDATION_ERROR: invalid UUID",
+            "content": {
+              "application/json": {
+                "schema": {"$ref": "#/components/schemas/ApiError"}
+              }
+            }
+          },
+          "404": {
+            "description": "NOT_FOUND: missing entity or parent destination not published",
+            "content": {
+              "application/json": {
+                "schema": {"$ref": "#/components/schemas/ApiError"}
+              }
+            }
+          }
+        }
+      }
+    },
+
     "/": {
       get: {
         tags: ["Meta"],

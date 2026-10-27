@@ -15,6 +15,24 @@ type DestinationParams = { destinationId: string };
 type EntityParams = { id: string };
 
 export const routeController = {
+  publicProfile: (async (req, res, next) => {
+    try {
+      const { id } = getValidated<EntityParams>(req, "params");
+      return ok(res, await routeService.profile(id, true));
+    } catch (error) {
+      next(error);
+    }
+  }) as RequestHandler,
+
+  publicGraph: (async (req, res, next) => {
+    try {
+      const { destinationId } = getValidated<DestinationParams>(req, "params");
+      return ok(res, await routeService.graph(destinationId, true));
+    } catch (error) {
+      next(error);
+    }
+  }) as RequestHandler,
+
   graph: (async (req, res, next) => {
     try {
       const { destinationId } = getValidated<DestinationParams>(req, "params");

@@ -9,6 +9,8 @@ enum SupportCategory { penginapan, transportasi, makanan }
 class TravelSupport {
   const TravelSupport({
     required this.id,
+    this.destinationId = '',
+    this.imageUrl = '',
     required this.name,
     required this.category,
     required this.locationLabel,
@@ -29,6 +31,8 @@ class TravelSupport {
   });
 
   final String id;
+  final String destinationId;
+  final String imageUrl;
   final String name;
   final SupportCategory category;
   final String locationLabel;

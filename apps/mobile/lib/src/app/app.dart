@@ -1,5 +1,7 @@
 import 'dart:async';
 
+import 'package:dolenae_mobile/src/features/categories/presentation/controllers/categories_controller.dart';
+
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
@@ -17,6 +19,7 @@ import 'package:dolenae_mobile/src/features/explore/presentation/controllers/exp
 import 'package:dolenae_mobile/src/features/facilities/presentation/controllers/facilities_controller.dart';
 import 'package:dolenae_mobile/src/features/notifications/presentation/controllers/notifications_controller.dart';
 import 'package:dolenae_mobile/src/features/plan/presentation/controllers/plan_controller.dart';
+import 'package:dolenae_mobile/src/features/routes/presentation/controllers/routes_controller.dart';
 import 'package:dolenae_mobile/src/features/saved/presentation/controllers/saved_controller.dart';
 import 'package:dolenae_mobile/src/features/settings/presentation/controllers/settings_controller.dart';
 
@@ -38,6 +41,7 @@ class DolenaeApp extends StatefulWidget {
 
 class _DolenaeAppState extends State<DolenaeApp> {
   late final AuthController _auth;
+  late final CategoriesController _categories;
   late final DestinationsController _destinations;
   late final SettingsController _settings;
   late final NotificationsController _notifications;
@@ -45,6 +49,7 @@ class _DolenaeAppState extends State<DolenaeApp> {
   late final AiController _ai;
   late final ExploreController _explore;
   late final FacilitiesController _facilities;
+  late final RoutesController _routes;
   late final PlanController _plan;
   late final ChecklistController _checklist;
   late final GoRouter _router;
@@ -63,6 +68,8 @@ class _DolenaeAppState extends State<DolenaeApp> {
       repository: dependencies.destinationRepository,
       initialItems: DestinationSeedData.items,
     )..start();
+    _categories = CategoriesController(dependencies.categoryRepository);
+    unawaited(_categories.load());
     _settings = SettingsController(dependencies.settingsRepository);
     _notifications = NotificationsController(
       dependencies.notificationRepository,
@@ -71,6 +78,7 @@ class _DolenaeAppState extends State<DolenaeApp> {
     _ai = AiController(repository: dependencies.aiRepository);
     _explore = ExploreController(dependencies.exploreRepository);
     _facilities = FacilitiesController(dependencies.facilityRepository);
+    _routes = RoutesController(dependencies.routeRepository);
     _plan = PlanController(dependencies.planRepository);
     _checklist = ChecklistController(dependencies.checklistRepository);
 
@@ -83,6 +91,7 @@ class _DolenaeAppState extends State<DolenaeApp> {
   void dispose() {
     _router.dispose();
     _destinations.dispose();
+    _categories.dispose();
     _auth.dispose();
     _settings.dispose();
     _notifications.dispose();
@@ -90,6 +99,7 @@ class _DolenaeAppState extends State<DolenaeApp> {
     _ai.dispose();
     _explore.dispose();
     _facilities.dispose();
+    _routes.dispose();
     _plan.dispose();
     _checklist.dispose();
     widget.dependencies.database.close();
@@ -101,6 +111,7 @@ class _DolenaeAppState extends State<DolenaeApp> {
     return MultiProvider(
       providers: [
         ChangeNotifierProvider.value(value: _auth),
+        ChangeNotifierProvider.value(value: _categories),
         ChangeNotifierProvider.value(value: _destinations),
         ChangeNotifierProvider.value(value: _settings),
         ChangeNotifierProvider.value(value: _notifications),
@@ -108,6 +119,7 @@ class _DolenaeAppState extends State<DolenaeApp> {
         ChangeNotifierProvider.value(value: _ai),
         ChangeNotifierProvider.value(value: _explore),
         ChangeNotifierProvider.value(value: _facilities),
+        ChangeNotifierProvider.value(value: _routes),
         ChangeNotifierProvider.value(value: _plan),
         ChangeNotifierProvider.value(value: _checklist),
       ],

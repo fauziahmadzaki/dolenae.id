@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:dolenae_mobile/src/features/categories/presentation/controllers/categories_controller.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
@@ -52,13 +53,10 @@ class _ExploreScreenState extends State<ExploreScreen> {
   String _selectedCategory = 'Semuanya';
 
   static const _filterOptions = <String>[
-    'Semuanya',
     'Ramah Pemula',
     'Jawa Timur',
     'Jawa Barat',
     'Jawa Tengah',
-    'Camping',
-    'Sunrise',
   ];
 
   List<Destination> _byCategory(List<Destination> source) {
@@ -72,18 +70,6 @@ class _ExploreScreenState extends State<ExploreScreen> {
           return destination.province == 'Jawa Barat';
         case 'Jawa Tengah':
           return destination.province == 'Jawa Tengah';
-        case 'Camping':
-          return destination.tagline.toLowerCase().contains('camping') ||
-              (destination.accessDescription?.toLowerCase().contains(
-                    'camping',
-                  ) ??
-                  false);
-        case 'Sunrise':
-          return destination.tagline.toLowerCase().contains('sunrise') ||
-              (destination.accessDescription?.toLowerCase().contains(
-                    'sunrise',
-                  ) ??
-                  false);
         case 'Semuanya':
         default:
           return true;
@@ -146,6 +132,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
     final store = context.watch<ExploreController>();
     final catalog = context.watch<DestinationsController>().items;
     final hasQuery = store.hasActiveQuery;
+    final hasSelection = store.searchFilter.categoryId.isNotEmpty;
     final results = _byCategory(store.resultsFor(catalog));
 
     return Scaffold(
@@ -153,91 +140,18 @@ class _ExploreScreenState extends State<ExploreScreen> {
       body: Column(
         children: [
           Expanded(
-            child: SingleChildScrollView(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(
-                      AppSpacing.s4,
-                      AppSpacing.s3,
-                      AppSpacing.s4,
-                      0,
-                    ),
-                    child: DnSearchField(
-                      hint: 'Mau ke mana?',
-                      value: store.searchFilter.query,
-                      focused: hasQuery,
-                      trailing: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          if (hasQuery)
-                            GestureDetector(
-                              onTap: () => _clear(store),
-                              child: const Padding(
-                                padding: EdgeInsets.all(4),
-                                child: Icon(
-                                  AppIcons.close,
-                                  size: 16,
-                                  color: AppColors.body,
-                                ),
-                              ),
-                            ),
-                          GestureDetector(
-                            onTap: () => _openFilter(store),
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: AppSpacing.s2,
-                                vertical: AppSpacing.s1,
-                              ),
-                              decoration: BoxDecoration(
-                                color: hasQuery
-                                    ? AppColors.primary
-                                    : AppColors.canvasSubtle,
-                                borderRadius: BorderRadius.circular(AppRadius.md),
-                              ),
-                              child: Icon(
-                                AppIcons.slidersHorizontal,
-                                size: 16,
-                                color: hasQuery
-                                    ? AppColors.onPrimary
-                                    : AppColors.body,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                      onChanged: (value) => _onChanged(value, store),
-                      onSubmitted: (value) => _commit(value, store),
-                    ),
-                  ),
-                  if (widget.hasError)
-                    _LoadError(
-                      onRetry: widget.onRetry,
-                      onResetFilter: widget.onResetFilter ??
-                          () {
-                            final current = context.read<ExploreController>();
-                            current.clearSearchFilters();
-                            setState(() {});
-                          },
-                    )
-                  else if (!hasQuery)
-                    _RecommendationPanels(
-                      store: store,
-                      suggested: catalog.take(3).toList(),
-                      onPick: (value) {
-                        _onChanged(value, store);
-                        _commit(value, store);
-                      },
-                    )
-                  else if (results.isEmpty)
-                    _EmptyResults(
-                      query: store.searchFilter.query,
-                      popular: store.popularSearches,
-                      onPick: (value) => _onChanged(value, store),
-                    )
-                  else ...[
-                    _buildFilters(),
+            child: RefreshIndicator(
+              onRefresh: () async {
+                await Future.wait([
+                  context.read<DestinationsController>().refresh(),
+                  context.read<CategoriesController>().load(refresh: true),
+                ]);
+              },
+              child: SingleChildScrollView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
                     Padding(
                       padding: const EdgeInsets.fromLTRB(
                         AppSpacing.s4,
@@ -245,30 +159,116 @@ class _ExploreScreenState extends State<ExploreScreen> {
                         AppSpacing.s4,
                         0,
                       ),
-                      child: Text(
-                        '${results.length} hasil · '
-                        'Urutkan: ${store.searchFilter.sortLabel}',
-                        style: AppTextStyles.caption,
+                      child: DnSearchField(
+                        hint: 'Mau ke mana?',
+                        value: store.searchFilter.query,
+                        focused: hasQuery,
+                        trailing: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            if (hasQuery)
+                              GestureDetector(
+                                onTap: () => _clear(store),
+                                child: const Padding(
+                                  padding: EdgeInsets.all(4),
+                                  child: Icon(
+                                    AppIcons.close,
+                                    size: 16,
+                                    color: AppColors.body,
+                                  ),
+                                ),
+                              ),
+                            GestureDetector(
+                              onTap: () => _openFilter(store),
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: AppSpacing.s2,
+                                  vertical: AppSpacing.s1,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: hasQuery
+                                      ? AppColors.primary
+                                      : AppColors.canvasSubtle,
+                                  borderRadius: BorderRadius.circular(
+                                    AppRadius.md,
+                                  ),
+                                ),
+                                child: Icon(
+                                  AppIcons.slidersHorizontal,
+                                  size: 16,
+                                  color: hasQuery
+                                      ? AppColors.onPrimary
+                                      : AppColors.body,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        onChanged: (value) => _onChanged(value, store),
+                        onSubmitted: (value) => _commit(value, store),
                       ),
                     ),
-                    const SizedBox(height: AppSpacing.s3),
-                    for (final destination in results)
+                    _buildCategoryFilters(store),
+                    if (widget.hasError)
+                      _LoadError(
+                        onRetry: widget.onRetry,
+                        onResetFilter:
+                            widget.onResetFilter ??
+                            () {
+                              final current = context.read<ExploreController>();
+                              current.clearSearchFilters();
+                              setState(() {});
+                            },
+                      )
+                    else if (!hasQuery && !hasSelection)
+                      _RecommendationPanels(
+                        store: store,
+                        suggested: catalog.take(3).toList(),
+                        onPick: (value) {
+                          _onChanged(value, store);
+                          _commit(value, store);
+                        },
+                      )
+                    else if (results.isEmpty)
+                      _EmptyResults(
+                        query: store.searchFilter.query,
+                        popular: store.popularSearches,
+                        onPick: (value) => _onChanged(value, store),
+                      )
+                    else ...[
+                      _buildFilters(),
                       Padding(
                         padding: const EdgeInsets.fromLTRB(
                           AppSpacing.s4,
-                          0,
-                          AppSpacing.s4,
                           AppSpacing.s3,
+                          AppSpacing.s4,
+                          0,
                         ),
-                        child: DnDestinationListTile(
-                          destination: destination,
-                          onTap: () =>
-                              context.push('/destination/${destination.id}'),
+                        child: Text(
+                          '${results.length} hasil · '
+                          'Urutkan: ${store.searchFilter.sortLabel}',
+                          style: AppTextStyles.caption,
                         ),
                       ),
+                      const SizedBox(height: AppSpacing.s3),
+                      for (final destination in results)
+                        Padding(
+                          padding: const EdgeInsets.fromLTRB(
+                            AppSpacing.s4,
+                            0,
+                            AppSpacing.s4,
+                            AppSpacing.s3,
+                          ),
+                          child: DnDestinationListTile(
+                            destination: destination,
+                            onTap: () =>
+                                context.push('/destination/${destination.id}'),
+                          ),
+                        ),
+                    ],
+                    const SizedBox(height: AppSpacing.s4),
                   ],
-                  const SizedBox(height: AppSpacing.s4),
-                ],
+                ),
               ),
             ),
           ),
@@ -277,6 +277,47 @@ class _ExploreScreenState extends State<ExploreScreen> {
             onTap: (tab) => _onTab(context, tab),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildCategoryFilters(ExploreController store) {
+    final items = context.watch<CategoriesController>().items;
+    return Padding(
+      padding: const EdgeInsets.only(top: AppSpacing.s3),
+      child: SizedBox(
+        height: 32,
+        child: ListView(
+          scrollDirection: Axis.horizontal,
+          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.s4),
+          children: [
+            DnChip(
+              label: 'Semuanya',
+              active: store.searchFilter.categoryId.isEmpty,
+              onTap: () {
+                store.setCategoryId('');
+                setState(() => _selectedCategory = 'Semuanya');
+              },
+            ),
+            for (final item in items)
+              Padding(
+                padding: const EdgeInsets.only(left: AppSpacing.s2),
+                child: DnChip(
+                  label: item.name,
+                  active:
+                      item.id.isNotEmpty &&
+                      store.searchFilter.categoryId == item.id,
+                  onTap: item.id.isEmpty
+                      ? null
+                      : () => store.setCategoryId(
+                          store.searchFilter.categoryId == item.id
+                              ? ''
+                              : item.id,
+                        ),
+                ),
+              ),
+          ],
+        ),
       ),
     );
   }
@@ -329,7 +370,8 @@ class _LoadError extends StatelessWidget {
             icon: AppIcons.alertTriangle,
             iconColor: AppColors.danger,
             title: 'Gagal memuat katalog',
-            body: 'Daftar destinasi tidak terbaca. Muat ulang, atau reset '
+            body:
+                'Daftar destinasi tidak terbaca. Muat ulang, atau reset '
                 'filter bila hasil pencarian terlalu sempit.',
             actionLabel: 'Coba lagi',
             onAction: onRetry,
@@ -381,15 +423,9 @@ class _RecommendationPanels extends StatelessWidget {
                 ),
                 child: Row(
                   children: [
-                    const Icon(
-                      AppIcons.clock,
-                      size: 16,
-                      color: AppColors.body,
-                    ),
+                    const Icon(AppIcons.clock, size: 16, color: AppColors.body),
                     const SizedBox(width: AppSpacing.s3),
-                    Expanded(
-                      child: Text(item, style: AppTextStyles.bodySm),
-                    ),
+                    Expanded(child: Text(item, style: AppTextStyles.bodySm)),
                   ],
                 ),
               ),
@@ -401,9 +437,7 @@ class _RecommendationPanels extends StatelessWidget {
               onPressed: store.clearSearchHistory,
               child: Text(
                 'Hapus riwayat',
-                style: AppTextStyles.labelSm.copyWith(
-                  color: AppColors.primary,
-                ),
+                style: AppTextStyles.labelSm.copyWith(color: AppColors.primary),
               ),
             ),
           ),
@@ -423,12 +457,7 @@ class _RecommendationPanels extends StatelessWidget {
             spacing: AppSpacing.s2,
             runSpacing: AppSpacing.s2,
             children: store.popularSearches
-                .map(
-                  (item) => DnChip(
-                    label: item,
-                    onTap: () => onPick(item),
-                  ),
-                )
+                .map((item) => DnChip(label: item, onTap: () => onPick(item)))
                 .toList(),
           ),
         ),
@@ -507,13 +536,17 @@ class _FilterSheet extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final store = context.read<ExploreController>();
+    final store = context.watch<ExploreController>();
+    final filter = store.searchFilter;
 
     return Column(
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('Urutkan', style: AppTextStyles.bodySm.copyWith(color: AppColors.ink)),
+        Text(
+          'Urutkan',
+          style: AppTextStyles.bodySm.copyWith(color: AppColors.ink),
+        ),
         const SizedBox(height: AppSpacing.s2),
         Wrap(
           spacing: AppSpacing.s2,

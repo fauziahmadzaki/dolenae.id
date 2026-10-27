@@ -38,7 +38,9 @@ void main() {
     expect(find.text('Destinasi tidak ditemukan'), findsOneWidget);
   });
 
-  testWidgets('chip kategori mengisi kolom pencarian', (tester) async {
+  testWidgets('kategori offline tidak membuat pencarian nama palsu', (
+    tester,
+  ) async {
     await usePhone(tester);
     await tester.pumpWidget(wrapScreen(const BerandaScreen()));
     await tester.pumpAndSettle();
@@ -46,7 +48,11 @@ void main() {
     await tester.tap(find.text('Bukit'));
     await tester.pumpAndSettle();
 
-    expect(find.text('Rekomendasi untuk "bukit"'), findsOneWidget);
-    expect(find.text('Bukit Moko'), findsOneWidget);
+    expect(
+      find.byType(TextField).evaluate().single.widget is TextField,
+      isTrue,
+    );
+    expect(find.text('Rekomendasi untuk "bukit"'), findsNothing);
+    expect(find.text('Destinasi populer'), findsOneWidget);
   });
 }

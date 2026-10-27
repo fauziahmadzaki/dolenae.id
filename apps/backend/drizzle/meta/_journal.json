@@ -50,6 +50,13 @@
       "when": 1793005637380,
       "tag": "0006_trail_status_surfaces_node_photos",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1793099852880,
+      "tag": "0007_lean_moira_mactaggert",
+      "breakpoints": true
     }
   ]
 }

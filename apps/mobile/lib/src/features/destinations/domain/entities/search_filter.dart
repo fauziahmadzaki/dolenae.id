@@ -28,6 +28,7 @@ extension DifficultyFilterLabel on DifficultyFilter {
 class SearchFilter {
   const SearchFilter({
     this.query = '',
+    this.categoryId = '',
     this.sort = SortOption.populer,
     this.difficulty = DifficultyFilter.semua,
     this.supports = const [],
@@ -35,12 +36,14 @@ class SearchFilter {
   });
 
   final String query;
+  final String categoryId;
   final SortOption sort;
   final DifficultyFilter difficulty;
   final List<String> supports;
   final bool verifiedOnly;
 
   bool get isFiltered =>
+      categoryId.isNotEmpty ||
       sort != SortOption.populer ||
       difficulty != DifficultyFilter.semua ||
       supports.isNotEmpty ||
@@ -48,6 +51,7 @@ class SearchFilter {
 
   SearchFilter copyWith({
     String? query,
+    String? categoryId,
     SortOption? sort,
     DifficultyFilter? difficulty,
     List<String>? supports,
@@ -55,6 +59,7 @@ class SearchFilter {
   }) {
     return SearchFilter(
       query: query ?? this.query,
+      categoryId: categoryId ?? this.categoryId,
       sort: sort ?? this.sort,
       difficulty: difficulty ?? this.difficulty,
       supports: supports ?? this.supports,

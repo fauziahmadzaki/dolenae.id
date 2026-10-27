@@ -1,5 +1,10 @@
 import 'dart:io';
 
+import 'package:dolenae_mobile/src/features/categories/domain/entities/category.dart'
+    as categories;
+import 'package:dolenae_mobile/src/features/categories/domain/repositories/category_repository.dart';
+import 'package:dolenae_mobile/src/features/categories/presentation/controllers/categories_controller.dart';
+
 import 'package:dolenae_mobile/src/core/error/app_failure.dart';
 import 'package:dolenae_mobile/src/core/result/result.dart';
 import 'package:dolenae_mobile/src/features/ai/data/repositories/ai_repository_impl.dart';
@@ -15,12 +20,17 @@ import 'package:dolenae_mobile/src/features/destinations/domain/repositories/des
 import 'package:dolenae_mobile/src/features/destinations/presentation/controllers/destinations_controller.dart';
 import 'package:dolenae_mobile/src/features/explore/data/repositories/explore_repository_impl.dart';
 import 'package:dolenae_mobile/src/features/explore/presentation/controllers/explore_controller.dart';
-import 'package:dolenae_mobile/src/features/facilities/data/repositories/facility_repository_impl.dart';
+import 'package:dolenae_mobile/src/features/facilities/data/data_sources/facility_seed_data_source.dart';
+import 'package:dolenae_mobile/src/features/facilities/domain/entities/travel_support.dart';
+import 'package:dolenae_mobile/src/features/facilities/domain/repositories/facility_repository.dart';
 import 'package:dolenae_mobile/src/features/facilities/presentation/controllers/facilities_controller.dart';
 import 'package:dolenae_mobile/src/features/notifications/data/repositories/notification_repository_impl.dart';
 import 'package:dolenae_mobile/src/features/notifications/presentation/controllers/notifications_controller.dart';
 import 'package:dolenae_mobile/src/features/plan/data/repositories/plan_repository_impl.dart';
 import 'package:dolenae_mobile/src/features/plan/presentation/controllers/plan_controller.dart';
+import 'package:dolenae_mobile/src/features/routes/domain/entities/route_graph.dart';
+import 'package:dolenae_mobile/src/features/routes/domain/repositories/route_repository.dart';
+import 'package:dolenae_mobile/src/features/routes/presentation/controllers/routes_controller.dart';
 import 'package:dolenae_mobile/src/features/saved/data/repositories/saved_repository_impl.dart';
 import 'package:dolenae_mobile/src/features/saved/presentation/controllers/saved_controller.dart';
 import 'package:dolenae_mobile/src/features/settings/data/repositories/settings_repository_impl.dart';
@@ -111,25 +121,36 @@ ByteData? _readAnyFontBytes() {
 
 /// Kumpulan controller per-domain untuk diinjeksi ke layar saat pengujian.
 class TestStores {
-  TestStores({AuthRepository? authRepository, String? rememberedEmail})
-    : auth = AuthController(
-        repository: authRepository ?? const _TestAuthRepository(),
-        initialRememberedEmail: rememberedEmail,
-      ),
-      notifications = NotificationsController(NotificationRepositoryImpl()),
-      saved = SavedController(SavedRepositoryImpl()),
-      ai = AiController(repository: const AiRepositoryImpl()),
-      settings = SettingsController(SettingsRepositoryImpl()),
-      search = ExploreController(ExploreRepositoryImpl()),
-      destinations = DestinationsController(
-        repository: const _TestDestinationRepository(),
-        initialItems: DestinationSeedData.items,
-      ),
-      facilities = FacilitiesController(const FacilityRepositoryImpl()),
-      plan = PlanController(const PlanRepositoryImpl()),
-      checklist = ChecklistController(ChecklistRepositoryImpl());
+  TestStores({
+    AuthRepository? authRepository,
+    String? rememberedEmail,
+    CategoryRepository? categoryRepository,
+  }) : auth = AuthController(
+         repository: authRepository ?? const _TestAuthRepository(),
+         initialRememberedEmail: rememberedEmail,
+       ),
+       categoriesController = CategoriesController(
+         categoryRepository ?? const _TestCategoryRepository(),
+       )..load(),
+       notifications = NotificationsController(NotificationRepositoryImpl()),
+       saved = SavedController(SavedRepositoryImpl()),
+       ai = AiController(repository: const AiRepositoryImpl()),
+       settings = SettingsController(SettingsRepositoryImpl()),
+       search = ExploreController(ExploreRepositoryImpl()),
+       destinations = DestinationsController(
+         repository: const _TestDestinationRepository(),
+         initialItems: DestinationSeedData.items,
+       ),
+       facilities = FacilitiesController(
+         const _TestFacilityRepository(FacilitySeedData.supports),
+         initialSupports: FacilitySeedData.supports,
+       ),
+       routes = RoutesController(const _TestRouteRepository()),
+       plan = PlanController(const PlanRepositoryImpl()),
+       checklist = ChecklistController(ChecklistRepositoryImpl());
 
   final AuthController auth;
+  final CategoriesController categoriesController;
   final NotificationsController notifications;
   final SavedController saved;
   final AiController ai;
@@ -137,12 +158,26 @@ class TestStores {
   final ExploreController search;
   final DestinationsController destinations;
   final FacilitiesController facilities;
+  final RoutesController routes;
   final PlanController plan;
   final ChecklistController checklist;
 }
 
 /// Buat controller baru untuk assert terhadap perubahan state di layar.
 TestStores newStore() => TestStores();
+
+class _TestCategoryRepository implements CategoryRepository {
+  const _TestCategoryRepository();
+  @override
+  List<categories.Category>? get cachedItems => null;
+  @override
+  bool get hasCache => false;
+  @override
+  Future<Result<List<categories.Category>>> load({
+    bool refresh = false,
+  }) async =>
+      const Failure(NetworkFailure('Offline', code: 'CATEGORY_OFFLINE'));
+}
 
 /// Repository destinasi sederhana yang langsung mengembalikan data seed.
 class _TestDestinationRepository implements DestinationRepository {
@@ -157,6 +192,41 @@ class _TestDestinationRepository implements DestinationRepository {
 
   @override
   Future<Result<void>> refresh() async => const Success(null);
+}
+
+/// Repository fasilitas sederhana yang langsung mengembalikan data seed.
+class _TestFacilityRepository implements FacilityRepository {
+  const _TestFacilityRepository(this._items);
+  final List<TravelSupport> _items;
+
+  @override
+  Future<Result<List<TravelSupport>>> list(String destinationId) async {
+    if (destinationId == 'dest-bromo' || destinationId == 'bromo') {
+      return Success(_items);
+    }
+    final matches = _items.where((s) => s.destinationId == destinationId).toList();
+    return Success(matches);
+  }
+
+  @override
+  Future<Result<TravelSupport>> getById(String id) async {
+    for (final item in _items) {
+      if (item.id == id) return Success(item);
+    }
+    return const Failure(
+      NetworkFailure('Fasilitas tidak tersedia.', code: '404'),
+    );
+  }
+}
+
+class _TestRouteRepository implements RouteRepository {
+  const _TestRouteRepository();
+  @override
+  Future<Result<RouteGraph>> graph(String id) async =>
+      const Success(RouteGraph(nodes: [], segments: [], routes: []));
+  @override
+  Future<Result<RouteProfile>> profile(String id) async =>
+      const Failure(NetworkFailure('Profil jalur tidak tersedia.'));
 }
 
 /// Bungkus [child] dengan tema aplikasi, controller per-domain, dan router minimal.
@@ -181,6 +251,7 @@ Widget wrapScreen(Widget child, {TestStores? store}) {
   return MultiProvider(
     providers: [
       ChangeNotifierProvider.value(value: stores.auth),
+      ChangeNotifierProvider.value(value: stores.categoriesController),
       ChangeNotifierProvider.value(value: stores.notifications),
       ChangeNotifierProvider.value(value: stores.saved),
       ChangeNotifierProvider.value(value: stores.ai),
@@ -188,6 +259,7 @@ Widget wrapScreen(Widget child, {TestStores? store}) {
       ChangeNotifierProvider.value(value: stores.search),
       ChangeNotifierProvider.value(value: stores.destinations),
       ChangeNotifierProvider.value(value: stores.facilities),
+      ChangeNotifierProvider.value(value: stores.routes),
       ChangeNotifierProvider.value(value: stores.plan),
       ChangeNotifierProvider.value(value: stores.checklist),
     ],
