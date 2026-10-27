@@ -1,6 +1,6 @@
 import 'dart:async';
 
-import 'package:flutter/foundation.dart';
+import 'package:flutter/widgets.dart';
 
 import 'package:dolenae_mobile/src/features/destinations/domain/entities/destination.dart';
 import 'package:dolenae_mobile/src/features/destinations/domain/entities/destination_catalog.dart';
@@ -12,7 +12,8 @@ import 'package:dolenae_mobile/src/core/usecases/usecase.dart';
 ///
 /// Items come from the repository stream, so a finished refresh updates the
 /// screens without a manual reload.
-class DestinationsController extends ChangeNotifier {
+class DestinationsController extends ChangeNotifier
+    with WidgetsBindingObserver {
   DestinationsController({
     required DestinationRepository repository,
     RefreshDestinationsUseCase? refreshDestinations,
@@ -26,6 +27,8 @@ class DestinationsController extends ChangeNotifier {
   final RefreshDestinationsUseCase _refreshDestinations;
 
   StreamSubscription<DestinationCatalog>? _subscription;
+  Timer? _timer;
+  bool _disposed = false;
   List<Destination> _items;
   bool _isLoading = false;
   bool _hasRemoteData = false;
@@ -44,25 +47,47 @@ class DestinationsController extends ChangeNotifier {
 
   /// Starts listening to the cache stream.
   void start() {
-    _subscription ??= _repository.watchCatalog().listen(_onCatalog);
+    if (_disposed || _subscription != null) return;
+    _subscription = _repository.watchCatalog().listen(_onCatalog);
+    WidgetsBinding.instance.addObserver(this);
+    _setForeground(
+      WidgetsBinding.instance.lifecycleState == null ||
+          WidgetsBinding.instance.lifecycleState == AppLifecycleState.resumed,
+    );
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    _setForeground(state == AppLifecycleState.resumed);
+  }
+
+  void _setForeground(bool foreground) {
+    _timer?.cancel();
+    _timer = null;
+    if (_disposed || !foreground) return;
+    unawaited(load());
+    _timer = Timer.periodic(
+      const Duration(seconds: 5),
+      (_) => unawaited(load()),
+    );
   }
 
   void _onCatalog(DestinationCatalog catalog) {
-    if (!catalog.isEmpty) {
-      _items = catalog.items;
-      _hasRemoteData = true;
-      _lastFetched = catalog.lastFetched;
-      notifyListeners();
-    }
+    if (_disposed) return;
+    _items = catalog.items;
+    _hasRemoteData = catalog.lastFetched != null;
+    _lastFetched = catalog.lastFetched;
+    notifyListeners();
   }
 
   Future<void> load() async {
-    if (_isLoading) return;
+    if (_disposed || _isLoading) return;
     _isLoading = true;
     _error = null;
     notifyListeners();
 
     final result = await _refreshDestinations(const NoParams());
+    if (_disposed) return;
     _error = result.failureOrNull?.message;
     _isLoading = false;
     notifyListeners();
@@ -81,6 +106,9 @@ class DestinationsController extends ChangeNotifier {
 
   @override
   void dispose() {
+    _disposed = true;
+    _timer?.cancel();
+    WidgetsBinding.instance.removeObserver(this);
     _subscription?.cancel();
     super.dispose();
   }

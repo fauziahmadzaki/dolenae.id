@@ -6,19 +6,21 @@ import {
   destinationListQuerySchema,
   updateDestinationSchema,
 } from "../controllers/destination.schema";
-import { authRequired, requireRole } from "../middleware/auth";
+import { authOptional, authRequired, requireRole } from "../middleware/auth";
 import { validate } from "../middleware/validate";
 
 export const destinationRouter = Router();
 
-// Public reads — catalog & detail pages.
+// Published catalog reads; authenticated admins may read unpublished entries.
 destinationRouter.get(
   "/",
+  authOptional,
   validate({ query: destinationListQuerySchema }),
   destinationController.list,
 );
 destinationRouter.get(
   "/:id",
+  authOptional,
   validate({ params: destinationIdParamsSchema }),
   destinationController.getById,
 );

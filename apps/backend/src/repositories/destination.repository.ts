@@ -149,6 +149,7 @@ export const destinationRepository = {
     const where = and(...conditions);
 
     const sortable = {
+      id: destinations.id,
       createdAt: destinations.createdAt,
       name: destinations.name,
       updatedAt: destinations.updatedAt,
@@ -160,11 +161,15 @@ export const destinationRepository = {
         ? sortable[sort as keyof typeof sortable]
         : destinations.createdAt;
 
+    const direction = order === "asc" ? asc : desc;
     const rows = await db
       .select()
       .from(destinations)
       .where(where)
-      .orderBy(order === "asc" ? asc(sortColumn) : desc(sortColumn))
+      .orderBy(
+        direction(sortColumn),
+        ...(sortColumn === destinations.id ? [] : [direction(destinations.id)]),
+      )
       .limit(limit)
       .offset(offset);
 

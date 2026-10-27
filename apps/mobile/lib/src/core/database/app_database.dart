@@ -1,9 +1,6 @@
-import 'dart:io';
-
 import 'package:drift/drift.dart';
-import 'package:drift/native.dart';
-import 'package:path/path.dart' as p;
-import 'package:path_provider/path_provider.dart';
+import 'package:dolenae_mobile/src/core/database/connection_native.dart'
+    if (dart.library.js_interop) 'package:dolenae_mobile/src/core/database/connection_web.dart';
 
 part 'app_database.g.dart';
 
@@ -48,18 +45,10 @@ class CachedDestinations extends Table {
 
 @DriftDatabase(tables: [CachedDestinations])
 class AppDatabase extends _$AppDatabase {
-  AppDatabase() : super(_openConnection());
+  AppDatabase() : super(openConnection());
 
   AppDatabase.forTesting(super.e);
 
   @override
   int get schemaVersion => 1;
-}
-
-LazyDatabase _openConnection() {
-  return LazyDatabase(() async {
-    final dir = await getApplicationDocumentsDirectory();
-    final file = File(p.join(dir.path, 'dolenae_cache.sqlite'));
-    return NativeDatabase.createInBackground(file);
-  });
 }

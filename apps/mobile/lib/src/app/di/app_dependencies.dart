@@ -66,7 +66,7 @@ class AppDependencies {
       ),
       destinationRepository: DestinationRepositoryImpl(
         DestinationRemoteDataSource(client),
-        DestinationLocalDataSource(database),
+        DestinationLocalDataSource(database, prefs),
       ),
       settingsRepository: SettingsRepositoryImpl(
         local: SettingsLocalDataSource(prefs),
