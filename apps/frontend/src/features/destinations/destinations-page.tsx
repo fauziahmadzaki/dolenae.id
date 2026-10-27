@@ -77,6 +77,7 @@ export default function DestinationsPage() {
   const categories = useCategories(enabled);
   const list = useDestinations(
     { ...table.query, difficulty, status, categoryId },
+    auth.token,
     enabled,
   );
 

@@ -44,7 +44,7 @@ export function RoutePreviewPage({ destinationId }: { destinationId: string }) {
   const { toast } = useToast();
   const enabled = auth.hydrated && !!auth.token && auth.user?.role === "admin";
 
-  const destination = useDestination(destinationId, enabled);
+  const destination = useDestination(destinationId, auth.token, enabled);
   const graph = useRouteGraph(destinationId, auth.token, enabled);
 
   const [selectedId, setSelectedId] = useState<string | null>(null);

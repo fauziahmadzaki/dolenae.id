@@ -98,7 +98,7 @@ export function DestinationForm({ destinationId }: { destinationId?: string }) {
   const enabled = auth.hydrated && !!auth.token && auth.user?.role === "admin";
 
   const categories = useCategories(enabled);
-  const detail = useDestination(destinationId, enabled && editing);
+  const detail = useDestination(destinationId, auth.token, enabled && editing);
 
   const mutation = useSaveDestination({
     editing,

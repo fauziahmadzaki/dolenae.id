@@ -30,11 +30,18 @@ function toQueryString(query: DestinationListQuery): string {
 
 /** Admin destination endpoints (`/api/destinations`). */
 export const destinationsApi = {
-  list: (query: DestinationListQuery, signal?: AbortSignal) =>
-    get<Destination[]>(`/destinations?${toQueryString(query)}`, { signal }),
+  list: (
+    query: DestinationListQuery,
+    token?: string,
+    signal?: AbortSignal,
+  ) =>
+    get<Destination[]>(`/destinations?${toQueryString(query)}`, {
+      token,
+      signal,
+    }),
 
-  get: (id: string, signal?: AbortSignal) =>
-    get<DestinationDetail>(`/destinations/${id}`, { signal }),
+  get: (id: string, token?: string, signal?: AbortSignal) =>
+    get<DestinationDetail>(`/destinations/${id}`, { token, signal }),
 
   create: (body: unknown, token?: string) =>
     post<DestinationDetail>("/destinations", body, { token }),

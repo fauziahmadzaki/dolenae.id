@@ -17,10 +17,15 @@ export function useCategories(enabled: boolean) {
   });
 }
 
-export function useDestinations(query: DestinationListQuery, enabled: boolean) {
+export function useDestinations(
+  query: DestinationListQuery,
+  token: string | null | undefined,
+  enabled: boolean,
+) {
   return useQuery({
     queryKey: ["destinations", query],
-    queryFn: ({ signal }) => destinationsApi.list(query, signal),
+    queryFn: ({ signal }) =>
+      destinationsApi.list(query, token ?? undefined, signal),
     enabled,
     retry: false,
   });
@@ -43,10 +48,15 @@ export function useDeleteDestination({ token, onDeleted }: DeleteOptions) {
   });
 }
 
-export function useDestination(id: string | undefined, enabled: boolean) {
+export function useDestination(
+  id: string | undefined,
+  token: string | null | undefined,
+  enabled: boolean,
+) {
   return useQuery({
     queryKey: ["destination", id],
-    queryFn: ({ signal }) => destinationsApi.get(id!, signal),
+    queryFn: ({ signal }) =>
+      destinationsApi.get(id!, token ?? undefined, signal),
     enabled: enabled && Boolean(id),
     retry: false,
   });
