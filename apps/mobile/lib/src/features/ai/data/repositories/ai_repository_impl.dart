@@ -37,7 +37,10 @@ class AiRepositoryImpl implements AiRepository {
   }
 
   @override
-  Future<Result<AiResult>> run(AiPreference preference) async {
+  Future<Result<AiResult>> run(
+    AiPreference preference, {
+    bool refresh = false,
+  }) async {
     final remote = _remote;
     if (remote == null) {
       // Explicit offline/demo mode, used by tests without a remote source.
@@ -45,7 +48,7 @@ class AiRepositoryImpl implements AiRepository {
     }
 
     try {
-      return Success(await remote.generate(preference));
+      return Success(await remote.generate(preference, refresh: refresh));
     } on ApiException catch (error) {
       return Failure(error.toFailure());
     } catch (_) {

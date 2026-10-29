@@ -10,6 +10,7 @@ import 'package:dolenae_mobile/src/app/theme/app_spacing.dart';
 import 'package:dolenae_mobile/src/app/theme/app_text_styles.dart';
 import 'package:dolenae_mobile/src/features/ai/domain/entities/ai_recommendation.dart';
 import 'package:dolenae_mobile/src/features/ai/presentation/widgets/ai_itinerary_section.dart';
+import 'package:dolenae_mobile/src/features/ai/presentation/widgets/ai_results_skeleton.dart';
 import 'package:dolenae_mobile/src/shared/icons/app_icons.dart';
 import 'package:dolenae_mobile/src/shared/widgets/dn_app_bar.dart';
 import 'package:dolenae_mobile/src/shared/widgets/dn_buttons.dart';
@@ -51,6 +52,7 @@ class AiResultsScreen extends StatelessWidget {
   final void Function(String destinationId)? onAddDestination;
 
   void _backToPreferences(BuildContext context) {
+    context.read<AiController>().resetAiRecommendation();
     if (context.canPop()) {
       context.pop();
     } else {
@@ -63,6 +65,7 @@ class AiResultsScreen extends StatelessWidget {
     final ai = context.watch<AiController>();
     final data = result ?? ai.aiResult;
     final failed = hasError || ai.error != null;
+    final loading = ai.isLoading;
 
     return Scaffold(
       backgroundColor: AppColors.canvas,
@@ -76,7 +79,12 @@ class AiResultsScreen extends StatelessWidget {
         child: Column(
           children: [
             Expanded(
-              child: failed
+              child: loading
+                  ? AiResultsSkeleton(
+                      key: ValueKey('ai-skeleton-${ai.runId}'),
+                      preference: ai.aiPreference,
+                    )
+                  : failed
                   ? _AiErrorState(
                       message: ai.error,
                       onRetry:
@@ -87,8 +95,6 @@ class AiResultsScreen extends StatelessWidget {
                           onChangePreference ??
                           () => _backToPreferences(context),
                     )
-                  : ai.isLoading && data == null
-                  ? const _AiLoadingState()
                   : data == null
                   ? _AiEmptyState(
                       onChangePreference:
@@ -96,17 +102,24 @@ class AiResultsScreen extends StatelessWidget {
                           () => _backToPreferences(context),
                       onAskAgain: onAskAgain,
                     )
-                  : _AiResultsBody(
-                      result: data,
-                      onViewDetail: onViewDetail,
-                      onAddDestination: onAddDestination,
+                  : KeyedSubtree(
+                      key: ValueKey('ai-result-${ai.runId}'),
+                      child: _AiResultsBody(
+                        result: data,
+                        onViewDetail: onViewDetail,
+                        onAddDestination: onAddDestination,
+                      ),
                     ),
             ),
-            if (data != null)
+            if (!loading && data != null)
               _ResultsCta(
                 onChangePreference:
                     onChangePreference ?? () => _backToPreferences(context),
-                onAskAgain: onAskAgain ?? () => _backToPreferences(context),
+                onAskAgain:
+                    onAskAgain ??
+                    () => context.read<AiController>().runRecommendation(
+                      refresh: true,
+                    ),
               ),
           ],
         ),
@@ -193,6 +206,10 @@ class _AiResultsBody extends StatelessWidget {
             ],
           ),
         ),
+        if (result.notice != null && result.notice!.trim().isNotEmpty) ...[
+          const SizedBox(height: AppSpacing.s4),
+          _AiNotice(message: result.notice!),
+        ],
         const SizedBox(height: AppSpacing.s4),
         Row(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -278,6 +295,52 @@ class _AiResultsBody extends StatelessWidget {
   }
 }
 
+/// Notice for a query whose destination is not in the catalog.
+class _AiNotice extends StatelessWidget {
+  const _AiNotice({required this.message});
+
+  final String message;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(AppSpacing.s3),
+      decoration: BoxDecoration(
+        color: AppColors.warning.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(AppRadius.lg),
+        border: Border.all(color: AppColors.warning.withValues(alpha: 0.35)),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Icon(
+            AppIcons.alertTriangle,
+            size: 16,
+            color: AppColors.warning,
+          ),
+          const SizedBox(width: AppSpacing.s2),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Destinasi belum tersedia',
+                  style: AppTextStyles.overline.copyWith(
+                    color: AppColors.warning,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(message, style: AppTextStyles.caption),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 /// State belum ada hasil dan gagal memuat.
 class _AiEmptyState extends StatelessWidget {
   const _AiEmptyState({required this.onChangePreference, this.onAskAgain});
@@ -317,31 +380,6 @@ class _AiEmptyState extends StatelessWidget {
 
 /// State `Gagal memuat AI` (`101:358`): app bar tetap tampil, hanya isi
 /// yang diganti panel kegagalan beserta CTA dan aksi cadangan.
-class _AiLoadingState extends StatelessWidget {
-  const _AiLoadingState();
-
-  @override
-  Widget build(BuildContext context) {
-    return const Padding(
-      padding: EdgeInsets.all(AppSpacing.s6),
-      child: Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            SizedBox(
-              width: 28,
-              height: 28,
-              child: CircularProgressIndicator(strokeWidth: 3),
-            ),
-            SizedBox(height: AppSpacing.s3),
-            Text('Menyusun itinerary…'),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
 class _AiErrorState extends StatelessWidget {
   const _AiErrorState({
     required this.onRetry,

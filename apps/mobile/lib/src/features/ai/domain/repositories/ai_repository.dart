@@ -15,5 +15,5 @@ abstract interface class AiRepository {
   /// fall back to [defaultOptions] when the catalog cannot be reached.
   Future<Result<AiOptions>> loadOptions();
 
-  Future<Result<AiResult>> run(AiPreference preference);
+  Future<Result<AiResult>> run(AiPreference preference, {bool refresh = false});
 }

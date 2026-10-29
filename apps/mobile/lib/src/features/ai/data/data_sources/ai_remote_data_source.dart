@@ -34,7 +34,10 @@ class AiRemoteDataSource {
     return AiOptions.fromJson(data.cast<String, dynamic>());
   }
 
-  Future<AiResult> generate(AiPreference preference) async {
+  Future<AiResult> generate(
+    AiPreference preference, {
+    bool refresh = false,
+  }) async {
     final note = preference.note?.trim() ?? '';
     final difficulty = _difficultyValue(preference.difficulty);
     final body = await _client.post(
@@ -55,6 +58,7 @@ class AiRemoteDataSource {
         'needsAccommodation': preference.needsAccommodation,
         'needsTransport': preference.needsTransport,
         if (note.isNotEmpty) 'note': note,
+        if (refresh) 'refresh': true,
       },
     );
 
@@ -95,6 +99,7 @@ class AiRemoteDataSource {
       itinerary: itinerary,
       briefing: briefing,
       sources: sources,
+      notice: map['notice'] as String?,
     );
   }
 }

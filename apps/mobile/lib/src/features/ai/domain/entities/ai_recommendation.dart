@@ -101,6 +101,7 @@ class AiResult {
     this.itinerary,
     this.briefing,
     this.sources = const [],
+    this.notice,
   });
 
   final AiPreference preference;
@@ -115,6 +116,9 @@ class AiResult {
   final AiItinerary? itinerary;
   final AiBriefing? briefing;
   final List<AiSource> sources;
+
+  /// Optional backend notice, e.g. the requested place is not in the catalog.
+  final String? notice;
 
   String get engineLabel {
     final label = switch (kind) {

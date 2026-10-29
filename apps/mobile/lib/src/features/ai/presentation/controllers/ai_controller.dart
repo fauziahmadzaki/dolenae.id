@@ -20,6 +20,7 @@ class AiController extends ChangeNotifier {
   bool _isLoadingOptions = false;
   bool _optionsLoaded = false;
   String? _error;
+  int _runId = 0;
 
   AiPreference get aiPreference => _preference;
 
@@ -30,6 +31,9 @@ class AiController extends ChangeNotifier {
   bool get isLoadingOptions => _isLoadingOptions;
 
   String? get error => _error;
+
+  /// Increments for every request so views can reset scroll/state.
+  int get runId => _runId;
 
   AiOptions get options => _options;
 
@@ -68,14 +72,21 @@ class AiController extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> runRecommendation() async {
+  Future<void> runRecommendation({bool refresh = false}) async {
     if (_isLoading) return;
 
-    _isLoading = true;
+    final runId = _runId + 1;
+    _runId = runId;
+    _result = null;
     _error = null;
+    _isLoading = true;
     notifyListeners();
 
-    final result = await _repository.run(_preference);
+    final result = await _repository.run(_preference, refresh: refresh);
+
+    // A reset/navigation while waiting must win over a late response.
+    if (runId != _runId) return;
+
     _isLoading = false;
 
     switch (result) {
@@ -89,9 +100,11 @@ class AiController extends ChangeNotifier {
   }
 
   void resetAiRecommendation() {
-    if (_result == null && _error == null) return;
+    if (_result == null && _error == null && !_isLoading) return;
+    _runId += 1;
     _result = null;
     _error = null;
+    _isLoading = false;
     notifyListeners();
   }
 }

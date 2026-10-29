@@ -37,6 +37,7 @@ const _itineraryResponse = {
     'checklist': <String>[],
     'sources': <Map<String, dynamic>>[],
     'engine': 'gemini',
+    'notice': 'Maaf, destinasi belum ada.',
   },
 };
 
@@ -55,6 +56,20 @@ void main() {
         .generate(const AiPreference(difficulty: 'Menengah'));
 
     expect(sent?['difficulty'], 'menengah');
+  });
+
+  test('parses the backend not-found notice', () async {
+    final client = ApiClient(
+      baseUrl: 'http://test/api',
+      httpClient: MockClient((_) async {
+        return http.Response(jsonEncode(_itineraryResponse), 200);
+      }),
+    );
+
+    final result = await AiRemoteDataSource(client)
+        .generate(const AiPreference());
+
+    expect(result.notice, 'Maaf, destinasi belum ada.');
   });
 
   test('parses catalog-derived options', () async {
