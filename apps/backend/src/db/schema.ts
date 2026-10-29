@@ -481,6 +481,19 @@ export const aiItineraries = pgTable(
   }),
 );
 
+/** Admin-managed application settings (encrypted secrets supported). */
+export const appSettings = pgTable("app_settings", {
+  key: varchar("key", { length: 80 }).primaryKey(),
+  value: text("value").notNull(),
+  encrypted: boolean("encrypted").notNull().default(false),
+  updatedBy: uuid("updated_by").references(() => users.id, {
+    onDelete: "set null",
+  }),
+  updatedAt: timestamp("updated_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+});
+
 export type TrackNodeRow = typeof trackNodes.$inferSelect;
 export type NewTrackNodeRow = typeof trackNodes.$inferInsert;
 export type RouteSegmentRow = typeof routeSegments.$inferSelect;
@@ -494,3 +507,4 @@ export type RouteGrade = typeof routeSegments.$inferSelect.grade;
 export type RouteStatus = typeof routeSegments.$inferSelect.status;
 export type TrailRouteStatus = typeof trailRoutes.$inferSelect.status;
 export type AiItineraryRow = typeof aiItineraries.$inferSelect;
+export type AppSettingRow = typeof appSettings.$inferSelect;

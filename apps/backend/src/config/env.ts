@@ -47,6 +47,16 @@ const envSchema = z.object({
     .string()
     .default("true")
     .transform((v) => v.toLowerCase() !== "false"),
+  // Required for encrypting admin-managed secrets (32-byte base64).
+  APP_ENCRYPTION_KEY: z
+    .string()
+    .refine((value) => {
+      try {
+        return Buffer.from(value, "base64").length === 32;
+      } catch {
+        return false;
+      }
+    }, "APP_ENCRYPTION_KEY harus 32 byte dalam base64"),
 });
 
 export type Env = z.infer<typeof envSchema>;
