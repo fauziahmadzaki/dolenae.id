@@ -2,6 +2,17 @@
 
 Dokumen kontrak fitur AI itinerary Dolenae (mobile → backend).
 
+## Endpoint
+
+| Method | Path | Fungsi |
+| --- | --- | --- |
+| GET | `/api/ai/options` | wilayah/aktivitas/medan/durasi dari katalog published |
+| POST | `/api/ai/itineraries` | susun itinerary grounded (Bearer, role apa pun) |
+
+Semua field request opsional. Filter yang tidak menemukan hasil dilonggarkan
+bertahap (aktivitas → medan → budget → wilayah → difficulty) dan alasan
+pelonggaran dikirim sebagai warning.
+
 ## Ringkasan
 
 - **Endpoint:** `POST /api/ai/itineraries` (Bearer token, role apa pun).
@@ -84,10 +95,12 @@ Semua field opsional. Batas: `rawText` 1000 karakter, `durationDays` 1–7,
 
 1. Fakta destinasi/rute/fasilitas/harga **wajib** dari context retrieval.
 2. ID yang tidak ada di context dibuang server (`validateAiPayload`).
-3. Pengetahuan umum hanya di `briefing.general`, ditampilkan dengan label
+3. Jika context berisi destinasi tetapi output LLM tidak memakai satu pun
+   `destinationId`, output ditolak dan builder deterministik dipakai.
+4. Pengetahuan umum hanya di `briefing.general`, ditampilkan dengan label
    **“Info umum — perlu verifikasi”**.
-4. Status jalur `rusak`/`terlarang`/`dalam-perbaikan` wajib memunculkan warning.
-5. Data kosong (harga tiket, fasilitas, rute) wajib memunculkan warning, bukan
+5. Status jalur `rusak`/`terlarang`/`dalam-perbaikan` wajib memunculkan warning.
+6. Data kosong (harga tiket, fasilitas, rute) wajib memunculkan warning, bukan
    angka karangan.
 
 ## Konfigurasi backend
@@ -136,7 +149,11 @@ AES-256-GCM** di tabel `app_settings`:
 
 ## Mobile
 
-- `AiRepository.run()` async → `POST /ai/itineraries`.
-- Offline/error jaringan → fallback rule-based (`kind: offline`).
+- Opsi wilayah/aktivitas/medan/durasi dimuat dari `GET /ai/options`; bila gagal,
+  memakai daftar fallback lokal.
+- `AiRepository.run()` async → `POST /ai/itineraries` dengan timeout 60 detik.
+- Error API (422/429/5xx/timeout) ditampilkan sebagai state gagal + tombol coba
+  lagi; data demo hanya dipakai saat repository berjalan tanpa remote (test).
+- `difficulty` selalu dikirim sebagai enum (`ramah-pemula`/`menengah`/`sulit`).
 - UI AI Hasil menampilkan itinerary per hari, briefing dua blok, warning,
   sumber data, dan checklist.
