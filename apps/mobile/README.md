@@ -169,6 +169,17 @@ Aplikasi mobile mengintegrasikan backend Express untuk data katalog dan navigasi
 > **Catatan Status Fitur Lain:**
 > Fitur AI trip planning (rekomendasi & itinerary), checklist perlengkapan, dan destinasi tersimpan (saved trips) saat ini masih menggunakan seed data di sisi klien (*client-side seed data*).
 
+## AI Itinerary
+
+- Mobile memanggil `POST /api/ai/itineraries` (butuh login) saat pengguna
+  mengirim preferensi di layar AI.
+- Backend meretrieve destinasi published + travel support + rute, lalu memakai
+  Gemini bila `GEMINI_API_KEY` diisi. Tanpa key / timeout → fallback
+  deterministik dari data DB.
+- Respons berisi itinerary per hari, briefing (`grounded` vs `general`),
+  warning, checklist, dan sumber.
+- Offline/error jaringan → tampilan memakai hasil rule-based bawaan.
+
 ## Cek & test
 
 ```bash

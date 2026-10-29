@@ -6,6 +6,7 @@ import 'package:dolenae_mobile/src/features/categories/data/data_sources/categor
 
 import 'package:dolenae_mobile/src/core/database/app_database.dart';
 import 'package:dolenae_mobile/src/core/network/api_client.dart';
+import 'package:dolenae_mobile/src/features/ai/data/data_sources/ai_remote_data_source.dart';
 import 'package:dolenae_mobile/src/features/ai/data/repositories/ai_repository_impl.dart';
 import 'package:dolenae_mobile/src/features/ai/domain/repositories/ai_repository.dart';
 import 'package:dolenae_mobile/src/features/auth/data/data_sources/auth_local_data_source.dart';
@@ -85,7 +86,7 @@ class AppDependencies {
       ),
       notificationRepository: NotificationRepositoryImpl(),
       savedRepository: SavedRepositoryImpl(),
-      aiRepository: const AiRepositoryImpl(),
+      aiRepository: AiRepositoryImpl(AiRemoteDataSource(client)),
       exploreRepository: ExploreRepositoryImpl(),
       facilityRepository: FacilityRepositoryImpl(api: client, preferences: prefs),
       routeRepository: RouteRepositoryImpl(client),

@@ -134,7 +134,7 @@ class TestStores {
        )..load(),
        notifications = NotificationsController(NotificationRepositoryImpl()),
        saved = SavedController(SavedRepositoryImpl()),
-       ai = AiController(repository: const AiRepositoryImpl()),
+       ai = AiController(repository: AiRepositoryImpl()),
        settings = SettingsController(SettingsRepositoryImpl()),
        search = ExploreController(ExploreRepositoryImpl()),
        destinations = DestinationsController(

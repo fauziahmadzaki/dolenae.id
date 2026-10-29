@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
@@ -95,7 +97,7 @@ class _AiPreferencesScreenState extends State<AiPreferencesScreen> {
       needsTransport: _needTransport,
     );
     ai.updateAiPreference(preference);
-    ai.runRecommendation();
+    unawaited(ai.runRecommendation());
 
     final onSubmit = widget.onSubmit;
     if (onSubmit != null) {

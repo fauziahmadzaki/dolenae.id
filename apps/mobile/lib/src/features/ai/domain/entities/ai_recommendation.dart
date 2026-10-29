@@ -1,4 +1,5 @@
 import 'package:dolenae_mobile/src/features/destinations/domain/entities/destination.dart';
+import 'package:dolenae_mobile/src/features/ai/domain/entities/ai_itinerary.dart';
 
 /// Preferensi yang dikumpulkan di AI Preferensi (subset `packages/types/src/ai.ts`).
 class AiPreference {
@@ -92,6 +93,9 @@ class AiResult {
     required this.items,
     required this.relatedChecklist,
     this.kind = 'rule-based',
+    this.itinerary,
+    this.briefing,
+    this.sources = const [],
   });
 
   final AiPreference preference;
@@ -102,8 +106,21 @@ class AiResult {
   final List<String> relatedChecklist;
   final String kind;
 
-  String get engineLabel =>
-      '$kind · ${items.length} destinasi';
+  /// Itinerary terstruktur (hasil backend AI); null untuk hasil rule-based lama.
+  final AiItinerary? itinerary;
+  final AiBriefing? briefing;
+  final List<AiSource> sources;
+
+  String get engineLabel {
+    final label = switch (kind) {
+      'gemini' => 'Gemini',
+      'deterministic' => 'Data Dolenae',
+      'offline' => 'Mode offline',
+      _ => 'Rule-based',
+    };
+    final count = itinerary?.days.length ?? items.length;
+    return '$label · $count ${itinerary != null ? 'hari' : 'destinasi'}';
+  }
 
   bool get isEmpty => items.isEmpty;
 }

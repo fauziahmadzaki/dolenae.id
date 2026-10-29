@@ -1,6 +1,7 @@
+import 'package:dolenae_mobile/src/core/result/result.dart';
 import 'package:dolenae_mobile/src/features/ai/domain/entities/ai_recommendation.dart';
 
-/// Rule-based recommendation engine; a remote adapter can replace it later.
+/// AI itinerary client; falls back to the bundled rule-based result offline.
 abstract interface class AiRepository {
   AiPreference get defaultPreference;
 
@@ -16,5 +17,5 @@ abstract interface class AiRepository {
 
   List<String> get durationOptions;
 
-  AiResult run(AiPreference preference);
+  Future<Result<AiResult>> run(AiPreference preference);
 }

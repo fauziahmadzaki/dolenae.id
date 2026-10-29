@@ -9,6 +9,7 @@ import 'package:dolenae_mobile/src/app/theme/app_radius.dart';
 import 'package:dolenae_mobile/src/app/theme/app_spacing.dart';
 import 'package:dolenae_mobile/src/app/theme/app_text_styles.dart';
 import 'package:dolenae_mobile/src/features/ai/domain/entities/ai_recommendation.dart';
+import 'package:dolenae_mobile/src/features/ai/presentation/widgets/ai_itinerary_section.dart';
 import 'package:dolenae_mobile/src/shared/icons/app_icons.dart';
 import 'package:dolenae_mobile/src/shared/widgets/dn_app_bar.dart';
 import 'package:dolenae_mobile/src/shared/widgets/dn_buttons.dart';
@@ -61,6 +62,7 @@ class AiResultsScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final ai = context.watch<AiController>();
     final data = result ?? ai.aiResult;
+    final failed = hasError || ai.error != null;
 
     return Scaffold(
       backgroundColor: AppColors.canvas,
@@ -74,12 +76,15 @@ class AiResultsScreen extends StatelessWidget {
         child: Column(
           children: [
             Expanded(
-              child: hasError
+              child: failed
                   ? _AiErrorState(
+                      message: ai.error,
                       onRetry: onRetry ?? () => _backToPreferences(context),
                       onChangePreference:
                           onChangePreference ?? () => _backToPreferences(context),
                     )
+                  : ai.isLoading && data == null
+                  ? const _AiLoadingState()
                   : data == null
                   ? _AiEmptyState(
                       onChangePreference:
@@ -195,51 +200,66 @@ class _AiResultsBody extends StatelessWidget {
           ],
         ),
         const SizedBox(height: AppSpacing.s4),
-        ...result.items.map(
-          (item) => Padding(
-            padding: const EdgeInsets.only(bottom: AppSpacing.s3),
-            child: DnRecommendationCard(
-              recommendation: item,
-              onViewDetail: onViewDetail == null
-                  ? () => context.go('/destination/${item.destination.id}')
-                  : () => onViewDetail!(item.destination.id),
-              onAdd: onAddDestination == null
-                  ? () => _addDestination(context, item)
-                  : () => onAddDestination!(item.destination.id),
+        if (result.itinerary != null) ...[
+          AiItinerarySection(itinerary: result.itinerary!),
+          const SizedBox(height: AppSpacing.s4),
+        ],
+        if (result.briefing != null) ...[
+          AiBriefingSection(briefing: result.briefing!),
+          const SizedBox(height: AppSpacing.s4),
+        ],
+        if (result.sources.isNotEmpty) ...[
+          AiSourcesSection(sources: result.sources),
+          const SizedBox(height: AppSpacing.s2),
+        ],
+        if (result.items.isNotEmpty) ...[
+          ...result.items.map(
+            (item) => Padding(
+              padding: const EdgeInsets.only(bottom: AppSpacing.s3),
+              child: DnRecommendationCard(
+                recommendation: item,
+                onViewDetail: onViewDetail == null
+                    ? () => context.go('/destination/${item.destination.id}')
+                    : () => onViewDetail!(item.destination.id),
+                onAdd: onAddDestination == null
+                    ? () => _addDestination(context, item)
+                    : () => onAddDestination!(item.destination.id),
+              ),
             ),
           ),
-        ),
-        const SizedBox(height: AppSpacing.s2),
-        Container(
-          width: double.infinity,
-          padding: const EdgeInsets.all(AppSpacing.s4),
-          decoration: BoxDecoration(
-            color: AppColors.canvasSubtle,
-            borderRadius: BorderRadius.circular(AppRadius.lg),
-            border: Border.all(color: AppColors.hairline),
+          const SizedBox(height: AppSpacing.s2),
+        ],
+        if (result.relatedChecklist.isNotEmpty)
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(AppSpacing.s4),
+            decoration: BoxDecoration(
+              color: AppColors.canvasSubtle,
+              borderRadius: BorderRadius.circular(AppRadius.lg),
+              border: Border.all(color: AppColors.hairline),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    const Icon(
+                      AppIcons.squareCheck,
+                      size: 16,
+                      color: AppColors.primary,
+                    ),
+                    const SizedBox(width: AppSpacing.s2),
+                    Text('CHECKLIST TERKAIT', style: AppTextStyles.overline),
+                  ],
+                ),
+                const SizedBox(height: AppSpacing.s2),
+                Text(
+                  result.relatedChecklist.join(', '),
+                  style: AppTextStyles.bodySm,
+                ),
+              ],
+            ),
           ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  const Icon(
-                    AppIcons.squareCheck,
-                    size: 16,
-                    color: AppColors.primary,
-                  ),
-                  const SizedBox(width: AppSpacing.s2),
-                  Text('CHECKLIST TERKAIT', style: AppTextStyles.overline),
-                ],
-              ),
-              const SizedBox(height: AppSpacing.s2),
-              Text(
-                result.relatedChecklist.join(', '),
-                style: AppTextStyles.bodySm,
-              ),
-            ],
-          ),
-        ),
       ],
     );
   }
@@ -296,11 +316,41 @@ class _AiEmptyState extends StatelessWidget {
 
 /// State `Gagal memuat AI` (`101:358`): app bar tetap tampil, hanya isi
 /// yang diganti panel kegagalan beserta CTA dan aksi cadangan.
+class _AiLoadingState extends StatelessWidget {
+  const _AiLoadingState();
+
+  @override
+  Widget build(BuildContext context) {
+    return const Padding(
+      padding: EdgeInsets.all(AppSpacing.s6),
+      child: Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            SizedBox(
+              width: 28,
+              height: 28,
+              child: CircularProgressIndicator(strokeWidth: 3),
+            ),
+            SizedBox(height: AppSpacing.s3),
+            Text('Menyusun itinerary…'),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 class _AiErrorState extends StatelessWidget {
-  const _AiErrorState({required this.onRetry, required this.onChangePreference});
+  const _AiErrorState({
+    required this.onRetry,
+    required this.onChangePreference,
+    this.message,
+  });
 
   final VoidCallback onRetry;
   final VoidCallback onChangePreference;
+  final String? message;
 
   @override
   Widget build(BuildContext context) {
@@ -317,7 +367,7 @@ class _AiErrorState extends StatelessWidget {
             icon: AppIcons.alertTriangle,
             iconColor: AppColors.danger,
             title: 'Rekomendasi AI gagal diproses',
-            body: 'Coba lagi sebentar lagi atau ubah preferensi.',
+            body: message ?? 'Coba lagi sebentar lagi atau ubah preferensi.',
             actionLabel: 'Coba lagi',
             onAction: onRetry,
           ),
