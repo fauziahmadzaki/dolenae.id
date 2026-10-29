@@ -135,10 +135,19 @@ export async function listGeminiModels(): Promise<
   });
 
   if (!response.ok) {
+    const details = (await response.json().catch(() => null)) as {
+      error?: { message?: string };
+    } | null;
     throw new AppError(
       502,
       "AI_MODELS_FAILED",
       "Gagal mengambil daftar model Gemini. Periksa API key.",
+      {
+        expose: true,
+        details: {
+          reason: details?.error?.message ?? `HTTP ${response.status}`,
+        },
+      },
     );
   }
 
@@ -192,7 +201,10 @@ export async function testGeminiConnection(prompt: string): Promise<{
     );
 
     if (!response.ok) {
-      throw new Error(`HTTP ${response.status}`);
+      const payload = (await response.json().catch(() => null)) as {
+        error?: { message?: string };
+      } | null;
+      throw new Error(payload?.error?.message ?? `HTTP ${response.status}`);
     }
 
     const body = (await response.json()) as GeminiResponse;
@@ -204,11 +216,17 @@ export async function testGeminiConnection(prompt: string): Promise<{
       model: config.model,
       latencyMs: Date.now() - startedAt,
     };
-  } catch {
+  } catch (error) {
     throw new AppError(
       502,
       "AI_TEST_FAILED",
       "Koneksi ke Gemini gagal. Periksa API key dan model yang dipilih.",
+      {
+        expose: true,
+        details: {
+          reason: error instanceof Error ? error.message : String(error),
+        },
+      },
     );
   }
 }

@@ -73,7 +73,7 @@ Semua field opsional. Batas: `rawText` 1000 karakter, `durationDays` 1–7,
       { "type": "support", "id": "uuid", "label": "Homestay Cemoro Indah" }
     ],
     "engine": "gemini",
-    "model": "gemini-2.5-flash"
+    "model": "gemini-3.5-flash"
   }
 }
 ```
@@ -94,7 +94,7 @@ Semua field opsional. Batas: `rawText` 1000 karakter, `durationDays` 1–7,
 
 ```env
 GEMINI_API_KEY=            # fallback env bila belum diset dari admin
-AI_MODEL=gemini-2.5-flash
+AI_MODEL=gemini-3.5-flash
 AI_TIMEOUT_MS=30000
 AI_DAILY_LIMIT=10
 AI_CACHE_TTL_HOURS=24
@@ -116,6 +116,11 @@ AES-256-GCM** di tabel `app_settings`:
 - API key tidak pernah dikembalikan utuh; hanya `keyPreview` (`••••••3456`).
 - Semua endpoint admin-only; `updatedBy` dicatat.
 - Test koneksi dibatasi 5x/menit per admin.
+- Endpoint admin membutuhkan sesi admin aktif. Bila token tidak terkirim atau
+  kedaluwarsa, web mengarahkan ke halaman login.
+- Model default `gemini-3.5-flash`; model lain bisa dimuat dari Google lalu
+  dipilih. Jika model tidak tersedia untuk key tersebut, pesan error Gemini
+  ditampilkan di panel test.
 - `APP_ENCRYPTION_KEY` wajib; generate:
   `node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"`.
 - Konfigurasi DB di-cache 60 detik dan fallback ke env bila belum diisi.
