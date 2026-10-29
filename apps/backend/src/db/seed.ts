@@ -637,6 +637,8 @@ async function seedTravelSupports(db: SeedDb) {
           locationLabel: "Cemoro Lawang, Ngadisari",
           priceLabel: "Rp 250.000",
           priceUnit: "/malam",
+          priceMin: 250000,
+          priceMax: 250000,
           verified: true,
           contactPhone: "081234567890",
         },
@@ -647,6 +649,8 @@ async function seedTravelSupports(db: SeedDb) {
           locationLabel: "Basecamp Cemoro Lawang",
           priceLabel: "Rp 650.000",
           priceUnit: "/trip",
+          priceMin: 650000,
+          priceMax: 650000,
           includesDriver: true,
           verified: true,
           contactPhone: "081234567891",
@@ -658,6 +662,8 @@ async function seedTravelSupports(db: SeedDb) {
           locationLabel: "Cemoro Lawang",
           priceLabel: "Rp 25.000 - 50.000",
           priceUnit: "/porsi",
+          priceMin: 25000,
+          priceMax: 50000,
           verified: true,
         },
       ]);
@@ -689,6 +695,8 @@ async function seedTravelSupports(db: SeedDb) {
           locationLabel: "Dieng Kulon",
           priceLabel: "Rp 150.000",
           priceUnit: "/malam",
+          priceMin: 150000,
+          priceMax: 150000,
           verified: true,
         },
         {
@@ -698,6 +706,8 @@ async function seedTravelSupports(db: SeedDb) {
           locationLabel: "Patakbanteng",
           priceLabel: "Rp 30.000",
           priceUnit: "/trip",
+          priceMin: 30000,
+          priceMax: 30000,
           verified: true,
         },
         {
@@ -707,6 +717,8 @@ async function seedTravelSupports(db: SeedDb) {
           locationLabel: "Jl. Raya Dieng",
           priceLabel: "Rp 20.000 - 45.000",
           priceUnit: "/porsi",
+          priceMin: 20000,
+          priceMax: 45000,
           verified: true,
         },
       ]);

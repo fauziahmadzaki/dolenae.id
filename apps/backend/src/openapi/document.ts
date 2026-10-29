@@ -17,6 +17,7 @@ export const openApiDocument = {
     { name: "Regions", description: "Indonesian province/regency/district data & reverse geocoding" },
     { name: "Supports", description: "Published-destination travel support discovery" },
     { name: "Routes", description: "Route builder: track nodes, segments, trails and elevation profiles" },
+    { name: "AI", description: "Grounded AI itineraries with retrieval + general-knowledge briefing" },
   ],
   components: {
     securitySchemes: {
@@ -1241,6 +1242,42 @@ export const openApiDocument = {
           { name: "id", in: "path", required: true, schema: { type: "string", format: "uuid" } },
         ],
         responses: { "200": { description: "Route profile" }, "404": { description: "Not found" } },
+      },
+    },
+    "/api/ai/itineraries": {
+      post: {
+        tags: ["AI"],
+        summary: "Generate a grounded itinerary (authenticated)",
+        description: "Retrieves published destinations, supports and routes, then asks Gemini to compose the itinerary. Falls back to a deterministic builder when the provider is unavailable.",
+        security: [{ bearerAuth: [] }],
+        requestBody: {
+          required: true,
+          content: {
+            "application/json": {
+              schema: {
+                type: "object",
+                properties: {
+                  rawText: { type: "string", maxLength: 1000 },
+                  regions: { type: "array", items: { type: "string" } },
+                  activities: { type: "array", items: { type: "string" } },
+                  terrains: { type: "array", items: { type: "string" } },
+                  difficulty: { type: "string", enum: ["ramah-pemula", "menengah", "sulit"] },
+                  durationDays: { type: "integer", minimum: 1, maximum: 7 },
+                  budgetPerPerson: { type: "integer", minimum: 0 },
+                  needsAccommodation: { type: "boolean" },
+                  needsTransport: { type: "boolean" },
+                  note: { type: "string", maxLength: 500 },
+                },
+              },
+            },
+          },
+        },
+        responses: {
+          "200": { description: "Itinerary, briefing, checklist and sources" },
+          "401": { description: "Missing token" },
+          "429": { description: "Daily AI quota exceeded" },
+          "422": { description: "Validation error" },
+        },
       },
     },
   },

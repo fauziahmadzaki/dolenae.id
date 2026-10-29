@@ -1,4 +1,5 @@
 import { Router } from "express";
+import { aiRouter } from "./ai.route";
 import { authRouter } from "./auth.route";
 import { categoryRouter } from "./category.route";
 import { destinationRouter } from "./destination.route";
@@ -19,5 +20,6 @@ apiRouter.use("/categories", categoryRouter);
 apiRouter.use("/destinations", destinationRouter);
 apiRouter.use("/regions", regionRouter);
 apiRouter.use("/uploads", uploadRouter);
+apiRouter.use("/ai", aiRouter);
 apiRouter.use("/", routeBuilderRouter);
 apiRouter.use("/", supportRouter);
