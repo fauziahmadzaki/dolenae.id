@@ -42,7 +42,8 @@ pelonggaran dikirim sebagai warning.
 ```
 
 Semua field opsional. Batas: `rawText` 1000 karakter, `durationDays` 1–7,
-`note` 500 karakter.
+`note` 500 karakter. Kirim `refresh: true` untuk melewati cache 24 jam (dipakai
+tombol “Tanya lagi”).
 
 ## Response
 
@@ -84,10 +85,15 @@ Semua field opsional. Batas: `rawText` 1000 karakter, `durationDays` 1–7,
       { "type": "support", "id": "uuid", "label": "Homestay Cemoro Indah" }
     ],
     "engine": "gemini",
-    "model": "gemini-3.5-flash"
+    "model": "gemini-3.5-flash",
+    "notice": "Maaf, destinasi yang kamu cari (everest) belum ada di Dolenae. Berikut rekomendasi alternatif yang paling sesuai dengan preferensimu."
   }
 }
 ```
+
+`notice` hanya dikirim jika ada kata kunci penting di `rawText` yang tidak
+ditemukan pada katalog destinasi published. Hasil tetap berisi alternatif, dan
+`briefing.warnings` menambahkan detail kata kunci yang tidak ditemukan.
 
 `engine`: `gemini` | `deterministic`.
 
@@ -102,6 +108,8 @@ Semua field opsional. Batas: `rawText` 1000 karakter, `durationDays` 1–7,
 5. Status jalur `rusak`/`terlarang`/`dalam-perbaikan` wajib memunculkan warning.
 6. Data kosong (harga tiket, fasilitas, rute) wajib memunculkan warning, bukan
    angka karangan.
+7. Jika kata kunci penting dari prompt tidak ada di katalog (mis. “Everest”),
+   response menyertakan `notice` dan warning; itinerary tetap berisi alternatif.
 
 ## Konfigurasi backend
 
@@ -152,8 +160,13 @@ AES-256-GCM** di tabel `app_settings`:
 - Opsi wilayah/aktivitas/medan/durasi dimuat dari `GET /ai/options`; bila gagal,
   memakai daftar fallback lokal.
 - `AiRepository.run()` async → `POST /ai/itineraries` dengan timeout 60 detik.
+- Setiap request baru mengosongkan hasil lama (`runId` bertambah) dan menampilkan
+  skeleton layout hasil dengan shimmer; spinner tidak dipakai.
+- Tombol “Tanya lagi” menjalankan ulang preferensi dengan `refresh: true`.
 - Error API (422/429/5xx/timeout) ditampilkan sebagai state gagal + tombol coba
   lagi; data demo hanya dipakai saat repository berjalan tanpa remote (test).
 - `difficulty` selalu dikirim sebagai enum (`ramah-pemula`/`menengah`/`sulit`).
+- `notice` ditampilkan sebagai banner “Destinasi belum tersedia”; warning detail
+  tetap muncul di briefing.
 - UI AI Hasil menampilkan itinerary per hari, briefing dua blok, warning,
   sumber data, dan checklist.
