@@ -46,7 +46,7 @@ void main() {
     await tester.binding.handlePopRoute();
     await tester.pumpAndSettle();
 
-    expect(find.text('Rekomendasi'), findsOneWidget);
+    expect(find.text('Hasil rekomendasi'), findsOneWidget);
     expect(find.text('Lihat detail'), findsOneWidget);
   });
 

@@ -93,22 +93,25 @@ void main() {
   });
 
   group('Layar Hasil AI', () {
-    testWidgets('menampilkan prompt, hasil, dan checklist terkait', (tester) async {
+    testWidgets('menampilkan prompt, ringkasan, dan kartu destinasi', (
+      tester,
+    ) async {
       await usePhone(tester);
       await tester.pumpWidget(
         wrapScreen(AiResultsScreen(result: AiSeedData.demoResult)),
       );
       await tester.pumpAndSettle();
 
-      expect(find.text('Rekomendasi'), findsOneWidget);
+      expect(find.text('Hasil rekomendasi'), findsOneWidget);
       expect(find.text('PROMPTMU'), findsOneWidget);
       expect(
         find.text(AiSeedData.demoResult.summary),
         findsOneWidget,
       );
+      expect(find.text('RINGKASAN AI'), findsOneWidget);
+      expect(find.text('Skor 92'), findsOneWidget);
+      expect(find.text('Lihat detail'), findsWidgets);
 
-      await scrollTo(tester, find.text('CHECKLIST TERKAIT'));
-      expect(find.text('CHECKLIST TERKAIT'), findsOneWidget);
       await scrollTo(tester, find.text('Ubah preferensi'));
       expect(find.text('Ubah preferensi'), findsOneWidget);
       expect(find.text('Tanya lagi'), findsOneWidget);

@@ -6,7 +6,7 @@ import 'package:dolenae_mobile/src/app/theme/app_spacing.dart';
 import 'package:dolenae_mobile/src/app/theme/app_text_styles.dart';
 import 'package:dolenae_mobile/src/features/ai/domain/entities/ai_recommendation.dart';
 
-/// Animated placeholder that mirrors the AI result layout while it loads.
+/// Animated placeholder that mirrors the AI result card layout while loading.
 class AiResultsSkeleton extends StatefulWidget {
   const AiResultsSkeleton({super.key, this.preference = const AiPreference()});
 
@@ -53,7 +53,7 @@ class _AiResultsSkeletonState extends State<AiResultsSkeleton>
         ),
         children: [
           _PromptCard(preference: widget.preference),
-          const SizedBox(height: AppSpacing.s4),
+          const SizedBox(height: AppSpacing.s3),
           _Shimmer(
             animation: _controller,
             enabled: !reduceMotion,
@@ -61,33 +61,22 @@ class _AiResultsSkeletonState extends State<AiResultsSkeleton>
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    _SkeletonBox(width: 18, height: 18, radius: 9),
+                    _SkeletonBox(width: 72, height: 24, radius: 12),
                     SizedBox(width: AppSpacing.s2),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          _SkeletonBox(height: 12),
-                          SizedBox(height: AppSpacing.s2),
-                          _SkeletonBox(width: 220, height: 12),
-                        ],
-                      ),
-                    ),
+                    _SkeletonBox(width: 64, height: 24, radius: 12),
+                    SizedBox(width: AppSpacing.s2),
+                    _SkeletonBox(width: 58, height: 24, radius: 12),
                   ],
                 ),
-                SizedBox(height: AppSpacing.s4),
-                _SkeletonBox(width: 210, height: 20),
                 SizedBox(height: AppSpacing.s2),
-                _SkeletonBox(height: 12),
-                SizedBox(height: AppSpacing.s3),
-                _SkeletonDayCard(),
-                _SkeletonDayCard(),
+                _SkeletonBox(width: 120, height: 10),
                 SizedBox(height: AppSpacing.s4),
-                _SkeletonBox(width: 150, height: 18),
-                SizedBox(height: AppSpacing.s2),
-                _SkeletonBriefingBlock(),
+                _SkeletonSummaryCard(),
+                SizedBox(height: AppSpacing.s4),
+                _SkeletonRecommendationCard(),
+                _SkeletonRecommendationCard(),
+                _SkeletonRecommendationCard(),
               ],
             ),
           ),
@@ -104,12 +93,6 @@ class _PromptCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final chips = [
-      ...preference.regions,
-      ...preference.activities,
-      if (preference.durationDays != null) '${preference.durationDays} hari',
-    ];
-
     return Container(
       padding: const EdgeInsets.all(AppSpacing.s4),
       decoration: BoxDecoration(
@@ -128,30 +111,6 @@ class _PromptCard extends StatelessWidget {
                 : preference.rawText,
             style: AppTextStyles.bodySm.copyWith(color: AppColors.ink),
           ),
-          if (chips.isNotEmpty) ...[
-            const SizedBox(height: AppSpacing.s3),
-            Wrap(
-              spacing: AppSpacing.s2,
-              runSpacing: AppSpacing.s2,
-              children: chips
-                  .map(
-                    (chip) => Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: AppSpacing.s2,
-                        vertical: 4,
-                      ),
-                      decoration: BoxDecoration(
-                        color: AppColors.canvas,
-                        borderRadius: BorderRadius.circular(AppRadius.pill),
-                      ),
-                      child: Text(chip, style: AppTextStyles.overline),
-                    ),
-                  )
-                  .toList(),
-            ),
-          ],
-          const SizedBox(height: AppSpacing.s3),
-          Text('Menyusun itinerary…', style: AppTextStyles.caption),
         ],
       ),
     );
@@ -196,47 +155,14 @@ class _Shimmer extends StatelessWidget {
   }
 }
 
-class _SkeletonDayCard extends StatelessWidget {
-  const _SkeletonDayCard();
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: AppSpacing.s3),
-      padding: const EdgeInsets.all(AppSpacing.s4),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(AppRadius.lg),
-        border: Border.all(color: AppColors.hairline),
-      ),
-      child: const Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              _SkeletonBox(width: 52, height: 18, radius: 9),
-              SizedBox(width: AppSpacing.s2),
-              Expanded(child: _SkeletonBox(height: 12)),
-            ],
-          ),
-          SizedBox(height: AppSpacing.s3),
-          _SkeletonBox(height: 12),
-          SizedBox(height: AppSpacing.s2),
-          _SkeletonBox(width: 200, height: 12),
-        ],
-      ),
-    );
-  }
-}
-
-class _SkeletonBriefingBlock extends StatelessWidget {
-  const _SkeletonBriefingBlock();
+class _SkeletonSummaryCard extends StatelessWidget {
+  const _SkeletonSummaryCard();
 
   @override
   Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(AppSpacing.s3),
+      padding: const EdgeInsets.all(AppSpacing.s4),
       decoration: BoxDecoration(
         color: AppColors.canvasSubtle,
         borderRadius: BorderRadius.circular(AppRadius.lg),
@@ -245,36 +171,67 @@ class _SkeletonBriefingBlock extends StatelessWidget {
       child: const Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _SkeletonBox(width: 140, height: 12),
+          _SkeletonBox(width: 120, height: 12),
           SizedBox(height: AppSpacing.s2),
-          _SkeletonLine(),
-          _SkeletonLine(),
-          _SkeletonLine(widthFactor: 0.7),
+          _SkeletonBox(height: 10),
+          SizedBox(height: 5),
+          _SkeletonBox(width: 240, height: 10),
         ],
       ),
     );
   }
 }
 
-class _SkeletonLine extends StatelessWidget {
-  const _SkeletonLine({this.widthFactor = 1});
-
-  final double widthFactor;
+class _SkeletonRecommendationCard extends StatelessWidget {
+  const _SkeletonRecommendationCard();
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 5),
-      child: Row(
+    return Container(
+      margin: const EdgeInsets.only(bottom: AppSpacing.s3),
+      padding: const EdgeInsets.all(AppSpacing.s4),
+      decoration: BoxDecoration(
+        color: AppColors.canvasSubtle,
+        borderRadius: BorderRadius.circular(AppRadius.xl),
+        border: Border.all(color: AppColors.hairline),
+      ),
+      child: const Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const _SkeletonBox(width: 5, height: 5, radius: 3),
-          const SizedBox(width: AppSpacing.s2),
-          Expanded(
-            child: FractionallySizedBox(
-              widthFactor: widthFactor,
-              alignment: Alignment.centerLeft,
-              child: const _SkeletonBox(height: 10),
-            ),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _SkeletonBox(width: 28, height: 28, radius: AppRadius.sm),
+              SizedBox(width: AppSpacing.s3),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _SkeletonBox(width: 150, height: 13),
+                    SizedBox(height: 5),
+                    _SkeletonBox(width: 110, height: 9),
+                  ],
+                ),
+              ),
+              SizedBox(width: AppSpacing.s2),
+              _SkeletonBox(width: 54, height: 20, radius: 10),
+            ],
+          ),
+          SizedBox(height: AppSpacing.s3),
+          _SkeletonBox(width: 200, height: 10),
+          SizedBox(height: AppSpacing.s3),
+          _SkeletonBox(width: 90, height: 9),
+          SizedBox(height: AppSpacing.s2),
+          _SkeletonBox(height: 9),
+          SizedBox(height: 5),
+          _SkeletonBox(width: 220, height: 9),
+          SizedBox(height: AppSpacing.s3),
+          Row(
+            children: [
+              Expanded(child: _SkeletonBox(height: 44, radius: AppRadius.md)),
+              SizedBox(width: AppSpacing.s3),
+              Expanded(child: _SkeletonBox(height: 44, radius: AppRadius.md)),
+            ],
           ),
         ],
       ),

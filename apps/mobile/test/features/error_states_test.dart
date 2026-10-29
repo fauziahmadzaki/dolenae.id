@@ -160,7 +160,7 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      expect(find.text('Rekomendasi'), findsOneWidget);
+      expect(find.text('Hasil rekomendasi'), findsOneWidget);
       expect(find.text('Rekomendasi AI gagal diproses'), findsOneWidget);
       expect(
         find.text('Coba lagi sebentar lagi atau ubah preferensi.'),

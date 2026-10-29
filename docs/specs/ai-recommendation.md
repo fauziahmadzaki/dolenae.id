@@ -185,10 +185,14 @@ AES-256-GCM** di tabel `app_settings`:
 - `difficulty` selalu dikirim sebagai enum (`ramah-pemula`/`menengah`/`sulit`).
 - `notice` ditampilkan sebagai banner “Destinasi belum tersedia”; warning detail
   tetap muncul di briefing.
-- Kartu destinasi (`recommendations`) menampilkan rank, skor, alasan, tombol
-  **Lihat detail** dan **Tambah**.
+- UI hasil mengikuti Figma **card-first**: kartu prompt, chip preferensi,
+  label engine, kartu **Ringkasan AI**, lalu maksimal 3 kartu destinasi.
+- Kartu destinasi menampilkan rank, skor, alasan, tombol **Lihat detail** dan
+  **Tambah**.
 - **Lihat detail** memakai `push` ke `/destination/:id`, sehingga back kembali
   ke halaman rekomendasi dengan state yang sama.
 - Tombol **Tambah** masih placeholder (toast “segera hadir”).
-- UI AI Hasil menampilkan itinerary per hari, briefing dua blok, warning,
-  sumber data, dan checklist.
+- Itinerary dan briefing tetap tersedia di response API, tetapi tidak
+  ditampilkan pada layar hasil card-first.
+- UI AI Hasil mengikuti layout card-first; itinerary/briefing tetap dikirim API
+  untuk kebutuhan tampilan lain di masa depan.

@@ -25,6 +25,7 @@ class DnRecommendationCard extends StatelessWidget {
     this.onAdd,
     this.onTap,
     this.addLabel = 'Tambah',
+    this.showDifficultyBadge = true,
   });
 
   final AiRecommendation recommendation;
@@ -35,6 +36,7 @@ class DnRecommendationCard extends StatelessWidget {
   /// Ketukan pada kartu (dipakai varian ringkas di Beranda).
   final VoidCallback? onTap;
   final String addLabel;
+  final bool showDifficultyBadge;
 
   Destination get _destination => recommendation.destination;
 
@@ -84,7 +86,7 @@ class DnRecommendationCard extends StatelessWidget {
                         Text(_destination.name, style: AppTextStyles.titleSm),
                         const SizedBox(height: 2),
                         Text(
-                          '${_destination.elevationM} mdpl · ${_destination.regency}',
+                          '${_destination.province.isNotEmpty ? _destination.province : _destination.regency} · ${_destination.elevationLabel}',
                           style: AppTextStyles.caption,
                         ),
                       ],
@@ -98,8 +100,10 @@ class DnRecommendationCard extends StatelessWidget {
                 const SizedBox(height: AppSpacing.s3),
                 Row(
                   children: [
-                    DnDifficultyBadge(level: _destination.difficulty),
-                    const SizedBox(width: AppSpacing.s2),
+                    if (showDifficultyBadge) ...[
+                      DnDifficultyBadge(level: _destination.difficulty),
+                      const SizedBox(width: AppSpacing.s2),
+                    ],
                     Expanded(
                       child: Text(
                         _destination.tagline,

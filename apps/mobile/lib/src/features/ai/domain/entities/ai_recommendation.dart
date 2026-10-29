@@ -127,8 +127,8 @@ class AiResult {
       'offline' => 'Mode offline',
       _ => 'Rule-based',
     };
-    final count = itinerary?.days.length ?? items.length;
-    return '$label · $count ${itinerary != null ? 'hari' : 'destinasi'}';
+    final count = items.isNotEmpty ? items.length : itinerary?.days.length ?? 0;
+    return '$label · $count ${items.isNotEmpty ? 'destinasi' : 'hari'}';
   }
 
   bool get isEmpty => items.isEmpty;

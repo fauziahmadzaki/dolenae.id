@@ -8,7 +8,6 @@ import 'package:dolenae_mobile/src/app/theme/app_radius.dart';
 import 'package:dolenae_mobile/src/app/theme/app_spacing.dart';
 import 'package:dolenae_mobile/src/app/theme/app_text_styles.dart';
 import 'package:dolenae_mobile/src/features/ai/domain/entities/ai_recommendation.dart';
-import 'package:dolenae_mobile/src/features/ai/presentation/widgets/ai_itinerary_section.dart';
 import 'package:dolenae_mobile/src/features/ai/presentation/widgets/ai_results_skeleton.dart';
 import 'package:dolenae_mobile/src/shared/icons/app_icons.dart';
 import 'package:dolenae_mobile/src/shared/widgets/dn_app_bar.dart';
@@ -69,7 +68,7 @@ class AiResultsScreen extends StatelessWidget {
     return Scaffold(
       backgroundColor: AppColors.canvas,
       appBar: DnAppBar(
-        title: 'Rekomendasi',
+        title: 'Hasil rekomendasi',
         showBack: true,
         onBack: onBack ?? () => _backToPreferences(context),
       ),
@@ -144,9 +143,17 @@ class _AiResultsBody extends StatelessWidget {
       ...preference.regions,
       ...preference.activities,
       if (preference.durationDays != null) '${preference.durationDays} hari',
-      if (preference.difficulty != null) preference.difficulty!,
+      if (preference.difficulty != null)
+        _difficultyLabel(preference.difficulty!),
     ];
   }
+
+  static String _difficultyLabel(String value) => switch (value) {
+    'ramah-pemula' => 'Ramah pemula',
+    'menengah' => 'Menengah',
+    'sulit' => 'Sulit',
+    _ => value,
+  };
 
   @override
   Widget build(BuildContext context) {
@@ -178,45 +185,64 @@ class _AiResultsBody extends StatelessWidget {
                     : result.preference.rawText,
                 style: AppTextStyles.bodySm.copyWith(color: AppColors.ink),
               ),
-              if (chips.isNotEmpty) ...[
-                const SizedBox(height: AppSpacing.s3),
-                Wrap(
-                  spacing: AppSpacing.s2,
-                  runSpacing: AppSpacing.s2,
-                  children: chips
-                      .map(
-                        (chip) => Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: AppSpacing.s2,
-                            vertical: 4,
-                          ),
-                          decoration: BoxDecoration(
-                            color: AppColors.canvas,
-                            borderRadius: BorderRadius.circular(AppRadius.pill),
-                          ),
-                          child: Text(chip, style: AppTextStyles.overline),
-                        ),
-                      )
-                      .toList(),
-                ),
-              ],
-              const SizedBox(height: AppSpacing.s3),
-              Text(result.engineLabel, style: AppTextStyles.caption),
             ],
           ),
         ),
+        if (chips.isNotEmpty) ...[
+          const SizedBox(height: AppSpacing.s3),
+          Wrap(
+            spacing: AppSpacing.s2,
+            runSpacing: AppSpacing.s2,
+            children: chips
+                .map(
+                  (chip) => Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: AppSpacing.s2,
+                      vertical: 4,
+                    ),
+                    decoration: BoxDecoration(
+                      color: AppColors.canvas,
+                      borderRadius: BorderRadius.circular(AppRadius.pill),
+                    ),
+                    child: Text(chip, style: AppTextStyles.overline),
+                  ),
+                )
+                .toList(),
+          ),
+        ],
+        const SizedBox(height: AppSpacing.s2),
+        Text(result.engineLabel, style: AppTextStyles.caption),
         if (result.notice != null && result.notice!.trim().isNotEmpty) ...[
           const SizedBox(height: AppSpacing.s4),
           _AiNotice(message: result.notice!),
         ],
         const SizedBox(height: AppSpacing.s4),
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Icon(AppIcons.sparkles, size: 18, color: AppColors.accent),
-            const SizedBox(width: AppSpacing.s2),
-            Expanded(child: Text(result.summary, style: AppTextStyles.bodySm)),
-          ],
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(AppSpacing.s4),
+          decoration: BoxDecoration(
+            color: AppColors.canvasSubtle,
+            borderRadius: BorderRadius.circular(AppRadius.lg),
+            border: Border.all(color: AppColors.hairline),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  const Icon(
+                    AppIcons.sparkles,
+                    size: 16,
+                    color: AppColors.accent,
+                  ),
+                  const SizedBox(width: AppSpacing.s2),
+                  Text('RINGKASAN AI', style: AppTextStyles.overline),
+                ],
+              ),
+              const SizedBox(height: AppSpacing.s2),
+              Text(result.summary, style: AppTextStyles.bodySm),
+            ],
+          ),
         ),
         const SizedBox(height: AppSpacing.s4),
         if (result.items.isNotEmpty) ...[
@@ -225,6 +251,7 @@ class _AiResultsBody extends StatelessWidget {
               padding: const EdgeInsets.only(bottom: AppSpacing.s3),
               child: DnRecommendationCard(
                 recommendation: item,
+                showDifficultyBadge: false,
                 onViewDetail: onViewDetail == null
                     ? () => context.push('/destination/${item.destination.id}')
                     : () => onViewDetail!(item.destination.id),
@@ -236,49 +263,6 @@ class _AiResultsBody extends StatelessWidget {
           ),
           const SizedBox(height: AppSpacing.s2),
         ],
-        if (result.itinerary != null) ...[
-          AiItinerarySection(itinerary: result.itinerary!),
-          const SizedBox(height: AppSpacing.s4),
-        ],
-        if (result.briefing != null) ...[
-          AiBriefingSection(briefing: result.briefing!),
-          const SizedBox(height: AppSpacing.s4),
-        ],
-        if (result.sources.isNotEmpty) ...[
-          AiSourcesSection(sources: result.sources),
-          const SizedBox(height: AppSpacing.s2),
-        ],
-        if (result.relatedChecklist.isNotEmpty)
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(AppSpacing.s4),
-            decoration: BoxDecoration(
-              color: AppColors.canvasSubtle,
-              borderRadius: BorderRadius.circular(AppRadius.lg),
-              border: Border.all(color: AppColors.hairline),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    const Icon(
-                      AppIcons.squareCheck,
-                      size: 16,
-                      color: AppColors.primary,
-                    ),
-                    const SizedBox(width: AppSpacing.s2),
-                    Text('CHECKLIST TERKAIT', style: AppTextStyles.overline),
-                  ],
-                ),
-                const SizedBox(height: AppSpacing.s2),
-                Text(
-                  result.relatedChecklist.join(', '),
-                  style: AppTextStyles.bodySm,
-                ),
-              ],
-            ),
-          ),
       ],
     );
   }
