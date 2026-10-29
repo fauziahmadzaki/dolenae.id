@@ -9,6 +9,7 @@ import 'package:dolenae_mobile/src/app/theme/app_colors.dart';
 import 'package:dolenae_mobile/src/app/theme/app_radius.dart';
 import 'package:dolenae_mobile/src/app/theme/app_spacing.dart';
 import 'package:dolenae_mobile/src/app/theme/app_text_styles.dart';
+import 'package:dolenae_mobile/src/features/ai/domain/entities/ai_options.dart';
 import 'package:dolenae_mobile/src/features/ai/domain/entities/ai_recommendation.dart';
 import 'package:dolenae_mobile/src/shared/icons/app_icons.dart';
 import 'package:dolenae_mobile/src/shared/widgets/dn_app_bar.dart';
@@ -54,7 +55,19 @@ class _AiPreferencesScreenState extends State<AiPreferencesScreen> {
   late bool _needAccommodation = _base.needsAccommodation;
   late bool _needTransport = _base.needsTransport;
 
-  bool get _canSubmit => _preference.hasAnyInput;
+  bool get _canSubmit =>
+      _preference.hasAnyInput ||
+      _prompt.trim().isNotEmpty ||
+      _note.trim().isNotEmpty ||
+      _budget.trim().isNotEmpty ||
+      _needAccommodation ||
+      _needTransport;
+
+  @override
+  void initState() {
+    super.initState();
+    unawaited(context.read<AiController>().loadOptions());
+  }
 
   void _toggleRegion(String value) {
     final next = [..._preference.regions];
@@ -76,9 +89,14 @@ class _AiPreferencesScreenState extends State<AiPreferencesScreen> {
 
   void _setDuration(String value) {
     final days = int.tryParse(value.split(' ').first);
-    _apply(_preference.copyWith(
-      durationDays: days == _preference.durationDays ? null : days,
-    ));
+    if (days == null) return;
+    final clearing = days == _preference.durationDays;
+    _apply(
+      _preference.copyWith(
+        durationDays: clearing ? null : days,
+        clearDuration: clearing,
+      ),
+    );
   }
 
   void _apply(AiPreference next) {
@@ -89,10 +107,12 @@ class _AiPreferencesScreenState extends State<AiPreferencesScreen> {
 
   void _submit() {
     final ai = context.read<AiController>();
+    final budget = int.tryParse(_budget);
     final preference = _preference.copyWith(
       rawText: _prompt,
       note: _note,
-      budgetPerPerson: int.tryParse(_budget),
+      budgetPerPerson: budget,
+      clearBudget: budget == null,
       needsAccommodation: _needAccommodation,
       needsTransport: _needTransport,
     );
@@ -119,7 +139,7 @@ class _AiPreferencesScreenState extends State<AiPreferencesScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final ai = context.read<AiController>();
+    final ai = context.watch<AiController>();
     return Scaffold(
       backgroundColor: AppColors.canvas,
       appBar: DnAppBar(
@@ -140,10 +160,7 @@ class _AiPreferencesScreenState extends State<AiPreferencesScreen> {
                   AppSpacing.s5,
                 ),
                 children: [
-                  Text(
-                    'Ceritakan rencanamu',
-                    style: AppTextStyles.displayMd,
-                  ),
+                  Text('Ceritakan rencanamu', style: AppTextStyles.displayMd),
                   const SizedBox(height: AppSpacing.s2),
                   Text(
                     'Tulis bebas, lalu sesuaikan detailnya di bawah bila perlu.',
@@ -152,7 +169,8 @@ class _AiPreferencesScreenState extends State<AiPreferencesScreen> {
                   const SizedBox(height: AppSpacing.s4),
                   DnPromptInput(
                     value: _prompt,
-                    hint: 'Mis. pengen ke gunung buat sunrise, 2 hari, '
+                    hint:
+                        'Mis. pengen ke gunung buat sunrise, 2 hari, '
                         'budget 500rb',
                     suggestions: ai.promptSuggestions,
                     onChanged: (value) => setState(() => _prompt = value),
@@ -184,22 +202,25 @@ class _AiPreferencesScreenState extends State<AiPreferencesScreen> {
                     label: 'Tingkat kesulitan',
                     options: ai.difficultyOptions,
                     selected: [
-                      if (_preference.difficulty != null) _preference.difficulty!,
+                      if (_preference.difficulty != null)
+                        _preference.difficulty!,
                     ],
-                    onTap: (value) => _apply(
-                      _preference.copyWith(
-                        difficulty: _preference.difficulty == value
-                            ? null
-                            : value,
-                      ),
-                    ),
+                    onTap: (value) {
+                      final clearing = _preference.difficulty == value;
+                      _apply(
+                        _preference.copyWith(
+                          difficulty: clearing ? null : value,
+                          clearDifficulty: clearing,
+                        ),
+                      );
+                    },
                   ),
                   _ChipGroup(
                     label: 'Durasi',
                     options: ai.durationOptions,
                     selected: [
                       if (_preference.durationDays != null)
-                        '${_preference.durationDays} hari',
+                        '${_preference.durationDays}',
                     ],
                     onTap: _setDuration,
                   ),
@@ -277,7 +298,7 @@ class _ChipGroup extends StatelessWidget {
   });
 
   final String label;
-  final List<String> options;
+  final List<AiOption> options;
   final List<String> selected;
   final ValueChanged<String> onTap;
 
@@ -294,9 +315,9 @@ class _ChipGroup extends StatelessWidget {
           children: options
               .map(
                 (option) => DnChip(
-                  label: option,
-                  active: selected.contains(option),
-                  onTap: () => onTap(option),
+                  label: option.label,
+                  active: selected.contains(option.value),
+                  onTap: () => onTap(option.value),
                 ),
               )
               .toList(),

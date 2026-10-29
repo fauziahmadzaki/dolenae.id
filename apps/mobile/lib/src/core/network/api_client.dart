@@ -40,17 +40,29 @@ class ApiClient {
   /// Token Bearer untuk request terautentikasi.
   String? token;
 
-  Future<Map<String, dynamic>> get(String path, {Map<String, String>? query}) {
-    return _send(() => _http.get(_uri(path, query), headers: _headers()));
+  Future<Map<String, dynamic>> get(
+    String path, {
+    Map<String, String>? query,
+    Duration? timeout,
+  }) {
+    return _send(
+      () => _http.get(_uri(path, query), headers: _headers()),
+      timeout: timeout,
+    );
   }
 
-  Future<Map<String, dynamic>> post(String path, {Object? body}) {
+  Future<Map<String, dynamic>> post(
+    String path, {
+    Object? body,
+    Duration? timeout,
+  }) {
     return _send(
       () => _http.post(
         _uri(path),
         headers: _headers(),
         body: body == null ? null : jsonEncode(body),
       ),
+      timeout: timeout,
     );
   }
 
@@ -68,11 +80,12 @@ class ApiClient {
   }
 
   Future<Map<String, dynamic>> _send(
-    Future<http.Response> Function() request,
-  ) async {
+    Future<http.Response> Function() request, {
+    Duration? timeout,
+  }) async {
     http.Response response;
     try {
-      response = await request().timeout(_timeout);
+      response = await request().timeout(timeout ?? _timeout);
     } on TimeoutException {
       throw const ApiException(
         'Koneksi ke server terlalu lama. Periksa jaringan lalu coba lagi.',

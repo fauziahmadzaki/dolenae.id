@@ -1,21 +1,19 @@
 import 'package:dolenae_mobile/src/core/result/result.dart';
+import 'package:dolenae_mobile/src/features/ai/domain/entities/ai_options.dart';
 import 'package:dolenae_mobile/src/features/ai/domain/entities/ai_recommendation.dart';
 
-/// AI itinerary client; falls back to the bundled rule-based result offline.
+/// AI itinerary client backed by the Dolenae backend.
 abstract interface class AiRepository {
   AiPreference get defaultPreference;
 
+  /// Catalog-derived options, used before the remote fetch completes.
+  AiOptions get defaultOptions;
+
   List<String> get promptSuggestions;
 
-  List<String> get regionOptions;
-
-  List<String> get activityOptions;
-
-  List<String> get terrainOptions;
-
-  List<String> get difficultyOptions;
-
-  List<String> get durationOptions;
+  /// Fetch regions/activities/terrains from the backend. Implementations must
+  /// fall back to [defaultOptions] when the catalog cannot be reached.
+  Future<Result<AiOptions>> loadOptions();
 
   Future<Result<AiResult>> run(AiPreference preference);
 }

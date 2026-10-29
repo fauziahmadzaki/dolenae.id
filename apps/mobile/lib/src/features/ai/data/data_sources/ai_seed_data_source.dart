@@ -1,7 +1,8 @@
+import 'package:dolenae_mobile/src/features/ai/domain/entities/ai_options.dart';
 import 'package:dolenae_mobile/src/features/ai/domain/entities/ai_recommendation.dart';
 import 'package:dolenae_mobile/src/features/destinations/data/data_sources/destination_seed_data_source.dart';
 
-/// Demo AI payload until the recommendation endpoint is available.
+/// Fallback AI options and demo payloads used offline and in tests.
 abstract final class AiSeedData {
   static const promptSuggestions = <String>[
     'Sunrise 2 hari',
@@ -10,46 +11,42 @@ abstract final class AiSeedData {
     'Camping',
   ];
 
-  static const regionOptions = <String>[
-    'Jawa Barat',
-    'Jawa Tengah',
-    'Jawa Timur',
-    'Bali',
-  ];
-
-  static const activityOptions = <String>[
-    'Sunrise',
-    'Hiking',
-    'Camping',
-    'Fotografi',
-  ];
-
-  static const terrainOptions = <String>[
-    'Gunung',
-    'Bukit',
-    'Danau',
-    'Air Terjun',
-  ];
-
-  static const difficultyOptions = <String>[
-    'Ramah pemula',
-    'Menengah',
-    'Sulit',
-  ];
-
-  static const durationOptions = <String>[
-    '1 hari',
-    '2 hari',
-    '3 hari',
-    '4 hari+',
-  ];
+  static const options = AiOptions(
+    regions: [
+      AiOption('Jawa Barat', 'Jawa Barat'),
+      AiOption('Jawa Tengah', 'Jawa Tengah'),
+      AiOption('Jawa Timur', 'Jawa Timur'),
+      AiOption('DI Yogyakarta', 'DI Yogyakarta'),
+      AiOption('Nusa Tenggara Barat', 'Nusa Tenggara Barat'),
+      AiOption('Nusa Tenggara Timur', 'Nusa Tenggara Timur'),
+      AiOption('Jambi', 'Jambi'),
+    ],
+    activities: [
+      AiOption('Hiking', 'Hiking'),
+      AiOption('Camping Ground', 'Camping Ground'),
+    ],
+    terrains: [
+      AiOption('Gunung', 'Gunung'),
+      AiOption('Bukit', 'Bukit'),
+      AiOption('Danau', 'Danau'),
+      AiOption('Air Terjun', 'Air Terjun'),
+      AiOption('Savana', 'Savana'),
+      AiOption('Hutan', 'Hutan'),
+    ],
+    difficulties: [
+      AiOption('Ramah pemula', 'ramah-pemula'),
+      AiOption('Menengah', 'menengah'),
+      AiOption('Sulit', 'sulit'),
+    ],
+    durations: [1, 2, 3, 4, 5, 6, 7],
+  );
 
   static const demoPreference = AiPreference(
     rawText: 'pengen ke gunung buat sunrise, 2 hari, budget 500rb',
     regions: ['Jawa Timur'],
-    activities: ['Sunrise', 'Hiking'],
+    activities: ['Hiking'],
     terrains: ['Gunung'],
-    difficulty: 'Menengah',
+    difficulty: 'menengah',
     durationDays: 3,
     budgetPerPerson: 500000,
     needsAccommodation: true,
@@ -57,8 +54,7 @@ abstract final class AiSeedData {
 
   static final demoResult = AiResult(
     preference: demoPreference,
-    summary:
-        'Pilihanmu condong ke gunung untuk sunrise dengan jarak tempuh singkat dari kota. Tiga destinasi di bawah ini punya jalur naik yang jelas dan fasilitas pendukung di sekitar basecamp.',
+    summary: 'Pilihanmu condong ke gunung untuk sunrise dengan jarak tempuh singkat dari kota. Tiga destinasi di bawah ini punya jalur naik yang jelas dan fasilitas pendukung di sekitar basecamp.',
     relatedChecklist: [
       'Jaket tahan angin',
       'Senter / headlamp',

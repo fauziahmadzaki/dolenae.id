@@ -79,16 +79,21 @@ class AiResultsScreen extends StatelessWidget {
               child: failed
                   ? _AiErrorState(
                       message: ai.error,
-                      onRetry: onRetry ?? () => _backToPreferences(context),
+                      onRetry:
+                          onRetry ??
+                          () =>
+                              context.read<AiController>().runRecommendation(),
                       onChangePreference:
-                          onChangePreference ?? () => _backToPreferences(context),
+                          onChangePreference ??
+                          () => _backToPreferences(context),
                     )
                   : ai.isLoading && data == null
                   ? const _AiLoadingState()
                   : data == null
                   ? _AiEmptyState(
                       onChangePreference:
-                          onChangePreference ?? () => _backToPreferences(context),
+                          onChangePreference ??
+                          () => _backToPreferences(context),
                       onAskAgain: onAskAgain,
                     )
                   : _AiResultsBody(
@@ -194,9 +199,7 @@ class _AiResultsBody extends StatelessWidget {
           children: [
             const Icon(AppIcons.sparkles, size: 18, color: AppColors.accent),
             const SizedBox(width: AppSpacing.s2),
-            Expanded(
-              child: Text(result.summary, style: AppTextStyles.bodySm),
-            ),
+            Expanded(child: Text(result.summary, style: AppTextStyles.bodySm)),
           ],
         ),
         const SizedBox(height: AppSpacing.s4),
@@ -292,7 +295,8 @@ class _AiEmptyState extends StatelessWidget {
           children: [
             const DnEmptyState(
               variant: DnEmptyVariant.tanpaHasil,
-              body: 'Belum ada rekomendasi. Isi preferensimu lalu minta '
+              body:
+                  'Belum ada rekomendasi. Isi preferensimu lalu minta '
                   'rekomendasi baru.',
             ),
             const SizedBox(height: AppSpacing.s4),
@@ -302,10 +306,7 @@ class _AiEmptyState extends StatelessWidget {
             ),
             if (onAskAgain != null) ...[
               const SizedBox(height: AppSpacing.s2),
-              DnOutlineButton(
-                label: 'Coba lagi',
-                onPressed: onAskAgain,
-              ),
+              DnOutlineButton(label: 'Coba lagi', onPressed: onAskAgain),
             ],
           ],
         ),
@@ -383,7 +384,10 @@ class _AiErrorState extends StatelessWidget {
 }
 
 class _ResultsCta extends StatelessWidget {
-  const _ResultsCta({required this.onChangePreference, required this.onAskAgain});
+  const _ResultsCta({
+    required this.onChangePreference,
+    required this.onAskAgain,
+  });
 
   final VoidCallback onChangePreference;
   final VoidCallback onAskAgain;

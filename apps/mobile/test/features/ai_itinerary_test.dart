@@ -43,8 +43,10 @@ void main() {
     );
 
     expect(result.itinerary!.days, hasLength(1));
-    expect(result.itinerary!.days.first.items.first.destinationName,
-        'Gunung Bromo');
+    expect(
+      result.itinerary!.days.first.items.first.destinationName,
+      'Gunung Bromo',
+    );
     expect(result.briefing!.grounded, contains('Elevasi 2.329 mdpl'));
     expect(result.briefing!.general, hasLength(1));
     expect(result.sources.first.typeLabel, 'Jalur');
@@ -59,5 +61,23 @@ void main() {
       }).isEmpty,
       isFalse,
     );
+  });
+
+  test('copyWith can clear optional filters', () {
+    const preference = AiPreference(
+      difficulty: 'menengah',
+      durationDays: 2,
+      budgetPerPerson: 500000,
+    );
+
+    final cleared = preference.copyWith(
+      clearDifficulty: true,
+      clearDuration: true,
+      clearBudget: true,
+    );
+
+    expect(cleared.difficulty, isNull);
+    expect(cleared.durationDays, isNull);
+    expect(cleared.budgetPerPerson, isNull);
   });
 }

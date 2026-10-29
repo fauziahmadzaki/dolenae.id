@@ -1,19 +1,24 @@
 import 'package:flutter/foundation.dart';
 
 import 'package:dolenae_mobile/src/core/result/result.dart';
+import 'package:dolenae_mobile/src/features/ai/domain/entities/ai_options.dart';
 import 'package:dolenae_mobile/src/features/ai/domain/entities/ai_recommendation.dart';
 import 'package:dolenae_mobile/src/features/ai/domain/repositories/ai_repository.dart';
 
 class AiController extends ChangeNotifier {
   AiController({required AiRepository repository})
     : _repository = repository,
-      _preference = repository.defaultPreference;
+      _preference = repository.defaultPreference,
+      _options = repository.defaultOptions;
 
   final AiRepository _repository;
 
   AiPreference _preference;
+  AiOptions _options;
   AiResult? _result;
   bool _isLoading = false;
+  bool _isLoadingOptions = false;
+  bool _optionsLoaded = false;
   String? _error;
 
   AiPreference get aiPreference => _preference;
@@ -22,19 +27,41 @@ class AiController extends ChangeNotifier {
 
   bool get isLoading => _isLoading;
 
+  bool get isLoadingOptions => _isLoadingOptions;
+
   String? get error => _error;
+
+  AiOptions get options => _options;
 
   List<String> get promptSuggestions => _repository.promptSuggestions;
 
-  List<String> get regionOptions => _repository.regionOptions;
+  List<AiOption> get regionOptions => _options.regions;
 
-  List<String> get activityOptions => _repository.activityOptions;
+  List<AiOption> get activityOptions => _options.activities;
 
-  List<String> get terrainOptions => _repository.terrainOptions;
+  List<AiOption> get terrainOptions => _options.terrains;
 
-  List<String> get difficultyOptions => _repository.difficultyOptions;
+  List<AiOption> get difficultyOptions => _options.difficulties;
 
-  List<String> get durationOptions => _repository.durationOptions;
+  List<AiOption> get durationOptions => _options.durations
+      .map((days) => AiOption('$days hari', '$days'))
+      .toList(growable: false);
+
+  /// Load catalog-derived options once; failures keep the bundled fallback.
+  Future<void> loadOptions() async {
+    if (_optionsLoaded || _isLoadingOptions) return;
+
+    _isLoadingOptions = true;
+
+    final result = await _repository.loadOptions();
+    if (result case Success<AiOptions>(:final value)) {
+      _options = value;
+      _optionsLoaded = true;
+    }
+
+    _isLoadingOptions = false;
+    notifyListeners();
+  }
 
   void updateAiPreference(AiPreference preference) {
     _preference = preference;
