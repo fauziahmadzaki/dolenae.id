@@ -26,12 +26,24 @@ import {
   useUpdateAiSettings,
 } from "./hooks/use-ai-settings";
 
-const message = (error: unknown) =>
-  error instanceof Error
+const message = (error: unknown) => {
+  if (error instanceof ApiError) {
+    const details = error.details as { reason?: string } | undefined;
+    return details?.reason
+      ? `${error.message} (${details.reason})`
+      : error.message;
+  }
+  return error instanceof Error
     ? error.message
     : "Permintaan gagal. Silakan coba lagi.";
+};
 
-const DEFAULT_MODELS = ["gemini-2.5-flash", "gemini-2.5-pro", "gemini-2.0-flash"];
+const DEFAULT_MODELS = [
+  "gemini-3.5-flash",
+  "gemini-3.6-flash",
+  "gemini-3.7-flash",
+  "gemini-3.8-flash",
+];
 
 export function SettingsPage() {
   const auth = useAuth();
@@ -49,11 +61,24 @@ export function SettingsPage() {
   const testMutation = useTestAi(auth.token);
 
   const [apiKey, setApiKey] = useState("");
-  const [model, setModel] = useState("gemini-2.5-flash");
+  const [model, setModel] = useState("gemini-3.5-flash");
   const [models, setModels] = useState<GeminiModel[]>([]);
   const [prompt, setPrompt] = useState(
     "Balas dengan satu kalimat: koneksi berhasil.",
   );
+
+  const handleError = (error: unknown) => {
+    if (error instanceof ApiError && error.status === 401) {
+      auth.logout();
+      router.replace("/auth/login");
+      toast({
+        title: "Sesi admin berakhir. Silakan masuk lagi.",
+        variant: "danger",
+      });
+      return;
+    }
+    toast({ title: message(error), variant: "danger" });
+  };
 
   useEffect(() => {
     if (settings.data?.data.model) setModel(settings.data.data.model);
@@ -113,11 +138,16 @@ export function SettingsPage() {
   })();
 
   const save = () => {
-    update.mutate({
-      ...(apiKey.trim() ? { apiKey: apiKey.trim() } : {}),
-      model,
-    });
-    setApiKey("");
+    update.mutate(
+      {
+        ...(apiKey.trim() ? { apiKey: apiKey.trim() } : {}),
+        model,
+      },
+      {
+        onSuccess: () => setApiKey(""),
+        onError: handleError,
+      },
+    );
   };
 
   const loadModels = () => {
@@ -129,8 +159,7 @@ export function SettingsPage() {
           variant: "success",
         });
       },
-      onError: (error) =>
-        toast({ title: message(error), variant: "danger" }),
+      onError: handleError,
     });
   };
 
@@ -301,8 +330,7 @@ export function SettingsPage() {
         <Button
           onClick={() =>
             testMutation.mutate(prompt, {
-              onError: (error) =>
-                toast({ title: message(error), variant: "danger" }),
+              onError: handleError,
             })
           }
           disabled={testMutation.isPending}
