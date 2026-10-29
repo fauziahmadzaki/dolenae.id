@@ -86,7 +86,24 @@ tombol “Tanya lagi”).
     ],
     "engine": "gemini",
     "model": "gemini-3.5-flash",
-    "notice": "Maaf, destinasi yang kamu cari (everest) belum ada di Dolenae. Berikut rekomendasi alternatif yang paling sesuai dengan preferensimu."
+    "notice": "Maaf, destinasi yang kamu cari (everest) belum ada di Dolenae. Berikut rekomendasi alternatif yang paling sesuai dengan preferensimu.",
+    "recommendations": [
+      {
+        "destinationId": "uuid",
+        "name": "Gunung Bromo",
+        "slug": "gunung-bromo",
+        "tagline": "Lautan pasir dan sunrise",
+        "province": "Jawa Timur",
+        "regency": "Probolinggo",
+        "elevationMeters": 2329,
+        "entryFee": 29000,
+        "difficulty": "ramah-pemula",
+        "images": ["https://..."],
+        "score": 95,
+        "rank": 1,
+        "reasons": ["Jeep Sunrise: 2.33 km, +570 m, ±85 menit.", "Warung Bromo Asri (Rp 25.000 - 50.000)."]
+      }
+    ]
   }
 }
 ```
@@ -168,5 +185,10 @@ AES-256-GCM** di tabel `app_settings`:
 - `difficulty` selalu dikirim sebagai enum (`ramah-pemula`/`menengah`/`sulit`).
 - `notice` ditampilkan sebagai banner “Destinasi belum tersedia”; warning detail
   tetap muncul di briefing.
+- Kartu destinasi (`recommendations`) menampilkan rank, skor, alasan, tombol
+  **Lihat detail** dan **Tambah**.
+- **Lihat detail** memakai `push` ke `/destination/:id`, sehingga back kembali
+  ke halaman rekomendasi dengan state yang sama.
+- Tombol **Tambah** masih placeholder (toast “segera hadir”).
 - UI AI Hasil menampilkan itinerary per hari, briefing dua blok, warning,
   sumber data, dan checklist.
