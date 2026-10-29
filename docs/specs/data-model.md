@@ -149,6 +149,20 @@ Akses publik untuk visualisasi peta & elevasi (tanpa autentikasi, hanya untuk de
 - `RecommendationResult` — hasil rekomendasi (rule-based | llm), berisi
   destinas terurut + ringkasan + referensi checklist.
 
+## AI Itinerary (implementasi)
+
+- `AiItinerary` — `title`, `summary`, `days[]` (`day`, `title`, `items[]`).
+- `AiItineraryItem` — `destinationId?`, `destinationName`, `routeId?`,
+  `supportIds[]`, `activity`, `startTime?`, `costEstimate?`, `notes?`.
+- `AiBriefing` — `grounded[]` (fakta dari DB), `general[]` (info umum),
+  `warnings[]`.
+- `AiSource` — `type: destination|route|support`, `id`, `label`.
+- Tabel `ai_itineraries` menyimpan cache/audit generasi: `user_id`,
+  `request_hash`, `request_json`, `result_json`, `model`, `engine`,
+  `latency_ms`, `status`, `created_at`.
+- `travel_supports` menambah `price_min`/`price_max` (integer) untuk estimasi
+  budget itinerary.
+
 ## Relasi Ringkas
 
 ```
