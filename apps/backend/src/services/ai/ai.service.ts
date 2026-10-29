@@ -4,7 +4,10 @@ import { aiRepository } from "../../repositories/ai.repository";
 import { AppError } from "../../utils/errors";
 import { destinationService } from "../destination.service";
 import { generateWithGemini } from "./gemini.service";
-import { buildDeterministicItinerary } from "./itinerary.service";
+import {
+  buildDeterministicItinerary,
+  buildRecommendationCards,
+} from "./itinerary.service";
 import { aiRetrieval, type AiContext, type AiPreferenceInput } from "./retrieval.service";
 import type { AiItineraryPayload, AiOptions } from "./types";
 
@@ -12,7 +15,7 @@ const hashInput = (input: AiPreferenceInput): string =>
   createHash("sha256")
     // Bump when the prompt/retrieval contract changes so older cached rows do
     // not bypass new grounding/notice rules.
-    .update("ai-v2:")
+    .update("ai-v3:")
     .update(JSON.stringify(input, Object.keys(input).sort()))
     .digest("hex");
 
@@ -128,6 +131,10 @@ export const aiService = {
       result = buildDeterministicItinerary(context, input);
     }
     result = attachQueryNotice(result, context);
+    result = {
+      ...result,
+      recommendations: buildRecommendationCards(context, result),
+    };
 
     const latencyMs = Date.now() - startedAt;
 

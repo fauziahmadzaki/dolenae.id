@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
 import { attachQueryNotice } from "../../src/services/ai/ai.service";
-import { buildDeterministicItinerary } from "../../src/services/ai/itinerary.service";
+import {
+  buildDeterministicItinerary,
+  buildRecommendationCards,
+} from "../../src/services/ai/itinerary.service";
 import type { AiContext } from "../../src/services/ai/retrieval.service";
 import { validateAiPayload } from "../../src/services/ai/validate";
 
@@ -14,6 +17,9 @@ const context: AiContext = {
     {
       id: destinationId,
       name: "Gunung Uji",
+      slug: "gunung-uji",
+      tagline: "Puncak uji",
+      images: ["https://example.test/gunung.jpg"],
       province: "Jawa Timur",
       regency: "Kabupaten Uji",
       difficulty: "menengah",
@@ -109,6 +115,36 @@ describe("AI itinerary", () => {
 
     expect(withNotice.notice).toContain("belum ada di Dolenae");
     expect(withNotice.briefing.warnings.join(" ")).toContain("everest");
+  });
+
+  it("builds card-ready recommendations from the grounded context", () => {
+    const payload = buildDeterministicItinerary(context, { durationDays: 1 });
+    const cards = buildRecommendationCards(
+      { ...context, preference: { needsAccommodation: true } },
+      payload,
+    );
+
+    expect(cards).toHaveLength(1);
+    expect(cards[0]).toMatchObject({
+      destinationId,
+      name: "Gunung Uji",
+      slug: "gunung-uji",
+      rank: 1,
+      score: 95,
+      difficulty: "menengah",
+    });
+    expect(cards[0]?.reasons.join(" ")).toContain("Jalur Uji");
+    expect(cards[0]?.reasons.join(" ")).toContain("Homestay Uji");
+  });
+
+  it("marks recommendation reasons as alternatives when the query misses", () => {
+    const payload = buildDeterministicItinerary(context, { durationDays: 1 });
+    const cards = buildRecommendationCards(
+      { ...context, queryMatched: false, unmatchedTerms: ["everest"] },
+      payload,
+    );
+
+    expect(cards[0]?.reasons.join(" ")).toContain("everest");
   });
 
   it("drops unknown IDs from an LLM payload", () => {

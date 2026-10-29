@@ -7,6 +7,7 @@ import type {
 } from "./retrieval.service";
 import type {
   AiItineraryPayload,
+  AiRecommendationCard,
   AiSource,
 } from "./types";
 
@@ -252,4 +253,92 @@ export function buildDeterministicItinerary(
     sources,
     engine: "deterministic",
   };
+}
+
+/**
+ * Card-ready recommendations derived from the same grounded context. The
+ * itinerary's destinations come first, followed by other relevant alternatives.
+ */
+export function buildRecommendationCards(
+  context: AiContext,
+  payload: AiItineraryPayload,
+): AiRecommendationCard[] {
+  const itineraryIds = payload.itinerary.days
+    .flatMap((day) => day.items.map((item) => item.destinationId))
+    .filter((id): id is string => Boolean(id));
+  const orderedIds = [
+    ...new Set([
+      ...itineraryIds,
+      ...context.destinations.map((destination) => destination.id),
+    ]),
+  ];
+  const byId = new Map(
+    context.destinations.map((destination) => [destination.id, destination]),
+  );
+  const selected = orderedIds
+    .map((id) => byId.get(id))
+    .filter((destination): destination is AiContextDestination =>
+      Boolean(destination),
+    )
+    .slice(0, 3);
+  const scoreStart = context.queryMatched ? 95 : 80;
+
+  return selected.map((destination, index) => {
+    const route = bestRoute(context, destination.id);
+    const supports = pickSupports(context, destination.id, context.preference);
+    const reasons: string[] = [];
+
+    if (!context.queryMatched && context.unmatchedTerms.length > 0 && index === 0) {
+      reasons.push(
+        `Alternatif karena "${context.unmatchedTerms.join(", ")}" belum ada di data Dolenae.`,
+      );
+    }
+
+    if (route) {
+      reasons.push(
+        `${route.name}: ${route.totalDistanceKm} km, +${route.totalGainMeters} m, ±${route.estimatedDurationMinutes} menit.`,
+      );
+    } else if (destination.facilities.length > 0) {
+      reasons.push(
+        `Fasilitas: ${destination.facilities.slice(0, 3).join(", ")}.`,
+      );
+    }
+
+    const support = supports[0];
+    if (support) {
+      reasons.push(
+        `${support.name}${support.priceLabel ? ` (${support.priceLabel})` : ""}.`,
+      );
+    } else if (destination.categories.length > 0) {
+      reasons.push(
+        `Cocok untuk ${destination.categories.slice(0, 3).join(", ")}.`,
+      );
+    }
+
+    if (reasons.length < 2) {
+      reasons.push(
+        `${destination.province ?? "Indonesia"}${
+          destination.regency ? `, ${destination.regency}` : ""
+        } · ${destination.elevationMeters ?? "elevasi belum tersedia"} mdpl · kesulitan ${
+          DIFFICULTY_LABEL[destination.difficulty] ?? destination.difficulty
+        }.`,
+      );
+    }
+
+    return {
+      destinationId: destination.id,
+      name: destination.name,
+      slug: destination.slug,
+      tagline: destination.tagline,
+      province: destination.province,
+      regency: destination.regency,
+      elevationMeters: destination.elevationMeters,
+      entryFee: destination.entryFee,
+      difficulty: destination.difficulty,
+      images: destination.images,
+      score: Math.max(60, scoreStart - index * 6),
+      rank: index + 1,
+      reasons: reasons.slice(0, 3),
+    };
+  });
 }

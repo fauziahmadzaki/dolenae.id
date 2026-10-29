@@ -1286,7 +1286,7 @@ export const openApiDocument = {
           },
         },
         responses: {
-          "200": { description: "Itinerary, briefing, checklist, sources and optional not-found notice" },
+          "200": { description: "Itinerary, briefing, checklist, sources, card recommendations and optional not-found notice" },
           "401": { description: "Missing token" },
           "429": { description: "Daily AI quota exceeded" },
           "422": { description: "Validation error" },

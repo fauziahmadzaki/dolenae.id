@@ -22,6 +22,9 @@ export interface AiPreferenceInput {
 export interface AiContextDestination {
   id: string;
   name: string;
+  slug: string;
+  tagline: string | null;
+  images: string[];
   province: string | null;
   regency: string | null;
   difficulty: Difficulty;
@@ -379,6 +382,9 @@ export const aiRetrieval = {
       destinations: selected.map((entry) => ({
         id: entry.destination.id,
         name: entry.destination.name,
+        slug: entry.destination.slug,
+        tagline: entry.destination.tagline,
+        images: entry.destination.images,
         province: entry.destination.location.province,
         regency: entry.destination.location.regency,
         difficulty: entry.destination.difficulty,

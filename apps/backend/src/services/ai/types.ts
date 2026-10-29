@@ -1,3 +1,5 @@
+import type { Difficulty } from "../../db/schema";
+
 export type AiEngine = "gemini" | "deterministic";
 
 export interface AiItineraryItem {
@@ -41,6 +43,22 @@ export interface AiOptions {
   durations: number[];
 }
 
+export interface AiRecommendationCard {
+  destinationId: string;
+  name: string;
+  slug: string;
+  tagline: string | null;
+  province: string | null;
+  regency: string | null;
+  elevationMeters: number | null;
+  entryFee: number | null;
+  difficulty: Difficulty;
+  images: string[];
+  score: number;
+  rank: number;
+  reasons: string[];
+}
+
 export interface AiItineraryPayload {
   itinerary: {
     title: string;
@@ -54,4 +72,6 @@ export interface AiItineraryPayload {
   model?: string | null;
   /** Optional user-facing notice, e.g. the requested place is not in the catalog. */
   notice?: string;
+  /** Card-ready destination summaries for the mobile result screen. */
+  recommendations?: AiRecommendationCard[];
 }
