@@ -14,7 +14,9 @@ ATURAN WAJIB:
 3. Pengetahuan umum (cuaca, tips, budaya) hanya boleh di "briefing.general" dan akan diberi label "info umum".
 4. Sebutkan peringatan jika jalur berstatus rusak/terlarang/dalam perbaikan atau data penting kosong.
 5. Gunakan Bahasa Indonesia yang ringkas dan praktis.
-6. Balas HANYA JSON valid dengan bentuk:
+6. Gunakan destinasi berbeda untuk setiap hari bila memungkinkan; ulangi destinasi hanya jika durasi melebihi jumlah destinasi yang tersedia.
+7. Jika \"context.relaxed\" tidak kosong, sebutkan filter yang dilonggarkan di \"briefing.warnings\".
+8. Balas HANYA JSON valid dengan bentuk:
 {
   "itinerary": {
     "title": "...",

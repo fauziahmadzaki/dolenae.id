@@ -50,6 +50,7 @@ const context: AiContext = {
       estimatedDurationMinutes: 90,
     },
   ],
+  relaxed: [],
 };
 
 describe("AI itinerary", () => {
@@ -81,6 +82,20 @@ describe("AI itinerary", () => {
     expect(result.briefing.warnings[0]).toContain("Tidak ada destinasi");
   });
 
+  it("warns when filters were relaxed", () => {
+    const result = buildDeterministicItinerary(
+      { ...context, relaxed: ["aktivitas", "medan"] },
+      { durationDays: 1 },
+    );
+
+    expect(result.briefing.warnings.join(" ")).toContain(
+      "Filter aktivitas dilonggarkan",
+    );
+    expect(result.briefing.warnings.join(" ")).toContain(
+      "Filter medan dilonggarkan",
+    );
+  });
+
   it("drops unknown IDs from an LLM payload", () => {
     const result = validateAiPayload(
       {
@@ -92,6 +107,12 @@ describe("AI itinerary", () => {
               day: 1,
               title: "Hari 1",
               items: [
+                {
+                  destinationId,
+                  destinationName: "Gunung Uji",
+                  routeId,
+                  activity: "Eksplor",
+                },
                 {
                   destinationId: "99999999-9999-4999-a999-999999999999",
                   destinationName: "Tempat Halusinasi",
@@ -111,11 +132,42 @@ describe("AI itinerary", () => {
     );
 
     expect(result).not.toBeNull();
-    const item = result!.itinerary.days[0]?.items[0];
-    expect(item?.destinationId).toBeNull();
-    expect(item?.routeId).toBeNull();
-    expect(result!.sources).toHaveLength(0);
+    const [known, unknown] = result!.itinerary.days[0]!.items;
+    expect(known?.destinationId).toBe(destinationId);
+    expect(known?.routeId).toBe(routeId);
+    expect(unknown?.destinationId).toBeNull();
+    expect(unknown?.routeId).toBeNull();
+    expect(result!.sources).toHaveLength(2);
     expect(result!.engine).toBe("gemini");
+  });
+
+  it("rejects an ungrounded payload when destinations exist", () => {
+    const result = validateAiPayload(
+      {
+        itinerary: {
+          title: "Trip Uji",
+          summary: "Ringkasan",
+          days: [
+            {
+              day: 1,
+              title: "Hari 1",
+              items: [
+                {
+                  destinationName: "Tempat Halusinasi",
+                  activity: "Eksplor",
+                },
+              ],
+            },
+          ],
+        },
+        briefing: { grounded: [], general: [], warnings: [] },
+        checklist: [],
+      },
+      context,
+      "gemini",
+    );
+
+    expect(result).toBeNull();
   });
 
   it("rejects a payload without valid days", () => {

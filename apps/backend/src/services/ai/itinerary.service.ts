@@ -86,6 +86,10 @@ export function buildDeterministicItinerary(
 ): AiItineraryPayload {
   const requestedDays = Math.min(Math.max(preference.durationDays ?? 2, 1), 7);
   const destinations = context.destinations.slice(0, requestedDays);
+  const relaxedWarnings = context.relaxed.map(
+    (filter) =>
+      `Filter ${filter} dilonggarkan karena tidak ada destinasi yang cocok dengan semua filter.`,
+  );
 
   if (destinations.length === 0) {
     return {
@@ -98,7 +102,10 @@ export function buildDeterministicItinerary(
       briefing: {
         grounded: [],
         general: [],
-        warnings: ["Tidak ada destinasi published yang cocok dengan preferensi."],
+        warnings: [
+          ...relaxedWarnings,
+          "Tidak ada destinasi published yang cocok dengan preferensi.",
+        ],
       },
       checklist: [],
       sources: [],
@@ -132,7 +139,7 @@ export function buildDeterministicItinerary(
   });
 
   const grounded: string[] = [];
-  const warnings: string[] = [];
+  const warnings: string[] = [...relaxedWarnings];
   const sources: AiSource[] = [];
   const usedSupports = new Set<string>();
 

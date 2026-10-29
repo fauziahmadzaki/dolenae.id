@@ -1,7 +1,9 @@
 import type { Difficulty } from "../../db/schema";
-import { categoryRepository } from "../../repositories/category.repository";
 import { supportRepository } from "../../repositories/support.repository";
-import { destinationService } from "../destination.service";
+import {
+  destinationService,
+  type PublicDestination,
+} from "../destination.service";
 import { routeService } from "../route.service";
 
 export interface AiPreferenceInput {
@@ -60,7 +62,24 @@ export interface AiContext {
   destinations: AiContextDestination[];
   supports: AiContextSupport[];
   routes: AiContextRoute[];
+  /** Human-readable filters that were relaxed because no result matched. */
+  relaxed: string[];
 }
+
+type DroppedFilter =
+  | "activities"
+  | "terrains"
+  | "budget"
+  | "regions"
+  | "difficulty";
+
+const FILTER_LABEL: Record<DroppedFilter, string> = {
+  activities: "aktivitas",
+  terrains: "medan",
+  budget: "budget",
+  regions: "wilayah",
+  difficulty: "tingkat kesulitan",
+};
 
 const normalize = (value: string) => value.trim().toLowerCase();
 
@@ -70,101 +89,128 @@ const matchesAny = (values: string[], needles: string[]) =>
     values.some((value) => normalize(value).includes(normalize(needle))),
   );
 
+function matchesFilters(
+  destination: PublicDestination,
+  input: AiPreferenceInput,
+  dropped: DroppedFilter[],
+): boolean {
+  if (
+    !dropped.includes("regions") &&
+    input.regions?.length &&
+    !matchesAny(
+      [destination.location.province ?? "", destination.location.regency ?? ""],
+      input.regions,
+    )
+  ) {
+    return false;
+  }
+  if (
+    !dropped.includes("terrains") &&
+    !matchesAny(destination.terrain, input.terrains ?? [])
+  ) {
+    return false;
+  }
+  if (
+    !dropped.includes("activities") &&
+    !matchesAny(destination.activities, input.activities ?? [])
+  ) {
+    return false;
+  }
+  if (
+    !dropped.includes("budget") &&
+    input.budgetPerPerson != null &&
+    destination.entryFee != null &&
+    destination.entryFee > input.budgetPerPerson
+  ) {
+    return false;
+  }
+  if (
+    !dropped.includes("difficulty") &&
+    input.difficulty != null &&
+    destination.difficulty !== input.difficulty
+  ) {
+    return false;
+  }
+  return true;
+}
+
+function lexicalScore(destination: PublicDestination, rawText: string): number {
+  const haystack = normalize(
+    [
+      destination.name,
+      destination.tagline ?? "",
+      destination.description ?? "",
+      destination.tags.join(" "),
+      destination.terrain.join(" "),
+      destination.activities.join(" "),
+    ].join(" "),
+  );
+  const tokens = rawText
+    .toLowerCase()
+    .split(/[^a-z0-9]+/)
+    .filter((token) => token.length > 2);
+
+  return tokens.reduce(
+    (score, token) => score + (haystack.includes(token) ? 1 : 0),
+    0,
+  );
+}
+
 /**
  * Lexical + structured retrieval over published destinations, their supports
- * and routes. Kept intentionally small: max 8 destinations per request.
+ * and routes. Hard filters are relaxed one by one when no destination matches,
+ * so the itinerary can still be useful instead of returning an empty context.
  */
 export const aiRetrieval = {
   async build(input: AiPreferenceInput): Promise<AiContext> {
     const rawText = input.rawText?.trim() ?? "";
-
     const list = await destinationService.list({
       page: 1,
       limit: 100,
-      sort: "createdAt",
-      order: "desc",
+      sort: "name",
+      order: "asc",
       status: "published",
-      difficulty: input.difficulty,
     });
+    const all = list.items;
 
-    const destinations = list.items;
+    const present: DroppedFilter[] = [];
+    if (input.activities?.length) present.push("activities");
+    if (input.terrains?.length) present.push("terrains");
+    if (input.budgetPerPerson != null) present.push("budget");
+    if (input.regions?.length) present.push("regions");
+    if (input.difficulty != null) present.push("difficulty");
 
-    // Resolve category names once for activity/terrain matching.
-    const categoryIds = [...new Set(destinations.flatMap((item) => item.categoryIds))];
-    const categoryRows = await categoryRepository.findByIds(categoryIds);
-    const categoryById = new Map(
-      categoryRows.map((row) => [row.id, { name: row.name, type: row.type }]),
-    );
+    // Try the full filter set first, then progressively drop one filter.
+    let selected: Array<{ destination: PublicDestination; lexical: number }> = [];
+    let relaxed: DroppedFilter[] = [];
 
-    const scored = destinations
-      .map((destination) => {
-        const categories = destination.categoryIds
-          .map((id) => categoryById.get(id))
-          .filter((row): row is { name: string; type: "terrain" | "activity" } => Boolean(row));
+    for (let index = 0; index <= present.length; index += 1) {
+      const dropped = present.slice(0, index);
+      const result = all
+        .filter((destination) => matchesFilters(destination, input, dropped))
+        .map((destination) => ({
+          destination,
+          lexical: lexicalScore(destination, rawText),
+        }))
+        .sort(
+          (a, b) =>
+            b.lexical - a.lexical ||
+            a.destination.name.localeCompare(b.destination.name),
+        )
+        .slice(0, 8);
 
-        const categoryNames = categories.map((row) => row.name);
-        const terrainNames = categories
-          .filter((row) => row.type === "terrain")
-          .map((row) => row.name);
-        const activityNames = categories
-          .filter((row) => row.type === "activity")
-          .map((row) => row.name);
+      relaxed = dropped;
+      if (result.length > 0) {
+        selected = result;
+        break;
+      }
+    }
 
-        if (
-          input.regions?.length &&
-          !matchesAny(
-            [destination.location.province ?? "", destination.location.regency ?? ""],
-            input.regions,
-          )
-        ) {
-          return null;
-        }
-        if (!matchesAny(terrainNames, input.terrains ?? [])) return null;
-        if (!matchesAny(activityNames, input.activities ?? [])) return null;
-        if (
-          input.budgetPerPerson != null &&
-          destination.entryFee != null &&
-          destination.entryFee > input.budgetPerPerson
-        ) {
-          return null;
-        }
-
-        // Lexical score over text fields + categories.
-        const haystack = normalize(
-          [
-            destination.name,
-            destination.tagline ?? "",
-            destination.description ?? "",
-            destination.tags.join(" "),
-            categoryNames.join(" "),
-          ].join(" "),
-        );
-        const tokens = rawText
-          .toLowerCase()
-          .split(/[^a-z0-9]+/)
-          .filter((token) => token.length > 2);
-        const lexical = tokens.reduce(
-          (score, token) => score + (haystack.includes(token) ? 1 : 0),
-          0,
-        );
-
-        return { destination, categories: categoryNames, lexical };
-      })
-      .filter(
-        (entry): entry is {
-          destination: (typeof destinations)[number];
-          categories: string[];
-          lexical: number;
-        } => Boolean(entry),
-      )
-      .sort((a, b) => b.lexical - a.lexical)
-      .slice(0, 8);
-
-    const destinationIds = scored.map((entry) => entry.destination.id);
+    const destinationIds = selected.map((entry) => entry.destination.id);
     const supports: AiContextSupport[] = [];
     const routes: AiContextRoute[] = [];
 
-    for (const entry of scored) {
+    for (const entry of selected) {
       const supportResult = await supportRepository.list(entry.destination.id, {
         page: 1,
         limit: 10,
@@ -203,7 +249,7 @@ export const aiRetrieval = {
 
     return {
       preference: input,
-      destinations: scored.map((entry) => ({
+      destinations: selected.map((entry) => ({
         id: entry.destination.id,
         name: entry.destination.name,
         province: entry.destination.location.province,
@@ -215,11 +261,17 @@ export const aiRetrieval = {
         guideRequired: entry.destination.guideRequired,
         facilities: entry.destination.facilities,
         description: entry.destination.description,
-        categories: entry.categories,
+        categories: [
+          ...entry.destination.terrain,
+          ...entry.destination.activities,
+        ],
       })),
       supports,
       // Only include routes that belong to the selected destinations.
-      routes: routes.filter((route) => destinationIds.includes(route.destinationId)),
+      routes: routes.filter((route) =>
+        destinationIds.includes(route.destinationId),
+      ),
+      relaxed: relaxed.map((filter) => FILTER_LABEL[filter]),
     };
   },
 };

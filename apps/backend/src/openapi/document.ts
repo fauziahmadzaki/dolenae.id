@@ -1244,6 +1244,18 @@ export const openApiDocument = {
         responses: { "200": { description: "Route profile" }, "404": { description: "Not found" } },
       },
     },
+    "/api/ai/options": {
+      get: {
+        tags: ["AI"],
+        summary: "Preference options derived from the published catalog",
+        description: "Returns provinces, activity/terrain categories and duration choices that exist in the catalog.",
+        security: [{ bearerAuth: [] }],
+        responses: {
+          "200": { description: "Regions, activities, terrains and durations" },
+          "401": { description: "Missing token" },
+        },
+      },
+    },
     "/api/ai/itineraries": {
       post: {
         tags: ["AI"],

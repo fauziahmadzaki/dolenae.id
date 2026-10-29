@@ -6,6 +6,7 @@ import { validate } from "../middleware/validate";
 
 export const aiRouter = Router();
 
+aiRouter.get("/options", authRequired, aiController.options);
 aiRouter.post(
   "/itineraries",
   authRequired,

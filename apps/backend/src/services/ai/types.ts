@@ -28,6 +28,19 @@ export interface AiSource {
   label: string;
 }
 
+export interface AiOption {
+  label: string;
+  value: string;
+}
+
+export interface AiOptions {
+  regions: string[];
+  activities: string[];
+  terrains: string[];
+  difficulties: AiOption[];
+  durations: number[];
+}
+
 export interface AiItineraryPayload {
   itinerary: {
     title: string;

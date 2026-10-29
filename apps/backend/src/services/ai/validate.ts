@@ -105,6 +105,13 @@ export function validateAiPayload(
 
   if (days.every((day) => day.items.length === 0)) return null;
 
+  // When retrieval found real destinations, reject an itinerary that ignores
+  // all of them. The deterministic builder is better than invented stops.
+  const grounded = days.some((day) =>
+    day.items.some((item) => item.destinationId !== null),
+  );
+  if (context.destinations.length > 0 && !grounded) return null;
+
   return {
     itinerary: {
       ...parsed.data.itinerary,
