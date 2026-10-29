@@ -7,6 +7,7 @@ import 'package:http/testing.dart';
 import 'package:dolenae_mobile/src/core/network/api_client.dart';
 import 'package:dolenae_mobile/src/features/ai/data/data_sources/ai_remote_data_source.dart';
 import 'package:dolenae_mobile/src/features/ai/domain/entities/ai_recommendation.dart';
+import 'package:dolenae_mobile/src/features/destinations/domain/entities/destination.dart';
 
 const _itineraryResponse = {
   'success': true,
@@ -38,6 +39,23 @@ const _itineraryResponse = {
     'sources': <Map<String, dynamic>>[],
     'engine': 'gemini',
     'notice': 'Maaf, destinasi belum ada.',
+    'recommendations': [
+      {
+        'destinationId': 'dest-1',
+        'name': 'Gunung Uji',
+        'slug': 'gunung-uji',
+        'tagline': 'Puncak uji',
+        'province': 'Jawa Timur',
+        'regency': 'Malang',
+        'elevationMeters': 2300,
+        'entryFee': 25000,
+        'difficulty': 'menengah',
+        'images': ['https://example.test/gunung.jpg'],
+        'score': 95,
+        'rank': 1,
+        'reasons': ['Jalur uji 2 km.', 'Homestay tersedia.'],
+      },
+    ],
   },
 };
 
@@ -70,6 +88,14 @@ void main() {
         .generate(const AiPreference());
 
     expect(result.notice, 'Maaf, destinasi belum ada.');
+    expect(result.items, hasLength(1));
+    final card = result.items.single;
+    expect(card.destination.name, 'Gunung Uji');
+    expect(card.destination.elevationM, 2300);
+    expect(card.destination.difficulty, DifficultyLevel.menengah);
+    expect(card.score, 95);
+    expect(card.rank, 1);
+    expect(card.reasons, contains('Homestay tersedia.'));
   });
 
   test('parses catalog-derived options', () async {

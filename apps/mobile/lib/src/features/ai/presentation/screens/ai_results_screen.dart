@@ -3,7 +3,6 @@ import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
 import 'package:dolenae_mobile/src/features/ai/presentation/controllers/ai_controller.dart';
-import 'package:dolenae_mobile/src/features/saved/presentation/controllers/saved_controller.dart';
 import 'package:dolenae_mobile/src/app/theme/app_colors.dart';
 import 'package:dolenae_mobile/src/app/theme/app_radius.dart';
 import 'package:dolenae_mobile/src/app/theme/app_spacing.dart';
@@ -220,6 +219,23 @@ class _AiResultsBody extends StatelessWidget {
           ],
         ),
         const SizedBox(height: AppSpacing.s4),
+        if (result.items.isNotEmpty) ...[
+          ...result.items.map(
+            (item) => Padding(
+              padding: const EdgeInsets.only(bottom: AppSpacing.s3),
+              child: DnRecommendationCard(
+                recommendation: item,
+                onViewDetail: onViewDetail == null
+                    ? () => context.push('/destination/${item.destination.id}')
+                    : () => onViewDetail!(item.destination.id),
+                onAdd: onAddDestination == null
+                    ? () => _showAddPending(context)
+                    : () => onAddDestination!(item.destination.id),
+              ),
+            ),
+          ),
+          const SizedBox(height: AppSpacing.s2),
+        ],
         if (result.itinerary != null) ...[
           AiItinerarySection(itinerary: result.itinerary!),
           const SizedBox(height: AppSpacing.s4),
@@ -230,23 +246,6 @@ class _AiResultsBody extends StatelessWidget {
         ],
         if (result.sources.isNotEmpty) ...[
           AiSourcesSection(sources: result.sources),
-          const SizedBox(height: AppSpacing.s2),
-        ],
-        if (result.items.isNotEmpty) ...[
-          ...result.items.map(
-            (item) => Padding(
-              padding: const EdgeInsets.only(bottom: AppSpacing.s3),
-              child: DnRecommendationCard(
-                recommendation: item,
-                onViewDetail: onViewDetail == null
-                    ? () => context.go('/destination/${item.destination.id}')
-                    : () => onViewDetail!(item.destination.id),
-                onAdd: onAddDestination == null
-                    ? () => _addDestination(context, item)
-                    : () => onAddDestination!(item.destination.id),
-              ),
-            ),
-          ),
           const SizedBox(height: AppSpacing.s2),
         ],
         if (result.relatedChecklist.isNotEmpty)
@@ -284,13 +283,11 @@ class _AiResultsBody extends StatelessWidget {
     );
   }
 
-  void _addDestination(BuildContext context, AiRecommendation item) {
-    final saved = context.read<SavedController>();
-    saved.toggleSavedDestination(item.destination);
+  void _showAddPending(BuildContext context) {
     showDnToast(
       context,
-      '${item.destination.name} disimpan ke Favorit',
-      type: DnToastType.sukses,
+      'Fitur tambah destinasi segera hadir.',
+      type: DnToastType.info,
     );
   }
 }

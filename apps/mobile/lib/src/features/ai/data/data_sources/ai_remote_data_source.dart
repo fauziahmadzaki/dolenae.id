@@ -2,6 +2,7 @@ import 'package:dolenae_mobile/src/core/network/api_client.dart';
 import 'package:dolenae_mobile/src/features/ai/domain/entities/ai_itinerary.dart';
 import 'package:dolenae_mobile/src/features/ai/domain/entities/ai_options.dart';
 import 'package:dolenae_mobile/src/features/ai/domain/entities/ai_recommendation.dart';
+import 'package:dolenae_mobile/src/features/destinations/domain/entities/destination.dart';
 
 /// Endpoint AI itinerary (`POST /ai/itineraries`).
 class AiRemoteDataSource {
@@ -23,6 +24,43 @@ class AiRemoteDataSource {
     if (value == null) return null;
     final normalized = value.trim().toLowerCase();
     return _difficultyAliases[normalized] ?? value;
+  }
+
+  static DifficultyLevel? _difficultyLevel(String? value) {
+    return switch (value) {
+      'ramah-pemula' => DifficultyLevel.pemula,
+      'menengah' => DifficultyLevel.menengah,
+      'sulit' => DifficultyLevel.sulit,
+      _ => null,
+    };
+  }
+
+  static AiRecommendation _recommendationFromJson(Map<String, dynamic> json) {
+    final images = (json['images'] as List? ?? const [])
+        .whereType<String>()
+        .toList(growable: false);
+    final destination = Destination(
+      id: json['destinationId'] as String? ?? '',
+      slug: json['slug'] as String? ?? '',
+      name: json['name'] as String? ?? 'Destinasi',
+      tagline: json['tagline'] as String? ?? '',
+      elevationM: (json['elevationMeters'] as num?)?.toInt(),
+      regency: json['regency'] as String? ?? '',
+      province: json['province'] as String? ?? '',
+      priceFrom: (json['entryFee'] as num?)?.toInt(),
+      difficulty: _difficultyLevel(json['difficulty'] as String?),
+      images: images,
+      guideRequired: json['guideRequired'] as bool?,
+    );
+
+    return AiRecommendation(
+      destination: destination,
+      score: (json['score'] as num?)?.toInt() ?? 0,
+      reasons: (json['reasons'] as List? ?? const [])
+          .whereType<String>()
+          .toList(growable: false),
+      rank: (json['rank'] as num?)?.toInt() ?? 1,
+    );
   }
 
   Future<AiOptions> fetchOptions() async {
@@ -87,13 +125,23 @@ class AiRemoteDataSource {
               .map((item) => AiSource.fromJson(item.cast<String, dynamic>()))
               .toList(growable: false)
         : const <AiSource>[];
+    final recommendationsJson = map['recommendations'];
+    final items = recommendationsJson is List
+        ? recommendationsJson
+              .whereType<Map>()
+              .map(
+                (item) => _recommendationFromJson(item.cast<String, dynamic>()),
+              )
+              .where((item) => item.destination.id.isNotEmpty)
+              .toList(growable: false)
+        : const <AiRecommendation>[];
 
     return AiResult(
       preference: preference,
       summary: itinerary?.summary.isNotEmpty == true
           ? itinerary!.summary
           : 'Itinerary berhasil disusun.',
-      items: const [],
+      items: items,
       relatedChecklist: checklist,
       kind: map['engine'] as String? ?? 'gemini',
       itinerary: itinerary,
