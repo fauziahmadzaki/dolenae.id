@@ -58,6 +58,25 @@ describe("AI retrieval relaxation", () => {
       "Gunung Uji",
     ]);
     expect(context.relaxed).toEqual(["aktivitas"]);
+    expect(context.queryMatched).toBe(true);
+  });
+
+  it("flags catalog terms that do not exist", async () => {
+    const context = await aiRetrieval.build({
+      rawText: "gunung Everest ada ga disini",
+    });
+
+    expect(context.queryMatched).toBe(false);
+    expect(context.unmatchedTerms).toEqual(["everest"]);
+    expect(context.destinations).not.toHaveLength(0);
+  });
+
+  it("treats known destinations and generic travel words as matched", async () => {
+    const known = await aiRetrieval.build({ rawText: "Gunung Uji" });
+    const generic = await aiRetrieval.build({ rawText: "sunrise 2 hari" });
+
+    expect(known.queryMatched).toBe(true);
+    expect(generic.queryMatched).toBe(true);
   });
 
   it("returns no destinations and all relaxed filters when nothing can match", async () => {

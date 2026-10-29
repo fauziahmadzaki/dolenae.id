@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { attachQueryNotice } from "../../src/services/ai/ai.service";
 import { buildDeterministicItinerary } from "../../src/services/ai/itinerary.service";
 import type { AiContext } from "../../src/services/ai/retrieval.service";
 import { validateAiPayload } from "../../src/services/ai/validate";
@@ -51,6 +52,8 @@ const context: AiContext = {
     },
   ],
   relaxed: [],
+  queryMatched: true,
+  unmatchedTerms: [],
 };
 
 describe("AI itinerary", () => {
@@ -94,6 +97,18 @@ describe("AI itinerary", () => {
     expect(result.briefing.warnings.join(" ")).toContain(
       "Filter medan dilonggarkan",
     );
+  });
+
+  it("adds a not-found notice and warning", () => {
+    const result = buildDeterministicItinerary(context, { durationDays: 1 });
+    const withNotice = attachQueryNotice(result, {
+      ...context,
+      queryMatched: false,
+      unmatchedTerms: ["everest"],
+    });
+
+    expect(withNotice.notice).toContain("belum ada di Dolenae");
+    expect(withNotice.briefing.warnings.join(" ")).toContain("everest");
   });
 
   it("drops unknown IDs from an LLM payload", () => {

@@ -223,12 +223,24 @@ export function buildDeterministicItinerary(
     checklist.add("Tenda & perlengkapan camping");
   }
 
+  const titleProvinces = new Set(
+    destinations
+      .map((destination) => destination.province)
+      .filter((province): province is string => Boolean(province)),
+  );
+  const titleLocation =
+    titleProvinces.size === 1 ? Array.from(titleProvinces)[0] ?? null : null;
+  const isAlternative = !context.queryMatched;
+  const baseTitle = titleLocation
+    ? `Rencana ${destinations.length} hari di ${titleLocation}`
+    : `Rencana ${destinations.length} hari`;
+
   return {
     itinerary: {
-      title: `Rencana ${destinations.length} hari di ${
-        destinations[0]?.province ?? "Indonesia"
-      }`,
-      summary: `Itinerary disusun dari ${destinations.length} destinasi yang cocok dengan preferensimu.`,
+      title: isAlternative ? `Alternatif: ${baseTitle}` : baseTitle,
+      summary: isAlternative
+        ? `Belum ada destinasi yang cocok dengan pencarianmu. Itinerary ini memakai ${destinations.length} destinasi alternatif.`
+        : `Itinerary disusun dari ${destinations.length} destinasi yang cocok dengan preferensimu.`,
       days,
     },
     briefing: {

@@ -16,7 +16,8 @@ ATURAN WAJIB:
 5. Gunakan Bahasa Indonesia yang ringkas dan praktis.
 6. Gunakan destinasi berbeda untuk setiap hari bila memungkinkan; ulangi destinasi hanya jika durasi melebihi jumlah destinasi yang tersedia.
 7. Jika \"context.relaxed\" tidak kosong, sebutkan filter yang dilonggarkan di \"briefing.warnings\".
-8. Balas HANYA JSON valid dengan bentuk:
+8. Jika \"context.queryMatched\" bernilai false, jangan klaim destinasi yang diminta tersedia; sebutkan bahwa datanya belum ada dan itinerary ini adalah alternatif.
+9. Balas HANYA JSON valid dengan bentuk:
 {
   "itinerary": {
     "title": "...",

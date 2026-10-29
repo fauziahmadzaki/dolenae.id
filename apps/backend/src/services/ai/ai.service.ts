@@ -5,13 +5,43 @@ import { AppError } from "../../utils/errors";
 import { destinationService } from "../destination.service";
 import { generateWithGemini } from "./gemini.service";
 import { buildDeterministicItinerary } from "./itinerary.service";
-import { aiRetrieval, type AiPreferenceInput } from "./retrieval.service";
+import { aiRetrieval, type AiContext, type AiPreferenceInput } from "./retrieval.service";
 import type { AiItineraryPayload, AiOptions } from "./types";
 
 const hashInput = (input: AiPreferenceInput): string =>
   createHash("sha256")
+    // Bump when the prompt/retrieval contract changes so older cached rows do
+    // not bypass new grounding/notice rules.
+    .update("ai-v2:")
     .update(JSON.stringify(input, Object.keys(input).sort()))
     .digest("hex");
+
+/** Add a consistent "not found in catalog" notice to any engine result. */
+export function attachQueryNotice(
+  result: AiItineraryPayload,
+  context: AiContext,
+): AiItineraryPayload {
+  if (context.queryMatched) return result;
+
+  const terms = context.unmatchedTerms.join(", ");
+  const label = terms ? ` (${terms})` : "";
+  const hasAlternatives = context.destinations.length > 0;
+  const notice = hasAlternatives
+    ? `Maaf, destinasi yang kamu cari${label} belum ada di Dolenae. Berikut rekomendasi alternatif yang paling sesuai dengan preferensimu.`
+    : `Maaf, destinasi yang kamu cari${label} belum ada di Dolenae dan belum ada alternatif yang cocok. Coba longgarkan preferensimu.`;
+  const warning = hasAlternatives
+    ? `Kata kunci "${terms}" belum ada di data destinasi; itinerary memakai alternatif terdekat.`
+    : `Kata kunci "${terms}" belum ada di data destinasi dan tidak ada alternatif yang cocok.`;
+
+  return {
+    ...result,
+    notice,
+    briefing: {
+      ...result.briefing,
+      warnings: [...new Set([warning, ...result.briefing.warnings])],
+    },
+  };
+}
 
 export const aiService = {
   /** Preference options derived from destinations currently in the catalog. */
@@ -55,6 +85,7 @@ export const aiService = {
   async generate(
     userId: string,
     input: AiPreferenceInput,
+    options: { refresh?: boolean } = {},
   ): Promise<AiItineraryPayload> {
     const env = loadEnv();
     const cacheSince = new Date(
@@ -62,13 +93,15 @@ export const aiService = {
     );
     const requestHash = hashInput(input);
 
-    const cached = await aiRepository.findRecent(
-      userId,
-      requestHash,
-      cacheSince,
-    );
-    if (cached) {
-      return cached.resultJson as AiItineraryPayload;
+    if (!options.refresh) {
+      const cached = await aiRepository.findRecent(
+        userId,
+        requestHash,
+        cacheSince,
+      );
+      if (cached) {
+        return cached.resultJson as AiItineraryPayload;
+      }
     }
 
     const dayStart = new Date();
@@ -94,6 +127,7 @@ export const aiService = {
     if (!result) {
       result = buildDeterministicItinerary(context, input);
     }
+    result = attachQueryNotice(result, context);
 
     const latencyMs = Date.now() - startedAt;
 

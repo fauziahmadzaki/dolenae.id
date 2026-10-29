@@ -20,7 +20,10 @@ export const aiController = {
     try {
       if (!req.user) throw new UnauthorizedError();
       const body = getValidated<AiItineraryBody>(req, "body");
-      const result = await aiService.generate(req.user.id, body);
+      const { refresh, ...input } = body;
+      const result = await aiService.generate(req.user.id, input, {
+        refresh,
+      });
       return ok(res, result);
     } catch (error) {
       next(error);

@@ -52,4 +52,6 @@ export interface AiItineraryPayload {
   sources: AiSource[];
   engine: AiEngine;
   model?: string | null;
+  /** Optional user-facing notice, e.g. the requested place is not in the catalog. */
+  notice?: string;
 }

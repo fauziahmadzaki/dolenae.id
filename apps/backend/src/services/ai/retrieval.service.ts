@@ -64,6 +64,9 @@ export interface AiContext {
   routes: AiContextRoute[];
   /** Human-readable filters that were relaxed because no result matched. */
   relaxed: string[];
+  /** False when a significant keyword in rawText is absent from the catalog. */
+  queryMatched: boolean;
+  unmatchedTerms: string[];
 }
 
 type DroppedFilter =
@@ -82,6 +85,125 @@ const FILTER_LABEL: Record<DroppedFilter, string> = {
 };
 
 const normalize = (value: string) => value.trim().toLowerCase();
+
+/** Filler/intent words that should not trigger a "not found" notice. */
+const QUERY_STOPWORDS = new Set([
+  "ada",
+  "adalah",
+  "agar",
+  "aja",
+  "aku",
+  "anda",
+  "apa",
+  "apakah",
+  "atau",
+  "bagaimana",
+  "bagus",
+  "banyak",
+  "bisa",
+  "buat",
+  "budget",
+  "cari",
+  "coba",
+  "dari",
+  "dekat",
+  "dengan",
+  "destinasi",
+  "di",
+  "dimana",
+  "disini",
+  "dong",
+  "foto",
+  "fotografi",
+  "gimana",
+  "hari",
+  "hemat",
+  "ingin",
+  "itu",
+  "jalan",
+  "juga",
+  "kah",
+  "kalau",
+  "kami",
+  "kamu",
+  "kapan",
+  "ke",
+  "kita",
+  "kok",
+  "libur",
+  "liburan",
+  "lokasi",
+  "makan",
+  "makanan",
+  "malam",
+  "mana",
+  "mau",
+  "menengah",
+  "mudah",
+  "murah",
+  "nyaman",
+  "open",
+  "orang",
+  "pagi",
+  "pemula",
+  "pengen",
+  "penginapan",
+  "pergi",
+  "puncak",
+  "ramah",
+  "rekomendasi",
+  "sama",
+  "saya",
+  "sekitar",
+  "siang",
+  "sore",
+  "sudah",
+  "sulit",
+  "tapi",
+  "tempat",
+  "terdekat",
+  "tidak",
+  "transport",
+  "trip",
+  "untuk",
+  "wisata",
+  "yang",
+]);
+
+function extractQueryTerms(rawText: string): string[] {
+  return [
+    ...new Set(
+      rawText
+        .toLowerCase()
+        .split(/[^a-z0-9]+/)
+        .filter(
+          (token) =>
+            token.length >= 4 &&
+            !/\d/.test(token) &&
+            !QUERY_STOPWORDS.has(token),
+        ),
+    ),
+  ];
+}
+
+function catalogHaystack(destinations: PublicDestination[]): string {
+  return normalize(
+    destinations
+      .map((destination) =>
+        [
+          destination.name,
+          destination.tagline ?? "",
+          destination.description ?? "",
+          destination.tags.join(" "),
+          destination.terrain.join(" "),
+          destination.activities.join(" "),
+          destination.location.province ?? "",
+          destination.location.regency ?? "",
+        ].join(" "),
+      )
+      .join(" "),
+  );
+}
 
 const matchesAny = (values: string[], needles: string[]) =>
   needles.length === 0 ||
@@ -172,6 +294,11 @@ export const aiRetrieval = {
       status: "published",
     });
     const all = list.items;
+    const queryTerms = extractQueryTerms(rawText);
+    const haystack = catalogHaystack(all);
+    const unmatchedTerms = queryTerms.filter(
+      (term) => !haystack.includes(term),
+    );
 
     const present: DroppedFilter[] = [];
     if (input.activities?.length) present.push("activities");
@@ -272,6 +399,8 @@ export const aiRetrieval = {
         destinationIds.includes(route.destinationId),
       ),
       relaxed: relaxed.map((filter) => FILTER_LABEL[filter]),
+      queryMatched: unmatchedTerms.length === 0,
+      unmatchedTerms,
     };
   },
 };

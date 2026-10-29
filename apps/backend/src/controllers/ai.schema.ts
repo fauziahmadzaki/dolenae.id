@@ -23,6 +23,8 @@ export const aiItinerarySchema = z.object({
   needsAccommodation: z.boolean().optional(),
   needsTransport: z.boolean().optional(),
   note: z.string().trim().max(500).optional(),
+  /** Skip the 24h response cache when the user explicitly asks again. */
+  refresh: z.boolean().optional(),
 });
 
 export type AiItineraryBody = z.infer<typeof aiItinerarySchema>;
