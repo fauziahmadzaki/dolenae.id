@@ -46,9 +46,9 @@ class _AiResultsSkeletonState extends State<AiResultsSkeleton>
       child: ListView(
         key: const ValueKey('ai-results-skeleton'),
         padding: const EdgeInsets.fromLTRB(
-          AppSpacing.s5,
           AppSpacing.s4,
-          AppSpacing.s5,
+          AppSpacing.s4,
+          AppSpacing.s4,
           AppSpacing.s5,
         ),
         children: [
@@ -62,11 +62,11 @@ class _AiResultsSkeletonState extends State<AiResultsSkeleton>
               children: [
                 Row(
                   children: [
-                    _SkeletonBox(width: 72, height: 24, radius: 12),
+                    _SkeletonBox(width: 72, height: 32, radius: 16),
                     SizedBox(width: AppSpacing.s2),
-                    _SkeletonBox(width: 64, height: 24, radius: 12),
+                    _SkeletonBox(width: 64, height: 32, radius: 16),
                     SizedBox(width: AppSpacing.s2),
-                    _SkeletonBox(width: 58, height: 24, radius: 12),
+                    _SkeletonBox(width: 58, height: 32, radius: 16),
                   ],
                 ),
                 SizedBox(height: AppSpacing.s2),
@@ -189,7 +189,7 @@ class _SkeletonRecommendationCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       margin: const EdgeInsets.only(bottom: AppSpacing.s3),
-      padding: const EdgeInsets.all(AppSpacing.s4),
+      padding: const EdgeInsets.all(AppSpacing.s3),
       decoration: BoxDecoration(
         color: AppColors.canvasSubtle,
         borderRadius: BorderRadius.circular(AppRadius.xl),
@@ -201,7 +201,7 @@ class _SkeletonRecommendationCard extends StatelessWidget {
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _SkeletonBox(width: 28, height: 28, radius: AppRadius.sm),
+              _SkeletonBox(width: 24, height: 24, radius: 12),
               SizedBox(width: AppSpacing.s3),
               Expanded(
                 child: Column(
@@ -214,23 +214,19 @@ class _SkeletonRecommendationCard extends StatelessWidget {
                 ),
               ),
               SizedBox(width: AppSpacing.s2),
-              _SkeletonBox(width: 54, height: 20, radius: 10),
+              _SkeletonBox(width: 58, height: 20, radius: 10),
             ],
           ),
-          SizedBox(height: AppSpacing.s3),
-          _SkeletonBox(width: 200, height: 10),
-          SizedBox(height: AppSpacing.s3),
-          _SkeletonBox(width: 90, height: 9),
           SizedBox(height: AppSpacing.s2),
-          _SkeletonBox(height: 9),
-          SizedBox(height: 5),
-          _SkeletonBox(width: 220, height: 9),
-          SizedBox(height: AppSpacing.s3),
+          _SkeletonBox(width: 200, height: 10),
+          SizedBox(height: AppSpacing.s2),
+          _SkeletonBox(width: double.infinity, height: 66, radius: 10),
+          SizedBox(height: AppSpacing.s2),
           Row(
             children: [
-              Expanded(child: _SkeletonBox(height: 44, radius: AppRadius.md)),
-              SizedBox(width: AppSpacing.s3),
-              Expanded(child: _SkeletonBox(height: 44, radius: AppRadius.md)),
+              Expanded(child: _SkeletonBox(height: 32, radius: 16)),
+              SizedBox(width: AppSpacing.s2),
+              Expanded(child: _SkeletonBox(height: 32, radius: 16)),
             ],
           ),
         ],

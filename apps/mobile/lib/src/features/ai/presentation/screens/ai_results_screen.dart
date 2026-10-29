@@ -161,9 +161,9 @@ class _AiResultsBody extends StatelessWidget {
 
     return ListView(
       padding: const EdgeInsets.fromLTRB(
-        AppSpacing.s5,
         AppSpacing.s4,
-        AppSpacing.s5,
+        AppSpacing.s4,
+        AppSpacing.s4,
         AppSpacing.s5,
       ),
       children: [
@@ -197,14 +197,14 @@ class _AiResultsBody extends StatelessWidget {
                 .map(
                   (chip) => Container(
                     padding: const EdgeInsets.symmetric(
-                      horizontal: AppSpacing.s2,
-                      vertical: 4,
+                      horizontal: AppSpacing.s3,
+                      vertical: AppSpacing.s2,
                     ),
                     decoration: BoxDecoration(
                       color: AppColors.canvas,
                       borderRadius: BorderRadius.circular(AppRadius.pill),
                     ),
-                    child: Text(chip, style: AppTextStyles.overline),
+                    child: Text(chip, style: AppTextStyles.caption),
                   ),
                 )
                 .toList(),
@@ -415,9 +415,9 @@ class _ResultsCta extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.fromLTRB(
-        AppSpacing.s5,
         AppSpacing.s4,
-        AppSpacing.s5,
+        AppSpacing.s4,
+        AppSpacing.s4,
         AppSpacing.s5,
       ),
       decoration: const BoxDecoration(

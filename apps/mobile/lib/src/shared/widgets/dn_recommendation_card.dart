@@ -6,7 +6,6 @@ import 'package:dolenae_mobile/src/app/theme/app_spacing.dart';
 import 'package:dolenae_mobile/src/app/theme/app_text_styles.dart';
 import 'package:dolenae_mobile/src/features/ai/domain/entities/ai_recommendation.dart';
 import 'package:dolenae_mobile/src/features/destinations/domain/entities/destination.dart';
-import 'package:dolenae_mobile/src/shared/icons/app_icons.dart';
 import 'package:dolenae_mobile/src/shared/widgets/dn_difficulty_badge.dart';
 
 /// Varian kartu rekomendasi (component `RecommendationCard (Alam)`).
@@ -52,7 +51,7 @@ class DnRecommendationCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(AppRadius.xl),
         child: Container(
           width: double.infinity,
-          padding: const EdgeInsets.all(AppSpacing.s4),
+          padding: const EdgeInsets.all(AppSpacing.s3),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(AppRadius.xl),
             border: Border.all(color: AppColors.hairline),
@@ -63,18 +62,21 @@ class DnRecommendationCard extends StatelessWidget {
               Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Container(
-                    width: 28,
-                    height: 28,
-                    alignment: Alignment.center,
-                    decoration: BoxDecoration(
-                      color: AppColors.primary,
-                      borderRadius: BorderRadius.circular(AppRadius.sm),
-                    ),
-                    child: Text(
-                      '${recommendation.rank}',
-                      style: AppTextStyles.labelSm.copyWith(
-                        color: AppColors.onPrimary,
+                  Padding(
+                    padding: const EdgeInsets.only(top: 6),
+                    child: Container(
+                      width: 24,
+                      height: 24,
+                      alignment: Alignment.center,
+                      decoration: BoxDecoration(
+                        color: AppColors.primary,
+                        borderRadius: BorderRadius.circular(AppRadius.pill),
+                      ),
+                      child: Text(
+                        '${recommendation.rank}',
+                        style: AppTextStyles.labelSm.copyWith(
+                          color: AppColors.onPrimary,
+                        ),
                       ),
                     ),
                   ),
@@ -97,7 +99,7 @@ class DnRecommendationCard extends StatelessWidget {
                 ],
               ),
               if (lengkap) ...[
-                const SizedBox(height: AppSpacing.s3),
+                const SizedBox(height: AppSpacing.s2),
                 Row(
                   children: [
                     if (showDifficultyBadge) ...[
@@ -114,45 +116,47 @@ class DnRecommendationCard extends StatelessWidget {
                     ),
                   ],
                 ),
-                const SizedBox(height: AppSpacing.s3),
-                Text('MENGAPA COCOK?', style: AppTextStyles.overline),
-                const SizedBox(height: AppSpacing.s2),
-                ...recommendation.reasons.map(
-                  (reason) => Padding(
-                    padding: const EdgeInsets.only(bottom: AppSpacing.s1),
-                    child: Row(
+                if (recommendation.reasons.isNotEmpty) ...[
+                  const SizedBox(height: AppSpacing.s2),
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: AppColors.canvas,
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Padding(
-                          padding: EdgeInsets.only(
-                            top: 6,
-                            right: AppSpacing.s2,
-                          ),
-                          child: Icon(
-                            AppIcons.check,
-                            size: 12,
-                            color: AppColors.success,
+                        Text(
+                          'Mengapa cocok?',
+                          style: AppTextStyles.caption.copyWith(
+                            fontWeight: FontWeight.w600,
                           ),
                         ),
-                        Expanded(
-                          child: Text(reason, style: AppTextStyles.caption),
+                        const SizedBox(height: AppSpacing.s1),
+                        Text(
+                          recommendation.reasons.join(' '),
+                          style: AppTextStyles.caption,
                         ),
                       ],
                     ),
                   ),
-                ),
-                const SizedBox(height: AppSpacing.s3),
+                ],
+                const SizedBox(height: AppSpacing.s2),
                 Row(
                   children: [
                     Expanded(
                       child: OutlinedButton(
                         onPressed: onViewDetail,
                         style: OutlinedButton.styleFrom(
-                          minimumSize: const Size.fromHeight(44),
+                          minimumSize: const Size.fromHeight(32),
+                          padding: EdgeInsets.zero,
+                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                           foregroundColor: AppColors.primary,
                           side: const BorderSide(color: AppColors.borderStrong),
                           shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(AppRadius.md),
+                            borderRadius: BorderRadius.circular(AppRadius.pill),
                           ),
                         ),
                         child: Text(
@@ -161,21 +165,23 @@ class DnRecommendationCard extends StatelessWidget {
                         ),
                       ),
                     ),
-                    const SizedBox(width: AppSpacing.s3),
+                    const SizedBox(width: AppSpacing.s2),
                     Expanded(
                       child: FilledButton(
                         onPressed: onAdd,
                         style: FilledButton.styleFrom(
-                          minimumSize: const Size.fromHeight(44),
-                          backgroundColor: AppColors.accent,
+                          minimumSize: const Size.fromHeight(32),
+                          padding: EdgeInsets.zero,
+                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                          backgroundColor: AppColors.primary,
                           shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(AppRadius.md),
+                            borderRadius: BorderRadius.circular(AppRadius.pill),
                           ),
                         ),
                         child: Text(
                           addLabel,
                           style: AppTextStyles.labelSm.copyWith(
-                            color: AppColors.onAccent,
+                            color: AppColors.onPrimary,
                           ),
                         ),
                       ),
@@ -201,10 +207,10 @@ class _ScorePill extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(
         horizontal: AppSpacing.s2,
-        vertical: 4,
+        vertical: 3,
       ),
       decoration: BoxDecoration(
-        color: AppColors.accent.withValues(alpha: 0.12),
+        color: AppColors.canvas,
         borderRadius: BorderRadius.circular(AppRadius.pill),
       ),
       child: Text(
