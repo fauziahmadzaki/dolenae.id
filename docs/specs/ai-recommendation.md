@@ -93,17 +93,32 @@ Semua field opsional. Batas: `rawText` 1000 karakter, `durationDays` 1–7,
 ## Konfigurasi backend
 
 ```env
-GEMINI_API_KEY=
+GEMINI_API_KEY=            # fallback env bila belum diset dari admin
 AI_MODEL=gemini-2.5-flash
 AI_TIMEOUT_MS=30000
 AI_DAILY_LIMIT=10
 AI_CACHE_TTL_HOURS=24
+APP_ENCRYPTION_KEY=        # wajib, 32 byte base64
 ```
 
-- Hasil disimpan di tabel `ai_itineraries` (cache 24 jam per hash preferensi
-  dan audit).
-- Rate limit harian per user; melebihi batas → `429 AI_RATE_LIMITED`.
-- Timeout/error Gemini → fallback deterministik, response tetap `200`.
+## Pengaturan dari admin
+
+Halaman `/admin/pengaturan` menyimpan API key Gemini secara **terenkripsi
+AES-256-GCM** di tabel `app_settings`:
+
+| Method | Path | Fungsi |
+| --- | --- | --- |
+| GET | `/api/admin/ai/settings` | status key (masked), model, sumber, audit |
+| PUT | `/api/admin/ai/settings` | simpan `apiKey?` / `model?` |
+| GET | `/api/admin/ai/models` | daftar model Gemini (`generateContent`) |
+| POST | `/api/admin/ai/test` | test prompt sederhana + output |
+
+- API key tidak pernah dikembalikan utuh; hanya `keyPreview` (`••••••3456`).
+- Semua endpoint admin-only; `updatedBy` dicatat.
+- Test koneksi dibatasi 5x/menit per admin.
+- `APP_ENCRYPTION_KEY` wajib; generate:
+  `node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"`.
+- Konfigurasi DB di-cache 60 detik dan fallback ke env bila belum diisi.
 
 ## Batasan data saat ini
 
