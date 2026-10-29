@@ -61,14 +61,14 @@ class SavedDestinationsScreen extends StatelessWidget {
                       const DnEmptyState(
                         variant: DnEmptyVariant.belumAdaData,
                         title: 'Belum ada destinasi',
-                        body: 'Simpan destinasi dari Jelajah supaya mudah '
+                        body:
+                            'Simpan destinasi dari Jelajah supaya mudah '
                             'kamu temukan lagi.',
                       ),
                       const SizedBox(height: AppSpacing.s5),
                       DnPrimaryButton(
                         label: 'Jelajahi destinasi',
-                        onPressed:
-                            onExplore ?? () => context.go('/explore'),
+                        onPressed: onExplore ?? () => context.go('/explore'),
                       ),
                     ],
                   ),
@@ -129,7 +129,7 @@ class SavedDestinationsScreen extends StatelessWidget {
                                 ),
                                 const SizedBox(height: 2),
                                 Text(
-                                  '${destination.elevationM} mdpl · '
+                                  '${destination.elevationLabel} · '
                                   '${destination.regency}',
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,

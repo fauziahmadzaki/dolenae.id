@@ -108,6 +108,21 @@ export interface RouteProfileDto {
   estimatedDurationMinutes: number;
 }
 
+export type PublicRouteProfileDto = Omit<RouteProfileDto,
+  "points" | "totalGainMeters" | "totalLossMeters" | "maxElevationMeters" |
+  "minElevationMeters" | "steepestGradePercent" | "estimatedDurationMinutes"
+> & {
+  points: (Omit<ElevationPoint, "elevationMeters"> & { elevationMeters: number | null })[];
+  totalGainMeters: number | null;
+  totalLossMeters: number | null;
+  maxElevationMeters: number | null;
+  minElevationMeters: number | null;
+  steepestGradePercent: number | null;
+  estimatedDurationMinutes: number | null;
+  elevationAvailable: boolean;
+  elevationEstimated: boolean;
+};
+
 export interface RouteGraph {
   nodes: TrackNodeDto[];
   segments: RouteSegmentDto[];
@@ -372,7 +387,7 @@ function buildPointProfile(
         { latitude: point.latitude, longitude: point.longitude },
       );
     }
-    distances.push(Number(cumulative.toFixed(2)));
+    distances.push(cumulative);
   });
 
   const known = resolved
@@ -420,7 +435,7 @@ function buildPointProfile(
   }
 
   const points: ElevationPoint[] = resolved.map((point, index) => ({
-    distanceKm: distances[index]!,
+    distanceKm: Number(distances[index]!.toFixed(2)),
     elevationMeters: point.elevation ?? 0,
     nodeId: point.nodeId,
     name: point.name || `Belokan ${index + 1}`,
@@ -444,9 +459,11 @@ function buildPointProfile(
 
 // --- Service ---------------------------------------------------------------
 
-async function ensureDestination(destinationId: string): Promise<void> {
+async function ensureDestination(destinationId: string, publicRead = false): Promise<void> {
   const destination = await destinationRepository.findById(destinationId);
-  if (!destination) throw new NotFoundError("Destinasi tidak ditemukan");
+  if (!destination || (publicRead && destination.status !== "published")) {
+    throw new NotFoundError("Destinasi tidak ditemukan");
+  }
 }
 
 async function loadNodesById(ids: string[]): Promise<Map<string, TrackNodeRow>> {
@@ -609,8 +626,8 @@ async function persistGeometry(
 }
 
 export const routeService = {
-  async graph(destinationId: string): Promise<RouteGraph> {
-    await ensureDestination(destinationId);
+  async graph(destinationId: string, publicRead = false): Promise<RouteGraph> {
+    await ensureDestination(destinationId, publicRead);
 
     const [nodes, segments, routes] = await Promise.all([
       routeRepository.listNodes(destinationId),
@@ -945,9 +962,10 @@ export const routeService = {
     return { id, deleted: true };
   },
 
-  async profile(id: string): Promise<RouteProfileDto> {
+  async profile(id: string, publicRead = false): Promise<RouteProfileDto | PublicRouteProfileDto> {
     const route = await routeRepository.findRouteById(id);
     if (!route) throw new NotFoundError("Jalur tidak ditemukan");
+    if (publicRead) await ensureDestination(route.destinationId, true);
 
     const [nodeIds, segmentIds, pointRows] = await Promise.all([
       routeRepository.findRouteNodeIds(id),
@@ -957,8 +975,30 @@ export const routeService = {
 
     const nodes = await loadNodesById(nodeIds);
 
+    const publicProfile = (profile: RouteProfileDto): PublicRouteProfileDto => {
+      const elevations = pointRows.length >= 2
+        ? pointRows.map((point) => point.elevationMeters ??
+            (point.nodeId ? nodes.get(point.nodeId)?.elevationMeters : null) ?? null)
+        : profile.points.map((point) => point.elevationMeters);
+      const elevationAvailable = elevations.some((elevation) => elevation !== null);
+      return {
+        ...profile,
+        elevationAvailable,
+        elevationEstimated: elevationAvailable && elevations.some((elevation) => elevation === null),
+        ...(!elevationAvailable ? {
+          points: profile.points.map((point) => ({ ...point, elevationMeters: null })),
+          totalGainMeters: null,
+          totalLossMeters: null,
+          maxElevationMeters: null,
+          minElevationMeters: null,
+          steepestGradePercent: null,
+          estimatedDurationMinutes: null,
+        } : {}),
+      };
+    };
     if (pointRows.length >= 2) {
-      return buildPointProfile(id, pointRows, nodes);
+      const profile = buildPointProfile(id, pointRows, nodes);
+      return publicRead ? publicProfile(profile) : profile;
     }
 
     const segments = (
@@ -969,6 +1009,7 @@ export const routeService = {
       )
     ).filter((row): row is RouteSegmentRow => Boolean(row));
 
-    return buildProfile(id, nodeIds, segments, nodes);
+    const profile = buildProfile(id, nodeIds, segments, nodes);
+    return publicRead ? publicProfile(profile) : profile;
   },
 };

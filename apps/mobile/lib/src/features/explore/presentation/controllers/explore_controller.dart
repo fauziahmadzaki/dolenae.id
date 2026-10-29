@@ -34,6 +34,11 @@ class ExploreController extends ChangeNotifier {
     notifyListeners();
   }
 
+  void setCategoryId(String id) {
+    _filter = _filter.copyWith(categoryId: id);
+    notifyListeners();
+  }
+
   void setSortOption(SortOption sort) {
     _filter = _filter.copyWith(sort: sort);
     notifyListeners();

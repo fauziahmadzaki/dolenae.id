@@ -29,8 +29,8 @@ class CachedDestinations extends Table {
   IntColumn get entryFee => integer().nullable()();
   IntColumn get elevationMeters => integer().nullable()();
   TextColumn get images => text().withDefault(const Constant('[]'))();
-  BoolColumn get guideRequired =>
-      boolean().withDefault(const Constant(false))();
+  BoolColumn get guideRequired => boolean().nullable()();
+
   BoolColumn get verified => boolean().withDefault(const Constant(false))();
   TextColumn get categoryIds => text().withDefault(const Constant('[]'))();
   IntColumn get sortOrder => integer()();
@@ -50,5 +50,18 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.e);
 
   @override
-  int get schemaVersion => 1;
+  int get schemaVersion => 2;
+
+  @override
+  MigrationStrategy get migration => MigrationStrategy(
+    onUpgrade: (migrator, from, to) async {
+      if (from < 2) {
+        await migrator.alterTable(TableMigration(cachedDestinations));
+        // Cache lama mengubah guide unknown menjadi false; jangan klaim fakta.
+        await customStatement(
+          'UPDATE cached_destinations SET guide_required = NULL WHERE guide_required = 0',
+        );
+      }
+    },
+  );
 }

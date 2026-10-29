@@ -15,20 +15,25 @@ class Destination {
     required this.province,
     required this.priceFrom,
     required this.difficulty,
+    this.images = const [],
+    this.categoryIds = const [],
+    this.facilities = const [],
+    this.latitude,
+    this.longitude,
     this.entryFee,
     this.bestSeason,
     this.guideRequired,
     this.terrain = const [],
     this.activities = const [],
     this.accessDescription,
-    this.accessTransportModes = const ['Mobil', 'Jeep', 'Motor'],
+    this.accessTransportModes = const [],
     this.accessTravelTime,
     this.accessDistance,
     this.accessPointName,
-    this.facilityToilet = true,
-    this.facilityWarung = true,
-    this.facilityParking = true,
-    this.facilityHomestay = true,
+    this.facilityToilet = false,
+    this.facilityWarung = false,
+    this.facilityParking = false,
+    this.facilityHomestay = false,
     this.facilityMushola = false,
   });
 
@@ -36,11 +41,16 @@ class Destination {
   final String slug;
   final String name;
   final String tagline;
-  final int elevationM;
+  final int? elevationM;
   final String regency;
   final String province;
-  final int priceFrom;
-  final DifficultyLevel difficulty;
+  final int? priceFrom;
+  final DifficultyLevel? difficulty;
+  final List<String> images;
+  final List<String> categoryIds;
+  final List<String> facilities;
+  final double? latitude;
+  final double? longitude;
   final String? entryFee;
   final String? bestSeason;
   final bool? guideRequired;
@@ -61,9 +71,16 @@ class Destination {
   final bool facilityHomestay;
   final bool facilityMushola;
 
-  String get locationLabel => '$regency, $province';
+  String get locationLabel =>
+      [regency, province].where((part) => part.isNotEmpty).join(', ');
 
-  String get elevationLabel => '${formatThousands(elevationM)} mdpl';
+  String get elevationLabel => elevationM == null
+      ? 'Belum tersedia'
+      : '${formatThousands(elevationM!)} mdpl';
 
-  String get priceLabel => 'Rp ${formatThousands(priceFrom)}';
+  String get priceLabel => priceFrom == null
+      ? 'Belum tersedia'
+      : priceFrom == 0
+      ? 'Gratis'
+      : 'Rp ${formatThousands(priceFrom!)}';
 }

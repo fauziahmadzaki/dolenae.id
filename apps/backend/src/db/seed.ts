@@ -9,11 +9,13 @@ import {
   categories,
   destinations,
   routeSegments,
+  supportCategoryEnum,
   trackNodes,
   trailRouteNodes,
   trailRoutePoints,
   trailRouteSegments,
   trailRoutes,
+  travelSupports,
   users,
   type CategoryType,
   type DestinationStatus,
@@ -343,6 +345,7 @@ async function seed(): Promise<void> {
   }
 
   await seedBromoRoutes(db);
+  await seedTravelSupports(db);
 
   console.log("Seed selesai.");
 }
@@ -609,6 +612,109 @@ async function seedBromoRoutes(db: SeedDb) {
   console.log(
     `Jaringan rute Bromo siap: ${nodeRows.length} titik, ${segmentRows.length} ruas.`,
   );
+}
+
+async function seedTravelSupports(db: SeedDb) {
+  const [bromo] = await db
+    .select({ id: destinations.id })
+    .from(destinations)
+    .where(eq(destinations.slug, "gunung-bromo"))
+    .limit(1);
+
+  if (bromo) {
+    const [existing] = await db
+      .select({ id: travelSupports.id })
+      .from(travelSupports)
+      .where(eq(travelSupports.destinationId, bromo.id))
+      .limit(1);
+
+    if (!existing) {
+      await db.insert(travelSupports).values([
+        {
+          destinationId: bromo.id,
+          name: "Homestay Cemoro Indah",
+          category: "accommodation",
+          locationLabel: "Cemoro Lawang, Ngadisari",
+          priceLabel: "Rp 250.000",
+          priceUnit: "/malam",
+          verified: true,
+          contactPhone: "081234567890",
+        },
+        {
+          destinationId: bromo.id,
+          name: "Jeep Bromo Adventure",
+          category: "transport",
+          locationLabel: "Basecamp Cemoro Lawang",
+          priceLabel: "Rp 650.000",
+          priceUnit: "/trip",
+          includesDriver: true,
+          verified: true,
+          contactPhone: "081234567891",
+        },
+        {
+          destinationId: bromo.id,
+          name: "Warung Bromo Asri",
+          category: "food",
+          locationLabel: "Cemoro Lawang",
+          priceLabel: "Rp 25.000 - 50.000",
+          priceUnit: "/porsi",
+          verified: true,
+        },
+      ]);
+      console.log("Travel supports Bromo siap.");
+    } else {
+      console.log("Travel supports Bromo sudah ada.");
+    }
+  }
+
+  const [prau] = await db
+    .select({ id: destinations.id })
+    .from(destinations)
+    .where(eq(destinations.slug, "gunung-prau"))
+    .limit(1);
+
+  if (prau) {
+    const [existing] = await db
+      .select({ id: travelSupports.id })
+      .from(travelSupports)
+      .where(eq(travelSupports.destinationId, prau.id))
+      .limit(1);
+
+    if (!existing) {
+      await db.insert(travelSupports).values([
+        {
+          destinationId: prau.id,
+          name: "Basecamp Prau Dieng",
+          category: "accommodation",
+          locationLabel: "Dieng Kulon",
+          priceLabel: "Rp 150.000",
+          priceUnit: "/malam",
+          verified: true,
+        },
+        {
+          destinationId: prau.id,
+          name: "Ojek Dieng Pass",
+          category: "transport",
+          locationLabel: "Patakbanteng",
+          priceLabel: "Rp 30.000",
+          priceUnit: "/trip",
+          verified: true,
+        },
+        {
+          destinationId: prau.id,
+          name: "Warung Makan Bu Djono",
+          category: "food",
+          locationLabel: "Jl. Raya Dieng",
+          priceLabel: "Rp 20.000 - 45.000",
+          priceUnit: "/porsi",
+          verified: true,
+        },
+      ]);
+      console.log("Travel supports Prau siap.");
+    } else {
+      console.log("Travel supports Prau sudah ada.");
+    }
+  }
 }
 
 seed()

@@ -7,15 +7,11 @@ import 'package:dolenae_mobile/src/app/theme/app_shadows.dart';
 import 'package:dolenae_mobile/src/app/theme/app_spacing.dart';
 import 'package:dolenae_mobile/src/features/destinations/domain/entities/destination.dart';
 import 'package:dolenae_mobile/src/shared/widgets/dn_difficulty_badge.dart';
-import 'package:dolenae_mobile/src/shared/widgets/dn_media_placeholder.dart';
+import 'package:dolenae_mobile/src/shared/widgets/dn_remote_image.dart';
 
 /// Kartu destinasi vertikal (grid/beranda).
 class DnDestinationCard extends StatelessWidget {
-  const DnDestinationCard({
-    super.key,
-    required this.destination,
-    this.onTap,
-  });
+  const DnDestinationCard({super.key, required this.destination, this.onTap});
 
   final Destination destination;
   final VoidCallback? onTap;
@@ -39,8 +35,10 @@ class DnDestinationCard extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const DnMediaPlaceholder(
-                icon: AppIcons.mountainSnow,
+              DnRemoteImage(
+                url: destination.images.firstOrNull,
+                semanticLabel: destination.name,
+                fallbackIcon: AppIcons.mountainSnow,
                 height: 170,
               ),
               Padding(
@@ -144,8 +142,10 @@ class DnDestinationListTile extends StatelessWidget {
               SizedBox(
                 width: 98,
                 height: 80,
-                child: DnMediaPlaceholder(
-                  icon: AppIcons.mountainSnow,
+                child: DnRemoteImage(
+                  url: destination.images.firstOrNull,
+                  semanticLabel: destination.name,
+                  fallbackIcon: AppIcons.mountainSnow,
                   borderRadius: BorderRadius.circular(AppRadius.md),
                 ),
               ),

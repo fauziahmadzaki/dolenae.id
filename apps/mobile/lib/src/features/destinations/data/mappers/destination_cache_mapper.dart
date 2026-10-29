@@ -22,7 +22,7 @@ abstract final class DestinationCacheMapper {
       name: json['name'] as String? ?? 'Destinasi',
       tagline: Value(json['tagline'] as String?),
       description: Value(json['description'] as String?),
-      difficulty: json['difficulty'] as String? ?? 'menengah',
+      difficulty: json['difficulty'] as String? ?? '',
       bestSeason: Value(jsonEncode(json['bestSeason'] ?? const [])),
       tags: Value(jsonEncode(json['tags'] ?? const [])),
       terrain: Value(jsonEncode(json['terrain'] ?? const [])),
@@ -41,7 +41,7 @@ abstract final class DestinationCacheMapper {
       entryFee: Value((json['entryFee'] as num?)?.toInt()),
       elevationMeters: Value((json['elevationMeters'] as num?)?.toInt()),
       images: Value(jsonEncode(json['images'] ?? const [])),
-      guideRequired: Value(json['guideRequired'] as bool? ?? false),
+      guideRequired: Value(json['guideRequired'] as bool?),
       verified: Value(json['verified'] as bool? ?? false),
       categoryIds: Value(jsonEncode(json['categoryIds'] ?? const [])),
       sortOrder: sortOrder,
@@ -59,14 +59,19 @@ abstract final class DestinationCacheMapper {
       slug: row.slug,
       name: row.name,
       tagline: row.tagline ?? '',
-      elevationM: row.elevationMeters ?? 0,
+      elevationM: row.elevationMeters,
       regency: row.regency ?? '',
       province: row.province ?? '',
-      priceFrom: row.entryFee ?? 0,
+      priceFrom: row.entryFee,
       difficulty: _difficulty(row.difficulty),
       entryFee: row.entryFee == null ? null : 'Rp ${_thousands(row.entryFee!)}',
       bestSeason: _joined(_strings(row.bestSeason)),
       guideRequired: row.guideRequired,
+      images: _strings(row.images),
+      categoryIds: _strings(row.categoryIds),
+      facilities: _strings(row.facilities),
+      latitude: row.latitude,
+      longitude: row.longitude,
       terrain: _strings(row.terrain),
       activities: _strings(row.activities),
       accessDescription: row.accessDescription,
@@ -100,17 +105,19 @@ abstract final class DestinationCacheMapper {
 
   static List<String> _transport(String raw) {
     final values = _strings(raw);
-    return values.isEmpty ? const ['Mobil', 'Motor'] : values;
+    return values;
   }
 
-  static DifficultyLevel _difficulty(String value) {
+  static DifficultyLevel? _difficulty(String value) {
     switch (value) {
       case 'ramah-pemula':
         return DifficultyLevel.pemula;
       case 'sulit':
         return DifficultyLevel.sulit;
-      default:
+      case 'menengah':
         return DifficultyLevel.menengah;
+      default:
+        return null;
     }
   }
 

@@ -34,20 +34,23 @@ class DestinationModel {
       slug: json['slug'] as String? ?? '',
       name: json['name'] as String? ?? 'Destinasi',
       tagline: json['tagline'] as String? ?? '',
-      elevationM: (json['elevationMeters'] as num?)?.toInt() ?? 0,
+      elevationM: (json['elevationMeters'] as num?)?.toInt(),
       regency: location['regency'] as String? ?? '',
       province: location['province'] as String? ?? '',
-      priceFrom: (fee as num?)?.toInt() ?? 0,
+      priceFrom: (fee as num?)?.toInt(),
       difficulty: _difficulty(json['difficulty'] as String?),
       entryFee: fee is num ? 'Rp ${_thousands(fee.toInt())}' : null,
       bestSeason: _join(_stringList(json['bestSeason'])),
       guideRequired: json['guideRequired'] as bool?,
+      images: _stringList(json['images']),
+      categoryIds: _stringList(json['categoryIds']),
+      facilities: _stringList(json['facilities']),
+      latitude: (location['latitude'] as num?)?.toDouble(),
+      longitude: (location['longitude'] as num?)?.toDouble(),
       terrain: _stringList(json['terrain']),
       activities: _stringList(json['activities']),
       accessDescription: access['description'] as String?,
-      accessTransportModes: transports.isEmpty
-          ? const ['Mobil', 'Motor']
-          : transports,
+      accessTransportModes: transports,
       accessTravelTime: access['duration'] as String?,
       accessDistance: distanceKm is num
           ? '${_compactNumber(distanceKm)} km dari kota terdekat'
@@ -62,14 +65,16 @@ class DestinationModel {
   }
 }
 
-DifficultyLevel _difficulty(String? value) {
+DifficultyLevel? _difficulty(String? value) {
   switch (value) {
     case 'ramah-pemula':
       return DifficultyLevel.pemula;
     case 'sulit':
       return DifficultyLevel.sulit;
-    default:
+    case 'menengah':
       return DifficultyLevel.menengah;
+    default:
+      return null;
   }
 }
 

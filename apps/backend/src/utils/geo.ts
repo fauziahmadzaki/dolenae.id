@@ -6,7 +6,7 @@ export interface Coordinate {
 const EARTH_RADIUS_KM = 6371;
 const rad = (value: number) => (value * Math.PI) / 180;
 
-/** Great-circle distance between two coordinates, rounded to 2 decimals. */
+/** Full-precision great-circle distance; round only at the DTO boundary. */
 export function haversineKm(from: Coordinate, to: Coordinate): number {
   const dLat = rad(to.latitude - from.latitude);
   const dLng = rad(to.longitude - from.longitude);
@@ -15,10 +15,8 @@ export function haversineKm(from: Coordinate, to: Coordinate): number {
     Math.cos(rad(from.latitude)) *
       Math.cos(rad(to.latitude)) *
       Math.sin(dLng / 2) ** 2;
-  const distance =
-    EARTH_RADIUS_KM * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-
-  return Number(distance.toFixed(2));
+  const clamped = Math.min(1, Math.max(0, a));
+  return EARTH_RADIUS_KM * 2 * Math.atan2(Math.sqrt(clamped), Math.sqrt(1 - clamped));
 }
 
 /** Total positive/negative elevation change between consecutive points. */

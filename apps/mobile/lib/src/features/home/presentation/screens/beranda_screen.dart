@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:dolenae_mobile/src/features/categories/presentation/controllers/categories_controller.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'package:dolenae_mobile/src/shared/icons/app_icons.dart';
@@ -55,17 +56,17 @@ class _BerandaScreenState extends State<BerandaScreen> {
 
   /// Kata kunci pencarian yang aktif di Beranda (bukan di Jelajah).
   String _query = '';
+  String _selectedCategoryId = '';
 
-  bool get _isSearching => _query.trim().isNotEmpty;
+  bool get _isSearching =>
+      _query.trim().isNotEmpty || _selectedCategoryId.isNotEmpty;
 
   void _onQueryChanged(String value) => setState(() => _query = value);
 
   void _clearQuery() => setState(() => _query = '');
 
-  /// Chip kategori mengisi kolom pencarian, bukan pindah halaman.
-  void _applyCategory(String label) {
-    final next = label.toLowerCase();
-    setState(() => _query = _query.trim().toLowerCase() == next ? '' : next);
+  void _applyCategory(String id) {
+    setState(() => _selectedCategoryId = _selectedCategoryId == id ? '' : id);
   }
 
   void _onTab(BuildContext context, DnTab tab) {
@@ -95,8 +96,13 @@ class _BerandaScreenState extends State<BerandaScreen> {
           Expanded(
             child: RefreshIndicator(
               color: AppColors.primary,
-              onRefresh: () =>
-                  destinationsController?.refresh() ?? Future<void>.value(),
+              onRefresh: () async {
+                await Future.wait([
+                  if (destinationsController != null)
+                    destinationsController.refresh(),
+                  context.read<CategoriesController>().load(refresh: true),
+                ]);
+              },
               child: SingleChildScrollView(
                 physics: const AlwaysScrollableScrollPhysics(),
                 child: Column(
@@ -238,8 +244,11 @@ class _BerandaScreenState extends State<BerandaScreen> {
   }
 
   Widget _chips(BuildContext context) {
-    const labels = ['Gunung', 'Bukit', 'Danau', 'Air terjun', 'Camping'];
-    final active = _query.trim().toLowerCase();
+    final categories = context
+        .watch<CategoriesController>()
+        .items
+        .where((item) => item.type == 'terrain')
+        .toList(growable: false);
     return Padding(
       padding: const EdgeInsets.only(top: AppSpacing.s3),
       child: SizedBox(
@@ -247,12 +256,16 @@ class _BerandaScreenState extends State<BerandaScreen> {
         child: ListView.separated(
           scrollDirection: Axis.horizontal,
           padding: const EdgeInsets.symmetric(horizontal: AppSpacing.s4),
-          itemCount: labels.length,
+          itemCount: categories.length,
           separatorBuilder: (_, _) => const SizedBox(width: AppSpacing.s2),
           itemBuilder: (_, i) => DnChip(
-            label: labels[i],
-            active: active == labels[i].toLowerCase(),
-            onTap: () => _applyCategory(labels[i]),
+            label: categories[i].name,
+            active:
+                categories[i].id.isNotEmpty &&
+                _selectedCategoryId == categories[i].id,
+            onTap: categories[i].id.isEmpty
+                ? null
+                : () => _applyCategory(categories[i].id),
           ),
         ),
       ),
@@ -262,7 +275,11 @@ class _BerandaScreenState extends State<BerandaScreen> {
   /// Hasil pencarian di Beranda: kartu rekomendasi dari katalog yang ada.
   Widget _recommendations(BuildContext context, List<Destination> items) {
     final query = _query.trim();
-    final matches = _searchRecommendations(items, query);
+    final matches = _searchRecommendations(
+      items,
+      query,
+      categoryId: _selectedCategoryId,
+    );
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(
@@ -274,7 +291,11 @@ class _BerandaScreenState extends State<BerandaScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          DnSectionHeader(title: 'Rekomendasi untuk "$query"'),
+          DnSectionHeader(
+            title: query.isEmpty
+                ? 'Rekomendasi kategori pilihan'
+                : 'Rekomendasi untuk "$query"',
+          ),
           const SizedBox(height: 6),
           Text(
             matches.isEmpty
@@ -349,7 +370,7 @@ class _BerandaScreenState extends State<BerandaScreen> {
                   child: Text(
                     state.hasRemoteData
                         ? 'Tersimpan offline · ${_relativeTime(state.lastFetched)}'
-                        : 'Mode offline · menampilkan data contoh',
+                        : 'Belum ada data destinasi tersimpan',
                     style: AppTextStyles.caption.copyWith(
                       color: AppColors.body,
                     ),

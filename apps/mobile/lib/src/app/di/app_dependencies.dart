@@ -1,4 +1,8 @@
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:dolenae_mobile/src/features/categories/domain/repositories/category_repository.dart';
+import 'package:dolenae_mobile/src/features/categories/data/repositories/category_repository_impl.dart';
+import 'package:dolenae_mobile/src/features/categories/data/data_sources/category_remote_data_source.dart';
+import 'package:dolenae_mobile/src/features/categories/data/data_sources/category_local_data_source.dart';
 
 import 'package:dolenae_mobile/src/core/database/app_database.dart';
 import 'package:dolenae_mobile/src/core/network/api_client.dart';
@@ -24,6 +28,8 @@ import 'package:dolenae_mobile/src/features/notifications/data/repositories/noti
 import 'package:dolenae_mobile/src/features/notifications/domain/repositories/notification_repository.dart';
 import 'package:dolenae_mobile/src/features/plan/data/repositories/plan_repository_impl.dart';
 import 'package:dolenae_mobile/src/features/plan/domain/repositories/plan_repository.dart';
+import 'package:dolenae_mobile/src/features/routes/data/repositories/route_repository_impl.dart';
+import 'package:dolenae_mobile/src/features/routes/domain/repositories/route_repository.dart';
 import 'package:dolenae_mobile/src/features/saved/data/repositories/saved_repository_impl.dart';
 import 'package:dolenae_mobile/src/features/saved/domain/repositories/saved_repository.dart';
 import 'package:dolenae_mobile/src/features/settings/data/data_sources/settings_local_data_source.dart';
@@ -34,6 +40,7 @@ import 'package:dolenae_mobile/src/features/settings/domain/repositories/setting
 class AppDependencies {
   AppDependencies._({
     required this.database,
+    required this.categoryRepository,
     required this.apiClient,
     required this.authRepository,
     required this.destinationRepository,
@@ -43,6 +50,7 @@ class AppDependencies {
     required this.aiRepository,
     required this.exploreRepository,
     required this.facilityRepository,
+    required this.routeRepository,
     required this.planRepository,
     required this.checklistRepository,
   });
@@ -57,6 +65,10 @@ class AppDependencies {
 
     return AppDependencies._(
       database: database,
+      categoryRepository: CategoryRepositoryImpl(
+        CategoryRemoteDataSource(client),
+        CategoryLocalDataSource(prefs),
+      ),
       apiClient: client,
       authRepository: AuthRepositoryImpl(
         AuthRemoteDataSource(client),
@@ -75,13 +87,15 @@ class AppDependencies {
       savedRepository: SavedRepositoryImpl(),
       aiRepository: const AiRepositoryImpl(),
       exploreRepository: ExploreRepositoryImpl(),
-      facilityRepository: const FacilityRepositoryImpl(),
+      facilityRepository: FacilityRepositoryImpl(api: client, preferences: prefs),
+      routeRepository: RouteRepositoryImpl(client),
       planRepository: const PlanRepositoryImpl(),
       checklistRepository: ChecklistRepositoryImpl(),
     );
   }
 
   final AppDatabase database;
+  final CategoryRepository categoryRepository;
   final ApiClient apiClient;
   final AuthRepository authRepository;
   final DestinationRepository destinationRepository;
@@ -91,6 +105,7 @@ class AppDependencies {
   final AiRepository aiRepository;
   final ExploreRepository exploreRepository;
   final FacilityRepository facilityRepository;
+  final RouteRepository routeRepository;
   final PlanRepository planRepository;
   final ChecklistRepository checklistRepository;
 }

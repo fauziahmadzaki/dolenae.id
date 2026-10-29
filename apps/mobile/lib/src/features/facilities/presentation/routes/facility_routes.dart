@@ -6,7 +6,8 @@ import 'package:dolenae_mobile/src/features/facilities/presentation/screens/prop
 import 'package:dolenae_mobile/src/features/facilities/presentation/screens/propose_facility_screen.dart';
 
 final List<RouteBase> facilityRoutes = [
-  GoRoute(path: '/facilities', builder: (_, _) => const FacilitiesScreen()),
+  GoRoute(path: '/facilities', builder: (_, state) => FacilitiesScreen(destinationId: state.uri.queryParameters['destinationId'] ?? '')),
+  GoRoute(path: '/destinations/:destinationId/facilities', builder: (_, state) => FacilitiesScreen(destinationId: state.pathParameters['destinationId'] ?? '')),
   GoRoute(
     path: '/facilities/propose',
     builder: (_, _) => const ProposeFacilityScreen(),
