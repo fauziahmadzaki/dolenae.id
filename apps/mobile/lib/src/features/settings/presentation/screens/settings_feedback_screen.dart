@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:provider/provider.dart';
+import 'package:dolenae_mobile/src/features/settings/presentation/controllers/settings_controller.dart';
 
 import 'package:dolenae_mobile/src/app/theme/app_colors.dart';
 import 'package:dolenae_mobile/src/app/theme/app_radius.dart';
@@ -33,15 +35,18 @@ class SettingsFeedbackScreen extends StatefulWidget {
 class _SettingsFeedbackScreenState extends State<SettingsFeedbackScreen> {
   FeedbackDraft _draft = const FeedbackDraft();
   bool _includeEmail = true;
+  bool _submitting = false;
+  String? _failure;
 
   String? _subjectError;
   String? _messageError;
 
-  void _submit() {
+  void _submit() async {
     var valid = true;
     setState(() {
-      if (_draft.subject.trim().isEmpty) {
-        _subjectError = 'Isi subjek singkat agar mudah kami kelompokkan.';
+      if (_draft.subject.trim().length < 3 ||
+          _draft.subject.trim().length > 160) {
+        _subjectError = 'Isi subjek 3-160 karakter.';
         valid = false;
       } else {
         _subjectError = null;
@@ -60,6 +65,20 @@ class _SettingsFeedbackScreenState extends State<SettingsFeedbackScreen> {
       onSubmit(_draft);
       return;
     }
+    if (_submitting) return;
+    setState(() {
+      _submitting = true;
+      _failure = null;
+    });
+    final result = await context.read<SettingsController>().submitFeedback(
+      _draft,
+    );
+    if (!mounted) return;
+    setState(() {
+      _submitting = false;
+      _failure = result.failureOrNull?.message;
+    });
+    if (result.isFailure) return;
     showDnToast(
       context,
       'Masukan terkirim, terima kasih sudah membantu.',
@@ -89,6 +108,13 @@ class _SettingsFeedbackScreenState extends State<SettingsFeedbackScreen> {
                   AppSpacing.s5,
                 ),
                 children: [
+                  if (_failure != null)
+                    Text(
+                      _failure!,
+                      style: AppTextStyles.bodySm.copyWith(
+                        color: AppColors.danger,
+                      ),
+                    ),
                   Text(
                     'Bantu kami menambah fitur yang berguna.',
                     style: AppTextStyles.displayMd,
@@ -114,7 +140,8 @@ class _SettingsFeedbackScreenState extends State<SettingsFeedbackScreen> {
                             label: category.label,
                             active: _draft.category == category,
                             onTap: () => setState(
-                              () => _draft = _draft.copyWith(category: category),
+                              () =>
+                                  _draft = _draft.copyWith(category: category),
                             ),
                           ),
                         )
@@ -126,8 +153,9 @@ class _SettingsFeedbackScreenState extends State<SettingsFeedbackScreen> {
                     hint: 'Mis. Foto belum termuat di kartu destinasi',
                     value: _draft.subject,
                     errorText: _subjectError,
-                    onChanged: (value) =>
-                        setState(() => _draft = _draft.copyWith(subject: value)),
+                    onChanged: (value) => setState(
+                      () => _draft = _draft.copyWith(subject: value),
+                    ),
                   ),
                   const SizedBox(height: AppSpacing.s4),
                   DnInput(
@@ -137,8 +165,9 @@ class _SettingsFeedbackScreenState extends State<SettingsFeedbackScreen> {
                     errorText: _messageError,
                     maxLines: 6,
                     minLines: 5,
-                    onChanged: (value) =>
-                        setState(() => _draft = _draft.copyWith(message: value)),
+                    onChanged: (value) => setState(
+                      () => _draft = _draft.copyWith(message: value),
+                    ),
                   ),
                   const SizedBox(height: AppSpacing.s4),
                   Text(
@@ -168,19 +197,26 @@ class _SettingsFeedbackScreenState extends State<SettingsFeedbackScreen> {
                     }),
                   ),
                   const SizedBox(height: AppSpacing.s2),
-                  Container(
-                    padding: const EdgeInsets.all(AppSpacing.s4),
-                    decoration: BoxDecoration(
-                      color: AppColors.canvasSubtle,
-                      borderRadius: BorderRadius.circular(AppRadius.lg),
-                      border: Border.all(color: AppColors.hairline),
+                  if (!context.read<SettingsController>().isDemo)
+                    Text(
+                      'Masukan terhubung dengan akun yang sedang masuk.',
+                      style: AppTextStyles.caption,
                     ),
-                    child: DnSwitch(
-                      label: 'Sertakan email untuk ditindaklanjuti',
-                      value: _includeEmail,
-                      onChanged: (value) => setState(() => _includeEmail = value),
+                  if (context.read<SettingsController>().isDemo)
+                    Container(
+                      padding: const EdgeInsets.all(AppSpacing.s4),
+                      decoration: BoxDecoration(
+                        color: AppColors.canvasSubtle,
+                        borderRadius: BorderRadius.circular(AppRadius.lg),
+                        border: Border.all(color: AppColors.hairline),
+                      ),
+                      child: DnSwitch(
+                        label: 'Sertakan email untuk ditindaklanjuti',
+                        value: _includeEmail,
+                        onChanged: (value) =>
+                            setState(() => _includeEmail = value),
+                      ),
                     ),
-                  ),
                 ],
               ),
             ),
@@ -197,7 +233,7 @@ class _SettingsFeedbackScreenState extends State<SettingsFeedbackScreen> {
               ),
               child: DnPrimaryButton(
                 label: 'Kirim masukan',
-                onPressed: _draft.canSubmit ? _submit : null,
+                onPressed: _draft.canSubmit && !_submitting ? _submit : null,
               ),
             ),
           ],

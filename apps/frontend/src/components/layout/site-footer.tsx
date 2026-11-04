@@ -2,7 +2,7 @@ import Link from "next/link";
 import { Mountain } from "lucide-react";
 
 const publicLinks: Record<string, string> = {
-  "Destinasi": "/#destinations",
+  "Destinasi": "/destinations",
   "Fasilitas Sekitar": "/#support",
   "Persiapan AI": "/#ai",
   "Pusat Bantuan": "/bantuan",

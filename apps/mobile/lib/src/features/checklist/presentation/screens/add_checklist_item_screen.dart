@@ -1,25 +1,22 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:provider/provider.dart';
 
 import 'package:dolenae_mobile/src/app/theme/app_colors.dart';
-import 'package:dolenae_mobile/src/app/theme/app_radius.dart';
 import 'package:dolenae_mobile/src/app/theme/app_spacing.dart';
 import 'package:dolenae_mobile/src/app/theme/app_text_styles.dart';
 import 'package:dolenae_mobile/src/features/checklist/domain/entities/checklist_item.dart';
+import 'package:dolenae_mobile/src/features/checklist/presentation/controllers/checklist_controller.dart';
 import 'package:dolenae_mobile/src/shared/widgets/dn_app_bar.dart';
 import 'package:dolenae_mobile/src/shared/widgets/dn_buttons.dart';
+import 'package:dolenae_mobile/src/shared/widgets/dn_input.dart';
 
-/// Layar Tambah Item Checklist (Node Figma: 86:1513).
-///
-/// Memungkinkan wisatawan menambahkan item perlengkapan baru
-/// dengan kategori, flag wajib/opsional, dan catatan spesifik.
+/// Form kosong; onSave hanya untuk pratinjau terisolasi.
 class AddChecklistItemScreen extends StatefulWidget {
-  const AddChecklistItemScreen({
-    super.key,
-    this.onSave,
-    this.onBack,
-  });
+  const AddChecklistItemScreen({super.key, this.destinationId, this.destinationName = '', this.onSave, this.onBack});
 
+  final String? destinationId;
+  final String destinationName;
   final ValueChanged<ChecklistItem>? onSave;
   final VoidCallback? onBack;
 
@@ -28,289 +25,94 @@ class AddChecklistItemScreen extends StatefulWidget {
 }
 
 class _AddChecklistItemScreenState extends State<AddChecklistItemScreen> {
-  final _nameController = TextEditingController(text: 'Jaket windproof');
-  final _noteController = TextEditingController(text: 'Untuk suhu dingin saat sunrise.');
-
+  String _name = '';
+  String _note = '';
+  String? _error;
   ChecklistCategory _selectedCategory = ChecklistCategory.perlengkapan;
   bool _isRequired = true;
+  bool _submitting = false;
 
-  @override
-  void dispose() {
-    _nameController.dispose();
-    _noteController.dispose();
-    super.dispose();
+  String get _checklistLocation => Uri(path: '/checklist', queryParameters: {
+    if (widget.destinationId != null) 'destinationId': widget.destinationId!,
+    if (widget.destinationName.isNotEmpty) 'destinationName': widget.destinationName,
+  }).toString();
+
+  void _back() {
+    if (widget.onBack != null) {
+      widget.onBack!();
+    } else if (context.canPop()) {
+      context.pop();
+    } else {
+      context.go(_checklistLocation);
+    }
   }
 
-  void _handleSubmit() {
-    final name = _nameController.text.trim();
-    if (name.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Nama item tidak boleh kosong'),
-          backgroundColor: AppColors.danger,
-        ),
-      );
+  Future<void> _handleSubmit() async {
+    if (_submitting) return;
+    final name = _name.trim();
+    if (name.isEmpty || name.length > 160 || _note.trim().length > 5000) {
+      setState(() => _error = name.isEmpty ? 'Nama item tidak boleh kosong' : 'Nama maksimal 160 karakter, catatan maksimal 5000 karakter.');
       return;
     }
-
-    final newItem = ChecklistItem(
-      id: 'chk-${DateTime.now().millisecondsSinceEpoch}',
-      name: name,
-      category: _selectedCategory,
-      isRequired: _isRequired,
-      isCompleted: false,
-      note: _noteController.text.trim().isEmpty ? null : _noteController.text.trim(),
-    );
-
-    widget.onSave?.call(newItem);
-
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Item "${newItem.name}" ditambahkan!'),
-          backgroundColor: AppColors.success,
-        ),
-      );
-      if (context.canPop()) {
-        context.pop(newItem);
-      } else {
-        context.go('/checklist');
+    final item = ChecklistItem(id: '', name: name, category: _selectedCategory, isRequired: _isRequired, note: _note.trim().isEmpty ? null : _note.trim());
+    if (widget.onSave != null) {
+      widget.onSave!(item);
+      return;
+    }
+    final controller = context.read<ChecklistController>();
+    setState(() { _submitting = true; _error = null; });
+    if (widget.destinationId == null || widget.destinationId!.isEmpty) {
+      setState(() { _submitting = false; _error = 'Pilih destinasi terlebih dahulu.'; });
+      return;
+    }
+    if (controller.destinationId != widget.destinationId) {
+      final loaded = await controller.load(widget.destinationId!);
+      if (!mounted) return;
+      if (loaded.isFailure) {
+        setState(() { _submitting = false; _error = loaded.failureOrNull!.message; });
+        return;
       }
+    }
+    final result = await controller.addItem(item);
+    if (!mounted) return;
+    setState(() { _submitting = false; _error = result.failureOrNull?.message; });
+    if (result.isFailure) return;
+    if (context.canPop()) {
+      context.pop();
+    } else {
+      context.go(_checklistLocation);
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final controller = widget.onSave == null ? context.watch<ChecklistController>() : null;
+    final busy = _submitting || controller?.isLoading == true || controller?.isMutating == true;
     return Scaffold(
       backgroundColor: AppColors.canvas,
-      appBar: DnAppBar(
-        title: 'Tambah item',
-        showBack: true,
-        onBack: widget.onBack ?? () {
-          if (context.canPop()) {
-            context.pop();
-          } else {
-            context.go('/checklist');
-          }
-        },
-      ),
-      body: SafeArea(
-        child: Column(
-          children: [
-            Expanded(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.all(AppSpacing.s4),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _buildNameField(),
-                    const SizedBox(height: AppSpacing.s4),
-                    _buildCategoryField(),
-                    const SizedBox(height: AppSpacing.s4),
-                    _buildRequiredToggle(),
-                    const SizedBox(height: AppSpacing.s4),
-                    _buildNoteField(),
-                    const SizedBox(height: AppSpacing.s6),
-                  ],
-                ),
-              ),
-            ),
-            _buildBottomAction(),
+      appBar: DnAppBar(title: 'Tambah item', showBack: true, onBack: _back),
+      body: SafeArea(child: Column(children: [
+        Expanded(child: SingleChildScrollView(padding: const EdgeInsets.all(AppSpacing.s4), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          DnInput(label: 'Nama item', hint: 'Contoh: Jaket windproof', value: _name, enabled: !busy, maxLength: 160, onChanged: (value) => setState(() => _name = value)),
+          const SizedBox(height: AppSpacing.s4),
+          Text('Kategori', style: AppTextStyles.caption),
+          const SizedBox(height: AppSpacing.s2),
+          Wrap(spacing: AppSpacing.s2, runSpacing: AppSpacing.s2, children: [
+            for (final category in ChecklistCategory.values)
+              ChoiceChip(label: Text(category.name[0].toUpperCase() + category.name.substring(1)), selected: _selectedCategory == category, onSelected: busy ? null : (_) => setState(() => _selectedCategory = category)),
+          ]),
+          const SizedBox(height: AppSpacing.s4),
+          SwitchListTile.adaptive(contentPadding: EdgeInsets.zero, title: Text('Tandai sebagai wajib', style: AppTextStyles.bodySm), value: _isRequired, onChanged: busy ? null : (value) => setState(() => _isRequired = value)),
+          const SizedBox(height: AppSpacing.s4),
+          DnInput(label: 'Catatan', hint: 'Contoh: Untuk suhu dingin saat sunrise.', value: _note, enabled: !busy, maxLines: 3, maxLength: 5000, onChanged: (value) => setState(() => _note = value)),
+          if (_error != null) ...[
+            const SizedBox(height: AppSpacing.s3),
+            Semantics(liveRegion: true, child: Text(_error!, style: AppTextStyles.bodySm.copyWith(color: AppColors.danger))),
           ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildNameField() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'Nama item',
-          style: AppTextStyles.caption.copyWith(color: AppColors.body),
-        ),
-        const SizedBox(height: 6),
-        Container(
-          height: 48,
-          decoration: BoxDecoration(
-            color: AppColors.canvasSubtle,
-            borderRadius: BorderRadius.circular(AppRadius.lg),
-            border: Border.all(color: AppColors.hairline),
-          ),
-          child: TextField(
-            controller: _nameController,
-            style: const TextStyle(
-              fontFamily: 'Inter',
-              fontSize: 14,
-              color: AppColors.ink,
-            ),
-            decoration: const InputDecoration(
-              contentPadding: EdgeInsets.symmetric(horizontal: 14, vertical: 14),
-              border: InputBorder.none,
-              hintText: 'Contoh: Jaket windproof',
-              hintStyle: TextStyle(
-                fontFamily: 'Inter',
-                fontSize: 14,
-                color: AppColors.body,
-              ),
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildCategoryField() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'Kategori',
-          style: AppTextStyles.caption.copyWith(color: AppColors.body),
-        ),
-        const SizedBox(height: 8),
-        SingleChildScrollView(
-          scrollDirection: Axis.horizontal,
-          child: Row(
-            children: [
-              _buildCategoryChip(
-                label: 'Perlengkapan',
-                category: ChecklistCategory.perlengkapan,
-              ),
-              const SizedBox(width: 8),
-              _buildCategoryChip(
-                label: 'Kesehatan',
-                category: ChecklistCategory.kesehatan,
-              ),
-              const SizedBox(width: 8),
-              _buildCategoryChip(
-                label: 'Konservasi',
-                category: ChecklistCategory.konservasi,
-              ),
-              const SizedBox(width: 8),
-              _buildCategoryChip(
-                label: 'Administrasi',
-                category: ChecklistCategory.administrasi,
-              ),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildCategoryChip({
-    required String label,
-    required ChecklistCategory category,
-  }) {
-    final isSelected = _selectedCategory == category;
-    return Material(
-      color: isSelected ? AppColors.primary : AppColors.canvasSubtle,
-      borderRadius: BorderRadius.circular(AppRadius.pill),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(AppRadius.pill),
-        onTap: () => setState(() => _selectedCategory = category),
-        child: Container(
-          height: 32,
-          padding: const EdgeInsets.symmetric(horizontal: 14),
-          alignment: Alignment.center,
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(AppRadius.pill),
-            border: Border.all(
-              color: isSelected ? AppColors.primary : AppColors.hairline,
-            ),
-          ),
-          child: Text(
-            label,
-            style: TextStyle(
-              fontFamily: 'Inter',
-              fontSize: 12,
-              fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
-              color: isSelected ? AppColors.onPrimary : AppColors.body,
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildRequiredToggle() {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Text(
-          'Tandai sebagai wajib',
-          style: AppTextStyles.caption.copyWith(
-            fontSize: 14,
-            color: AppColors.ink,
-          ),
-        ),
-        Switch.adaptive(
-          value: _isRequired,
-          activeThumbColor: AppColors.primary,
-          activeTrackColor: AppColors.primary.withValues(alpha: 0.4),
-          onChanged: (val) => setState(() => _isRequired = val),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildNoteField() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'Catatan',
-          style: AppTextStyles.caption.copyWith(color: AppColors.body),
-        ),
-        const SizedBox(height: 6),
-        Container(
-          height: 88,
-          decoration: BoxDecoration(
-            color: AppColors.canvasSubtle,
-            borderRadius: BorderRadius.circular(AppRadius.lg),
-            border: Border.all(color: AppColors.hairline),
-          ),
-          child: TextField(
-            controller: _noteController,
-            maxLines: null,
-            expands: true,
-            textAlignVertical: TextAlignVertical.top,
-            style: const TextStyle(
-              fontFamily: 'Inter',
-              fontSize: 14,
-              color: AppColors.ink,
-            ),
-            decoration: const InputDecoration(
-              contentPadding: EdgeInsets.all(14),
-              border: InputBorder.none,
-              hintText: 'Contoh: Untuk suhu dingin saat sunrise.',
-              hintStyle: TextStyle(
-                fontFamily: 'Inter',
-                fontSize: 14,
-                color: AppColors.body,
-              ),
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildBottomAction() {
-    return Container(
-      padding: const EdgeInsets.only(
-        left: AppSpacing.s4,
-        right: AppSpacing.s4,
-        top: 4,
-        bottom: 32,
-      ),
-      child: DnPrimaryButton(
-        label: 'Tambah item',
-        height: 48,
-        onPressed: _handleSubmit,
-      ),
+        ]))),
+        Padding(padding: const EdgeInsets.all(AppSpacing.s4), child: DnPrimaryButton(label: _submitting ? 'Menyimpan...' : 'Tambah item', onPressed: busy ? null : _handleSubmit)),
+      ])),
     );
   }
 }
+

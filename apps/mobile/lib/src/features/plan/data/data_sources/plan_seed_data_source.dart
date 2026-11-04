@@ -8,8 +8,7 @@ abstract final class PlanSeedData {
     dateRange: '12-14 Jul 2026',
     destinationCount: 3,
     estimatedBudget: 'Rp1.250.000',
-    aiBriefing:
-        'Kondisi kering sepanjang 3 hari, suhu puncak turun sampai 5°C dini hari. Hari 1 naik Prau via Patak Banteng, Hari 2 sunrise Bromo pakai jeep dari Cemoro Lawang, Hari 3 santai di Bukit Moko. Bawa jaket windproof, air 2L, dan headlamp.',
+    aiBriefing: 'Kondisi kering sepanjang 3 hari, suhu puncak turun sampai 5°C dini hari. Hari 1 naik Prau via Patak Banteng, Hari 2 sunrise Bromo pakai jeep dari Cemoro Lawang, Hari 3 santai di Bukit Moko. Bawa jaket windproof, air 2L, dan headlamp.',
     steps: [
       TripStep(
         dayNumber: 1,

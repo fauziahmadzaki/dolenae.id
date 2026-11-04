@@ -31,21 +31,21 @@ class SettingsNotificationsScreen extends StatelessWidget {
               subtitle: 'Saat ada rekomendasi baru untukmu',
               value: prefs.rekomendasi,
               onChanged: (value) =>
-                  store.setNotificationPreference(rekomendasi: value),
+                  persistSettings(context, store.setNotificationPreference(rekomendasi: value)), 
             ),
             SettingsSwitchTile(
               label: 'Pengingat rencana',
               subtitle: 'H-1 dan H-0 sebelum keberangkatan',
               value: prefs.pengingatRencana,
               onChanged: (value) =>
-                  store.setNotificationPreference(pengingatRencana: value),
+                  persistSettings(context, store.setNotificationPreference(pengingatRencana: value)), 
             ),
             SettingsSwitchTile(
               label: 'Pengingat checklist',
               subtitle: 'Saat barang penting belum disiapkan',
               value: prefs.pengingatChecklist,
               onChanged: (value) =>
-                  store.setNotificationPreference(pengingatChecklist: value),
+                  persistSettings(context, store.setNotificationPreference(pengingatChecklist: value)), 
             ),
           ],
         ),
@@ -58,14 +58,14 @@ class SettingsNotificationsScreen extends StatelessWidget {
               subtitle: 'Saat ada homestay atau warung yang diverifikasi',
               value: prefs.fasilitasBaru,
               onChanged: (value) =>
-                  store.setNotificationPreference(fasilitasBaru: value),
+                  persistSettings(context, store.setNotificationPreference(fasilitasBaru: value)), 
             ),
             SettingsSwitchTile(
               label: 'Promo dan penawaran',
               subtitle: 'Kode diskon dari mitra resmi',
               value: prefs.promo,
               onChanged: (value) =>
-                  store.setNotificationPreference(promo: value),
+                  persistSettings(context, store.setNotificationPreference(promo: value)), 
             ),
           ],
         ),

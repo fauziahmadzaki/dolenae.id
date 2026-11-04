@@ -2,7 +2,9 @@
 
 import { useEffect, useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
-import { Loader2, X } from "lucide-react";
+import { Loader2 } from "lucide-react";
+import { Dialog, DialogContent, DialogTitle, DialogDescription } from "~/components/ui/dialog";
+import { Button } from "~/components/ui/button";
 import { useAuth } from "~/features/auth/hooks/use-auth";
 import { Sidebar } from "./sidebar";
 import { Topbar } from "./topbar";
@@ -20,10 +22,10 @@ function ShellLoader() {
  * Admin shell (SCRUM-9): sidebar + topbar + content region.
  * Guards every /admin/* route: unauthenticated users are redirected to
  * /auth/login. On small screens the sidebar becomes a slide-in drawer.
- * TODO: refine to role-based access once the role requirement is confirmed.
+ * The backend independently enforces the admin role on protected endpoints.
  */
 export function AdminShell({ children }: { children: ReactNode }) {
-  const { hydrated, isAuthenticated } = useAuth();
+  const { hydrated, isAuthenticated, user } = useAuth();
   const router = useRouter();
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
 
@@ -32,6 +34,7 @@ export function AdminShell({ children }: { children: ReactNode }) {
   }, [hydrated, isAuthenticated, router]);
 
   if (!hydrated || !isAuthenticated) return <ShellLoader />;
+  if (user?.role !== "admin") return <div className="p-8"><h1 className="font-display text-xl font-bold text-ink">Akses ditolak</h1><p className="mt-2 text-sm text-body">Halaman ini hanya untuk admin.</p><a href="/" className="mt-4 inline-block text-sm text-primary underline">Kembali ke beranda</a></div>;
 
   return (
     <div className="flex h-[100dvh] overflow-hidden bg-canvas">
@@ -41,26 +44,14 @@ export function AdminShell({ children }: { children: ReactNode }) {
       </div>
 
       {/* Mobile drawer */}
-      {mobileNavOpen && (
-        <div className="fixed inset-0 z-40 lg:hidden">
-          <div
-            aria-hidden
-            className="absolute inset-0 bg-ink/40"
-            onClick={() => setMobileNavOpen(false)}
-          />
-          <div className="absolute inset-y-0 left-0 flex">
-            <Sidebar onClose={() => setMobileNavOpen(false)} />
-            <button
-              type="button"
-              aria-label="Tutup menu navigasi"
-              onClick={() => setMobileNavOpen(false)}
-              className="m-2 inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-surface text-body"
-            >
-              <X aria-hidden className="h-5 w-5" />
-            </button>
-          </div>
-        </div>
-      )}
+      <Dialog open={mobileNavOpen} onOpenChange={setMobileNavOpen}>
+        <DialogContent className="left-0 top-0 h-[100dvh] w-64 max-w-full translate-x-0 translate-y-0 gap-0 rounded-none p-0">
+          <DialogTitle className="sr-only">Navigasi admin</DialogTitle>
+          <DialogDescription className="sr-only">Pilih halaman pengelolaan Dolenae.</DialogDescription>
+          <Button variant="secondary" className="m-3 shrink-0" onClick={() => setMobileNavOpen(false)}>Tutup menu navigasi</Button>
+          <div className="min-h-0 flex-1"><Sidebar onClose={() => setMobileNavOpen(false)} /></div>
+        </DialogContent>
+      </Dialog>
 
       <div className="flex min-w-0 flex-1 flex-col">
         <Topbar onMenuClick={() => setMobileNavOpen(true)} />

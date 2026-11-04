@@ -1,5 +1,8 @@
+import { sql } from "drizzle-orm";
 import {
   boolean,
+  bigint,
+  check,
   index,
   integer,
   jsonb,
@@ -221,7 +224,10 @@ export const travelSupports = pgTable(
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },
-  (table) => ({ destinationIdx: index("travel_supports_destination_idx").on(table.destinationId) }),
+  (table) => ({
+    destinationIdx: index("travel_supports_destination_idx").on(table.destinationId),
+    prices: check("travel_supports_prices", sql`${table.priceMin} >= 0 AND ${table.priceMax} >= 0 AND ${table.priceMin} <= ${table.priceMax}`),
+  }),
 );
 
 export type TravelSupportRow = typeof travelSupports.$inferSelect;
@@ -508,3 +514,87 @@ export type RouteStatus = typeof routeSegments.$inferSelect.status;
 export type TrailRouteStatus = typeof trailRoutes.$inferSelect.status;
 export type AiItineraryRow = typeof aiItineraries.$inferSelect;
 export type AppSettingRow = typeof appSettings.$inferSelect;
+
+/** Operational mutations only; append-only history survives deleted targets. */
+export const operationActivity = pgTable("operation_activity", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  actorId: uuid("actor_id").references(() => users.id, { onDelete: "set null" }),
+  action: varchar("action", { length: 80 }).notNull(),
+  targetType: varchar("target_type", { length: 40 }).notNull(),
+  targetId: uuid("target_id").notNull(),
+  targetLabel: varchar("target_label", { length: 160 }).notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+}, (table) => ({ createdIdx: index("operation_activity_created_idx").on(table.createdAt) }));
+export type OperationActivityRow = typeof operationActivity.$inferSelect;
+
+export const facilityProposalStatusEnum = pgEnum("facility_proposal_status", ["menunggu", "terverifikasi", "ditolak"]);
+export const facilityProposals = pgTable("facility_proposals", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  name: varchar("name", { length: 120 }).notNull(),
+  type: supportCategoryEnum("type").notNull(),
+  destinationId: uuid("destination_id").references(() => destinations.id, { onDelete: "set null" }),
+  nearestDestinationName: varchar("nearest_destination_name", { length: 160 }).notNull(),
+  address: text("address").notNull(),
+  note: text("note"),
+  status: facilityProposalStatusEnum("status").notNull().default("menunggu"),
+  reviewNote: text("review_note"),
+  reviewedBy: uuid("reviewed_by").references(() => users.id, { onDelete: "set null" }),
+  reviewedAt: timestamp("reviewed_at", { withTimezone: true }),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+}, (table) => ({
+  userIdx: index("facility_proposals_user_idx").on(table.userId, table.createdAt),
+  statusIdx: index("facility_proposals_status_idx").on(table.status),
+}));
+export type FacilityProposalRow = typeof facilityProposals.$inferSelect;
+export type NewFacilityProposalRow = typeof facilityProposals.$inferInsert;
+
+export const promoDiscountTypeEnum = pgEnum("promo_discount_type", ["percentage", "fixed"]);
+export const promos = pgTable("promos", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  code: varchar("code", { length: 32 }).notNull().unique(),
+  title: varchar("title", { length: 160 }).notNull(),
+  discountType: promoDiscountTypeEnum("discount_type").notNull(),
+  value: integer("value").notNull(),
+  minAmount: integer("min_amount").notNull().default(0),
+  maxDiscount: integer("max_discount"),
+  startsAt: timestamp("starts_at", { withTimezone: true }).notNull(),
+  endsAt: timestamp("ends_at", { withTimezone: true }).notNull(),
+  active: boolean("active").notNull().default(true),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+}, (table) => ({
+  validity: check("promos_validity", sql`${table.startsAt} < ${table.endsAt} AND ${table.value} >= 1 AND (${table.discountType} != 'percentage' OR ${table.value} <= 100) AND ${table.minAmount} >= 0 AND (${table.maxDiscount} IS NULL OR ${table.maxDiscount} >= 0) AND ${table.code} ~ '^[A-Z0-9_-]{3,32}$'`),
+}));
+export type PromoRow = typeof promos.$inferSelect;
+export type NewPromoRow = typeof promos.$inferInsert;
+
+export const dummyPaymentStatusEnum = pgEnum("dummy_payment_status", ["pending", "paid", "cancelled"]);
+// This table intentionally has no provider/webhook credentials. Real payments need a separate adapter/table.
+export const dummyPayments = pgTable("dummy_payments", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  supportId: uuid("support_id").notNull().references(() => travelSupports.id, { onDelete: "restrict" }),
+  supportName: varchar("support_name", { length: 120 }).notNull(),
+  quantity: integer("quantity").notNull(),
+  subtotal: bigint("subtotal", { mode: "number" }).notNull(),
+  discount: bigint("discount", { mode: "number" }).notNull(),
+  total: bigint("total", { mode: "number" }).notNull(),
+  promoId: uuid("promo_id").references(() => promos.id, { onDelete: "set null" }),
+  promoCode: varchar("promo_code", { length: 32 }),
+  status: dummyPaymentStatusEnum("status").notNull().default("pending"),
+  method: varchar("method", { length: 20 }).notNull().default("dummy_qr"),
+  isDummy: boolean("is_dummy").notNull().default(true),
+  qrPayload: varchar("qr_payload", { length: 53 }).notNull(),
+  paidAt: timestamp("paid_at", { withTimezone: true }),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+}, (table) => ({
+  userIdx: index("dummy_payments_user_idx").on(table.userId, table.createdAt),
+  statusIdx: index("dummy_payments_status_idx").on(table.status),
+  amounts: check("dummy_payments_amounts", sql`${table.quantity} BETWEEN 1 AND 100 AND ${table.subtotal} BETWEEN 0 AND 214748364700 AND ${table.discount} BETWEEN 0 AND ${table.subtotal} AND ${table.total} = ${table.subtotal} - ${table.discount}`),
+  simulation: check("dummy_payments_simulation", sql`${table.isDummy} = true AND ${table.method} = 'dummy_qr' AND ${table.qrPayload} = 'DUMMY:' || ${table.id}::text AND ((${table.status} = 'paid' AND ${table.paidAt} IS NOT NULL) OR (${table.status} != 'paid' AND ${table.paidAt} IS NULL))`),
+}));
+export type DummyPaymentRow = typeof dummyPayments.$inferSelect;
+export type NewDummyPaymentRow = typeof dummyPayments.$inferInsert;

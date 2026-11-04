@@ -50,10 +50,18 @@ class TripPlanScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final activePlan = plan ?? context.watch<PlanController>().activePlan;
+    final store = context.watch<PlanController>();
+    final activePlan = plan ?? store.activePlan;
     return Scaffold(
       backgroundColor: AppColors.canvas,
-      appBar: const DnAppBar(title: 'Rencana Perjalanan'),
+      appBar: DnAppBar(
+        title: 'Rencana Perjalanan',
+        trailing: IconButton(
+          tooltip: 'Daftar rencana',
+          icon: const Icon(AppIcons.bookmark),
+          onPressed: () => context.push('/saved/plans'),
+        ),
+      ),
       body: Column(
         children: [
           Expanded(
@@ -62,11 +70,31 @@ class TripPlanScreen extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   const SizedBox(height: AppSpacing.s3),
-                  _buildSummaryCard(context, activePlan),
-                  const SizedBox(height: AppSpacing.s3),
-                  _buildAiBriefingCard(activePlan),
-                  const SizedBox(height: AppSpacing.s4),
-                  _buildStepsSection(context, activePlan),
+                  if (store.isLoading) const LinearProgressIndicator(),
+                  if (store.failure != null) ...[
+                    Text(store.failure!.message),
+                    TextButton(
+                      onPressed: store.load,
+                      child: const Text('Coba lagi'),
+                    ),
+                  ],
+                  if (activePlan == null) ...[
+                    const Padding(
+                      padding: EdgeInsets.all(AppSpacing.s5),
+                      child: Text('Belum ada rencana'),
+                    ),
+                    TextButton(
+                      onPressed: () => context.push('/plan/new'),
+                      child: const Text('Buat rencana'),
+                    ),
+                  ] else ...[
+                    _buildSummaryCard(context, activePlan),
+                    const SizedBox(height: AppSpacing.s3),
+                    if (activePlan.aiBriefing.isNotEmpty)
+                      _buildAiBriefingCard(activePlan),
+                    const SizedBox(height: AppSpacing.s4),
+                    _buildStepsSection(context, activePlan),
+                  ],
                   const SizedBox(height: AppSpacing.s6),
                 ],
               ),
@@ -100,7 +128,9 @@ class TripPlanScreen extends StatelessWidget {
               children: [
                 Text(plan.title, style: AppTextStyles.title),
                 InkWell(
-                  onTap: onEditTrip ?? () => context.push('/plan/new'),
+                  onTap:
+                      onEditTrip ??
+                      () => context.push('/plan/new', extra: plan),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
@@ -248,7 +278,11 @@ class TripPlanScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildStepRow(BuildContext context, TripStep step, {required bool isLast}) {
+  Widget _buildStepRow(
+    BuildContext context,
+    TripStep step, {
+    required bool isLast,
+  }) {
     return IntrinsicHeight(
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -295,7 +329,7 @@ class TripPlanScreen extends StatelessWidget {
                   if (onStepTap != null) {
                     onStepTap!(step);
                   } else {
-                    context.push('/plan/item');
+                    context.push('/plan/item', extra: step);
                   }
                 },
                 child: Container(
@@ -355,7 +389,9 @@ class TripPlanScreen extends StatelessWidget {
                                 ),
                                 decoration: BoxDecoration(
                                   color: AppColors.canvas,
-                                  borderRadius: BorderRadius.circular(AppRadius.sm),
+                                  borderRadius: BorderRadius.circular(
+                                    AppRadius.sm,
+                                  ),
                                   border: Border.all(color: AppColors.hairline),
                                 ),
                                 child: Text(
@@ -440,7 +476,7 @@ class TripPlanScreen extends StatelessWidget {
       borderRadius: BorderRadius.circular(AppRadius.lg),
       child: InkWell(
         borderRadius: BorderRadius.circular(AppRadius.lg),
-        onTap: onAddDestination ?? () => context.push('/plan/create'),
+        onTap: onAddDestination ?? () => context.push('/plan/item/edit'),
         child: Container(
           height: 48,
           alignment: Alignment.center,

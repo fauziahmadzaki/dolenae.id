@@ -33,7 +33,8 @@ import 'package:dolenae_mobile/src/features/routes/data/repositories/route_repos
 import 'package:dolenae_mobile/src/features/routes/domain/repositories/route_repository.dart';
 import 'package:dolenae_mobile/src/features/saved/data/repositories/saved_repository_impl.dart';
 import 'package:dolenae_mobile/src/features/saved/domain/repositories/saved_repository.dart';
-import 'package:dolenae_mobile/src/features/settings/data/data_sources/settings_local_data_source.dart';
+import 'package:dolenae_mobile/src/features/payments/data/repositories/payment_repository_impl.dart';
+import 'package:dolenae_mobile/src/features/payments/domain/repositories/payment_repository.dart';
 import 'package:dolenae_mobile/src/features/settings/data/repositories/settings_repository_impl.dart';
 import 'package:dolenae_mobile/src/features/settings/domain/repositories/settings_repository.dart';
 
@@ -54,6 +55,7 @@ class AppDependencies {
     required this.routeRepository,
     required this.planRepository,
     required this.checklistRepository,
+    required this.paymentRepository,
   });
 
   factory AppDependencies.create({
@@ -81,17 +83,19 @@ class AppDependencies {
         DestinationRemoteDataSource(client),
         DestinationLocalDataSource(database, prefs),
       ),
-      settingsRepository: SettingsRepositoryImpl(
-        local: SettingsLocalDataSource(prefs),
-      ),
-      notificationRepository: NotificationRepositoryImpl(),
-      savedRepository: SavedRepositoryImpl(),
+      settingsRepository: SettingsRepositoryImpl(api: client),
+      notificationRepository: NotificationRepositoryImpl(api: client),
+      savedRepository: SavedRepositoryImpl(api: client),
       aiRepository: AiRepositoryImpl(AiRemoteDataSource(client)),
       exploreRepository: ExploreRepositoryImpl(),
-      facilityRepository: FacilityRepositoryImpl(api: client, preferences: prefs),
+      facilityRepository: FacilityRepositoryImpl(
+        api: client,
+        preferences: prefs,
+      ),
       routeRepository: RouteRepositoryImpl(client),
-      planRepository: const PlanRepositoryImpl(),
-      checklistRepository: ChecklistRepositoryImpl(),
+      planRepository: PlanRepositoryImpl(api: client),
+      checklistRepository: ChecklistRepositoryImpl(api: client),
+      paymentRepository: PaymentRepositoryImpl(api: client),
     );
   }
 
@@ -109,4 +113,5 @@ class AppDependencies {
   final RouteRepository routeRepository;
   final PlanRepository planRepository;
   final ChecklistRepository checklistRepository;
+  final PaymentRepository paymentRepository;
 }

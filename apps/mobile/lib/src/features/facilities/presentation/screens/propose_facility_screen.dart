@@ -2,7 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
-import 'package:dolenae_mobile/src/features/saved/presentation/controllers/saved_controller.dart';
+import 'package:dolenae_mobile/src/core/error/app_failure.dart';
+import 'package:dolenae_mobile/src/features/facilities/presentation/controllers/facilities_controller.dart';
 import 'package:dolenae_mobile/src/app/theme/app_colors.dart';
 import 'package:dolenae_mobile/src/app/theme/app_spacing.dart';
 import 'package:dolenae_mobile/src/app/theme/app_text_styles.dart';
@@ -18,12 +19,13 @@ import 'package:dolenae_mobile/src/shared/widgets/dn_selectable_row.dart';
 /// Layar Usulkan Fasilitas (Node Figma: 86:1562).
 ///
 /// Form pengusulan yang masuk ke antrean tinjauan admin. Setelah dikirim,
-/// usulan disimpan ke [SavedController] lalu pindah ke `/facilities/propose/success`.
+/// konfirmasi hanya ditampilkan setelah API menerima usulan.
 class ProposeFacilityScreen extends StatefulWidget {
   const ProposeFacilityScreen({
     super.key,
     this.initialName = '',
-    this.initialDestinationName = 'Gunung Bromo',
+    this.initialDestinationName = '',
+    this.initialDestinationId,
     this.initialAddress = '',
     this.initialNote = '',
     this.onSubmit,
@@ -32,10 +34,11 @@ class ProposeFacilityScreen extends StatefulWidget {
 
   final String initialName;
   final String initialDestinationName;
+  final String? initialDestinationId;
   final String initialAddress;
   final String initialNote;
 
-  /// Dipanggil dengan usulan yang terkumpul; bila null memakai alur navigasi.
+  /// Dipanggil hanya dengan respons usulan yang berhasil dibuat server.
   final ValueChanged<FacilityProposal>? onSubmit;
   final VoidCallback? onBack;
 
@@ -48,14 +51,18 @@ class _ProposeFacilityScreenState extends State<ProposeFacilityScreen> {
   late String _address = widget.initialAddress;
   late String _note = widget.initialNote;
   late String _destinationName = widget.initialDestinationName;
+  late String? _destinationId = widget.initialDestinationId;
   ProposalType _type = ProposalType.accommodation;
 
   String? _nameError;
   String? _addressError;
 
-  bool get _canSubmit => _name.trim().isNotEmpty && _address.trim().isNotEmpty;
+  bool get _canSubmit =>
+      _name.trim().isNotEmpty &&
+      _address.trim().isNotEmpty &&
+      _destinationName.trim().isNotEmpty;
 
-  void _submit() {
+  Future<void> _submit() async {
     var valid = true;
     setState(() {
       if (_name.trim().isEmpty) {
@@ -73,30 +80,30 @@ class _ProposeFacilityScreenState extends State<ProposeFacilityScreen> {
     });
     if (!valid) return;
 
-    final proposal = FacilityProposal(
-      id: 'prop-${DateTime.now().millisecondsSinceEpoch}',
+    final result = await context.read<FacilitiesController>().submitProposal(
       name: _name.trim(),
       type: _type,
-      nearestDestinationName: _destinationName,
+      destinationId: _destinationId,
+      nearestDestinationName: _destinationName.trim(),
       address: _address.trim(),
       note: _note.trim().isEmpty ? null : _note.trim(),
-      status: ProposalStatus.menunggu,
-      createdAt: DateTime.now(),
     );
-
+    if (!mounted) return;
+    final proposal = result.valueOrNull;
+    if (proposal == null) return;
     final onSubmit = widget.onSubmit;
     if (onSubmit != null) {
       onSubmit(proposal);
-      return;
+    } else {
+      context.push('/facilities/propose/success', extra: proposal);
     }
-
-    context.read<SavedController>().addProposal(proposal);
-    context.push('/facilities/propose/success');
   }
 
   @override
   Widget build(BuildContext context) {
     final destinations = context.watch<DestinationsController>().items;
+    final controller = context.watch<FacilitiesController>();
+    final busy = controller.proposalSubmitting;
     return Scaffold(
       backgroundColor: AppColors.canvas,
       appBar: DnAppBar(
@@ -117,15 +124,36 @@ class _ProposeFacilityScreenState extends State<ProposeFacilityScreen> {
                   AppSpacing.s5,
                 ),
                 children: [
+                  if (controller.proposalFailure case final failure?) ...[
+                    Semantics(
+                      liveRegion: true,
+                      child: Text(
+                        failure.message,
+                        style: AppTextStyles.bodySm.copyWith(
+                          color: AppColors.danger,
+                        ),
+                      ),
+                    ),
+                    if (failure is AuthFailure)
+                      DnOutlineButton(
+                        label: 'Masuk',
+                        onPressed: () => context.push('/login'),
+                      ),
+                    const SizedBox(height: AppSpacing.s4),
+                  ],
                   DnInput(
                     label: 'Nama fasilitas',
                     hint: 'Mis. Homestay Pinggir',
                     value: _name,
                     errorText: _nameError,
+                    enabled: !busy,
                     onChanged: (value) => setState(() => _name = value),
                   ),
                   const SizedBox(height: AppSpacing.s4),
-                  Text('Tipe', style: AppTextStyles.bodySm.copyWith(color: AppColors.ink)),
+                  Text(
+                    'Tipe',
+                    style: AppTextStyles.bodySm.copyWith(color: AppColors.ink),
+                  ),
                   const SizedBox(height: AppSpacing.s2),
                   Wrap(
                     spacing: AppSpacing.s2,
@@ -138,7 +166,7 @@ class _ProposeFacilityScreenState extends State<ProposeFacilityScreen> {
                           ProposalType.food => 'Makanan',
                         },
                         active: _type == type,
-                        onTap: () => setState(() => _type = type),
+                        onTap: busy ? null : () => setState(() => _type = type),
                       );
                     }).toList(),
                   ),
@@ -148,16 +176,33 @@ class _ProposeFacilityScreenState extends State<ProposeFacilityScreen> {
                     style: AppTextStyles.bodySm.copyWith(color: AppColors.ink),
                   ),
                   const SizedBox(height: AppSpacing.s2),
+                  DnInput(
+                    label: 'Nama destinasi terdekat',
+                    hint: 'Tulis destinasi terdekat atau pilih di bawah',
+                    value: _destinationName,
+                    enabled: !busy,
+                    onChanged: (value) => setState(() {
+                      _destinationName = value;
+                      _destinationId = null;
+                    }),
+                  ),
+                  const SizedBox(height: AppSpacing.s2),
                   ...destinations.map(
                     (destination) => Padding(
                       padding: const EdgeInsets.only(bottom: AppSpacing.s2),
                       child: DnSelectableRow(
                         label: destination.name,
-                        subtitle: '${destination.province} · ${destination.regency}',
+                        subtitle:
+                            '${destination.province} · ${destination.regency}',
                         selected: _destinationName == destination.name,
                         leading: AppIcons.mountain,
-                        onTap: () =>
-                            setState(() => _destinationName = destination.name),
+                        onTap: () {
+                          if (busy) return;
+                          setState(() {
+                            _destinationName = destination.name;
+                            _destinationId = destination.id;
+                          });
+                        },
                       ),
                     ),
                   ),
@@ -170,6 +215,7 @@ class _ProposeFacilityScreenState extends State<ProposeFacilityScreen> {
                     maxLines: 2,
                     minLines: 2,
                     prefixIcon: AppIcons.mapPin,
+                    enabled: !busy,
                     onChanged: (value) => setState(() => _address = value),
                   ),
                   const SizedBox(height: AppSpacing.s4),
@@ -177,7 +223,12 @@ class _ProposeFacilityScreenState extends State<ProposeFacilityScreen> {
                     label: 'Tambah foto',
                     icon: AppIcons.camera,
                     height: 48,
-                    onPressed: () {},
+                    onPressed: null,
+                  ),
+                  const SizedBox(height: AppSpacing.s2),
+                  Text(
+                    'Unggah foto belum tersedia.',
+                    style: AppTextStyles.caption,
                   ),
                   const SizedBox(height: AppSpacing.s4),
                   DnInput(
@@ -186,6 +237,7 @@ class _ProposeFacilityScreenState extends State<ProposeFacilityScreen> {
                     value: _note,
                     maxLines: 4,
                     minLines: 3,
+                    enabled: !busy,
                     onChanged: (value) => setState(() => _note = value),
                   ),
                 ],
@@ -203,8 +255,8 @@ class _ProposeFacilityScreenState extends State<ProposeFacilityScreen> {
                 border: Border(top: BorderSide(color: AppColors.hairline)),
               ),
               child: DnPrimaryButton(
-                label: 'Kirim usulan',
-                onPressed: _canSubmit ? _submit : null,
+                label: busy ? 'Mengirim usulan...' : 'Kirim usulan',
+                onPressed: _canSubmit && !busy ? _submit : null,
               ),
             ),
           ],

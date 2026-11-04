@@ -39,8 +39,7 @@ class SavedTripPlan {
   double get progress =>
       destinationTotal > 0 ? destinationCount / destinationTotal : 0.0;
 
-  String get statusLabel =>
-      status == SavedPlanStatus.aktif ? 'Aktif' : 'Arsip';
+  String get statusLabel => status == SavedPlanStatus.aktif ? 'Aktif' : 'Arsip';
 }
 
 /// Checklist tersimpan per destinasi.

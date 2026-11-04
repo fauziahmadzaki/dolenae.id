@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:dolenae_mobile/src/core/result/result.dart';
+import 'package:dolenae_mobile/src/shared/widgets/dn_toast.dart';
+import 'package:dolenae_mobile/src/shared/widgets/dn_empty_state.dart';
 import 'package:provider/provider.dart';
 
 import 'package:dolenae_mobile/src/features/settings/presentation/controllers/settings_controller.dart';
@@ -8,6 +11,13 @@ import 'package:dolenae_mobile/src/app/theme/app_spacing.dart';
 import 'package:dolenae_mobile/src/app/theme/app_text_styles.dart';
 import 'package:dolenae_mobile/src/shared/icons/app_icons.dart';
 import 'package:dolenae_mobile/src/features/settings/presentation/widgets/settings_row.dart';
+
+/// Menampilkan kegagalan hanya setelah penyimpanan selesai.
+Future<void> persistSettings(BuildContext context, Future<Result<void>> request) async {
+  final result = await request;
+  if (!context.mounted || result.isSuccess) return;
+  showDnToast(context, result.failureOrNull!.message, type: DnToastType.gagal);
+}
 
 /// Kartu pengelompokan baris setelan.
 ///
@@ -97,10 +107,7 @@ class SettingsRowTile extends StatelessWidget {
     );
 
     if (onTap == null) return content;
-    return InkWell(
-      onTap: onTap,
-      child: content,
-    );
+    return InkWell(onTap: onTap, child: content);
   }
 }
 
@@ -117,7 +124,7 @@ class SettingsSwitchTile extends StatelessWidget {
   final String label;
   final String? subtitle;
   final bool value;
-  final ValueChanged<bool> onChanged;
+  final ValueChanged<bool>? onChanged;
 
   @override
   Widget build(BuildContext context) {
@@ -126,7 +133,7 @@ class SettingsSwitchTile extends StatelessWidget {
       subtitle: subtitle,
       trailing: Switch(
         value: value,
-        onChanged: onChanged,
+        onChanged: context.watch<SettingsController>().isLoading ? null : onChanged,
         activeThumbColor: AppColors.onPrimary,
         activeTrackColor: AppColors.primary,
         inactiveThumbColor: AppColors.onPrimary,
@@ -161,10 +168,7 @@ class SettingsSummaryCard extends StatelessWidget {
                 Expanded(
                   child: Text(rows[i].label, style: AppTextStyles.bodySm),
                 ),
-                Text(
-                  rows[i].value,
-                  style: AppTextStyles.titleSm,
-                ),
+                Text(rows[i].value, style: AppTextStyles.titleSm),
               ],
             ),
           ],
@@ -187,12 +191,12 @@ class SettingsOptionTile extends StatelessWidget {
   final String label;
   final String? description;
   final bool selected;
-  final VoidCallback onTap;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
     return InkWell(
-      onTap: onTap,
+      onTap: context.watch<SettingsController>().isLoading ? null : onTap,
       child: Padding(
         padding: const EdgeInsets.symmetric(
           horizontal: AppSpacing.s4,
@@ -204,7 +208,10 @@ class SettingsOptionTile extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(label, style: AppTextStyles.body.copyWith(color: AppColors.ink)),
+                  Text(
+                    label,
+                    style: AppTextStyles.body.copyWith(color: AppColors.ink),
+                  ),
                   if (description != null) ...[
                     const SizedBox(height: 2),
                     Text(description!, style: AppTextStyles.caption),
@@ -213,11 +220,7 @@ class SettingsOptionTile extends StatelessWidget {
               ),
             ),
             if (selected)
-              const Icon(
-                AppIcons.check,
-                size: 20,
-                color: AppColors.primary,
-              ),
+              const Icon(AppIcons.check, size: 20, color: AppColors.primary),
           ],
         ),
       ),
@@ -305,9 +308,7 @@ class SettingsAppBar extends StatelessWidget implements PreferredSizeWidget {
         icon: const Icon(Icons.arrow_back, size: 20, color: AppColors.primary),
         onPressed: onBack ?? () => Navigator.of(context).maybePop(),
       ),
-      shape: const Border(
-        bottom: BorderSide(color: AppColors.hairline),
-      ),
+      shape: const Border(bottom: BorderSide(color: AppColors.hairline)),
     );
   }
 }

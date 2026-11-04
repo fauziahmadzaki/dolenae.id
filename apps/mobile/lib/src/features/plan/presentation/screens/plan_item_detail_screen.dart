@@ -25,11 +25,14 @@ class PlanItemDetailScreen extends StatelessWidget {
     this.dayLabel = 'Hari 1',
     this.difficultyLabel = 'Menengah',
     this.isWarningDifficulty = true,
-    this.note = 'Berangkat dini hari untuk sunrise di Penanjakan, lanjut kawah Bromo.',
+    this.note =
+        'Berangkat dini hari untuk sunrise di Penanjakan, lanjut kawah Bromo.',
     this.facilityName = 'Homestay Cemoro Indah',
     this.facilityPrice = 'Rp250.000/malam',
     this.facilityCategory = SupportCategory.penginapan,
     this.onEdit,
+    this.onSelectFacilities,
+    this.onOpenChecklist,
     this.onReorder,
     this.onDelete,
     this.onBack,
@@ -45,6 +48,8 @@ class PlanItemDetailScreen extends StatelessWidget {
   final String facilityPrice;
   final SupportCategory facilityCategory;
   final VoidCallback? onEdit;
+  final VoidCallback? onSelectFacilities;
+  final VoidCallback? onOpenChecklist;
   final VoidCallback? onReorder;
   final VoidCallback? onDelete;
   final VoidCallback? onBack;
@@ -64,15 +69,17 @@ class PlanItemDetailScreen extends StatelessWidget {
       appBar: DnAppBar(
         title: 'Detail item',
         showBack: true,
-        onBack: onBack ?? () {
-          if (context.canPop()) {
-            context.pop();
-          } else {
-            context.go('/plan');
-          }
-        },
+        onBack:
+            onBack ??
+            () {
+              if (context.canPop()) {
+                context.pop();
+              } else {
+                context.go('/plan');
+              }
+            },
         trailing: TextButton(
-          onPressed: onEdit ?? () {},
+          onPressed: onEdit,
           child: Text(
             'Ubah',
             style: const TextStyle(
@@ -96,6 +103,12 @@ class PlanItemDetailScreen extends StatelessWidget {
               const SizedBox(height: AppSpacing.s4),
               _buildFacilitySection(context),
               const SizedBox(height: AppSpacing.s5),
+              if (onOpenChecklist != null)
+                DnOutlineButton(
+                  label: 'Checklist persiapan',
+                  onPressed: onOpenChecklist,
+                ),
+              const SizedBox(height: AppSpacing.s3),
               _buildActions(context),
               const SizedBox(height: AppSpacing.s6),
             ],
@@ -159,7 +172,10 @@ class PlanItemDetailScreen extends StatelessWidget {
           Row(
             children: [
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 4,
+                ),
                 decoration: BoxDecoration(
                   color: AppColors.canvas,
                   borderRadius: BorderRadius.circular(AppRadius.pill),
@@ -175,15 +191,22 @@ class PlanItemDetailScreen extends StatelessWidget {
               ),
               const SizedBox(width: 8),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 4,
+                ),
                 decoration: BoxDecoration(
-                  color: isWarningDifficulty ? const Color(0xFFFBEEDB) : const Color(0xFFE2F0E5),
+                  color: isWarningDifficulty
+                      ? const Color(0xFFFBEEDB)
+                      : const Color(0xFFE2F0E5),
                   borderRadius: BorderRadius.circular(AppRadius.pill),
                 ),
                 child: Text(
                   difficultyLabel,
                   style: AppTextStyles.overline.copyWith(
-                    color: isWarningDifficulty ? AppColors.warning : AppColors.success,
+                    color: isWarningDifficulty
+                        ? AppColors.warning
+                        : AppColors.success,
                     fontWeight: FontWeight.w700,
                   ),
                 ),
@@ -244,7 +267,7 @@ class PlanItemDetailScreen extends StatelessWidget {
           borderRadius: BorderRadius.circular(AppRadius.lg),
           child: InkWell(
             borderRadius: BorderRadius.circular(AppRadius.lg),
-            onTap: () => context.push('/plan/select-facility'),
+            onTap: onSelectFacilities,
             child: Container(
               padding: const EdgeInsets.all(AppSpacing.s3),
               decoration: BoxDecoration(
@@ -275,7 +298,9 @@ class PlanItemDetailScreen extends StatelessWidget {
                         const SizedBox(height: 2),
                         Text(
                           facilityPrice,
-                          style: AppTextStyles.caption.copyWith(color: AppColors.body),
+                          style: AppTextStyles.caption.copyWith(
+                            color: AppColors.body,
+                          ),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                         ),
@@ -304,7 +329,7 @@ class PlanItemDetailScreen extends StatelessWidget {
             label: 'Ubah urutan',
             icon: AppIcons.arrowUpDown,
             height: 48,
-            onPressed: onReorder ?? () {},
+            onPressed: onReorder,
           ),
         ),
         const SizedBox(width: AppSpacing.s3),
@@ -314,11 +339,7 @@ class PlanItemDetailScreen extends StatelessWidget {
             icon: AppIcons.delete,
             height: 48,
             foreground: AppColors.danger,
-            onPressed: onDelete ?? () {
-              if (context.canPop()) {
-                context.pop();
-              }
-            },
+            onPressed: onDelete,
           ),
         ),
       ],

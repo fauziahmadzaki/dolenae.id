@@ -9,7 +9,6 @@ import 'package:dolenae_mobile/src/app/theme/app_text_styles.dart';
 import 'package:dolenae_mobile/src/shared/icons/app_icons.dart';
 import 'package:dolenae_mobile/src/shared/widgets/dn_buttons.dart';
 import 'package:dolenae_mobile/src/shared/widgets/dn_dialog.dart';
-import 'package:dolenae_mobile/src/shared/widgets/dn_toast.dart';
 import 'package:dolenae_mobile/src/features/settings/presentation/widgets/settings_row.dart';
 import 'package:dolenae_mobile/src/features/settings/presentation/widgets/settings_widgets.dart';
 
@@ -35,7 +34,8 @@ class SettingsAccountScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final settings = context.watch<SettingsController>().settings;
+    final store = context.watch<SettingsController>();
+    final settings = store.settings;
 
     return SettingsScaffold(
       title: 'Akun',
@@ -61,16 +61,13 @@ class SettingsAccountScreen extends StatelessWidget {
             SettingsRowTile(
               label: 'Kata sandi',
               icon: AppIcons.lock,
-              value: 'Diperbarui 3 bulan lalu',
-              onTap:
-                  onChangePassword ??
-                  () => context.push('/auth/change-password'),
+              value: onChangePassword == null ? 'Belum tersedia' : null,
+              onTap: onChangePassword,
             ),
             SettingsRowTile(
               label: 'Perangkat aktif',
               icon: AppIcons.smartphone,
-              value: '${settings.activeDevices.length} perangkat',
-              onTap: onOpenDevices,
+              value: 'Belum tersedia',
             ),
           ],
         ),
@@ -82,7 +79,8 @@ class SettingsAccountScreen extends StatelessWidget {
               label: 'Hapus akun',
               icon: AppIcons.delete,
               foreground: AppColors.danger,
-              onTap: () async {
+              value: onDeleteAccount == null ? 'Belum tersedia' : null,
+              onTap: onDeleteAccount == null ? null : () async {
                 final confirmed = await showDnDialog(
                   context,
                   title: 'Hapus akun permanen?',
@@ -94,21 +92,13 @@ class SettingsAccountScreen extends StatelessWidget {
                   icon: AppIcons.delete,
                 );
                 if (confirmed != true || !context.mounted) return;
-                final remove = onDeleteAccount;
-                if (remove != null) {
-                  remove();
-                } else {
-                  showDnToast(
-                    context,
-                    'Permintaan hapus akun dicatat',
-                    type: DnToastType.info,
-                  );
-                }
+                onDeleteAccount!();
               },
             ),
           ],
         ),
-        if (settings.activeDevices.isNotEmpty) ...[
+        if (store.isDemo && settings.activeDevices.isNotEmpty) ...[
+          const Text('Mode demo: perangkat contoh, bukan sesi akun nyata.'),
           const SizedBox(height: AppSpacing.s5),
           Text('PERANGKAT AKTIF', style: AppTextStyles.overline),
           const SizedBox(height: AppSpacing.s2),

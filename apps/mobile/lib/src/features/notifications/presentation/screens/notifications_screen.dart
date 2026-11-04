@@ -15,7 +15,7 @@ import 'package:dolenae_mobile/src/shared/widgets/dn_notification_item.dart';
 ///
 /// Dua grup: hari ini dan sebelumnya. Membuka notifikasi menandainya terbaca;
 /// aksi di AppBar menandai semuanya terbaca sekaligus.
-class NotificationsScreen extends StatelessWidget {
+class NotificationsScreen extends StatefulWidget {
   const NotificationsScreen({
     super.key,
     this.items,
@@ -31,16 +31,31 @@ class NotificationsScreen extends StatelessWidget {
   final VoidCallback? onBack;
 
   @override
+  State<NotificationsScreen> createState() => _NotificationsScreenState();
+}
+
+class _NotificationsScreenState extends State<NotificationsScreen> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted && widget.items == null) {
+        context.read<NotificationsController>().load();
+      }
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
     final store = context.watch<NotificationsController>();
-    final all = items ?? store.notifications;
+    final all = widget.items ?? store.notifications;
     final today = all.where((item) => item.isToday).toList();
     final earlier = all.where((item) => !item.isToday).toList();
     final unread = all.where((item) => !item.read).length;
-    final markAll = onMarkAllRead ?? store.markAllNotificationsRead;
+    final markAll = widget.onMarkAllRead ?? store.markAllNotificationsRead;
 
     void open(AppNotification notification) {
-      final handler = onOpen;
+      final handler = widget.onOpen;
       if (handler != null) {
         handler(notification);
         return;
@@ -60,7 +75,7 @@ class NotificationsScreen extends StatelessWidget {
       appBar: DnAppBar(
         title: 'Notifikasi',
         showBack: true,
-        onBack: onBack ?? () => context.pop(),
+        onBack: widget.onBack ?? () => context.pop(),
         trailing: unread == 0
             ? null
             : TextButton(
@@ -75,14 +90,30 @@ class NotificationsScreen extends StatelessWidget {
       ),
       body: SafeArea(
         top: false,
-        child: all.isEmpty
+        child: Column(children: [
+          if (widget.items == null && store.isLoading)
+            const LinearProgressIndicator(),
+          if (widget.items == null && store.failure != null)
+            Padding(
+              padding: const EdgeInsets.all(AppSpacing.s5),
+              child: DnEmptyState(
+                variant: DnEmptyVariant.gagal,
+                body: store.failure!.message,
+                onAction: store.isLoading ? null : store.load,
+              ),
+            ),
+          Expanded(child: all.isEmpty && widget.items == null &&
+                  (store.isLoading || store.failure != null)
+              ? const SizedBox.shrink()
+              : all.isEmpty
             ? const Padding(
                 padding: EdgeInsets.all(AppSpacing.s5),
                 child: Center(
                   child: DnEmptyState(
                     variant: DnEmptyVariant.belumAdaData,
                     title: 'Belum ada notifikasi',
-                    body: 'Pemberitahuan tentang rencana, checklist, dan '
+                    body:
+                        'Pemberitahuan tentang rencana, checklist, dan '
                         'rekomendasi akan muncul di sini.',
                   ),
                 ),
@@ -128,6 +159,8 @@ class NotificationsScreen extends StatelessWidget {
                   ],
                 ],
               ),
+          ),
+        ]),
       ),
     );
   }

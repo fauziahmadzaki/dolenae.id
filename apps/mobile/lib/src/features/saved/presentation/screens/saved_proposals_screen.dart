@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:dolenae_mobile/src/features/saved/presentation/widgets/saved_content.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
@@ -55,7 +56,10 @@ class SavedProposalsScreen extends StatelessWidget {
       ),
       body: SafeArea(
         top: false,
-        child: proposals.isEmpty
+        child: SavedContent(
+          enabled: items == null,
+          hasData: proposals.isNotEmpty,
+          child: proposals.isEmpty
             ? Padding(
                 padding: const EdgeInsets.all(AppSpacing.s5),
                 child: Center(
@@ -65,14 +69,16 @@ class SavedProposalsScreen extends StatelessWidget {
                       const DnEmptyState(
                         variant: DnEmptyVariant.belumAdaData,
                         title: 'Belum ada usulan',
-                        body: 'Bantu kami menemukan penginapan, warung, atau '
+                        body:
+                            'Bantu kami menemukan penginapan, warung, atau '
                             'transportasi di sekitar destinasi.',
                       ),
                       const SizedBox(height: AppSpacing.s5),
                       DnPrimaryButton(
                         label: 'Usulkan fasilitas',
                         onPressed:
-                            onPropose ?? () => context.push('/facilities/propose'),
+                            onPropose ??
+                            () => context.push('/facilities/propose'),
                       ),
                     ],
                   ),
@@ -168,6 +174,7 @@ class SavedProposalsScreen extends StatelessWidget {
                   );
                 },
               ),
+        ),
       ),
     );
   }

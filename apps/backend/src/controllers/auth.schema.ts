@@ -13,6 +13,9 @@ export const registerSchema = z.object({
   role: z.literal("wisatawan").optional(),
 });
 
+export const updateProfileSchema = registerSchema.pick({ name: true }).strict();
+export type UpdateProfileInput = z.infer<typeof updateProfileSchema>;
+
 export const loginSchema = z.object({
   email: z.string().trim().email("Email tidak valid"),
   password: z.string().min(1, "Password wajib diisi"),

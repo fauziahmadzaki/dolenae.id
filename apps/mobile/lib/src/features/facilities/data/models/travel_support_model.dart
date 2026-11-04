@@ -5,12 +5,22 @@ abstract final class TravelSupportModel {
     String text(String key) => json[key] as String? ?? '';
     String requiredText(String key) {
       final value = text(key);
-      if (value.isEmpty) throw const FormatException('Identitas fasilitas kosong');
+      if (value.isEmpty) {
+        throw const FormatException('Identitas fasilitas kosong');
+      }
       return value;
     }
-    List<String> strings(String key) => (json[key] as List? ?? []).cast<String>();
+
+    List<String> strings(String key) =>
+        (json[key] as List? ?? []).cast<String>();
+    final priceMin = json['priceMin'];
+    if (priceMin != null && (priceMin is! int || priceMin < 0)) {
+      throw const FormatException('Harga fasilitas tidak valid');
+    }
     return TravelSupport(
-      id: requiredText('id'), destinationId: requiredText('destinationId'),
+      priceMin: priceMin as int?,
+      id: requiredText('id'),
+      destinationId: requiredText('destinationId'),
       name: requiredText('name'),
       category: switch (json['category']) {
         'accommodation' => SupportCategory.penginapan,
@@ -18,15 +28,22 @@ abstract final class TravelSupportModel {
         'food' => SupportCategory.makanan,
         _ => throw const FormatException('Kategori fasilitas tidak dikenal'),
       },
-      description: text('description'), locationLabel: text('locationLabel'),
-      priceLabel: text('priceLabel'), capacity: text('capacity'),
-      distanceLabel: text('distanceLabel'), priceUnit: text('priceUnit'),
-      contactPhone: text('contactPhone'), contactWhatsapp: text('contactWhatsapp'),
-      contactInstagram: text('contactInstagram'), imageUrl: text('imageUrl'),
+      description: text('description'),
+      locationLabel: text('locationLabel'),
+      priceLabel: text('priceLabel'),
+      capacity: text('capacity'),
+      distanceLabel: text('distanceLabel'),
+      priceUnit: text('priceUnit'),
+      contactPhone: text('contactPhone'),
+      contactWhatsapp: text('contactWhatsapp'),
+      contactInstagram: text('contactInstagram'),
+      imageUrl: text('imageUrl'),
       relatedDestinationName: text('relatedDestinationName'),
       verified: json['verified'] as bool? ?? false,
       includesDriver: json['includesDriver'] as bool? ?? false,
-      facilities: strings('facilities'), routes: strings('routes'), cuisine: strings('cuisine'),
+      facilities: strings('facilities'),
+      routes: strings('routes'),
+      cuisine: strings('cuisine'),
     );
   }
 }

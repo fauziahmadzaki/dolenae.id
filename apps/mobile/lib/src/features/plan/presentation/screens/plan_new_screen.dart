@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
+import 'package:dolenae_mobile/src/features/plan/domain/entities/trip_plan.dart';
+import 'package:dolenae_mobile/src/features/plan/presentation/controllers/plan_controller.dart';
 
 import 'package:dolenae_mobile/src/app/theme/app_colors.dart';
 import 'package:dolenae_mobile/src/app/theme/app_radius.dart';
@@ -21,17 +23,22 @@ import 'package:dolenae_mobile/src/shared/widgets/dn_stepper.dart';
 class PlanNewScreen extends StatefulWidget {
   const PlanNewScreen({
     super.key,
+    this.plan,
     this.initialName = '',
     this.initialNote = '',
     this.onSubmit,
     this.onBack,
   });
 
+  final TripPlan? plan;
   final String initialName;
   final String initialNote;
 
   /// Dipanggil dengan ringkasan rencana; bila null memakai alur navigasi.
-  final ValueChanged<({String name, String dateRange, int days, int people, int budget})>? onSubmit;
+  final ValueChanged<
+    ({String name, String dateRange, int days, int people, int budget})
+  >?
+  onSubmit;
   final VoidCallback? onBack;
 
   @override
@@ -39,12 +46,18 @@ class PlanNewScreen extends StatefulWidget {
 }
 
 class _PlanNewScreenState extends State<PlanNewScreen> {
-  late String _name = widget.initialName;
-  late String _note = widget.initialNote;
-  late DateTime _startDate = DateTime.now().add(const Duration(days: 14));
-  int _days = 2;
-  int _people = 2;
-  String _budget = '';
+  late String _name = widget.plan?.title ?? widget.initialName;
+  late String _note = widget.plan?.notes ?? widget.initialNote;
+  late DateTime _startDate =
+      DateTime.tryParse(widget.plan?.startDate ?? '') ??
+      DateTime.now().add(const Duration(days: 14));
+  late int _days = widget.plan == null
+      ? 2
+      : DateTime.parse(widget.plan!.endDate).difference(_startDate).inDays + 1;
+  late int _people = widget.plan?.peopleCount ?? 2;
+  late String _budget = widget.plan?.budget?.toString() ?? '';
+  bool _submitting = false;
+  String? _failure;
 
   String? _nameError;
 
@@ -77,7 +90,9 @@ class _PlanNewScreenState extends State<PlanNewScreen> {
     final picked = await showDatePicker(
       context: context,
       initialDate: _startDate,
-      firstDate: DateTime.now(),
+      firstDate: _startDate.isBefore(DateTime.now())
+          ? _startDate
+          : DateTime.now(),
       lastDate: DateTime.now().add(const Duration(days: 365)),
       helpText: 'Pilih tanggal mulai',
       cancelText: 'Batal',
@@ -86,7 +101,7 @@ class _PlanNewScreenState extends State<PlanNewScreen> {
     if (picked != null) setState(() => _startDate = picked);
   }
 
-  void _submit() {
+  void _submit() async {
     if (_name.trim().isEmpty) {
       setState(() => _nameError = 'Isi nama rencana, mis. Trip Bromo 3 hari.');
       return;
@@ -106,17 +121,45 @@ class _PlanNewScreenState extends State<PlanNewScreen> {
       onSubmit(payload);
       return;
     }
-    context.push('/plan/success');
+    if (_submitting) return;
+    setState(() {
+      _submitting = true;
+      _failure = null;
+    });
+    final draft = TripDraft(
+      name: _name.trim(),
+      startDate: _startDate.toIso8601String().substring(0, 10),
+      endDate: _startDate
+          .add(Duration(days: _days - 1))
+          .toIso8601String()
+          .substring(0, 10),
+      peopleCount: _people,
+      budget: int.tryParse(_budget),
+      notes: _note.trim(),
+    );
+    final controller = context.read<PlanController>();
+    final result = widget.plan == null
+        ? await controller.create(draft)
+        : await controller.update(widget.plan!.id, draft);
+    if (!mounted) return;
+    setState(() {
+      _submitting = false;
+      _failure = result.failureOrNull?.message;
+    });
+    if (result.isFailure) return;
+    context.go('/plan');
   }
 
   @override
   Widget build(BuildContext context) {
-    final destinationCount =
-        context.watch<DestinationsController>().items.length;
+    final destinationCount = context
+        .watch<DestinationsController>()
+        .items
+        .length;
     return Scaffold(
       backgroundColor: AppColors.canvas,
       appBar: DnAppBar(
-        title: 'Buat rencana',
+        title: widget.plan == null ? 'Buat rencana' : 'Ubah rencana',
         showBack: true,
         onBack: widget.onBack ?? () => context.pop(),
       ),
@@ -133,6 +176,13 @@ class _PlanNewScreenState extends State<PlanNewScreen> {
                   AppSpacing.s5,
                 ),
                 children: [
+                  if (_failure != null)
+                    Text(
+                      _failure!,
+                      style: AppTextStyles.bodySm.copyWith(
+                        color: AppColors.danger,
+                      ),
+                    ),
                   DnInput(
                     label: 'Nama rencana',
                     hint: 'Mis. Trip Bromo 3 hari',
@@ -163,8 +213,9 @@ class _PlanNewScreenState extends State<PlanNewScreen> {
                             DnStepper(
                               value: _days,
                               min: 1,
-                              max: 30,
-                              onChanged: (value) => setState(() => _days = value),
+                              max: _days > 365 ? _days : 365,
+                              onChanged: (value) =>
+                                  setState(() => _days = value),
                             ),
                           ],
                         ),
@@ -184,7 +235,7 @@ class _PlanNewScreenState extends State<PlanNewScreen> {
                             DnStepper(
                               value: _people,
                               min: 1,
-                              max: 30,
+                              max: 100,
                               onChanged: (value) =>
                                   setState(() => _people = value),
                             ),
@@ -256,7 +307,7 @@ class _PlanNewScreenState extends State<PlanNewScreen> {
               ),
               child: DnPrimaryButton(
                 label: 'Simpan rencana',
-                onPressed: _canSubmit ? _submit : null,
+                onPressed: _canSubmit && !_submitting ? _submit : null,
               ),
             ),
           ],

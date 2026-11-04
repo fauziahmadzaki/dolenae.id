@@ -19,6 +19,7 @@ import 'package:dolenae_mobile/src/features/explore/presentation/controllers/exp
 import 'package:dolenae_mobile/src/features/facilities/presentation/controllers/facilities_controller.dart';
 import 'package:dolenae_mobile/src/features/notifications/presentation/controllers/notifications_controller.dart';
 import 'package:dolenae_mobile/src/features/plan/presentation/controllers/plan_controller.dart';
+import 'package:dolenae_mobile/src/features/payments/presentation/controllers/payment_controller.dart';
 import 'package:dolenae_mobile/src/features/routes/presentation/controllers/routes_controller.dart';
 import 'package:dolenae_mobile/src/features/saved/presentation/controllers/saved_controller.dart';
 import 'package:dolenae_mobile/src/features/settings/presentation/controllers/settings_controller.dart';
@@ -52,6 +53,9 @@ class _DolenaeAppState extends State<DolenaeApp> {
   late final RoutesController _routes;
   late final PlanController _plan;
   late final ChecklistController _checklist;
+  late final PaymentController _payments;
+  String? _personalUserId;
+  bool _sessionInitialized = false;
   late final GoRouter _router;
 
   @override
@@ -81,14 +85,39 @@ class _DolenaeAppState extends State<DolenaeApp> {
     _routes = RoutesController(dependencies.routeRepository);
     _plan = PlanController(dependencies.planRepository);
     _checklist = ChecklistController(dependencies.checklistRepository);
+    _payments = PaymentController(repository: dependencies.paymentRepository);
+    _auth.addListener(_syncSession);
+    _syncSession();
 
     _router = AppRouter.create(_auth);
     // Validate the restored token; a revoked session redirects to /login.
     unawaited(_auth.verifySession());
   }
 
+  void _syncSession() {
+    final userId = _auth.user?.id;
+    widget.dependencies.apiClient.token = _auth.token;
+    if (_sessionInitialized && _personalUserId == userId) return;
+    _sessionInitialized = true;
+    _personalUserId = userId;
+    _plan.setSession(userId);
+    _checklist.setSession(userId);
+    _saved.setSession(userId);
+    _notifications.setSession(userId);
+    _settings.setSession(userId);
+    _payments.clear();
+    _facilities.clearProposalState();
+    if (userId != null) {
+      unawaited(_saved.load());
+      unawaited(_settings.load());
+      unawaited(_notifications.load());
+      unawaited(_plan.load());
+    }
+  }
+
   @override
   void dispose() {
+    _auth.removeListener(_syncSession);
     _router.dispose();
     _destinations.dispose();
     _categories.dispose();
@@ -102,6 +131,7 @@ class _DolenaeAppState extends State<DolenaeApp> {
     _routes.dispose();
     _plan.dispose();
     _checklist.dispose();
+    _payments.dispose();
     widget.dependencies.database.close();
     super.dispose();
   }
@@ -122,6 +152,7 @@ class _DolenaeAppState extends State<DolenaeApp> {
         ChangeNotifierProvider.value(value: _routes),
         ChangeNotifierProvider.value(value: _plan),
         ChangeNotifierProvider.value(value: _checklist),
+        ChangeNotifierProvider.value(value: _payments),
       ],
       child: MaterialApp.router(
         title: 'Dolenae.id',

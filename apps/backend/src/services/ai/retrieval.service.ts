@@ -1,10 +1,8 @@
 import type { Difficulty } from "../../db/schema";
 import { supportRepository } from "../../repositories/support.repository";
-import {
-  destinationService,
-  type PublicDestination,
-} from "../destination.service";
+import type { PublicDestination } from "../destination.service";
 import { routeService } from "../route.service";
+import { loadAiCatalog } from "./catalog.service";
 
 export interface AiPreferenceInput {
   rawText?: string;
@@ -289,14 +287,7 @@ function lexicalScore(destination: PublicDestination, rawText: string): number {
 export const aiRetrieval = {
   async build(input: AiPreferenceInput): Promise<AiContext> {
     const rawText = input.rawText?.trim() ?? "";
-    const list = await destinationService.list({
-      page: 1,
-      limit: 100,
-      sort: "name",
-      order: "asc",
-      status: "published",
-    });
-    const all = list.items;
+    const all = await loadAiCatalog();
     const queryTerms = extractQueryTerms(rawText);
     const haystack = catalogHaystack(all);
     const unmatchedTerms = queryTerms.filter(

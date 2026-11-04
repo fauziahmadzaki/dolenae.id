@@ -271,6 +271,10 @@ class _FakeAuthRepository implements AuthRepository {
   }
 
   @override
+  Future<Result<AuthSession>> updateProfile({required String name}) async =>
+      const Failure(AuthFailure('Profil belum diatur.'));
+
+  @override
   Future<Result<void>> logout() async => const Success(null);
 
   @override

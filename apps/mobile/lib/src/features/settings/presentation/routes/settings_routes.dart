@@ -26,10 +26,7 @@ final List<RouteBase> settingsRoutes = [
     path: '/settings/privacy',
     builder: (_, _) => const SettingsPrivacyScreen(),
   ),
-  GoRoute(
-    path: '/settings/faq',
-    builder: (_, _) => const SettingsFaqScreen(),
-  ),
+  GoRoute(path: '/settings/faq', builder: (_, _) => const SettingsFaqScreen()),
   GoRoute(
     path: '/settings/feedback',
     builder: (_, _) => const SettingsFeedbackScreen(),

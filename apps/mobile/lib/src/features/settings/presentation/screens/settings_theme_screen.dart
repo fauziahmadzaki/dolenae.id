@@ -27,10 +27,11 @@ class SettingsThemeScreen extends StatelessWidget {
     ThemePreference.gelap => 'Segera hadir, token gelap belum tersedia.',
   };
 
-  static String _languageLabel(LanguagePreference language) => switch (language) {
-    LanguagePreference.id => 'Bahasa Indonesia',
-    LanguagePreference.en => 'English',
-  };
+  static String _languageLabel(LanguagePreference language) =>
+      switch (language) {
+        LanguagePreference.id => 'Bahasa Indonesia',
+        LanguagePreference.en => 'English',
+      };
 
   @override
   Widget build(BuildContext context) {
@@ -43,7 +44,8 @@ class SettingsThemeScreen extends StatelessWidget {
       children: [
         SettingsGroup(
           label: 'TEMA APLIKASI',
-          footer: 'Token warna gelap belum tersedia di design system, jadi '
+          footer:
+              'Token warna gelap belum tersedia di design system, jadi '
               'pilihan Gelap tersimpan tetapi belum mengubah tampilan.',
           children: [
             for (final theme in ThemePreference.values)
@@ -51,7 +53,7 @@ class SettingsThemeScreen extends StatelessWidget {
                 label: _themeLabel(theme),
                 description: _themeDescription(theme),
                 selected: settings.theme == theme,
-                onTap: () => store.setTheme(theme),
+                onTap: () => persistSettings(context, store.setTheme(theme)), 
               ),
           ],
         ),
@@ -64,7 +66,7 @@ class SettingsThemeScreen extends StatelessWidget {
               SettingsOptionTile(
                 label: _languageLabel(language),
                 selected: settings.language == language,
-                onTap: () => store.setLanguage(language),
+                onTap: () => persistSettings(context, store.setLanguage(language)), 
               ),
           ],
         ),

@@ -56,6 +56,19 @@ class AuthRemoteDataSource {
     return _userFromJson(user);
   }
 
+  Future<AuthUser> updateProfile({required String name}) async {
+    final body = await _client.patch(
+      '/users/me',
+      body: {'name': name.trim()},
+    );
+    final data = body['data'];
+    final user = data is Map ? data['user'] : null;
+    if (user is! Map) {
+      throw const ApiException('Data pengguna tidak ditemukan.');
+    }
+    return _userFromJson(user.cast<String, dynamic>());
+  }
+
   /// Starts the reset flow and returns the message to show to the user.
   Future<String> forgotPassword({required String email}) async {
     final body = await _client.post(

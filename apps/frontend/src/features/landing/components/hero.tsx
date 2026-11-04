@@ -18,12 +18,15 @@ export function Hero() {
             Indonesia dalam satu tempat.
           </p>
 
-          <form className="flex w-full max-w-lg items-center gap-2 rounded-full border border-hairline bg-surface p-1.5 shadow-sm">
+          <form action="/destinations" className="flex w-full max-w-lg items-center gap-2 rounded-full border border-hairline bg-surface p-1.5 shadow-sm">
             <Search className="ml-3 h-5 w-5 shrink-0 text-body" />
             <input
               aria-label="Cari destinasi"
+              name="search"
+              type="search"
+              maxLength={160}
               placeholder="Mau ke mana?"
-              className="h-10 flex-1 bg-transparent text-sm text-ink outline-none placeholder:text-body"
+              className="h-10 min-w-0 flex-1 bg-transparent text-sm text-ink outline-none placeholder:text-body"
             />
             <Button type="submit" className="h-10">
               Cari destinasi

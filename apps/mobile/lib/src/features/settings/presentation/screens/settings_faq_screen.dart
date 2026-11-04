@@ -19,7 +19,7 @@ import 'package:dolenae_mobile/src/features/settings/presentation/widgets/settin
 /// Layar Bantuan dan FAQ (Node Figma: 81:1222).
 ///
 /// Pencarian di dalam daftar FAQ, filter kategori lewat chip, lalu akordeon
-/// tanya jawab. Data masih dari `SeedData` sampai endpoint bantuan tersedia.
+/// tanya jawab. Data dimuat dari layanan bantuan.
 class SettingsFaqScreen extends StatefulWidget {
   const SettingsFaqScreen({super.key, this.items, this.onBack});
 
@@ -35,6 +35,16 @@ class _SettingsFaqScreenState extends State<SettingsFaqScreen> {
   String _query = '';
   FaqCategory? _category;
 
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted && widget.items == null) {
+        context.read<SettingsController>().loadFaqs();
+      }
+    });
+  }
+
   List<FaqItem> _visibleFrom(List<FaqItem> all) {
     final query = _query.trim().toLowerCase();
     return all.where((item) {
@@ -46,13 +56,22 @@ class _SettingsFaqScreenState extends State<SettingsFaqScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final all = widget.items ?? context.read<SettingsController>().faqs;
+    final store = context.watch<SettingsController>();
+    final all = widget.items ?? store.faqs;
     final visible = _visibleFrom(all);
 
     return SettingsScaffold(
       title: 'Bantuan dan FAQ',
       onBack: widget.onBack ?? () => context.pop(),
       children: [
+        if (widget.items == null && store.isLoading)
+          const LinearProgressIndicator(),
+        if (widget.items == null && store.failure != null)
+          DnEmptyState(
+            variant: DnEmptyVariant.gagal,
+            body: store.failure!.message,
+            onAction: store.isLoading ? null : store.loadFaqs,
+          ),
         DnInput(
           hint: 'Cari pertanyaan',
           value: _query,
@@ -78,12 +97,14 @@ class _SettingsFaqScreenState extends State<SettingsFaqScreen> {
           ],
         ),
         const SizedBox(height: 24),
-        if (visible.isEmpty)
+        if (visible.isEmpty &&
+            (widget.items != null || (!store.isLoading && store.failure == null)))
           const Padding(
             padding: EdgeInsets.symmetric(vertical: 48),
             child: DnEmptyState(
               variant: DnEmptyVariant.tanpaHasil,
-              body: 'Belum ada pertanyaan yang cocok. Coba kata kunci lain '
+              body:
+                  'Belum ada pertanyaan yang cocok. Coba kata kunci lain '
                   'atau hubungi kami lewat Kirim masukan.',
             ),
           )
@@ -109,13 +130,10 @@ class _SettingsFaqScreenState extends State<SettingsFaqScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                'Belum menemukan jawabannya?',
-                style: AppTextStyles.titleSm,
-              ),
+              Text('Belum menemukan jawabannya?', style: AppTextStyles.titleSm),
               const SizedBox(height: AppSpacing.s1),
               Text(
-                'Kirim masukanmu, tim kami membalas dalam 3 hari kerja.',
+                'Kirim masukanmu kepada tim kami.',
                 style: AppTextStyles.bodySm,
               ),
               const SizedBox(height: AppSpacing.s4),

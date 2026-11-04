@@ -1,4 +1,6 @@
 import 'package:flutter/foundation.dart';
+import 'package:dolenae_mobile/src/core/error/app_failure.dart';
+import 'package:dolenae_mobile/src/core/result/result.dart';
 
 import 'package:dolenae_mobile/src/features/destinations/domain/entities/destination.dart';
 import 'package:dolenae_mobile/src/features/facilities/domain/entities/facility_proposal.dart';
@@ -9,6 +11,41 @@ class SavedController extends ChangeNotifier {
   SavedController(this._repository);
 
   final SavedRepository _repository;
+  int _revision = 0;
+  String? _userId;
+  bool _disposed = false;
+  bool isLoading = false;
+  AppFailure? failure;
+  void setSession(String? userId) {
+    if (_disposed || _userId == userId) return;
+    _userId = userId;
+    _revision++;
+    _repository.setSession(userId);
+    isLoading = false;
+    failure = null;
+    notifyListeners();
+  }
+
+  Future<Result<void>> load() => _run(_repository.load);
+  Future<Result<void>> _run(Future<Result<void>> Function() action) async {
+    if (_disposed || isLoading) {
+      return const Failure(ValidationFailure('Tunggu proses sebelumnya selesai.'));
+    }
+    final revision = _revision;
+    isLoading = true;
+    failure = null;
+    notifyListeners();
+    final result = await action();
+    if (_disposed || revision != _revision) {
+      return const Failure(AuthFailure('Sesi berubah.'));
+    }
+    if (revision == _revision) {
+      isLoading = false;
+      failure = result.failureOrNull;
+      notifyListeners();
+    }
+    return result;
+  }
 
   List<SavedDestination> get savedDestinations => _repository.destinations;
 
@@ -22,33 +59,27 @@ class SavedController extends ChangeNotifier {
     return _repository.isDestinationSaved(destinationId);
   }
 
-  void toggleSavedDestination(Destination destination) {
-    _repository.toggleDestination(destination);
-    notifyListeners();
-  }
+  Future<Result<void>> toggleSavedDestination(Destination destination) =>
+      _run(() => _repository.toggleDestination(destination));
 
-  void removeSavedDestination(String destinationId) {
-    _repository.removeDestination(destinationId);
-    notifyListeners();
-  }
+  Future<Result<void>> removeSavedDestination(String destinationId) =>
+      _run(() => _repository.removeDestination(destinationId));
 
-  void removeSavedPlan(String planId) {
-    _repository.removePlan(planId);
-    notifyListeners();
-  }
+  Future<Result<void>> removeSavedPlan(String planId) =>
+      _run(() => _repository.removePlan(planId));
 
-  void archiveSavedPlan(String planId) {
-    _repository.archivePlan(planId);
-    notifyListeners();
-  }
+  Future<Result<void>> archiveSavedPlan(String planId) =>
+      _run(() => _repository.archivePlan(planId));
 
-  void removeSavedChecklist(String checklistId) {
-    _repository.removeChecklist(checklistId);
-    notifyListeners();
-  }
+  Future<Result<void>> removeSavedChecklist(String checklistId) =>
+      _run(() => _repository.removeChecklist(checklistId));
 
-  void addProposal(FacilityProposal proposal) {
-    _repository.addProposal(proposal);
-    notifyListeners();
+  Future<Result<void>> addProposal(FacilityProposal proposal) =>
+      _run(() => _repository.addProposal(proposal));
+  @override
+  void dispose() {
+    _disposed = true;
+    _revision++;
+    super.dispose();
   }
 }

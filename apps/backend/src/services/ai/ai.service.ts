@@ -2,7 +2,7 @@ import { createHash } from "node:crypto";
 import { loadEnv } from "../../config/env";
 import { aiRepository } from "../../repositories/ai.repository";
 import { AppError } from "../../utils/errors";
-import { destinationService } from "../destination.service";
+import { loadAiCatalog } from "./catalog.service";
 import { generateWithGemini } from "./gemini.service";
 import {
   buildDeterministicItinerary,
@@ -49,19 +49,13 @@ export function attachQueryNotice(
 export const aiService = {
   /** Preference options derived from destinations currently in the catalog. */
   async getOptions(): Promise<AiOptions> {
-    const list = await destinationService.list({
-      page: 1,
-      limit: 100,
-      sort: "name",
-      order: "asc",
-      status: "published",
-    });
+    const destinations = await loadAiCatalog();
 
     const regions = new Set<string>();
     const activities = new Set<string>();
     const terrains = new Set<string>();
 
-    for (const destination of list.items) {
+    for (const destination of destinations) {
       if (destination.location.province) {
         regions.add(destination.location.province);
       }

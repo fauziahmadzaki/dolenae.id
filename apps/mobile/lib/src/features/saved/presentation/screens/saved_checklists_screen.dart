@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:dolenae_mobile/src/features/saved/presentation/widgets/saved_content.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
@@ -50,7 +51,10 @@ class SavedChecklistsScreen extends StatelessWidget {
       ),
       body: SafeArea(
         top: false,
-        child: saved.isEmpty
+        child: SavedContent(
+          enabled: items == null,
+          hasData: saved.isNotEmpty,
+          child: saved.isEmpty
             ? Padding(
                 padding: const EdgeInsets.all(AppSpacing.s5),
                 child: Center(
@@ -60,7 +64,8 @@ class SavedChecklistsScreen extends StatelessWidget {
                       const DnEmptyState(
                         variant: DnEmptyVariant.belumAdaData,
                         title: 'Belum ada checklist',
-                        body: 'Susun daftar barang yang perlu dibawa agar '
+                        body:
+                            'Susun daftar barang yang perlu dibawa agar '
                             'tidak ada yang tertinggal.',
                       ),
                       const SizedBox(height: AppSpacing.s5),
@@ -126,7 +131,7 @@ class SavedChecklistsScreen extends StatelessWidget {
                                 color: AppColors.success,
                               ),
                             IconButton(
-                              onPressed: () async {
+                              onPressed: store.isLoading ? null : () async {
                                 final confirmed = await showDnDialog(
                                   context,
                                   title: 'Hapus checklist ini?',
@@ -144,11 +149,12 @@ class SavedChecklistsScreen extends StatelessWidget {
                                   onRemove!(checklist.id);
                                   return;
                                 }
-                                store.removeSavedChecklist(checklist.id);
+                                final result = await store.removeSavedChecklist(checklist.id);
+                                if (!context.mounted) return;
                                 showDnToast(
                                   context,
-                                  '${checklist.name} dihapus',
-                                  type: DnToastType.info,
+                                  result.failureOrNull?.message ?? '${checklist.name} dihapus',
+                                  type: result.isSuccess ? DnToastType.info : DnToastType.gagal,
                                 );
                               },
                               icon: const Icon(
@@ -189,6 +195,7 @@ class SavedChecklistsScreen extends StatelessWidget {
                   );
                 },
               ),
+        ),
       ),
     );
   }

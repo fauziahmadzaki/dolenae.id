@@ -132,10 +132,10 @@ class TestStores {
        categoriesController = CategoriesController(
          categoryRepository ?? const _TestCategoryRepository(),
        )..load(),
-       notifications = NotificationsController(NotificationRepositoryImpl()),
-       saved = SavedController(SavedRepositoryImpl()),
+       notifications = NotificationsController(NotificationRepositoryImpl.demo()),
+       saved = SavedController(SavedRepositoryImpl.demo()),
        ai = AiController(repository: AiRepositoryImpl()),
-       settings = SettingsController(SettingsRepositoryImpl()),
+       settings = SettingsController(SettingsRepositoryImpl.demo()),
        search = ExploreController(ExploreRepositoryImpl()),
        destinations = DestinationsController(
          repository: const _TestDestinationRepository(),
@@ -146,8 +146,8 @@ class TestStores {
          initialSupports: FacilitySeedData.supports,
        ),
        routes = RoutesController(const _TestRouteRepository()),
-       plan = PlanController(const PlanRepositoryImpl()),
-       checklist = ChecklistController(ChecklistRepositoryImpl());
+       plan = PlanController(const PlanRepositoryImpl.demo()),
+       checklist = ChecklistController(ChecklistRepositoryImpl.demo());
 
   final AuthController auth;
   final CategoriesController categoriesController;
@@ -352,6 +352,18 @@ class _TestAuthRepository implements AuthRepository {
   Future<Result<String>> resendVerificationEmail({
     required String email,
   }) async => const Success('Tautan verifikasi sudah dikirim.');
+
+  @override
+  Future<Result<AuthSession>> updateProfile({required String name}) async =>
+      Success(AuthSession(
+        token: _session.token,
+        user: AuthUser(
+          id: _user.id,
+          name: name,
+          email: _user.email,
+          role: _user.role,
+        ),
+      ));
 
   @override
   Future<Result<void>> logout() async => const Success(null);

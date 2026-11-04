@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:dolenae_mobile/src/features/saved/presentation/widgets/saved_content.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
@@ -52,7 +53,10 @@ class SavedPlansScreen extends StatelessWidget {
       ),
       body: SafeArea(
         top: false,
-        child: saved.isEmpty
+        child: SavedContent(
+          enabled: items == null,
+          hasData: saved.isNotEmpty,
+          child: saved.isEmpty
             ? Padding(
                 padding: const EdgeInsets.all(AppSpacing.s5),
                 child: Center(
@@ -62,13 +66,15 @@ class SavedPlansScreen extends StatelessWidget {
                       const DnEmptyState(
                         variant: DnEmptyVariant.belumAdaData,
                         title: 'Belum ada rencana',
-                        body: 'Susun rencana perjalanan supaya mudah '
+                        body:
+                            'Susun rencana perjalanan supaya mudah '
                             'dibawa ke lapangan.',
                       ),
                       const SizedBox(height: AppSpacing.s5),
                       DnPrimaryButton(
                         label: 'Buat rencana',
-                        onPressed: onCreatePlan ?? () => context.push('/plan/new'),
+                        onPressed:
+                            onCreatePlan ?? () => context.push('/plan/new'),
                       ),
                     ],
                   ),
@@ -91,21 +97,21 @@ class SavedPlansScreen extends StatelessWidget {
                   return DnPlanCard(
                     name: plan.name,
                     dateRange: plan.dateRange,
-                    destinationName: '${plan.destinationTotal} destinasi dipilih',
+                    destinationName:
+                        '${plan.destinationTotal} destinasi dipilih',
                     statusLabel: plan.statusLabel,
-                    statusColor:
-                        archived ? AppColors.body : AppColors.success,
+                    statusColor: archived ? AppColors.body : AppColors.success,
                     completed: plan.destinationCount,
                     total: plan.destinationTotal,
                     onTap: onOpenPlan == null
                         ? () => context.go('/plan')
                         : () => onOpenPlan!(plan.id),
-                    onMore: () async {
+                    onMore: store.isLoading ? null : () async {
                       final confirmed = await showDnDialog(
                         context,
                         title: 'Hapus rencana ini?',
                         message:
-                            '${plan.name} beserta daftar.destinasinya akan '
+                            '${plan.name} beserta daftar destinasinya akan '
                             'dihapus dari daftar tersimpan.',
                         type: DnDialogType.destruktif,
                         confirmLabel: 'Hapus',
@@ -116,16 +122,18 @@ class SavedPlansScreen extends StatelessWidget {
                         onRemove!(plan.id);
                         return;
                       }
-                      store.removeSavedPlan(plan.id);
+                      final result = await store.removeSavedPlan(plan.id);
+                      if (!context.mounted) return;
                       showDnToast(
                         context,
-                        '${plan.name} dihapus',
-                        type: DnToastType.info,
+                        result.failureOrNull?.message ?? '${plan.name} dihapus',
+                        type: result.isSuccess ? DnToastType.info : DnToastType.gagal,
                       );
                     },
                   );
                 },
               ),
+        ),
       ),
     );
   }

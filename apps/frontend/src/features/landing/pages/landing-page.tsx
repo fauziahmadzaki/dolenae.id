@@ -5,7 +5,7 @@ import { FilterBar } from "../components/filter-bar";
 import { Hero } from "../components/hero";
 import { HowSection } from "../components/how-section";
 import { Support } from "../components/support";
-import { Testimonials } from "../components/testimonials";
+import { Suspense } from "react";
 import { Trending } from "../components/trending";
 
 export function LandingPage() {
@@ -15,11 +15,11 @@ export function LandingPage() {
       <main>
         <Hero />
         <FilterBar />
-        <Trending />
-        <Support />
+        <Suspense fallback={<p role="status" className="p-6 text-sm text-body">Memuat destinasi…</p>}><Trending /></Suspense>
+        <Suspense fallback={<p role="status" className="p-6 text-sm text-body">Memuat fasilitas…</p>}><Support /></Suspense>
         <AiSection />
         <HowSection />
-        <Testimonials />
+
       </main>
       <SiteFooter />
     </>

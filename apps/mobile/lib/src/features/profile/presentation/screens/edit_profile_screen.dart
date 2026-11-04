@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:provider/provider.dart';
+import 'package:dolenae_mobile/src/features/auth/presentation/controllers/auth_controller.dart';
 
 import 'package:dolenae_mobile/src/app/theme/app_colors.dart';
 import 'package:dolenae_mobile/src/app/theme/app_radius.dart';
@@ -11,16 +13,15 @@ import 'package:dolenae_mobile/src/shared/widgets/dn_buttons.dart';
 
 /// Layar Edit Profil (Node Figma: 81:824).
 ///
-/// Memungkinkan wisatawan memperbarui data diri, kontak,
-/// kota domisili, bio perjalanan, serta mengganti foto profil.
+/// Hanya perubahan nama tersedia; atribut lain ditampilkan nonaktif.
 class EditProfileScreen extends StatefulWidget {
   const EditProfileScreen({
     super.key,
-    this.initialName = 'Dimas',
-    this.initialEmail = 'dimas@dolenae.id',
-    this.initialPhone = '+62 812-3456-7890',
-    this.initialCity = 'Yogyakarta',
-    this.initialBio = 'Suka mendaki gunung dan camping di dataran tinggi.',
+    this.initialName = '',
+    this.initialEmail = '',
+    this.initialPhone = '',
+    this.initialCity = '',
+    this.initialBio = '',
     this.onSave,
     this.onBack,
   });
@@ -64,26 +65,19 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     super.dispose();
   }
 
-  void _saveChanges() {
-    if (_nameController.text.trim().isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Nama tidak boleh kosong'),
-          backgroundColor: AppColors.danger,
-        ),
-      );
-      return;
-    }
-
+  Future<void> _saveChanges() async {
+    final auth = context.read<AuthController>();
+    final token = auth.token;
+    final userId = auth.user?.id;
+    final failure = await auth.updateProfile(_nameController.text);
+    if (!mounted || auth.token != token || auth.user?.id != userId) return;
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+      content: Text(failure?.message ?? 'Perubahan profil berhasil disimpan!'),
+      backgroundColor: failure == null ? AppColors.success : AppColors.danger,
+    ));
+    if (failure != null) return;
     widget.onSave?.call();
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Perubahan profil berhasil disimpan!'),
-        backgroundColor: AppColors.success,
-      ),
-    );
-
+    if (!mounted) return;
     if (context.canPop()) {
       context.pop();
     } else {
@@ -93,20 +87,24 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final auth = context.watch<AuthController>();
+    final canSave = auth.isAuthenticated && !auth.isUpdatingProfile;
     return Scaffold(
       backgroundColor: AppColors.canvas,
       appBar: DnAppBar(
         title: 'Edit profil',
         showBack: true,
-        onBack: widget.onBack ?? () {
-          if (context.canPop()) {
-            context.pop();
-          } else {
-            context.go('/profile');
-          }
-        },
+        onBack:
+            widget.onBack ??
+            () {
+              if (context.canPop()) {
+                context.pop();
+              } else {
+                context.go('/profile');
+              }
+            },
         trailing: TextButton(
-          onPressed: _saveChanges,
+          onPressed: canSave ? _saveChanges : null,
           child: const Text(
             'Simpan',
             style: TextStyle(
@@ -133,6 +131,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                       label: 'Nama',
                       controller: _nameController,
                       hint: 'Nama lengkap Anda',
+                      enabled: canSave,
                     ),
                     const SizedBox(height: 12),
                     _buildField(
@@ -158,9 +157,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                     _buildBioField(),
                     const SizedBox(height: AppSpacing.s5),
                     DnPrimaryButton(
-                      label: 'Simpan perubahan',
+                      label: auth.isUpdatingProfile ? 'Menyimpan...' : 'Simpan perubahan',
                       height: 48,
-                      onPressed: _saveChanges,
+                      onPressed: canSave ? _saveChanges : null,
                     ),
                     const SizedBox(height: AppSpacing.s4),
                   ],
@@ -176,7 +175,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   Widget _buildAvatarBlock(BuildContext context) {
     final initial = _nameController.text.trim().isNotEmpty
         ? _nameController.text.trim()[0].toUpperCase()
-        : 'D';
+        : 'U';
 
     return Column(
       children: [
@@ -197,13 +196,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
           ),
         ),
         const SizedBox(height: 8),
-        InkWell(
-          borderRadius: BorderRadius.circular(AppRadius.sm),
-          onTap: () {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Pilih foto dari galeri atau kamera')),
-            );
-          },
+        const Text('Foto profil: Belum tersedia'),
+        TextButton(
+          onPressed: null,
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
             child: Row(
@@ -232,6 +227,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     required String label,
     required TextEditingController controller,
     required String hint,
+    bool enabled = false,
     TextInputType keyboardType = TextInputType.text,
   }) {
     return Column(
@@ -241,6 +237,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
           label,
           style: AppTextStyles.caption.copyWith(color: AppColors.body),
         ),
+        if (!enabled) const Text('Belum tersedia'),
         const SizedBox(height: 6),
         Container(
           height: 48,
@@ -252,15 +249,19 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
           child: TextField(
             controller: controller,
             keyboardType: keyboardType,
+            enabled: enabled,
             style: const TextStyle(
               fontFamily: 'Inter',
               fontSize: 14,
               color: AppColors.ink,
             ),
             decoration: InputDecoration(
-              contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 14,
+                vertical: 14,
+              ),
               border: InputBorder.none,
-              hintText: hint,
+              hintText: enabled ? hint : 'Belum tersedia',
               hintStyle: const TextStyle(
                 fontFamily: 'Inter',
                 fontSize: 14,
@@ -281,6 +282,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
           'Bio',
           style: AppTextStyles.caption.copyWith(color: AppColors.body),
         ),
+        const Text('Belum tersedia'),
         const SizedBox(height: 6),
         Container(
           height: 100,
@@ -291,6 +293,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
           ),
           child: TextField(
             controller: _bioController,
+            enabled: false,
             maxLines: null,
             expands: true,
             textAlignVertical: TextAlignVertical.top,
@@ -302,7 +305,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
             decoration: const InputDecoration(
               contentPadding: EdgeInsets.all(14),
               border: InputBorder.none,
-              hintText: 'Tulis bio singkat tentang hobi atau pengalaman mendaki Anda',
+              hintText:
+                  'Tulis bio singkat tentang hobi atau pengalaman mendaki Anda',
               hintStyle: TextStyle(
                 fontFamily: 'Inter',
                 fontSize: 14,

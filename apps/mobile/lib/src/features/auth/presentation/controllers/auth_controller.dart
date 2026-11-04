@@ -13,7 +13,8 @@ class AuthController extends ChangeNotifier {
     required AuthRepository repository,
     AuthSession? initialSession,
     String? initialRememberedEmail,
-  }) : _session = initialSession,
+  }) : _repository = repository,
+       _session = initialSession,
        _rememberedEmail = initialRememberedEmail,
        _login = LoginUseCase(repository),
        _register = RegisterUseCase(repository),
@@ -23,6 +24,38 @@ class AuthController extends ChangeNotifier {
        _googleSignIn = GoogleSignInUseCase(repository),
        _resendVerification = ResendVerificationUseCase(repository),
        _writeRememberedEmail = WriteRememberedEmailUseCase(repository);
+
+  final AuthRepository _repository;
+  int _revision = 0;
+  bool _disposed = false;
+  bool isUpdatingProfile = false;
+
+  Future<AppFailure?> updateProfile(String name) async {
+    if (_disposed || _session == null) return const AuthFailure('Sesi tidak ditemukan.');
+    if (isUpdatingProfile) return const ValidationFailure('Tunggu profil selesai disimpan.');
+    final trimmed = name.trim();
+    if (trimmed.length < 2 || trimmed.length > 120) {
+      return const ValidationFailure('Nama harus 2–120 karakter.');
+    }
+    final revision = ++_revision;
+    final session = _session!;
+    isUpdatingProfile = true;
+    notifyListeners();
+    final result = await _repository.updateProfile(name: trimmed);
+    if (!_current(revision)) return const AuthFailure('Sesi berubah. Coba lagi.');
+    isUpdatingProfile = false;
+    if (result case Success(:final value)) {
+      if (value.token != session.token || value.user.id != session.user.id) {
+        notifyListeners();
+        return const AuthFailure('Identitas profil tidak sesuai sesi.');
+      }
+      _session = value;
+    }
+    notifyListeners();
+    return result.failureOrNull;
+  }
+
+  bool _current(int revision) => !_disposed && revision == _revision;
 
   final LoginUseCase _login;
   final RegisterUseCase _register;
@@ -60,8 +93,10 @@ class AuthController extends ChangeNotifier {
     required String email,
     required String password,
   }) async {
+    final revision = ++_revision;
+    isUpdatingProfile = false;
     final result = await _login(LoginParams(email: email, password: password));
-    return _apply(result);
+    return _current(revision) ? _apply(result) : const AuthFailure('Sesi berubah.');
   }
 
   Future<AppFailure?> register({
@@ -69,16 +104,20 @@ class AuthController extends ChangeNotifier {
     required String email,
     required String password,
   }) async {
+    final revision = ++_revision;
+    isUpdatingProfile = false;
     final result = await _register(
       RegisterParams(name: name, email: email, password: password),
     );
-    return _apply(result);
+    return _current(revision) ? _apply(result) : const AuthFailure('Sesi berubah.');
   }
 
   /// Signs in with a Google account and persists the returned session.
   Future<AppFailure?> signInWithGoogle() async {
+    final revision = ++_revision;
+    isUpdatingProfile = false;
     final result = await _googleSignIn(const NoParams());
-    return _apply(result);
+    return _current(revision) ? _apply(result) : const AuthFailure('Sesi berubah.');
   }
 
   /// Remembers (or forgets) the email used on the login form.
@@ -96,9 +135,10 @@ class AuthController extends ChangeNotifier {
   /// Only an auth failure (expired/revoked token) signs the user out. Network
   /// errors are ignored so an offline launch keeps the cached session.
   Future<void> verifySession() async {
-    if (_session == null) return;
-
+    if (_disposed || _session == null || isUpdatingProfile) return;
+    final revision = _revision;
     final result = await _verify(const NoParams());
+    if (!_current(revision)) return;
     switch (result) {
       case Success(:final value):
         _session = value;
@@ -139,11 +179,20 @@ class AuthController extends ChangeNotifier {
   }
 
   Future<AppFailure?> logout() async {
-    final result = await _logout(const NoParams());
+    _revision++;
     _session = null;
+    isUpdatingProfile = false;
     _verificationEmailSent = false;
-    notifyListeners();
+    if (!_disposed) notifyListeners();
+    final result = await _logout(const NoParams());
     return result.failureOrNull;
+  }
+
+  @override
+  void dispose() {
+    _disposed = true;
+    _revision++;
+    super.dispose();
   }
 
   AppFailure? _apply(Result<AuthSession> result) {

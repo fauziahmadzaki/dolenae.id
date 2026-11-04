@@ -10,10 +10,7 @@ final List<RouteBase> savedRoutes = [
     path: '/saved/destinations',
     builder: (_, _) => const SavedDestinationsScreen(),
   ),
-  GoRoute(
-    path: '/saved/plans',
-    builder: (_, _) => const SavedPlansScreen(),
-  ),
+  GoRoute(path: '/saved/plans', builder: (_, _) => const SavedPlansScreen()),
   GoRoute(
     path: '/saved/checklists',
     builder: (_, _) => const SavedChecklistsScreen(),

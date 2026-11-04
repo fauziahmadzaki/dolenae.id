@@ -1,4 +1,7 @@
 import 'package:flutter/foundation.dart';
+import 'package:dolenae_mobile/src/core/error/app_failure.dart';
+import 'package:dolenae_mobile/src/core/result/result.dart';
+import 'package:dolenae_mobile/src/features/settings/domain/entities/feedback.dart';
 
 import 'package:dolenae_mobile/src/features/settings/domain/entities/app_settings.dart';
 import 'package:dolenae_mobile/src/features/settings/domain/entities/faq_item.dart';
@@ -9,27 +12,60 @@ class SettingsController extends ChangeNotifier {
   SettingsController(this._repository);
 
   final SettingsRepository _repository;
+  int _revision = 0;
+  String? _userId;
+  bool _disposed = false;
+  bool isLoading = false;
+  AppFailure? failure;
+  bool get isDemo => _repository.isDemo;
+  void setSession(String? userId) {
+    if (_disposed || _userId == userId) return;
+    _userId = userId;
+    _revision++;
+    _repository.setSession(userId);
+    isLoading = false;
+    failure = null;
+    notifyListeners();
+  }
+
+  Future<Result<void>> load() => _run(_repository.load);
+  Future<Result<void>> loadFaqs() => _run(_repository.loadFaqs);
+  Future<Result<void>> submitFeedback(FeedbackDraft draft) =>
+      _run(() => _repository.submitFeedback(draft));
+  Future<Result<void>> _run(Future<Result<void>> Function() action) async {
+    if (_disposed || isLoading) {
+      return const Failure(ValidationFailure('Tunggu proses sebelumnya selesai.'));
+    }
+    final revision = _revision;
+    isLoading = true;
+    failure = null;
+    notifyListeners();
+    final result = await action();
+    if (_disposed || revision != _revision) {
+      return const Failure(AuthFailure('Sesi berubah.'));
+    }
+    if (revision == _revision) {
+      isLoading = false;
+      failure = result.failureOrNull;
+      notifyListeners();
+    }
+    return result;
+  }
 
   AppSettings get settings => _repository.settings;
 
   List<FaqItem> get faqs => _repository.faqs;
 
-  void setTheme(ThemePreference theme) {
-    _repository.setTheme(theme);
-    notifyListeners();
-  }
+  Future<Result<void>> setTheme(ThemePreference theme) =>
+      _run(() => _repository.setTheme(theme));
 
-  void setLanguage(LanguagePreference language) {
-    _repository.setLanguage(language);
-    notifyListeners();
-  }
+  Future<Result<void>> setLanguage(LanguagePreference language) =>
+      _run(() => _repository.setLanguage(language));
 
-  void setDataSaver(bool enabled) {
-    _repository.setDataSaver(enabled);
-    notifyListeners();
-  }
+  Future<Result<void>> setDataSaver(bool enabled) =>
+      _run(() => _repository.setDataSaver(enabled));
 
-  void setNotificationPreference({
+  Future<Result<void>> setNotificationPreference({
     bool? rekomendasi,
     bool? pengingatRencana,
     bool? pengingatChecklist,
@@ -37,33 +73,41 @@ class SettingsController extends ChangeNotifier {
     bool? promo,
   }) {
     final current = settings.notifications;
-    _repository.setNotificationPreferences(
-      current.copyWith(
-        rekomendasi: rekomendasi,
-        pengingatRencana: pengingatRencana,
-        pengingatChecklist: pengingatChecklist,
-        fasilitasBaru: fasilitasBaru,
-        promo: promo,
+    return _run(
+      () => _repository.setNotificationPreferences(
+        current.copyWith(
+          rekomendasi: rekomendasi,
+          pengingatRencana: pengingatRencana,
+          pengingatChecklist: pengingatChecklist,
+          fasilitasBaru: fasilitasBaru,
+          promo: promo,
+        ),
       ),
     );
-    notifyListeners();
   }
 
-  void setPrivacyPreference({
+  Future<Result<void>> setPrivacyPreference({
     bool? twoFactor,
     bool? profilPublik,
     bool? bagikanAktivitas,
     bool? analitik,
   }) {
     final current = settings.privacy;
-    _repository.setPrivacyPreferences(
-      current.copyWith(
-        twoFactor: twoFactor,
-        profilPublik: profilPublik,
-        bagikanAktivitas: bagikanAktivitas,
-        analitik: analitik,
+    return _run(
+      () => _repository.setPrivacyPreferences(
+        current.copyWith(
+          twoFactor: twoFactor,
+          profilPublik: profilPublik,
+          bagikanAktivitas: bagikanAktivitas,
+          analitik: analitik,
+        ),
       ),
     );
-    notifyListeners();
+  }
+  @override
+  void dispose() {
+    _disposed = true;
+    _revision++;
+    super.dispose();
   }
 }

@@ -9,9 +9,12 @@ import 'package:dolenae_mobile/src/app/theme/app_spacing.dart';
 import 'package:dolenae_mobile/src/app/theme/app_text_styles.dart';
 import 'package:dolenae_mobile/src/features/checklist/domain/entities/checklist_item.dart';
 import 'package:dolenae_mobile/src/features/checklist/presentation/controllers/checklist_controller.dart';
+import 'package:dolenae_mobile/src/features/destinations/domain/entities/destination.dart';
+import 'package:dolenae_mobile/src/features/destinations/presentation/controllers/destinations_controller.dart';
 import 'package:dolenae_mobile/src/shared/icons/app_icons.dart';
 import 'package:dolenae_mobile/src/shared/widgets/dn_app_bar.dart';
 import 'package:dolenae_mobile/src/shared/widgets/dn_buttons.dart';
+import 'package:dolenae_mobile/src/shared/widgets/dn_empty_state.dart';
 
 /// Layar Checklist Persiapan (Node Figma: 68:1036).
 ///
@@ -20,13 +23,15 @@ import 'package:dolenae_mobile/src/shared/widgets/dn_buttons.dart';
 class ChecklistScreen extends StatefulWidget {
   const ChecklistScreen({
     super.key,
-    this.destinationName = 'Gunung Bromo',
+    this.destinationId,
+    this.destinationName = '',
     this.initialItems,
     this.onAddItem,
     this.onMarkReady,
     this.onBack,
   });
 
+  final String? destinationId;
   final String destinationName;
   final List<ChecklistItem>? initialItems;
   final VoidCallback? onAddItem;
@@ -38,22 +43,71 @@ class ChecklistScreen extends StatefulWidget {
 }
 
 class _ChecklistScreenState extends State<ChecklistScreen> {
-  late List<ChecklistItem> _items;
+  late List<ChecklistItem> _previewItems;
+  List<ChecklistItem> get _items => widget.initialItems != null
+      ? _previewItems
+      : context.read<ChecklistController>().items;
+  bool get _hasDestination => RegExp(r'^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$').hasMatch(widget.destinationId ?? '');
   ChecklistCategory? _selectedCategory; // null = Semua
 
   @override
   void initState() {
     super.initState();
-    _items = List.from(
-      widget.initialItems ?? context.read<ChecklistController>().items,
-    );
+    _previewItems = List.of(widget.initialItems ?? const []);
+    _load();
   }
 
-  void _toggleItem(String id) {
+  @override
+  void didUpdateWidget(ChecklistScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.destinationId != widget.destinationId) _load();
+  }
+
+  void _load() {
+    if (widget.initialItems != null || !_hasDestination) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) context.read<ChecklistController>().load(widget.destinationId!);
+    });
+  }
+
+  Future<void> _chooseDestination() async {
+    final selected = await showModalBottomSheet<Destination>(
+      context: context,
+      isScrollControlled: true,
+      builder: (context) => SafeArea(child: SizedBox(
+        height: MediaQuery.sizeOf(context).height * .7,
+        child: Consumer<DestinationsController>(builder: (context, catalog, _) {
+          final destinations = catalog.items.where((d) => RegExp(r'^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$').hasMatch(d.id)).toList();
+          if (catalog.isLoading && destinations.isEmpty) return const Center(child: Text('Memuat destinasi...'));
+          if (destinations.isEmpty) return Padding(
+            padding: const EdgeInsets.all(AppSpacing.s4),
+            child: Center(child: DnEmptyState(
+              variant: catalog.error == null ? DnEmptyVariant.belumAdaData : DnEmptyVariant.gagal,
+              title: 'Destinasi belum tersedia', body: catalog.error ?? 'Muat katalog untuk memilih destinasi.',
+              actionLabel: 'Coba lagi', onAction: catalog.load,
+            )),
+          );
+          return ListView(children: [
+            Padding(padding: const EdgeInsets.all(AppSpacing.s4), child: Text('Pilih destinasi', style: AppTextStyles.title)),
+            for (final destination in destinations)
+              ListTile(title: Text(destination.name), subtitle: Text(destination.locationLabel), onTap: () => Navigator.pop(context, destination)),
+          ]);
+        }),
+      )),
+    );
+    if (!mounted || selected == null) return;
+    context.go(Uri(path: '/checklist', queryParameters: {
+      'destinationId': selected.id, 'destinationName': selected.name,
+    }).toString());
+  }
+
+  Future<void> _toggleItem(String id) async {
     if (widget.initialItems != null) {
       setState(() {
-        _items = _items.map((item) {
-          if (item.id == id) return item.copyWith(isCompleted: !item.isCompleted);
+        _previewItems = _items.map((item) {
+          if (item.id == id) {
+            return item.copyWith(isCompleted: !item.isCompleted);
+          }
           return item;
         }).toList();
       });
@@ -61,8 +115,7 @@ class _ChecklistScreenState extends State<ChecklistScreen> {
     }
 
     final controller = context.read<ChecklistController>();
-    controller.toggleItem(id);
-    setState(() => _items = List.of(controller.items));
+    await controller.toggleItem(id);
   }
 
   int get _completedCount => _items.where((i) => i.isCompleted).length;
@@ -71,6 +124,9 @@ class _ChecklistScreenState extends State<ChecklistScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final controller = widget.initialItems == null
+        ? context.watch<ChecklistController>()
+        : null;
     final filteredItems = _selectedCategory == null
         ? _items
         : _items.where((i) => i.category == _selectedCategory).toList();
@@ -86,16 +142,28 @@ class _ChecklistScreenState extends State<ChecklistScreen> {
       appBar: DnAppBar(
         title: 'Checklist Persiapan',
         showBack: true,
-        onBack: widget.onBack ?? () {
-          if (context.canPop()) {
-            context.pop();
-          } else {
-            context.go('/plan');
-          }
-        },
+        onBack:
+            widget.onBack ??
+            () {
+              if (context.canPop()) {
+                context.pop();
+              } else {
+                context.go('/plan');
+              }
+            },
       ),
       body: SafeArea(
-        child: Column(
+        child: widget.initialItems == null && !_hasDestination
+            ? Center(child: Padding(
+                padding: const EdgeInsets.all(AppSpacing.s4),
+                child: DnEmptyState(variant: DnEmptyVariant.belumAdaData,
+                  title: 'Pilih destinasi terlebih dahulu',
+                  body: 'Checklist disimpan untuk destinasi pilihanmu.',
+                  actionLabel: 'Pilih destinasi', onAction: _chooseDestination),
+              ))
+            : controller?.isLoading == true
+            ? const Center(child: Text('Memuat checklist...'))
+            : Column(
           children: [
             Expanded(
               child: SingleChildScrollView(
@@ -103,10 +171,24 @@ class _ChecklistScreenState extends State<ChecklistScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    if (controller?.failure != null) ...[
+                      DnEmptyState(
+                        variant: DnEmptyVariant.gagal,
+                        body: controller!.failure!.message,
+                        onAction: _load,
+                      ),
+                      const SizedBox(height: AppSpacing.s4),
+                    ],
                     _buildProgressCard(),
                     const SizedBox(height: AppSpacing.s4),
                     _buildCategoryFilterTabs(),
                     const SizedBox(height: AppSpacing.s4),
+                    if (_items.isEmpty && controller?.failure == null)
+                      const DnEmptyState(
+                        variant: DnEmptyVariant.belumAdaData,
+                        title: 'Belum ada item checklist',
+                        body: 'Tambahkan kebutuhan perjalananmu.',
+                      ),
                     for (final entry in grouped.entries) ...[
                       _buildCategoryGroup(entry.key, entry.value),
                       const SizedBox(height: AppSpacing.s4),
@@ -163,7 +245,9 @@ class _ChecklistScreenState extends State<ChecklistScreen> {
               value: _progress,
               minHeight: 8,
               backgroundColor: AppColors.canvas,
-              valueColor: const AlwaysStoppedAnimation<Color>(AppColors.primary),
+              valueColor: const AlwaysStoppedAnimation<Color>(
+                AppColors.primary,
+              ),
             ),
           ),
           const SizedBox(height: 8),
@@ -190,19 +274,24 @@ class _ChecklistScreenState extends State<ChecklistScreen> {
           _buildFilterChip(
             label: 'Perlengkapan',
             isSelected: _selectedCategory == ChecklistCategory.perlengkapan,
-            onTap: () => setState(() => _selectedCategory = ChecklistCategory.perlengkapan),
+            onTap: () => setState(
+              () => _selectedCategory = ChecklistCategory.perlengkapan,
+            ),
           ),
           const SizedBox(width: 8),
           _buildFilterChip(
             label: 'Kesehatan',
             isSelected: _selectedCategory == ChecklistCategory.kesehatan,
-            onTap: () => setState(() => _selectedCategory = ChecklistCategory.kesehatan),
+            onTap: () =>
+                setState(() => _selectedCategory = ChecklistCategory.kesehatan),
           ),
           const SizedBox(width: 8),
           _buildFilterChip(
             label: 'Konservasi',
             isSelected: _selectedCategory == ChecklistCategory.konservasi,
-            onTap: () => setState(() => _selectedCategory = ChecklistCategory.konservasi),
+            onTap: () => setState(
+              () => _selectedCategory = ChecklistCategory.konservasi,
+            ),
           ),
         ],
       ),
@@ -242,7 +331,10 @@ class _ChecklistScreenState extends State<ChecklistScreen> {
     );
   }
 
-  Widget _buildCategoryGroup(ChecklistCategory category, List<ChecklistItem> items) {
+  Widget _buildCategoryGroup(
+    ChecklistCategory category,
+    List<ChecklistItem> items,
+  ) {
     final title = switch (category) {
       ChecklistCategory.perlengkapan => 'PERLENGKAPAN',
       ChecklistCategory.kesehatan => 'KESEHATAN',
@@ -283,7 +375,10 @@ class _ChecklistScreenState extends State<ChecklistScreen> {
 
   Widget _buildItemRow(ChecklistItem item) {
     return InkWell(
-      onTap: () => _toggleItem(item.id),
+      onTap: widget.initialItems == null &&
+              context.read<ChecklistController>().isMutating
+          ? null
+          : () => _toggleItem(item.id),
       child: Padding(
         padding: const EdgeInsets.all(AppSpacing.s3),
         child: Row(
@@ -294,9 +389,13 @@ class _ChecklistScreenState extends State<ChecklistScreen> {
               height: 22,
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(6),
-                color: item.isCompleted ? AppColors.primary : Colors.transparent,
+                color: item.isCompleted
+                    ? AppColors.primary
+                    : Colors.transparent,
                 border: Border.all(
-                  color: item.isCompleted ? AppColors.primary : AppColors.borderStrong,
+                  color: item.isCompleted
+                      ? AppColors.primary
+                      : AppColors.borderStrong,
                   width: 1.5,
                 ),
               ),
@@ -340,7 +439,9 @@ class _ChecklistScreenState extends State<ChecklistScreen> {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
               decoration: BoxDecoration(
-                color: item.isRequired ? const Color(0xFFFBEEDB) : AppColors.canvas,
+                color: item.isRequired
+                    ? const Color(0xFFFBEEDB)
+                    : AppColors.canvas,
                 borderRadius: BorderRadius.circular(AppRadius.pill),
                 border: Border.all(color: AppColors.hairline),
               ),
@@ -365,7 +466,13 @@ class _ChecklistScreenState extends State<ChecklistScreen> {
       borderRadius: BorderRadius.circular(AppRadius.lg),
       child: InkWell(
         borderRadius: BorderRadius.circular(AppRadius.lg),
-        onTap: widget.onAddItem ?? () => context.push('/checklist/add'),
+        onTap: widget.onAddItem ?? () => context.push(Uri(
+          path: '/checklist/add',
+          queryParameters: {
+            if (widget.destinationId != null) 'destinationId': widget.destinationId!,
+            if (widget.destinationName.isNotEmpty) 'destinationName': widget.destinationName,
+          },
+        ).toString()),
         child: Container(
           height: 48,
           alignment: Alignment.center,
@@ -397,22 +504,22 @@ class _ChecklistScreenState extends State<ChecklistScreen> {
       padding: const EdgeInsets.all(AppSpacing.s4),
       decoration: const BoxDecoration(
         color: AppColors.canvas,
-        border: Border(
-          top: BorderSide(color: AppColors.hairline),
-        ),
+        border: Border(top: BorderSide(color: AppColors.hairline)),
       ),
       child: DnPrimaryButton(
         label: 'Tandai siap',
         icon: AppIcons.squareCheck,
         height: 48,
-        onPressed: widget.onMarkReady ?? () {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Kesiapan checklist tersimpan!'),
-              backgroundColor: AppColors.success,
-            ),
-          );
-        },
+        onPressed: _totalCount == 0 || _completedCount != _totalCount ||
+                (widget.initialItems == null && context.read<ChecklistController>().isMutating)
+            ? null
+            : widget.onMarkReady ??
+            () {
+              context.push(Uri(path: '/checklist/done', queryParameters: {
+                if (widget.destinationId != null) 'destinationId': widget.destinationId!,
+                if (widget.destinationName.isNotEmpty) 'destinationName': widget.destinationName,
+              }).toString());
+            },
       ),
     );
   }

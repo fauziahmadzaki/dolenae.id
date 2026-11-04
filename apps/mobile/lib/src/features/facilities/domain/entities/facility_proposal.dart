@@ -15,6 +15,10 @@ class FacilityProposal {
     required this.status,
     required this.createdAt,
     this.note,
+    this.destinationId,
+    this.userId,
+    this.reviewNote,
+    this.updatedAt,
   });
 
   final String id;
@@ -23,6 +27,10 @@ class FacilityProposal {
   final String nearestDestinationName;
   final String address;
   final String? note;
+  final String? destinationId;
+  final String? userId;
+  final String? reviewNote;
+  final DateTime? updatedAt;
   final ProposalStatus status;
   final DateTime createdAt;
 

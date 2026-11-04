@@ -8,6 +8,9 @@ import {
   LayoutDashboard,
   LogOut,
   Mountain,
+  Bed,
+  Tag,
+  CreditCard,
   Settings,
   Store,
   Users,
@@ -22,14 +25,16 @@ interface NavItem {
   label: string;
   href: string;
   icon: LucideIcon;
-  /** Optional count pill (e.g. pending verifications). TODO: bind to API. */
-  badge?: string;
+
 }
 
 const NAV_MAIN: NavItem[] = [
   { label: "Dashboard", href: "/admin", icon: LayoutDashboard },
   { label: "Destinasi", href: "/admin/destinasi", icon: Mountain },
-  { label: "Verifikasi", href: "/admin/verifikasi", icon: BadgeCheck, badge: "7" },
+  { label: "Fasilitas", href: "/admin/fasilitas", icon: Bed },
+  { label: "Verifikasi", href: "/admin/verifikasi", icon: BadgeCheck },
+  { label: "Promo", href: "/admin/promo", icon: Tag },
+  { label: "Pembayaran dummy", href: "/admin/pembayaran", icon: CreditCard },
   { label: "Merchant", href: "/admin/merchant", icon: Store },
   { label: "Konten", href: "/admin/konten", icon: FileText },
 ];
@@ -70,11 +75,7 @@ function NavList({ items, onClose }: { items: NavItem[]; onClose?: () => void })
           >
             <Icon aria-hidden className="h-4 w-4 shrink-0" strokeWidth={2} />
             <span className="flex-1 truncate">{item.label}</span>
-            {item.badge && (
-              <span className="inline-flex min-w-[23px] items-center justify-center rounded-full bg-accent px-1.5 py-0.5 text-[11px] font-semibold text-on-accent">
-                {item.badge}
-              </span>
-            )}
+
           </Link>
         );
       })}
@@ -96,7 +97,7 @@ export function Sidebar({ onClose }: SidebarProps) {
   };
 
   return (
-    <aside className="flex h-full w-64 flex-col border-r border-hairline bg-surface px-4 py-4">
+    <aside className="flex h-full w-64 flex-col overflow-y-auto border-r border-hairline bg-surface px-4 py-4">
       <div className="flex items-center gap-2.5">
         <BrandMark size={32} />
         <span className="text-[18px] font-bold text-ink">Dolenae.id</span>

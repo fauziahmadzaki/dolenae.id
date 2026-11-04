@@ -1,13 +1,19 @@
 "use client";
 
 import { usePathname } from "next/navigation";
-import { Bell, Menu, Search } from "lucide-react";
+import { Menu } from "lucide-react";
 import { useAuth } from "~/features/auth/hooks/use-auth";
 import { UserAvatar } from "./user-avatar";
 
 /** Page meta rendered in the topbar left — extend as admin pages are added. */
 const PAGE_META: Record<string, { breadcrumb: string; title: string }> = {
   "/admin": { breadcrumb: "Admin / Dashboard", title: "Ringkasan platform" },
+  "/admin/fasilitas": { breadcrumb: "Admin / Fasilitas", title: "Fasilitas sekitar" },
+  "/admin/verifikasi": { breadcrumb: "Admin / Verifikasi", title: "Usulan fasilitas" },
+  "/admin/promo": { breadcrumb: "Admin / Promo", title: "Kode promo" },
+  "/admin/pembayaran": { breadcrumb: "Admin / Pembayaran", title: "Pembayaran dummy / simulasi" },
+  "/admin/merchant": { breadcrumb: "Admin / Merchant", title: "Akun merchant" },
+  "/admin/konten": { breadcrumb: "Admin / Konten", title: "FAQ & masukan" },
   "/admin/destinasi": {
     breadcrumb: "Admin / Destinasi",
     title: "Destinasi & kategori",
@@ -21,6 +27,7 @@ const PAGE_META: Record<string, { breadcrumb: string; title: string }> = {
 function pageMeta(pathname: string): { breadcrumb: string; title: string } {
   const exact = PAGE_META[pathname];
   if (exact) return exact;
+  if (pathname.startsWith("/admin/pembayaran/")) return { breadcrumb: "Admin / Pembayaran / Detail", title: "Detail pembayaran dummy" };
   const segment = pathname.split("/").filter(Boolean).at(-1) ?? "admin";
   const pretty = segment.charAt(0).toUpperCase() + segment.slice(1);
   return { breadcrumb: `Admin / ${pretty}`, title: pretty };
@@ -55,24 +62,6 @@ export function Topbar({ onMenuClick }: TopbarProps) {
       </div>
 
       <div className="flex shrink-0 items-center gap-3">
-        <label className="relative hidden h-9 w-60 items-center gap-2 rounded-lg bg-surface-2 px-3 md:flex">
-          <Search aria-hidden className="h-4 w-4 shrink-0 text-body" />
-          <span className="sr-only">Cari pengguna, destinasi</span>
-          {/* TODO(SCRUM+): wire global admin search. */}
-          <input
-            type="search"
-            placeholder="Cari pengguna, destinasi"
-            className="w-full bg-transparent text-[13px] text-ink placeholder:text-body focus:outline-none"
-          />
-        </label>
-
-        <button
-          type="button"
-          aria-label="Notifikasi"
-          className="inline-flex h-9 w-9 items-center justify-center rounded-lg bg-surface-2 text-body transition-colors hover:text-ink"
-        >
-          <Bell aria-hidden className="h-[18px] w-[18px]" />
-        </button>
 
         <UserAvatar name={user?.name ?? "Admin Dolenae"} />
       </div>

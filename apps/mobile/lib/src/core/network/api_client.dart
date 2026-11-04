@@ -66,6 +66,25 @@ class ApiClient {
     );
   }
 
+  Future<Map<String, dynamic>> patch(
+    String path, {
+    Object? body,
+    Duration? timeout,
+  }) => _send(
+    () => _http.patch(
+      _uri(path),
+      headers: _headers(),
+      body: body == null ? null : jsonEncode(body),
+    ),
+    timeout: timeout,
+  );
+
+  Future<Map<String, dynamic>> delete(String path, {Duration? timeout}) =>
+      _send(
+        () => _http.delete(_uri(path), headers: _headers()),
+        timeout: timeout,
+      );
+
   Map<String, String> _headers() => {
     'Accept': 'application/json',
     'Content-Type': 'application/json',

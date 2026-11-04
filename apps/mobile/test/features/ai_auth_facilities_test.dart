@@ -14,6 +14,15 @@ import 'package:dolenae_mobile/src/features/facilities/presentation/screens/prop
 import 'package:dolenae_mobile/src/features/facilities/presentation/screens/propose_facility_screen.dart';
 import 'package:dolenae_mobile/src/shared/widgets/dn_otp_input.dart';
 import 'package:flutter/material.dart';
+
+import 'dart:convert';
+
+import 'package:http/http.dart' as http;
+import 'package:http/testing.dart';
+import 'package:provider/provider.dart';
+import 'package:dolenae_mobile/src/core/network/api_client.dart';
+import 'package:dolenae_mobile/src/features/facilities/data/repositories/facility_repository_impl.dart';
+import 'package:dolenae_mobile/src/features/facilities/presentation/controllers/facilities_controller.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../helpers/test_harness.dart';
@@ -104,10 +113,7 @@ void main() {
 
       expect(find.text('Hasil rekomendasi'), findsOneWidget);
       expect(find.text('PROMPTMU'), findsOneWidget);
-      expect(
-        find.text(AiSeedData.demoResult.summary),
-        findsOneWidget,
-      );
+      expect(find.text(AiSeedData.demoResult.summary), findsOneWidget);
       expect(find.text('RINGKASAN AI'), findsOneWidget);
       expect(find.text('Skor 92'), findsOneWidget);
       expect(find.text('Lihat detail'), findsWidgets);
@@ -121,22 +127,15 @@ void main() {
       tester,
     ) async {
       await usePhone(tester);
-      await tester.pumpWidget(
-        wrapScreen(AiResultsScreen(onAskAgain: () {})),
-      );
+      await tester.pumpWidget(wrapScreen(AiResultsScreen(onAskAgain: () {})));
       await tester.pumpAndSettle();
 
-      expect(
-        find.textContaining('Belum ada rekomendasi'),
-        findsOneWidget,
-      );
+      expect(find.textContaining('Belum ada rekomendasi'), findsOneWidget);
       expect(find.text('Isi preferensi'), findsOneWidget);
       expect(find.text('Coba lagi'), findsOneWidget);
     });
 
-    testWidgets('tanpa aksi coba lagi tombolnya disembunyikan', (
-      tester,
-    ) async {
+    testWidgets('tanpa aksi coba lagi tombolnya disembunyikan', (tester) async {
       await usePhone(tester);
       await tester.pumpWidget(wrapScreen(const AiResultsScreen()));
       await tester.pumpAndSettle();
@@ -181,10 +180,7 @@ void main() {
       await tester.tap(find.text('Lihat detail').first);
       await tester.pump();
       expect(viewed, hasLength(1));
-      expect(
-        viewed.single,
-        AiSeedData.demoResult.items.first.destination.id,
-      );
+      expect(viewed.single, AiSeedData.demoResult.items.first.destination.id);
       expect(retried, 0);
     });
   });
@@ -208,10 +204,7 @@ void main() {
       final cta = find.widgetWithText(FilledButton, 'Kirim tautan');
       expect(tester.widget<FilledButton>(cta).onPressed, isNull);
 
-      await tester.enterText(
-        find.byType(TextField).first,
-        'dimas@mail.com',
-      );
+      await tester.enterText(find.byType(TextField).first, 'dimas@mail.com');
       await tester.pumpAndSettle();
       expect(tester.widget<FilledButton>(cta).onPressed, isNotNull);
     });
@@ -224,10 +217,7 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      await tester.enterText(
-        find.byType(TextField).first,
-        'dimas@mail.com',
-      );
+      await tester.enterText(find.byType(TextField).first, 'dimas@mail.com');
       await tester.pumpAndSettle();
       await tester.tap(find.widgetWithText(FilledButton, 'Kirim tautan'));
       await tester.pumpAndSettle();
@@ -237,7 +227,9 @@ void main() {
   });
 
   group('Layar OTP', () {
-    testWidgets('menampilkan email tersamar dan enam kotak kode', (tester) async {
+    testWidgets('menampilkan email tersamar dan enam kotak kode', (
+      tester,
+    ) async {
       await usePhone(tester);
       await tester.pumpWidget(wrapScreen(const OtpScreen()));
       await tester.pumpAndSettle();
@@ -268,9 +260,7 @@ void main() {
       await usePhone(tester);
       var resent = 0;
       await tester.pumpWidget(
-        wrapScreen(
-          OtpScreen(resendSeconds: 0, onResend: () => resent++),
-        ),
+        wrapScreen(OtpScreen(resendSeconds: 0, onResend: () => resent++)),
       );
       await tester.pumpAndSettle();
 
@@ -394,8 +384,9 @@ void main() {
       await tester.tap(find.text('Transport'));
       await tester.pumpAndSettle();
 
-      final transport = FacilitySeedData.supports
-          .where((item) => item.category == SupportCategory.transportasi);
+      final transport = FacilitySeedData.supports.where(
+        (item) => item.category == SupportCategory.transportasi,
+      );
       expect(transport, isNotEmpty);
     });
 
@@ -413,30 +404,34 @@ void main() {
       expect(proposed, 1);
     });
 
-    testWidgets('filter kombinasi yang tidak ada hasil memunculkan empty state',
-        (tester) async {
-      await usePhone(tester);
-      await tester.pumpWidget(wrapScreen(const FacilitiesScreen()));
-      await tester.pumpAndSettle();
+    testWidgets(
+      'filter kombinasi yang tidak ada hasil memunculkan empty state',
+      (tester) async {
+        await usePhone(tester);
+        await tester.pumpWidget(wrapScreen(const FacilitiesScreen()));
+        await tester.pumpAndSettle();
 
-      await tester.tap(find.text('Transport'));
-      await tester.pumpAndSettle();
-      await tester.tap(find.text('Ekonomis'));
-      await tester.pumpAndSettle();
+        await tester.tap(find.text('Transport'));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('Ekonomis'));
+        await tester.pumpAndSettle();
 
-      await scrollTo(
-        tester,
-        find.textContaining('Tidak ada fasilitas di sekitar'),
-      );
-      expect(
-        find.textContaining('Tidak ada fasilitas di sekitar'),
-        findsOneWidget,
-      );
-    });
+        await scrollTo(
+          tester,
+          find.textContaining('Tidak ada fasilitas di sekitar'),
+        );
+        expect(
+          find.textContaining('Tidak ada fasilitas di sekitar'),
+          findsOneWidget,
+        );
+      },
+    );
   });
 
   group('Layar Detail Fasilitas', () {
-    testWidgets('menampilkan tentang, kontak, dan destinasi terkait', (tester) async {
+    testWidgets('menampilkan tentang, kontak, dan destinasi terkait', (
+      tester,
+    ) async {
       await usePhone(tester);
       await tester.pumpWidget(wrapScreen(const FacilityDetailScreen()));
       await tester.pumpAndSettle();
@@ -472,7 +467,9 @@ void main() {
       expect(contacted, 1);
     });
 
-    testWidgets('id tak dikenal tidak jatuh ke fasilitas pertama', (tester) async {
+    testWidgets('id tak dikenal tidak jatuh ke fasilitas pertama', (
+      tester,
+    ) async {
       await usePhone(tester);
       await tester.pumpWidget(
         wrapScreen(const FacilityDetailScreen(supportId: 'sup-tidak-ada')),
@@ -505,11 +502,43 @@ void main() {
       expect(find.text('Kirim usulan'), findsOneWidget);
     });
 
-    testWidgets('form lengkap menghasilkan usulan', (tester) async {
+    testWidgets('form lengkap menghasilkan usulan hanya setelah API sukses', (
+      tester,
+    ) async {
       await usePhone(tester);
       final sent = <FacilityProposal>[];
       await tester.pumpWidget(
-        wrapScreen(ProposeFacilityScreen(onSubmit: sent.add)),
+        wrapScreen(
+          ChangeNotifierProvider(
+            create: (_) => FacilitiesController(
+              FacilityRepositoryImpl(
+                api: ApiClient(
+                  baseUrl: 'https://example.test/api',
+                  httpClient: MockClient(
+                    (request) async => http.Response(
+                      jsonEncode({
+                        'success': true,
+                        'data': {
+                          'id': 'proposal-api-id',
+                          'userId': 'user-test',
+                          ...(jsonDecode(request.body) as Map<String, dynamic>),
+                          'status': 'menunggu',
+                          'createdAt': '2026-07-12T00:00:00Z',
+                          'updatedAt': '2026-07-12T00:00:00Z',
+                        },
+                      }),
+                      201,
+                    ),
+                  ),
+                )..token = 'test-session',
+              ),
+            ),
+            child: ProposeFacilityScreen(
+              initialDestinationName: 'Gunung Bromo',
+              onSubmit: sent.add,
+            ),
+          ),
+        ),
       );
       await tester.pumpAndSettle();
 
@@ -526,6 +555,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(sent, hasLength(1));
+      expect(sent.single.id, 'proposal-api-id');
       expect(sent.single.name, 'Warung Cemoro Lawang');
       expect(sent.single.nearestDestinationName, 'Gunung Bromo');
       expect(sent.single.status, ProposalStatus.menunggu);
@@ -539,10 +569,7 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      await tester.enterText(
-        inputFor('Alamat'),
-        'Alamat tanpa nama fasilitas',
-      );
+      await tester.enterText(inputFor('Alamat'), 'Alamat tanpa nama fasilitas');
       await tester.pumpAndSettle();
       await tester.tap(find.text('Kirim usulan'));
       await tester.pumpAndSettle();
@@ -552,11 +579,15 @@ void main() {
   });
 
   group('Layar Usulan Terkirim', () {
-    testWidgets('menampilkan ringkasan usulan dari seed', (tester) async {
+    testWidgets('deep link tanpa respons server tidak mengarang konfirmasi', (
+      tester,
+    ) async {
       await usePhone(tester);
       await tester.pumpWidget(wrapScreen(const ProposalSuccessScreen()));
       await tester.pumpAndSettle();
 
+      expect(find.text('Belum ada konfirmasi usulan'), findsOneWidget);
+      expect(find.text('Usulan terkirim'), findsNothing);
       expect(find.text('Fasilitas'), findsOneWidget);
       expect(find.text('Tipe'), findsOneWidget);
       expect(find.text('Status'), findsOneWidget);
@@ -624,21 +655,36 @@ void main() {
     }
 
     test('label tipe tersedia untuk setiap nilai', () {
-      expect(build(ProposalType.accommodation, ProposalStatus.menunggu).typeLabel,
-          'Penginapan');
-      expect(build(ProposalType.transport, ProposalStatus.menunggu).typeLabel,
-          'Transport');
-      expect(build(ProposalType.food, ProposalStatus.menunggu).typeLabel,
-          'Makanan');
+      expect(
+        build(ProposalType.accommodation, ProposalStatus.menunggu).typeLabel,
+        'Penginapan',
+      );
+      expect(
+        build(ProposalType.transport, ProposalStatus.menunggu).typeLabel,
+        'Transport',
+      );
+      expect(
+        build(ProposalType.food, ProposalStatus.menunggu).typeLabel,
+        'Makanan',
+      );
     });
 
     test('label status tersedia untuk setiap nilai', () {
-      expect(build(ProposalType.accommodation, ProposalStatus.menunggu)
-          .statusLabel, 'Menunggu');
-      expect(build(ProposalType.accommodation, ProposalStatus.terverifikasi)
-          .statusLabel, 'Terverifikasi');
-      expect(build(ProposalType.accommodation, ProposalStatus.ditolak)
-          .statusLabel, 'Ditolak');
+      expect(
+        build(ProposalType.accommodation, ProposalStatus.menunggu).statusLabel,
+        'Menunggu',
+      );
+      expect(
+        build(
+          ProposalType.accommodation,
+          ProposalStatus.terverifikasi,
+        ).statusLabel,
+        'Terverifikasi',
+      );
+      expect(
+        build(ProposalType.accommodation, ProposalStatus.ditolak).statusLabel,
+        'Ditolak',
+      );
     });
   });
 }

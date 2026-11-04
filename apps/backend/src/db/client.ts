@@ -1,7 +1,10 @@
 import { drizzle, type NodePgDatabase } from "drizzle-orm/node-postgres";
 import { Pool } from "pg";
 import { loadEnv } from "../config/env";
-import * as schema from "./schema";
+import * as baseSchema from "./schema";
+import * as personalSchema from "./personal-schema";
+
+const schema = { ...baseSchema, ...personalSchema };
 
 let pool: Pool | null = null;
 let db: NodePgDatabase<typeof schema> | null = null;

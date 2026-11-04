@@ -28,36 +28,31 @@ abstract final class SettingsSeedData {
       id: 'faq-1',
       category: FaqCategory.akun,
       question: 'Bagaimana cara mengganti kata sandi?',
-      answer:
-          'Buka Profil, pilih Ubah kata sandi, lalu isi kata sandi saat ini, baru, dan konfirmasi. Minimal 8 karakter dengan kombinasi huruf dan angka.',
+      answer: 'Buka Profil, pilih Ubah kata sandi, lalu isi kata sandi saat ini, baru, dan konfirmasi. Minimal 8 karakter dengan kombinasi huruf dan angka.',
     ),
     FaqItem(
       id: 'faq-2',
       category: FaqCategory.akun,
       question: 'Apakah data saya dipakai untuk tujuan lain?',
-      answer:
-          'Data dipakai untuk menyelaraskan rekomendasi dan menyusun itinerary. Kami tidak menjual data pribadi ke pihak ketiga.',
+      answer: 'Data dipakai untuk menyelaraskan rekomendasi dan menyusun itinerary. Kami tidak menjual data pribadi ke pihak ketiga.',
     ),
     FaqItem(
       id: 'faq-3',
       category: FaqCategory.perjalanan,
       question: 'Kapan waktu terbaik naik Gunung Bromo?',
-      answer:
-          'Musim kering antara Juli dan Oktober. Untuk sunrise, datang ke Cemoro Lawang pukul 02.30 dan lanjut ke puncak dengan jeep.',
+      answer: 'Musim kering antara Juli dan Oktober. Untuk sunrise, datang ke Cemoro Lawang pukul 02.30 dan lanjut ke puncak dengan jeep.',
     ),
     FaqItem(
       id: 'faq-4',
       category: FaqCategory.fasilitas,
       question: 'Bagaimana cara mengusulkan fasilitas baru?',
-      answer:
-          'Buka Fasilitas sekitar pada sebuah destinasi, lalu pilih Usulkan fasilitas. Usulan kamu masuk ke antrean tinjauan admin.',
+      answer: 'Buka Fasilitas sekitar pada sebuah destinasi, lalu pilih Usulkan fasilitas. Usulan kamu masuk ke antrean tinjauan admin.',
     ),
     FaqItem(
       id: 'faq-5',
       category: FaqCategory.data,
       question: 'Apakah data fasilitas di sini sudah terverifikasi?',
-      answer:
-          'Fasilitas dengan badge Terverifikasi sudah dicek admin. Fasilitas tanpa badge masih menunggu konfirmasi dan bisa berubah kapan saja.',
+      answer: 'Fasilitas dengan badge Terverifikasi sudah dicek admin. Fasilitas tanpa badge masih menunggu konfirmasi dan bisa berubah kapan saja.',
     ),
   ];
 }

@@ -35,6 +35,9 @@ interface ImageUploaderProps {
   max?: number;
   folder?: string;
   disabled?: boolean;
+  /** Defer storage deletion until the enclosing form commits. */
+  deleteRemovedFiles?: boolean;
+  onBusyChange?: (busy: boolean) => void;
 }
 
 /**
@@ -48,6 +51,8 @@ export function ImageUploader({
   max = 20,
   folder = "destinations",
   disabled = false,
+  deleteRemovedFiles = true,
+  onBusyChange,
 }: ImageUploaderProps) {
   const { toast } = useToast();
   const inputRef = useRef<HTMLInputElement>(null);
@@ -59,6 +64,7 @@ export function ImageUploader({
   const handleFiles = async (list: FileList | null) => {
     if (!list || list.length === 0 || disabled) return;
 
+    if (uploading.length) return;
     const slots = max - images.length - uploading.length;
     if (slots <= 0) {
       toast({ title: `Maksimal ${max} foto`, variant: "danger" });
@@ -92,6 +98,7 @@ export function ImageUploader({
       id: `${Date.now()}-${file.name}-${Math.random()}`,
       name: file.name,
     }));
+    onBusyChange?.(true);
     setUploading((prev) => [...prev, ...pending]);
 
     const results = await Promise.allSettled(
@@ -121,13 +128,14 @@ export function ImageUploader({
     setUploading((prev) =>
       prev.filter((item) => !pending.some((entry) => entry.id === item.id)),
     );
+    onBusyChange?.(false);
   };
 
   const removeImage = (index: number) => {
     const url = images[index];
     onChange(images.filter((_, position) => position !== index));
     // Best effort: untracked/failed deletions do not block the form.
-    if (url) void uploadsApi.remove(url, token).catch(() => undefined);
+    if (url && deleteRemovedFiles) void uploadsApi.remove(url, token).catch(() => undefined);
   };
 
   const move = (index: number, delta: number) => {
@@ -241,21 +249,21 @@ export function ImageUploader({
                 <div className="flex gap-0.5">
                   <IconButton
                     label={`Geser foto ${index + 1} ke kiri`}
-                    disabled={index === 0}
+                    disabled={disabled || uploading.length > 0 || index === 0}
                     onClick={() => move(index, -1)}
                   >
                     <ArrowLeft aria-hidden className="h-3.5 w-3.5" />
                   </IconButton>
                   <IconButton
                     label={`Geser foto ${index + 1} ke kanan`}
-                    disabled={index === images.length - 1}
+                    disabled={disabled || uploading.length > 0 || index === images.length - 1}
                     onClick={() => move(index, 1)}
                   >
                     <ArrowRight aria-hidden className="h-3.5 w-3.5" />
                   </IconButton>
                   <IconButton
                     label={`Jadikan foto ${index + 1} utama`}
-                    disabled={index === 0}
+                    disabled={disabled || uploading.length > 0 || index === 0}
                     onClick={() => setPrimary(index)}
                   >
                     <Star aria-hidden className="h-3.5 w-3.5" />
@@ -263,6 +271,7 @@ export function ImageUploader({
                 </div>
                 <IconButton
                   label={`Hapus foto ${index + 1}`}
+                  disabled={disabled || uploading.length > 0}
                   onClick={() => removeImage(index)}
                   danger
                 >

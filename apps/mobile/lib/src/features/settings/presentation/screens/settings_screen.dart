@@ -81,13 +81,17 @@ class SettingsScreen extends StatelessWidget {
                   label: 'Akun',
                   icon: AppIcons.user,
                   value: settings.accountName,
-                  onTap: () => _open(context, onOpenAccount, '/settings/account'),
+                  onTap: () =>
+                      _open(context, onOpenAccount, '/settings/account'),
                 ),
                 SettingsRowTile(
                   label: 'Notifikasi',
                   icon: AppIcons.bell,
-                  onTap: () =>
-                      _open(context, onOpenNotifications, '/settings/notifications'),
+                  onTap: () => _open(
+                    context,
+                    onOpenNotifications,
+                    '/settings/notifications',
+                  ),
                 ),
               ],
             ),
@@ -129,7 +133,8 @@ class SettingsScreen extends StatelessWidget {
             const SizedBox(height: AppSpacing.s5),
             SettingsGroup(
               label: 'PREFERENSI',
-              footer: 'Mode hemat data membuat gambar dimuat pada resolusi '
+              footer:
+                  'Mode hemat data membuat gambar dimuat pada resolusi '
                   'lebih kecil untuk menghemat kuota.',
               children: [
                 Padding(
@@ -141,7 +146,7 @@ class SettingsScreen extends StatelessWidget {
                     label: 'Mode hemat data',
                     subtitle: 'Muat gambar resolusi lebih kecil',
                     value: settings.dataSaver,
-                    onChanged: store.setDataSaver,
+                    onChanged: store.isLoading ? null : (value) => persistSettings(context, store.setDataSaver(value)), 
                   ),
                 ),
               ],
@@ -178,10 +183,7 @@ class SettingsScreen extends StatelessWidget {
               ],
             ),
             const SizedBox(height: AppSpacing.s5),
-            Text(
-              'Dolenae.id · versi 1.0.0',
-              style: AppTextStyles.caption,
-            ),
+            Text('Dolenae.id · versi 1.0.0', style: AppTextStyles.caption),
           ],
         ),
       ),

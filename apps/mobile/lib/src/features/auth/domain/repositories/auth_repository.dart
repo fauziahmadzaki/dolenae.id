@@ -38,6 +38,9 @@ abstract interface class AuthRepository {
   /// Sends the email-verification link again; returns the backend message.
   Future<Result<String>> resendVerificationEmail({required String email});
 
+  /// Updates only the authenticated name and persists the returned identity.
+  Future<Result<AuthSession>> updateProfile({required String name});
+
   /// Clears the persisted session and the API token.
   Future<Result<void>> logout();
 }

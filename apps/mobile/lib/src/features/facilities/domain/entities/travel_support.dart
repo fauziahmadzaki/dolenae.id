@@ -20,6 +20,7 @@ class TravelSupport {
     this.capacity = '',
     this.distanceLabel = '',
     this.priceUnit = '',
+    this.priceMin,
     this.facilities = const [],
     this.routes = const [],
     this.cuisine = const [],
@@ -43,6 +44,7 @@ class TravelSupport {
   final String capacity;
   final String distanceLabel;
   final String priceUnit;
+  final int? priceMin;
   final List<String> facilities;
   final List<String> routes;
   final List<String> cuisine;
@@ -79,10 +81,7 @@ class TravelSupport {
         return [
           MapEntry('Moda', facilities.isEmpty ? '-' : facilities.first),
           MapEntry('Kapasitas', capacity.isEmpty ? '-' : capacity),
-          MapEntry(
-            'Rute',
-            routes.isEmpty ? '-' : routes.join(', '),
-          ),
+          MapEntry('Rute', routes.isEmpty ? '-' : routes.join(', ')),
           MapEntry('Harga', priceUnit.isEmpty ? priceLabel : priceUnit),
         ];
       case SupportCategory.makanan:
@@ -90,7 +89,10 @@ class TravelSupport {
           MapEntry('Masakan', cuisine.isEmpty ? '-' : cuisine.join(', ')),
           MapEntry('Rentang harga', priceLabel),
           MapEntry('Lokasi', distanceLabel.isEmpty ? '-' : distanceLabel),
-          MapEntry('Status', verified ? 'Terverifikasi' : 'Belum terverifikasi'),
+          MapEntry(
+            'Status',
+            verified ? 'Terverifikasi' : 'Belum terverifikasi',
+          ),
         ];
     }
   }

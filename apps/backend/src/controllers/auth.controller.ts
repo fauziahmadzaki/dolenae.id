@@ -11,6 +11,7 @@ import type {
   ResendVerificationInput,
   ResetPasswordInput,
   VerifyEmailInput,
+  UpdateProfileInput,
 } from "./auth.schema";
 
 export const authController = {
@@ -55,6 +56,13 @@ export const authController = {
   resendVerification: (async (req, res) => {
     const body = getValidated<ResendVerificationInput>(req, "body");
     ok(res, await authService.resendVerification(body));
+  }) satisfies RequestHandler,
+
+  /** PATCH /api/users/me (protected) */
+  updateMe: (async (req, res) => {
+    if (!req.user) throw new UnauthorizedError();
+    const body = getValidated<UpdateProfileInput>(req, "body");
+    ok(res, { user: await authService.updateMe(req.user.id, body) });
   }) satisfies RequestHandler,
 
   /** GET /api/auth/me (protected) */

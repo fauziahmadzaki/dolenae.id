@@ -35,23 +35,30 @@ class FacilityDetailScreen extends StatefulWidget {
   @override
   State<FacilityDetailScreen> createState() => _FacilityDetailScreenState();
 }
+
 class _FacilityDetailScreenState extends State<FacilityDetailScreen> {
   String get supportId => widget.supportId;
   VoidCallback? get onSave => widget.onSave;
   VoidCallback? get onContact => widget.onContact;
   VoidCallback? get onBack => widget.onBack;
   @override
-  void initState() { super.initState(); _load(); }
+  void initState() {
+    super.initState();
+    _load();
+  }
+
   @override
   void didUpdateWidget(covariant FacilityDetailScreen oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.supportId != widget.supportId) _load();
   }
+
   void _load() {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) context.read<FacilitiesController>().loadDetail(supportId);
     });
   }
+
   static IconData _iconFor(SupportCategory category) => switch (category) {
     SupportCategory.penginapan => AppIcons.bedDouble,
     SupportCategory.transportasi => AppIcons.car,
@@ -64,13 +71,34 @@ class _FacilityDetailScreenState extends State<FacilityDetailScreen> {
     final support = state.resolve(supportId);
     if (support == null) {
       return Scaffold(
-        appBar: DnAppBar(title: 'Fasilitas', showBack: true, onBack: onBack ?? () { if (context.canPop()) context.pop(); }),
-        body: SafeArea(child: Center(child: state.detailId != supportId || state.detailLoading
-          ? const CircularProgressIndicator()
-          : Column(mainAxisSize: MainAxisSize.min, children: [
-              Text(state.detailFailure?.message ?? 'Fasilitas tidak tersedia.'),
-              TextButton(onPressed: () => state.loadDetail(supportId), child: const Text('Coba lagi')),
-            ]))),
+        appBar: DnAppBar(
+          title: 'Fasilitas',
+          showBack: true,
+          onBack:
+              onBack ??
+              () {
+                if (context.canPop()) context.pop();
+              },
+        ),
+        body: SafeArea(
+          child: Center(
+            child: state.detailId != supportId || state.detailLoading
+                ? const CircularProgressIndicator()
+                : Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        state.detailFailure?.message ??
+                            'Fasilitas tidak tersedia.',
+                      ),
+                      TextButton(
+                        onPressed: () => state.loadDetail(supportId),
+                        child: const Text('Coba lagi'),
+                      ),
+                    ],
+                  ),
+          ),
+        ),
       );
     }
 
@@ -153,12 +181,35 @@ class _FacilityDetailScreenState extends State<FacilityDetailScreen> {
                                       AppRadius.sm,
                                     ),
                                   ),
-                                  child: Text(label, style: AppTextStyles.overline),
+                                  child: Text(
+                                    label,
+                                    style: AppTextStyles.overline,
+                                  ),
                                 ),
                               )
                               .toList(),
                         ),
                         const SizedBox(height: AppSpacing.s4),
+                        if (support.priceMin != null) ...[
+                          Text('DUMMY', style: AppTextStyles.overline),
+                          const SizedBox(height: AppSpacing.s2),
+                          DnOutlineButton(
+                            height: 48,
+                            label: 'Simulasi pembayaran',
+                            onPressed: () => context.push(
+                              Uri(
+                                path: '/payments/create',
+                                queryParameters: {'supportId': support.id},
+                              ).toString(),
+                            ),
+                          ),
+                          const SizedBox(height: AppSpacing.s2),
+                          Text(
+                            'Tidak ada uang ditagih. Bukan pemesanan fasilitas.',
+                            style: AppTextStyles.caption,
+                          ),
+                          const SizedBox(height: AppSpacing.s4),
+                        ],
                         Text('TENTANG', style: AppTextStyles.overline),
                         const SizedBox(height: AppSpacing.s2),
                         Text(support.description, style: AppTextStyles.bodySm),
@@ -189,7 +240,10 @@ class _FacilityDetailScreenState extends State<FacilityDetailScreen> {
                           ),
                         ],
                         const SizedBox(height: AppSpacing.s5),
-                        Text('DESTINASI TERKAIT', style: AppTextStyles.overline),
+                        Text(
+                          'DESTINASI TERKAIT',
+                          style: AppTextStyles.overline,
+                        ),
                         const SizedBox(height: AppSpacing.s2),
                         Container(
                           padding: const EdgeInsets.all(AppSpacing.s3),
@@ -243,7 +297,8 @@ class _FacilityDetailScreenState extends State<FacilityDetailScreen> {
                     child: DnOutlineButton(
                       label: 'Simpan',
                       height: 48,
-                      onPressed: onSave ??
+                      onPressed:
+                          onSave ??
                           () => showDnToast(
                             context,
                             '${support.name} disimpan',
@@ -258,7 +313,8 @@ class _FacilityDetailScreenState extends State<FacilityDetailScreen> {
                       label: 'Hubungi via WhatsApp',
                       icon: AppIcons.messageSquare,
                       height: 48,
-                      onPressed: onContact ??
+                      onPressed:
+                          onContact ??
                           () => showDnToast(
                             context,
                             'Membuka WhatsApp ${support.name}',

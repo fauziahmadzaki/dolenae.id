@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:dolenae_mobile/src/features/saved/presentation/widgets/saved_content.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
@@ -51,7 +52,10 @@ class SavedDestinationsScreen extends StatelessWidget {
       ),
       body: SafeArea(
         top: false,
-        child: saved.isEmpty
+        child: SavedContent(
+          enabled: items == null,
+          hasData: saved.isNotEmpty,
+          child: saved.isEmpty
             ? Padding(
                 padding: const EdgeInsets.all(AppSpacing.s5),
                 child: Center(
@@ -150,16 +154,17 @@ class SavedDestinationsScreen extends StatelessWidget {
                                 color: AppColors.primary,
                               ),
                               IconButton(
-                                onPressed: () {
+                                onPressed: store.isLoading ? null : () async {
                                   if (onRemove != null) {
                                     onRemove!(item.id);
                                     return;
                                   }
-                                  store.removeSavedDestination(destination.id);
+                                  final result = await store.removeSavedDestination(destination.id);
+                                  if (!context.mounted) return;
                                   showDnToast(
                                     context,
-                                    '${destination.name} dihapus dari tersimpan',
-                                    type: DnToastType.info,
+                                    result.failureOrNull?.message ?? '${destination.name} dihapus dari tersimpan',
+                                    type: result.isSuccess ? DnToastType.info : DnToastType.gagal,
                                   );
                                 },
                                 icon: const Icon(
@@ -177,6 +182,7 @@ class SavedDestinationsScreen extends StatelessWidget {
                   );
                 },
               ),
+        ),
       ),
     );
   }

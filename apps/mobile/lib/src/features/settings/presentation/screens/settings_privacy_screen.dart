@@ -15,11 +15,7 @@ import 'package:dolenae_mobile/src/features/settings/presentation/widgets/settin
 /// Tiga grup: keamanan akun, privasi, dan data saya. Sakelar privasi langsung
 /// terikat ke [SettingsController].
 class SettingsPrivacyScreen extends StatelessWidget {
-  const SettingsPrivacyScreen({
-    super.key,
-    this.onChangePassword,
-    this.onBack,
-  });
+  const SettingsPrivacyScreen({super.key, this.onChangePassword, this.onBack});
 
   final VoidCallback? onChangePassword;
   final VoidCallback? onBack;
@@ -38,15 +34,15 @@ class SettingsPrivacyScreen extends StatelessWidget {
           children: [
             SettingsSwitchTile(
               label: 'Verifikasi dua langkah',
-              subtitle: 'Minta OTP setiap kali masuk dari perangkat baru',
-              value: privacy.twoFactor,
-              onChanged: (value) => store.setPrivacyPreference(twoFactor: value),
+              subtitle: 'Belum tersedia',
+              value: false,
+              onChanged: null, 
             ),
             SettingsRowTile(
               label: 'Ganti kata sandi',
               icon: AppIcons.lock,
-              onTap:
-                  onChangePassword ?? () => context.push('/auth/change-password'),
+              value: onChangePassword == null ? 'Belum tersedia' : null,
+              onTap: onChangePassword,
             ),
           ],
         ),
@@ -59,28 +55,28 @@ class SettingsPrivacyScreen extends StatelessWidget {
               subtitle: 'Pengguna lain bisa melihat profilmu',
               value: privacy.profilPublik,
               onChanged: (value) =>
-                  store.setPrivacyPreference(profilPublik: value),
+                  persistSettings(context, store.setPrivacyPreference(profilPublik: value)), 
             ),
             SettingsSwitchTile(
               label: 'Bagikan aktivitas',
               subtitle: 'Tampilkan rencana dan checklist di profilmu',
               value: privacy.bagikanAktivitas,
               onChanged: (value) =>
-                  store.setPrivacyPreference(bagikanAktivitas: value),
+                  persistSettings(context, store.setPrivacyPreference(bagikanAktivitas: value)), 
             ),
             SettingsSwitchTile(
               label: 'Analitik penggunaan',
               subtitle: 'Bantu kami menambah fitur yang paling dipakai',
               value: privacy.analitik,
-              onChanged: (value) =>
-                  store.setPrivacyPreference(analitik: value),
+              onChanged: (value) => persistSettings(context, store.setPrivacyPreference(analitik: value)), 
             ),
           ],
         ),
         const SizedBox(height: 48),
         SettingsGroup(
           label: 'DATA SAYA',
-          footer: 'Kami memakai data untuk menyusun rekomendasi. Kami tidak '
+          footer:
+              'Kami memakai data untuk menyusun rekomendasi. Kami tidak '
               'menjual data pribadi ke pihak ketiga.',
           children: [
             Padding(
@@ -108,10 +104,11 @@ class SettingsPrivacyScreen extends StatelessWidget {
                     ],
                   ),
                   const SizedBox(height: AppSpacing.s4),
+                  Text('Belum tersedia', style: AppTextStyles.caption),
                   DnOutlineButton(
                     label: 'Minta salinan data',
                     height: 44,
-                    onPressed: () {},
+                    onPressed: null,
                   ),
                 ],
               ),

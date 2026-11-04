@@ -12,6 +12,7 @@ import 'package:dolenae_mobile/src/features/plan/presentation/routes/plan_routes
 import 'package:dolenae_mobile/src/features/profile/presentation/routes/profile_routes.dart';
 import 'package:dolenae_mobile/src/features/saved/presentation/routes/saved_routes.dart';
 import 'package:dolenae_mobile/src/features/settings/presentation/routes/settings_routes.dart';
+import 'package:dolenae_mobile/src/features/payments/presentation/routes/payment_routes.dart';
 
 abstract final class AppRouter {
   /// Route yang boleh diakses tanpa login.
@@ -54,6 +55,7 @@ abstract final class AppRouter {
         ...profileRoutes,
         ...settingsRoutes,
         ...savedRoutes,
+        ...paymentRoutes,
       ],
     );
   }

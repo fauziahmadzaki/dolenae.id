@@ -2,10 +2,11 @@
 import { useState } from "react";
 import { Input } from "~/components/ui/input";
 import { Button } from "~/components/ui/button";
+import { FeedbackForm } from "./feedback-form";
 
 export function ContactForm() {
   const [draft, setDraft] = useState("");
-  return <form className="flex min-w-0 flex-col gap-4 rounded-xl border border-hairline bg-surface p-6 sm:p-8" onSubmit={(event) => {
+  return <div className="min-w-0 space-y-6"><FeedbackForm /><form className="flex min-w-0 flex-col gap-4 rounded-xl border border-hairline bg-surface p-6 sm:p-8" onSubmit={(event) => {
     event.preventDefault();
     const data = new FormData(event.currentTarget);
     setDraft(`mailto:halo@dolenae.id?subject=${encodeURIComponent(`Pesan dari ${String(data.get("name")).trim()}`)}&body=${encodeURIComponent(`Nama: ${String(data.get("name")).trim()}\nEmail: ${String(data.get("email")).trim()}\n\n${String(data.get("message")).trim()}`)}`);
@@ -17,5 +18,5 @@ export function ContactForm() {
     <p className="text-xs" id="contact-limit">Form ini belum terhubung ke layanan pengiriman. Siapkan draf, lalu kirim melalui aplikasi emailmu. Pesan tidak dikirim atau disimpan di situs ini.</p>
     <Button type="submit" size="lg" aria-describedby="contact-limit">Siapkan pesan</Button>
     {draft && <div role="status" className="text-sm"><p>Draf siap. Pesan belum dikirim.</p><a href={draft} className="font-semibold text-primary underline">Buka aplikasi email</a></div>}
-  </form>;
+  </form></div>;
 }

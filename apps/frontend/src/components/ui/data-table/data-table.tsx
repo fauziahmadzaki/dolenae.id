@@ -82,8 +82,8 @@ export function DataTable<T>({
 
   // Keep the page in range when the result set shrinks (filter/search).
   useEffect(() => {
-    if (page > pages) onPageChange(pages);
-  }, [page, pages, onPageChange]);
+    if (!isLoading && !isFetching && !error && page > pages) onPageChange(pages);
+  }, [page, pages, isLoading, isFetching, error, onPageChange]);
 
   return (
     <div className="space-y-4">

@@ -106,11 +106,7 @@ class SettingsRow extends StatelessWidget {
 
 /// Kartu berisi beberapa baris, dipisah garis `hairline`.
 class SettingsCard extends StatelessWidget {
-  const SettingsCard({
-    super.key,
-    required this.children,
-    this.foreground,
-  });
+  const SettingsCard({super.key, required this.children, this.foreground});
 
   final List<Widget> children;
   final Color? foreground;

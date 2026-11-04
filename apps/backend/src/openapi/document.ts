@@ -1,3 +1,5 @@
+import { integrationPaths, integrationSchemas } from "./integration";
+
 /** OpenAPI 3.1 document served at GET /api/openapi.json (UI via Scalar at /api/docs). */
 export const openApiDocument = {
   openapi: "3.1.0",
@@ -24,6 +26,7 @@ export const openApiDocument = {
       bearerAuth: { type: "http", scheme: "bearer", bearerFormat: "JWT" },
     },
     schemas: {
+      ...integrationSchemas,
       ApiError: {
         type: "object",
         required: ["success", "error"],
@@ -387,6 +390,7 @@ export const openApiDocument = {
     },
   },
   paths: {
+    ...integrationPaths,
     "/api/supports/{id}": {
       "get": {
         "tags": ["Supports"],

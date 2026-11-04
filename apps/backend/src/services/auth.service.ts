@@ -24,6 +24,7 @@ import type {
   ResendVerificationInput,
   ResetPasswordInput,
   VerifyEmailInput,
+  UpdateProfileInput,
 } from "../controllers/auth.schema";
 
 /** Map a DB row to the public user shape (never leaks the password hash). */
@@ -260,6 +261,12 @@ export const authService = {
     }
 
     return { message };
+  },
+
+  async updateMe(userId: string, input: UpdateProfileInput): Promise<AuthUser> {
+    const row = await userRepository.update(userId, { name: input.name });
+    if (!row) throw new NotFoundError("Pengguna tidak ditemukan");
+    return toAuthUser(row);
   },
 
   async getMe(userId: string): Promise<AuthUser> {

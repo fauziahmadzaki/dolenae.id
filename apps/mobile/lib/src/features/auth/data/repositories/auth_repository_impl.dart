@@ -14,15 +14,38 @@ class AuthRepositoryImpl implements AuthRepository {
   final AuthLocalDataSource _local;
   final ApiClient _client;
   final GoogleSignInSource _google;
+  int _revision = 0;
+  AuthSession? _session;
+  Future<void> _writes = Future.value();
+
+  static const _sessionChanged = AuthFailure('Sesi berubah. Coba lagi.');
+
+  // Serialize persistence so logout cannot be overtaken by an in-flight save.
+  Future<void> _write(Future<void> Function() action) {
+    final next = _writes.then((_) => action());
+    _writes = next.then((_) {}, onError: (Object _, StackTrace _) {});
+    return next;
+  }
+
+  bool _current(int revision, String token) =>
+      revision == _revision && _client.token == token;
+
+  Future<void> _save(AuthSession session, int revision) => _write(() async {
+    if (revision == _revision) await _local.save(session);
+  });
 
   @override
   Future<Result<AuthSession>> restore() async {
+    final revision = _revision;
     try {
+      await _writes;
       final session = await _local.read();
+      if (revision != _revision) return const Failure(_sessionChanged);
       if (session == null) {
         return const Failure(AuthFailure('Sesi tidak ditemukan.'));
       }
       _client.token = session.token;
+      _session = session;
       return Success(session);
     } catch (_) {
       // A broken keystore should start the app as a guest, not crash it.
@@ -32,6 +55,7 @@ class AuthRepositoryImpl implements AuthRepository {
 
   @override
   Future<Result<AuthSession>> verify() async {
+    final revision = _revision;
     final token = _client.token;
     if (token == null || token.isEmpty) {
       return const Failure(AuthFailure('Sesi tidak ditemukan.'));
@@ -39,15 +63,21 @@ class AuthRepositoryImpl implements AuthRepository {
 
     try {
       final user = await _remote.me();
+      if (!_current(revision, token)) return const Failure(_sessionChanged);
       final session = AuthSession(token: token, user: user);
-      await _local.save(session);
+      await _save(session, revision);
+      if (!_current(revision, token)) return const Failure(_sessionChanged);
+      _session = session;
       return Success(session);
     } on ApiException catch (error) {
+      if (!_current(revision, token)) return const Failure(_sessionChanged);
       if (_invalidatesSession(error.statusCode)) {
+        _revision++;
+        _session = null;
         // Expired or revoked token: drop it so the router returns to login.
         _client.token = null;
         try {
-          await _local.clear();
+          await _write(_local.clear);
         } catch (_) {
           // Nothing else to clear; the in-memory session is gone anyway.
         }
@@ -133,10 +163,37 @@ class AuthRepositoryImpl implements AuthRepository {
   }
 
   @override
-  Future<Result<void>> logout() async {
-    _client.token = null;
+  Future<Result<AuthSession>> updateProfile({required String name}) async {
+    final token = _client.token;
+    if (token == null || token.isEmpty) {
+      return const Failure(AuthFailure('Sesi tidak ditemukan.'));
+    }
+    final revision = ++_revision;
+    final userId = _session?.user.id;
     try {
-      await _local.clear();
+      final user = await _remote.updateProfile(name: name);
+      if (!_current(revision, token) || userId == null || user.id != userId) {
+        return const Failure(_sessionChanged);
+      }
+      final session = AuthSession(token: token, user: user);
+      await _save(session, revision);
+      if (!_current(revision, token)) return const Failure(_sessionChanged);
+      _session = session;
+      return Success(session);
+    } on ApiException catch (error) {
+      return Failure(error.toFailure());
+    } catch (_) {
+      return const Failure(UnknownFailure('Tidak dapat menyimpan profil. Coba lagi.'));
+    }
+  }
+
+  @override
+  Future<Result<void>> logout() async {
+    _revision++;
+    _client.token = null;
+    _session = null;
+    try {
+      await _write(_local.clear);
       return const Success(null);
     } catch (_) {
       return const Failure(AuthFailure('Gagal menghapus sesi.'));
@@ -146,10 +203,14 @@ class AuthRepositoryImpl implements AuthRepository {
   Future<Result<AuthSession>> _authenticate(
     Future<AuthSession> Function() request,
   ) async {
+    final revision = ++_revision;
     try {
       final session = await request();
-      await _local.save(session);
+      if (revision != _revision) return const Failure(_sessionChanged);
+      await _save(session, revision);
+      if (revision != _revision) return const Failure(_sessionChanged);
       _client.token = session.token;
+      _session = session;
       return Success(session);
     } on GoogleSignInFailure catch (error) {
       return Failure(

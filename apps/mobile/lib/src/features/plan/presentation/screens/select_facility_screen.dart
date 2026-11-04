@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
+import 'package:dolenae_mobile/src/features/plan/presentation/controllers/plan_controller.dart';
 
 import 'package:dolenae_mobile/src/app/theme/app_colors.dart';
 import 'package:dolenae_mobile/src/app/theme/app_radius.dart';
@@ -21,13 +22,15 @@ import 'package:dolenae_mobile/src/shared/widgets/dn_icon_circle.dart';
 class SelectFacilityScreen extends StatefulWidget {
   const SelectFacilityScreen({
     super.key,
-    this.initialSelectedIds = const {'sup-homestay'},
+    this.initialSelectedIds,
+    this.destinationId,
     this.initialCategory = SupportCategory.penginapan,
     this.onConfirm,
     this.onBack,
   });
 
-  final Set<String> initialSelectedIds;
+  final Set<String>? initialSelectedIds;
+  final String? destinationId;
   final SupportCategory initialCategory;
   final ValueChanged<Set<String>>? onConfirm;
   final VoidCallback? onBack;
@@ -43,7 +46,12 @@ class _SelectFacilityScreenState extends State<SelectFacilityScreen> {
   @override
   void initState() {
     super.initState();
-    _selectedIds = Set.from(widget.initialSelectedIds);
+    _selectedIds = Set.from(
+      widget.initialSelectedIds ??
+          (context.read<PlanController>().isDemo
+              ? {'sup-homestay'}
+              : <String>{}),
+    );
     _activeCategory = widget.initialCategory;
   }
 
@@ -79,16 +87,21 @@ class _SelectFacilityScreenState extends State<SelectFacilityScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final supports = context.watch<FacilitiesController>().supports;
+    final controller = context.watch<FacilitiesController>();
+    final supports = widget.destinationId == null
+        ? controller.supports
+        : controller.supportsFor(widget.destinationId!);
     final filtered = supports.where((s) {
       return s.category == _activeCategory;
     }).toList();
 
     // If the category has no items, fall back to the full list.
-    final displayItems = filtered.isNotEmpty ? filtered : supports;
+    final displayItems = filtered;
 
     final ctaLabel = _selectedIds.isEmpty
-        ? 'Pilih fasilitas'
+        ? (context.read<PlanController>().isDemo
+              ? 'Pilih fasilitas'
+              : 'Tanpa fasilitas')
         : 'Tambahkan ${_selectedIds.length} fasilitas';
 
     return Scaffold(
@@ -96,13 +109,15 @@ class _SelectFacilityScreenState extends State<SelectFacilityScreen> {
       appBar: DnAppBar(
         title: 'Pilih fasilitas',
         showBack: true,
-        onBack: widget.onBack ?? () {
-          if (context.canPop()) {
-            context.pop();
-          } else {
-            context.go('/plan');
-          }
-        },
+        onBack:
+            widget.onBack ??
+            () {
+              if (context.canPop()) {
+                context.pop();
+              } else {
+                context.go('/plan');
+              }
+            },
       ),
       body: SafeArea(
         child: Column(
@@ -113,11 +128,17 @@ class _SelectFacilityScreenState extends State<SelectFacilityScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    if (controller.loading) const LinearProgressIndicator(),
+                    if (controller.failure != null)
+                      Text(controller.failure!.message),
+                    if (!controller.loading && displayItems.isEmpty)
+                      const Text('Belum ada fasilitas pada kategori ini.'),
                     _buildSegmentedControl(),
                     const SizedBox(height: AppSpacing.s4),
                     for (int i = 0; i < displayItems.length; i++) ...[
                       _buildFacilityRow(displayItems[i]),
-                      if (i < displayItems.length - 1) const SizedBox(height: AppSpacing.s3),
+                      if (i < displayItems.length - 1)
+                        const SizedBox(height: AppSpacing.s3),
                     ],
                     const SizedBox(height: AppSpacing.s4),
                   ],
@@ -152,10 +173,7 @@ class _SelectFacilityScreenState extends State<SelectFacilityScreen> {
             category: SupportCategory.transportasi,
           ),
           const SizedBox(width: 4),
-          _buildSegmentTab(
-            label: 'Makanan',
-            category: SupportCategory.makanan,
-          ),
+          _buildSegmentTab(label: 'Makanan', category: SupportCategory.makanan),
         ],
       ),
     );
@@ -235,7 +253,9 @@ class _SelectFacilityScreenState extends State<SelectFacilityScreen> {
                     const SizedBox(height: 2),
                     Text(
                       '${item.priceLabel} · ${item.locationLabel}',
-                      style: AppTextStyles.caption.copyWith(color: AppColors.body),
+                      style: AppTextStyles.caption.copyWith(
+                        color: AppColors.body,
+                      ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
@@ -251,7 +271,9 @@ class _SelectFacilityScreenState extends State<SelectFacilityScreen> {
                   borderRadius: BorderRadius.circular(6),
                   color: isSelected ? AppColors.primary : Colors.transparent,
                   border: Border.all(
-                    color: isSelected ? AppColors.primary : AppColors.borderStrong,
+                    color: isSelected
+                        ? AppColors.primary
+                        : AppColors.borderStrong,
                     width: 1.5,
                   ),
                 ),
@@ -282,7 +304,7 @@ class _SelectFacilityScreenState extends State<SelectFacilityScreen> {
       child: DnPrimaryButton(
         label: ctaLabel,
         height: 48,
-        onPressed: _selectedIds.isEmpty ? null : _handleConfirm,
+        onPressed: _handleConfirm,
       ),
     );
   }

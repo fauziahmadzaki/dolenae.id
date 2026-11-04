@@ -123,10 +123,7 @@ class _FacilitiesScreenState extends State<FacilitiesScreen> {
                   AppSpacing.s5,
                 ),
                 children: [
-                  Text(
-                    destination.name,
-                    style: AppTextStyles.title,
-                  ),
+                  Text(destination.name, style: AppTextStyles.title),
                   const SizedBox(height: AppSpacing.s1),
                   Text(
                     '${supports.length} fasilitas di sekitar destinasi',
@@ -178,14 +175,17 @@ class _FacilitiesScreenState extends State<FacilitiesScreen> {
                       padding: EdgeInsets.symmetric(vertical: AppSpacing.s10),
                       child: DnEmptyState(
                         variant: DnEmptyVariant.tanpaHasil,
-                        body: 'Tidak ada fasilitas di sekitar yang cocok '
+                        body:
+                            'Tidak ada fasilitas di sekitar yang cocok '
                             'dengan filter ini.',
                       ),
                     )
                   else
                     ...groups.expand((group) {
                       final items = visible
-                          .where((support) => support.category == group.category)
+                          .where(
+                            (support) => support.category == group.category,
+                          )
                           .toList();
                       if (items.isEmpty) return <Widget>[];
                       return <Widget>[
@@ -193,11 +193,7 @@ class _FacilitiesScreenState extends State<FacilitiesScreen> {
                           padding: const EdgeInsets.only(bottom: AppSpacing.s2),
                           child: Row(
                             children: [
-                              Icon(
-                                group.icon,
-                                size: 14,
-                                color: AppColors.body,
-                              ),
+                              Icon(group.icon, size: 14, color: AppColors.body),
                               const SizedBox(width: AppSpacing.s1),
                               Text(group.label, style: AppTextStyles.overline),
                             ],
@@ -205,7 +201,9 @@ class _FacilitiesScreenState extends State<FacilitiesScreen> {
                         ),
                         ...items.map(
                           (support) => Padding(
-                            padding: const EdgeInsets.only(bottom: AppSpacing.s2),
+                            padding: const EdgeInsets.only(
+                              bottom: AppSpacing.s2,
+                            ),
                             child: DnSupportRow(
                               support: support,
                               onTap: () => _openDetail(support),
@@ -237,7 +235,17 @@ class _FacilitiesScreenState extends State<FacilitiesScreen> {
                 label: 'Usulkan fasilitas',
                 icon: AppIcons.plus,
                 height: 48,
-                onPressed: widget.onPropose ?? () => context.push('/facilities/propose'),
+                onPressed:
+                    widget.onPropose ??
+                    () => context.push(
+                      Uri(
+                        path: '/facilities/propose',
+                        queryParameters: {
+                          'destinationId': widget.destinationId,
+                          'destinationName': destination.name,
+                        },
+                      ).toString(),
+                    ),
               ),
             ),
           ],

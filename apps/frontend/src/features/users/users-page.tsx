@@ -30,7 +30,7 @@ const SORT_OPTIONS: SortOption[] = [
   { value: "email:desc", label: "Email Z–A" },
 ];
 
-export default function UsersPage() {
+export default function UsersPage({ merchantOnly = false }: { merchantOnly?: boolean }) {
   const auth = useAuth();
   const router = useRouter();
   const cache = useQueryClient();
@@ -45,7 +45,7 @@ export default function UsersPage() {
     auth.hydrated && !!auth.token && auth.user?.role === "admin";
 
   const list = useUsers(
-    { ...table.query, role, status },
+    { ...table.query, role: merchantOnly ? "merchant" : role, status },
     auth.token,
     enabled,
   );
@@ -129,17 +129,17 @@ export default function UsersPage() {
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <h2 className="font-display text-2xl font-bold text-ink">
-            Daftar Pengguna
+            {merchantOnly ? "Daftar Merchant" : "Daftar Pengguna"}
           </h2>
           <p className="mt-1 text-sm text-body">
-            Lihat dan atur peran serta status pengguna.
+            {merchantOnly ? "Akun pengguna dengan peran merchant. Kelola akun melalui menu Pengguna." : "Lihat dan atur peran serta status pengguna."}
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <Button onClick={() => open({ kind: "create" })}>
+          {!merchantOnly && <Button onClick={() => open({ kind: "create" })}>
             <Plus aria-hidden className="h-4 w-4" />
             Tambah pengguna
-          </Button>
+          </Button>}
         </div>
       </div>
 
@@ -163,7 +163,7 @@ export default function UsersPage() {
         isFetching={list.isFetching}
         error={list.error}
         onRetry={() => list.refetch()}
-        filters={filters}
+        filters={merchantOnly ? filters.filter((filter) => filter.key !== "role") : filters}
         emptyState={
           <div className="rounded-lg border border-dashed border-hairline bg-surface p-10 text-center">
             <h3 className="font-display font-semibold text-ink">
@@ -172,10 +172,10 @@ export default function UsersPage() {
             <p className="mt-1 text-sm text-body">
               Coba ubah pencarian atau role, atau tambahkan pengguna.
             </p>
-            <Button className="mt-4" onClick={() => open({ kind: "create" })}>
+            {!merchantOnly && <Button className="mt-4" onClick={() => open({ kind: "create" })}>
               <Plus aria-hidden className="h-4 w-4" />
               Tambah pengguna
-            </Button>
+            </Button>}
           </div>
         }
       />

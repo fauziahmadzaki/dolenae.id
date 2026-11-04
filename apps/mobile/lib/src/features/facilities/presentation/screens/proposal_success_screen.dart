@@ -20,25 +20,14 @@ class ProposalSuccessScreen extends StatelessWidget {
     this.onBackHome,
   });
 
-  /// Usulan yang baru terkirim; bila null memakai contoh dari seed.
+  /// Respons server; null berarti belum ada konfirmasi.
   final FacilityProposal? proposal;
   final VoidCallback? onViewProposals;
   final VoidCallback? onBackHome;
 
   @override
   Widget build(BuildContext context) {
-    final FacilityProposal data =
-        proposal ??
-        FacilityProposal(
-          id: 'prop-1',
-          name: 'Homestay Pinggir',
-          type: ProposalType.accommodation,
-          nearestDestinationName: 'Gunung Bromo',
-          address: 'Dusun Pinggir, Desa Cemoro Lawang, Kab. Probolinggo',
-          note: 'Pemilik terbuka untuk menerima tamu homestay.',
-          status: ProposalStatus.menunggu,
-          createdAt: DateTime.now(),
-        );
+    final data = proposal;
 
     return Scaffold(
       backgroundColor: AppColors.canvas,
@@ -63,7 +52,9 @@ class ProposalSuccessScreen extends StatelessWidget {
               ),
               const SizedBox(height: AppSpacing.s5),
               Text(
-                'Usulan terkirim',
+                data == null
+                    ? 'Belum ada konfirmasi usulan'
+                    : 'Usulan terkirim',
                 style: AppTextStyles.displayMd,
                 textAlign: TextAlign.center,
               ),
@@ -77,13 +68,13 @@ class ProposalSuccessScreen extends StatelessWidget {
                 ),
                 child: Column(
                   children: [
-                    _SummaryRow(label: 'Fasilitas', value: data.name),
+                    _SummaryRow(label: 'Fasilitas', value: data?.name ?? '-'),
                     const SizedBox(height: AppSpacing.s3),
-                    _SummaryRow(label: 'Tipe', value: data.typeLabel),
+                    _SummaryRow(label: 'Tipe', value: data?.typeLabel ?? '-'),
                     const SizedBox(height: AppSpacing.s3),
                     _SummaryRow(
                       label: 'Status',
-                      value: data.statusLabel,
+                      value: data?.statusLabel ?? 'Belum dikirim',
                       valueColor: AppColors.warning,
                     ),
                   ],
@@ -124,9 +115,12 @@ class _SummaryRow extends StatelessWidget {
     return Row(
       children: [
         Expanded(child: Text(label, style: AppTextStyles.bodySm)),
-        Text(
-          value,
-          style: AppTextStyles.titleSm.copyWith(color: valueColor),
+        Expanded(
+          child: Text(
+            value,
+            textAlign: TextAlign.end,
+            style: AppTextStyles.titleSm.copyWith(color: valueColor),
+          ),
         ),
       ],
     );
