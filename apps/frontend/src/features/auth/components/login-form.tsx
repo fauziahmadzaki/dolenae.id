@@ -66,6 +66,13 @@ export function LoginForm() {
                 id="email"
                 type="email"
                 autoComplete="email"
+                enterKeyHint="next"
+                onKeyDown={(event) => {
+                  if (event.key === "Enter" && !event.nativeEvent.isComposing) {
+                    event.preventDefault();
+                    form.setFocus("password");
+                  }
+                }}
                 placeholder="nama@email.com"
                 aria-invalid={emailError ? true : undefined}
                 disabled={isSubmitting}
@@ -90,6 +97,7 @@ export function LoginForm() {
                   id="password"
                   type={showPassword ? "text" : "password"}
                   autoComplete="current-password"
+                  enterKeyHint="go"
                   placeholder="Kata sandi Anda"
                   aria-invalid={passwordError ? true : undefined}
                   disabled={isSubmitting}

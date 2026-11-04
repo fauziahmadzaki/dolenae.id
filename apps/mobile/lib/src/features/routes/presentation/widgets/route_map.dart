@@ -13,8 +13,8 @@ class RouteMap extends StatelessWidget {
     this.selectedRoute,
     List<TrackNode>? nodes,
     this.height = 280,
-  })  : routes = routes ?? graph?.routes ?? const [],
-        nodes = nodes ?? graph?.nodes ?? const [];
+  }) : routes = routes ?? graph?.routes ?? const [],
+       nodes = nodes ?? graph?.nodes ?? const [];
 
   final RouteGraph? graph;
   final List<TrailRoute> routes;
@@ -25,7 +25,7 @@ class RouteMap extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final activeRoute = selectedRoute ?? routes.firstOrNull;
-    final fitPoints = _resolveFitPoints(activeRoute);
+    final fitPoints = _resolveFitPoints();
 
     final mapOptions = fitPoints.isNotEmpty
         ? MapOptions(
@@ -48,10 +48,32 @@ class RouteMap extends StatelessWidget {
 
     final unselected = <Polyline>[];
     Polyline? selectedPolyline;
+    final nodeById = {for (final node in nodes) node.id: node};
+    for (final segment in graph?.segments ?? const <RouteSegment>[]) {
+      final from = nodeById[segment.fromNodeId];
+      final to = nodeById[segment.toNodeId];
+      if (from == null || to == null) continue;
+      unselected.add(
+        Polyline(
+          points: [
+            LatLng(from.point.latitude, from.point.longitude),
+            LatLng(to.point.latitude, to.point.longitude),
+          ],
+          strokeWidth: 3,
+          color: routeSurfaceColor(segment.surface),
+          pattern: routeStrokePattern(
+            status: segment.status,
+            surface: segment.surface,
+          ),
+        ),
+      );
+    }
 
     for (final route in routes) {
       if (route.points.length < 2) continue;
-      final latLngs = route.points.map((p) => LatLng(p.latitude, p.longitude)).toList();
+      final latLngs = route.points
+          .map((p) => LatLng(p.latitude, p.longitude))
+          .toList();
       final isSelected = activeRoute?.id == route.id;
       final color = isSelected
           ? routeStatusColor(route.status)
@@ -60,7 +82,10 @@ class RouteMap extends StatelessWidget {
         points: latLngs,
         strokeWidth: isSelected ? 5.0 : 2.5,
         color: color,
-        pattern: routeStrokePattern(status: route.status, surface: route.surface),
+        pattern: routeStrokePattern(
+          status: route.status,
+          surface: route.surface,
+        ),
       );
       if (isSelected) {
         selectedPolyline = polyline;
@@ -79,7 +104,8 @@ class RouteMap extends StatelessWidget {
         height: 32,
         alignment: Alignment.center,
         child: Tooltip(
-          message: '${node.name} (${node.type})',
+          message:
+              '${node.name} (${node.type})${node.point.elevationMeters == null ? '' : ' · ${node.point.elevationMeters!.round()} m'}',
           child: Container(
             decoration: BoxDecoration(
               color: Colors.white,
@@ -125,12 +151,12 @@ class RouteMap extends StatelessWidget {
     );
   }
 
-  List<LatLng> _resolveFitPoints(TrailRoute? activeRoute) {
-    if (activeRoute != null && activeRoute.points.isNotEmpty) {
-      return activeRoute.points.map((p) => LatLng(p.latitude, p.longitude)).toList();
-    }
-    final allRoutePts = routes.expand((r) => r.points).map((p) => LatLng(p.latitude, p.longitude)).toList();
-    if (allRoutePts.isNotEmpty) return allRoutePts;
-    return nodes.map((n) => LatLng(n.point.latitude, n.point.longitude)).toList();
+  List<LatLng> _resolveFitPoints() {
+    return [
+      ...routes
+          .expand((r) => r.points)
+          .map((p) => LatLng(p.latitude, p.longitude)),
+      ...nodes.map((n) => LatLng(n.point.latitude, n.point.longitude)),
+    ];
   }
 }

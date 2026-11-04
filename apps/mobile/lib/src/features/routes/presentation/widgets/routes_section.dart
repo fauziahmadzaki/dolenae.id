@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:dolenae_mobile/src/shared/widgets/dn_remote_image.dart';
 import 'package:dolenae_mobile/src/app/theme/app_colors.dart';
 import 'package:dolenae_mobile/src/app/theme/app_spacing.dart';
 import 'package:dolenae_mobile/src/app/theme/app_text_styles.dart';
@@ -33,7 +34,8 @@ class _RoutesSectionState extends State<RoutesSection> {
   @override
   void didUpdateWidget(covariant RoutesSection oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.destinationId != widget.destinationId || oldWidget.controller != widget.controller) {
+    if (oldWidget.destinationId != widget.destinationId ||
+        oldWidget.controller != widget.controller) {
       _load();
     }
   }
@@ -41,10 +43,8 @@ class _RoutesSectionState extends State<RoutesSection> {
   void _load() {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
-      try {
-        final c = widget.controller ?? context.read<RoutesController>();
-        c.loadDestination(widget.destinationId);
-      } catch (_) {}
+      final c = widget.controller ?? context.read<RoutesController>();
+      c.loadDestination(widget.destinationId);
     });
   }
 
@@ -57,12 +57,7 @@ class _RoutesSectionState extends State<RoutesSection> {
         builder: (context, _) => _buildContent(context, explicit),
       );
     }
-    final RoutesController c;
-    try {
-      c = context.watch<RoutesController>();
-    } catch (_) {
-      return const SizedBox.shrink();
-    }
+    final c = context.watch<RoutesController>();
     return _buildContent(context, c);
   }
 
@@ -93,66 +88,135 @@ class _RoutesSectionState extends State<RoutesSection> {
       );
     }
 
-    final routes = controller.graph?.routes ?? const [];
-    if (routes.isEmpty) {
+    final graph = controller.graph;
+    final routes = graph?.routes ?? const [];
+    if (graph == null ||
+        (routes.isEmpty && graph.nodes.isEmpty && graph.segments.isEmpty)) {
       return Text(
         'Belum ada data jalur untuk destinasi ini',
         style: AppTextStyles.body,
       );
     }
 
-    final selected = controller.selectedRoute ?? routes.first;
+    final selected = controller.selectedRoute;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text('Jalur & Rute', style: AppTextStyles.title),
         const SizedBox(height: AppSpacing.s3),
-        SizedBox(
-          height: 104,
-          child: ListView.separated(
-            scrollDirection: Axis.horizontal,
-            itemCount: routes.length,
-            separatorBuilder: (_, _) => const SizedBox(width: AppSpacing.s3),
-            itemBuilder: (context, index) {
-              final route = routes[index];
-              final isSelected = route.id == selected.id;
-              return _buildRouteCard(controller, route, isSelected);
-            },
-          ),
-        ),
-        const SizedBox(height: AppSpacing.s4),
-        RouteMap(
-          graph: controller.graph,
-          selectedRoute: selected,
-        ),
-        const SizedBox(height: AppSpacing.s4),
-        if (controller.profileLoading)
-          const Center(
-            child: Padding(
-              padding: EdgeInsets.all(AppSpacing.s4),
-              child: CircularProgressIndicator(),
+        if (selected != null) ...[
+          SizedBox(
+            height: 104,
+            child: ListView.separated(
+              scrollDirection: Axis.horizontal,
+              itemCount: routes.length,
+              separatorBuilder: (_, _) => const SizedBox(width: AppSpacing.s3),
+              itemBuilder: (context, index) {
+                final route = routes[index];
+                final isSelected = route.id == selected.id;
+                return _buildRouteCard(controller, route, isSelected);
+              },
             ),
-          )
-        else if (controller.profileFailure != null)
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+          ),
+          const SizedBox(height: AppSpacing.s4),
+        ],
+        RouteMap(graph: controller.graph, selectedRoute: selected),
+        const SizedBox(height: AppSpacing.s4),
+        for (final segment in graph.segments)
+          ExpansionTile(
+            key: ValueKey('segment-${segment.id}'),
+            title: Text(
+              '${_nodeName(graph, segment.fromNodeId)} → ${_nodeName(graph, segment.toNodeId)}',
+              style: AppTextStyles.label,
+            ),
+            childrenPadding: const EdgeInsets.all(AppSpacing.s3),
+            expandedCrossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                controller.profileFailure!.message,
-                style: AppTextStyles.bodySm.copyWith(color: AppColors.danger),
+              _detail('Permukaan', formatRouteSurface(segment.surface)),
+              _detail('Kecuraman', segment.grade),
+              _detail('Status', formatRouteStatus(segment.status)),
+              _detail('Akses', segment.traversableBy.join(', ')),
+              _detail('Arah', segment.bidirectional ? 'Dua arah' : 'Satu arah'),
+              _detail(
+                'Musim',
+                segment.seasonal ? 'Musiman' : 'Sepanjang tahun',
               ),
-              TextButton(
-                onPressed: () => controller.selectRoute(selected.id),
-                child: const Text('Coba lagi profil'),
-              ),
+              if (segment.distanceKm != null)
+                _detail('Jarak', '${segment.distanceKm} km'),
+              if (segment.estimatedDurationMinutes != null)
+                _detail(
+                  'Durasi',
+                  '${segment.estimatedDurationMinutes!.round()} menit',
+                ),
+              if (segment.notes?.isNotEmpty == true)
+                _detail('Catatan', segment.notes!),
             ],
-          )
-        else
-          ElevationChart(profile: controller.profile),
+          ),
+        for (final node in graph.nodes)
+          ExpansionTile(
+            key: ValueKey('node-${node.id}'),
+            title: Text(node.name, style: AppTextStyles.label),
+            subtitle: Text(node.type, style: AppTextStyles.caption),
+            childrenPadding: const EdgeInsets.all(AppSpacing.s3),
+            expandedCrossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              if (node.point.elevationMeters != null)
+                _detail('Elevasi', '${node.point.elevationMeters!.round()} m'),
+              if (node.notes?.isNotEmpty == true)
+                _detail('Catatan', node.notes!),
+              if (node.imageUrl?.isNotEmpty == true)
+                DnRemoteImage(
+                  url: node.imageUrl,
+                  height: 160,
+                  semanticLabel: 'Foto ${node.name}',
+                ),
+            ],
+          ),
+        if (selected != null) ...[
+          if (selected.description?.isNotEmpty == true)
+            _detail('Deskripsi', selected.description!),
+          _detail('Kecuraman', selected.grade),
+          _detail('Akses', selected.traversableBy.join(', ')),
+          if (selected.isRecommended)
+            _detail('Rekomendasi', 'Direkomendasikan'),
+          if (selected.basecampNodeId != null)
+            _detail('Basecamp', _nodeName(graph, selected.basecampNodeId!)),
+          if (controller.profileLoading)
+            const Center(
+              child: Padding(
+                padding: EdgeInsets.all(AppSpacing.s4),
+                child: CircularProgressIndicator(),
+              ),
+            )
+          else if (controller.profileFailure != null)
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  controller.profileFailure!.message,
+                  style: AppTextStyles.bodySm.copyWith(color: AppColors.danger),
+                ),
+                TextButton(
+                  onPressed: () => controller.selectRoute(selected.id),
+                  child: const Text('Coba lagi profil'),
+                ),
+              ],
+            )
+          else
+            ElevationChart(profile: controller.profile),
+        ],
       ],
     );
   }
+
+  String _nodeName(RouteGraph graph, String id) =>
+      graph.nodes.where((node) => node.id == id).firstOrNull?.name ?? id;
+
+  Widget _detail(String label, String value) => Padding(
+    padding: const EdgeInsets.only(bottom: AppSpacing.s2),
+    child: Text('$label: $value', style: AppTextStyles.bodySm),
+  );
 
   Widget _buildRouteCard(
     RoutesController controller,
@@ -192,7 +256,10 @@ class _RoutesSectionState extends State<RoutesSection> {
                   ),
                 ),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 6,
+                    vertical: 2,
+                  ),
                   decoration: BoxDecoration(
                     color: statusColor.withValues(alpha: 0.15),
                     borderRadius: BorderRadius.circular(4),
@@ -236,7 +303,9 @@ class _RoutesSectionState extends State<RoutesSection> {
                 if (gainMeters != null)
                   Text(
                     '+${gainMeters.round()} m',
-                    style: AppTextStyles.labelSm.copyWith(color: AppColors.success),
+                    style: AppTextStyles.labelSm.copyWith(
+                      color: AppColors.success,
+                    ),
                   )
                 else
                   const SizedBox.shrink(),
@@ -249,16 +318,25 @@ class _RoutesSectionState extends State<RoutesSection> {
   }
 
   double? _calculateDistance(RoutesController controller, TrailRoute route) {
-    if (controller.selectedRoute?.id == route.id && controller.profile != null) {
+    if (controller.selectedRoute?.id == route.id &&
+        controller.profile != null) {
       return controller.profile!.totalDistanceKm;
     }
-    final segments = controller.graph?.segments.where((s) => route.segmentIds.contains(s.id)) ?? const [];
-    final sum = segments.fold<double>(0.0, (acc, s) => acc + (s.distanceKm ?? 0.0));
+    final segments =
+        controller.graph?.segments.where(
+          (s) => route.segmentIds.contains(s.id),
+        ) ??
+        const [];
+    final sum = segments.fold<double>(
+      0.0,
+      (acc, s) => acc + (s.distanceKm ?? 0.0),
+    );
     return sum > 0 ? sum : null;
   }
 
   double? _resolveGain(RoutesController controller, TrailRoute route) {
-    if (controller.selectedRoute?.id == route.id && controller.profile != null) {
+    if (controller.selectedRoute?.id == route.id &&
+        controller.profile != null) {
       return controller.profile!.totalGainMeters;
     }
     return null;

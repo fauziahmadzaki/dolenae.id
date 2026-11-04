@@ -250,6 +250,10 @@ class _LoginScreenState extends State<LoginScreen> {
                 hint: 'Minimal 8 karakter',
                 icon: AppIcons.lock,
                 obscure: true,
+                textInputAction: _isRegister
+                    ? TextInputAction.next
+                    : TextInputAction.done,
+                onSubmitted: _isRegister ? null : (_) => _submit(),
                 error: _submitted && !_passwordValid
                     ? 'Kata sandi minimal 8 karakter.'
                     : null,
@@ -263,6 +267,8 @@ class _LoginScreenState extends State<LoginScreen> {
                   hint: 'Ketik ulang kata sandi',
                   icon: AppIcons.lock,
                   obscure: true,
+                  textInputAction: TextInputAction.done,
+                  onSubmitted: (_) => _submit(),
                   error: _submitted && !_confirmValid
                       ? 'Konfirmasi kata sandi tidak cocok.'
                       : null,
@@ -471,6 +477,8 @@ class _Field extends StatelessWidget {
     this.error,
     this.obscure = false,
     this.onChanged,
+    this.textInputAction = TextInputAction.next,
+    this.onSubmitted,
   });
 
   final String label;
@@ -480,6 +488,8 @@ class _Field extends StatelessWidget {
   final String? error;
   final bool obscure;
   final ValueChanged<String>? onChanged;
+  final TextInputAction textInputAction;
+  final ValueChanged<String>? onSubmitted;
 
   @override
   Widget build(BuildContext context) {
@@ -495,6 +505,8 @@ class _Field extends StatelessWidget {
           controller: controller,
           obscureText: obscure,
           onChanged: onChanged,
+          textInputAction: textInputAction,
+          onSubmitted: onSubmitted,
           style: AppTextStyles.bodySm.copyWith(color: AppColors.ink),
           decoration: InputDecoration(
             isDense: true,

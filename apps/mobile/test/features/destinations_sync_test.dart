@@ -38,10 +38,14 @@ void main() {
       initialItems: DestinationSeedData.items,
     );
     controller.start();
+    final stores = TestStores();
     await tester.pumpWidget(
       MaterialApp(
-        home: ChangeNotifierProvider.value(
-          value: controller,
+        home: MultiProvider(
+          providers: [
+            ChangeNotifierProvider.value(value: controller),
+            ChangeNotifierProvider.value(value: stores.routes),
+          ],
           child: DestinationDetailScreen(
             destinationId: 'dest-bromo',
             onBack: () {},
@@ -61,6 +65,7 @@ void main() {
     expect(find.text('Destinasi tidak tersedia.'), findsOneWidget);
     await tester.pumpWidget(const SizedBox());
     controller.dispose();
+    stores.routes.dispose();
     await repository.catalog.close();
   });
 

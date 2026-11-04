@@ -24,6 +24,83 @@ void main() {
     await useTestFonts();
   });
 
+  testWidgets('keyboard next pindah ke sandi lalu done mengirim login', (
+    tester,
+  ) async {
+    await usePhone(tester);
+    final repository = _LoginFakeAuthRepository();
+    await tester.pumpWidget(
+      wrapScreen(
+        const LoginScreen(),
+        store: TestStores(authRepository: repository),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final fields = find.byType(TextField);
+    expect(
+      tester.widget<TextField>(fields.at(0)).textInputAction,
+      TextInputAction.next,
+    );
+    await tester.enterText(fields.at(0), 'dimas@mail.com');
+    await tester.testTextInput.receiveAction(TextInputAction.next);
+    await tester.pumpAndSettle();
+    expect(
+      tester
+          .widget<EditableText>(find.byType(EditableText).at(1))
+          .focusNode
+          .hasFocus,
+      isTrue,
+    );
+    expect(repository.loginCalls, 0);
+
+    await tester.enterText(fields.at(1), 'dolenae123');
+    await tester.testTextInput.receiveAction(TextInputAction.done);
+    await tester.pumpAndSettle();
+    expect(repository.loginCalls, 1);
+  });
+
+  testWidgets('keyboard daftar next hingga konfirmasi lalu done mengirim', (
+    tester,
+  ) async {
+    await usePhone(tester);
+    final repository = _LoginFakeAuthRepository();
+    await tester.pumpWidget(
+      wrapScreen(
+        const LoginScreen(),
+        store: TestStores(authRepository: repository),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Daftar').first);
+    await tester.pumpAndSettle();
+
+    final fields = find.byType(TextField);
+    const values = ['Dimas', 'dimas@mail.com', 'dolenae123', 'dolenae123'];
+    for (var i = 0; i < values.length; i++) {
+      expect(
+        tester.widget<TextField>(fields.at(i)).textInputAction,
+        i == 3 ? TextInputAction.done : TextInputAction.next,
+      );
+      await tester.enterText(fields.at(i), values[i]);
+      await tester.testTextInput.receiveAction(
+        i == 3 ? TextInputAction.done : TextInputAction.next,
+      );
+      await tester.pumpAndSettle();
+      if (i < 3) {
+        expect(
+          tester
+              .widget<EditableText>(find.byType(EditableText).at(i + 1))
+              .focusNode
+              .hasFocus,
+          isTrue,
+        );
+        expect(repository.registerCalls, 0);
+      }
+    }
+    expect(repository.registerCalls, 1);
+  });
+
   testWidgets('Ingat saya menyimpan email setelah login berhasil', (
     tester,
   ) async {
