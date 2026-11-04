@@ -1,6 +1,7 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useAuthStore } from "~/features/auth/hooks/auth-store";
 import { ApiError } from "~/lib/api/types";
 import { usersApi, type UserListQuery } from "../api/users";
 
@@ -59,11 +60,14 @@ export function useUserMutation({
           return usersApi.remove(input.id, token);
       }
     },
-    onSuccess: () => {
+    onMutate: () => useAuthStore.getState(),
+    onSuccess: (_result, _input, session) => {
+      if (useAuthStore.getState() !== session) return;
       cache.invalidateQueries({ queryKey: ["users"] });
       onSaved();
     },
-    onError: (error) => {
+    onError: (error, _input, session) => {
+      if (useAuthStore.getState() !== session) return;
       if (error instanceof ApiError && error.status === 401) onUnauthorized();
     },
   });

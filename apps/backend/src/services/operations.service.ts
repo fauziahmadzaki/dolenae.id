@@ -12,13 +12,17 @@ import { buildMeta, toPagination, type PaginationQuery } from "../utils/paginati
 async function persist<T>(write: () => Promise<T>): Promise<T> {
   try { return await write(); } catch (error) {
     const codes: unknown[] = [];
+    let priceConstraint = false;
     let current: unknown = error;
     for (let i = 0; i < 5 && current && typeof current === "object"; i++) {
-      codes.push((current as { code?: unknown }).code);
+      const failure = current as { code?: unknown; constraint?: unknown };
+      codes.push(failure.code);
+      if (failure.code === "23514" && failure.constraint === "travel_supports_prices") priceConstraint = true;
       current = (current as { cause?: unknown }).cause;
     }
     if (codes.includes("23505")) throw new ConflictError("Data sudah digunakan");
     if (codes.includes("23503")) throw new ConflictError("Relasi data tidak tersedia atau masih digunakan");
+    if (priceConstraint) throw new ValidationError("Rentang harga fasilitas tidak valid");
     if (codes.includes("23514")) throw new ValidationError("Nilai atau rentang data tidak valid");
     throw error;
   }

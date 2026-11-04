@@ -8,7 +8,8 @@ export const draftId = "44444444-4444-4444-a444-444444444444";
 export const supportId = "55555555-5555-4555-a555-555555555555";
 export let state: Record<string, any[]>;
 export function resetMemory() {
-  state = { trips: [], items: [], notifications: [], checklists: [], saved: [], settings: [], faqs: [], feedback: [] };
+  state = { trips: [], items: [], notifications: [], checklists: [], saved: [], settings: [], faqs: [], feedback: [],
+    destinations: [{ id: destinationId, status: "published", name: "Gunung Uji", regency: "Bandung", province: "Jawa Barat", difficulty: "menengah", entryFee: 15000 }] };
 }
 const owned = (rows: any[], userId: string, id: string) => rows.find((row) => row.userId === userId && row.id === id);
 const now = () => new Date("2026-11-01T00:00:00.000Z");
@@ -38,10 +39,10 @@ export const memory = {
     return Boolean(row);
   },
   async listTripItems(userId: string, tripIds: string[]) {
-    return state.items.filter((row) => row.userId === userId && tripIds.includes(row.tripId)).map((item) => ({ item, destination: { id: item.destinationId, name: "Gunung Uji", regency: "Bandung", province: "Jawa Barat", difficulty: "menengah", entryFee: 15000 } }));
+    return state.items.filter((row) => row.userId === userId && tripIds.includes(row.tripId)).map((item) => ({ item, destination: state.destinations.find((row) => row.id === item.destinationId && row.status === "published") ?? null }));
   },
   async findPublishedDestination(id: string) {
-    return id === destinationId ? { id, name: "Gunung Uji", regency: "Bandung", province: "Jawa Barat", difficulty: "menengah", entryFee: 15000 } : undefined;
+    return state.destinations.find((row) => row.id === id && row.status === "published");
   },
   async findRelatedSupports(id: string, ids: string[]) { return id === destinationId && ids.includes(supportId) ? [{ id: supportId, destinationId }] : []; },
   async findTripItem(userId: string, tripId: string, id: string) { return state.items.find((row) => row.userId === userId && row.tripId === tripId && row.id === id); },

@@ -47,7 +47,7 @@ export const personalRepository = {
   async listTripItems(userId: string, tripIds: string[], db: PersonalDb = getDb()) {
     if (!tripIds.length) return [];
     return db.select({ item: tripItems, destination: destinations }).from(tripItems)
-      .innerJoin(destinations, eq(destinations.id, tripItems.destinationId))
+      .leftJoin(destinations, and(eq(destinations.id, tripItems.destinationId), eq(destinations.status, "published")))
       .where(and(eq(tripItems.userId, userId), inArray(tripItems.tripId, tripIds)))
       .orderBy(asc(tripItems.date), asc(tripItems.order), asc(tripItems.id));
   },

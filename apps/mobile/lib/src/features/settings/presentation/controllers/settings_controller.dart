@@ -92,6 +92,11 @@ class SettingsController extends ChangeNotifier {
     bool? bagikanAktivitas,
     bool? analitik,
   }) {
+    if (twoFactor != null) {
+      return Future.value(const Failure(
+        ValidationFailure('Verifikasi dua langkah belum tersedia.'),
+      ));
+    }
     final current = settings.privacy;
     return _run(
       () => _repository.setPrivacyPreferences(

@@ -4,6 +4,7 @@ import { useEffect, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "~/features/auth/hooks/use-auth";
+import { useAuthStore } from "~/features/auth/hooks/auth-store";
 import { del, get } from "~/lib/api/client";
 import { ApiError } from "~/lib/api/types";
 import { Button } from "~/components/ui/button";
@@ -18,7 +19,6 @@ export function useAdminQuery<T>(path: string, params: Record<string, string | n
     queryKey: ["admin", path, params, auth.user?.id],
     queryFn: ({ signal }) => get<T>(`${path}?${new URLSearchParams(Object.entries(params).filter(([, v]) => v !== "").map(([k, v]) => [k, String(v)]))}`, { token: auth.token ?? undefined, signal }),
     enabled: auth.hydrated && !!auth.token && auth.user?.role === "admin",
-    placeholderData: (previous, previousQuery) => previousQuery?.queryKey[1] === path && previousQuery.queryKey.at(-1) === auth.user?.id ? previous : undefined,
     retry: false,
   });
   useEffect(() => {
@@ -41,12 +41,16 @@ export function useAdminMutation<T>(action: (input: T, token: string) => Promise
       if (!token) throw new Error("Sesi berakhir. Silakan masuk kembali.");
       return action(input, token);
     },
-    onSuccess: async () => {
+    onMutate: () => useAuthStore.getState(),
+    onSuccess: async (_result, _input, session) => {
+      if (useAuthStore.getState() !== session) return;
       await Promise.all([cache.invalidateQueries({ queryKey: ["admin"] }), cache.invalidateQueries({ queryKey: ["public"] })]);
+      if (useAuthStore.getState() !== session) return;
       toast({ title: "Perubahan tersimpan", variant: "success" });
       onSaved();
     },
-    onError: (error) => {
+    onError: (error, _input, session) => {
+      if (useAuthStore.getState() !== session) return;
       if (error instanceof ApiError && error.status === 401) {
         cache.removeQueries({ queryKey: ["admin"] });
         logout();

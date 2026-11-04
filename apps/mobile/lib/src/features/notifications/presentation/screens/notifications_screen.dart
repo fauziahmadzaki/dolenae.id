@@ -10,6 +10,7 @@ import 'package:dolenae_mobile/src/features/notifications/domain/entities/app_no
 import 'package:dolenae_mobile/src/shared/widgets/dn_app_bar.dart';
 import 'package:dolenae_mobile/src/shared/widgets/dn_empty_state.dart';
 import 'package:dolenae_mobile/src/shared/widgets/dn_notification_item.dart';
+import 'package:dolenae_mobile/src/shared/widgets/dn_toast.dart';
 
 /// Layar Notifikasi (Node Figma: 86:1808).
 ///
@@ -54,13 +55,21 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     final unread = all.where((item) => !item.read).length;
     final markAll = widget.onMarkAllRead ?? store.markAllNotificationsRead;
 
-    void open(AppNotification notification) {
+    Future<void> open(AppNotification notification) async {
+      if (store.isLoading) return;
       final handler = widget.onOpen;
       if (handler != null) {
         handler(notification);
         return;
       }
-      store.markNotificationRead(notification.id);
+      if (!notification.read) {
+        final result = await store.markNotificationRead(notification.id);
+        if (!context.mounted) return;
+        if (result.isFailure) {
+          showDnToast(context, result.failureOrNull!.message, type: DnToastType.gagal);
+          return;
+        }
+      }
       final href = notification.href;
       if (href == null) return;
       if (href == '/plan') {
@@ -79,7 +88,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         trailing: unread == 0
             ? null
             : TextButton(
-                onPressed: markAll,
+                onPressed: store.isLoading ? null : markAll,
                 child: Text(
                   'Tandai dibaca',
                   style: AppTextStyles.labelSm.copyWith(
@@ -138,7 +147,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                         padding: const EdgeInsets.only(bottom: AppSpacing.s2),
                         child: DnNotificationItem(
                           notification: item,
-                          onTap: () => open(item),
+                          onTap: store.isLoading ? null : () => open(item),
                         ),
                       ),
                     ),
@@ -152,7 +161,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                         padding: const EdgeInsets.only(bottom: AppSpacing.s2),
                         child: DnNotificationItem(
                           notification: item,
-                          onTap: () => open(item),
+                          onTap: store.isLoading ? null : () => open(item),
                         ),
                       ),
                     ),

@@ -24,7 +24,7 @@ import 'package:dolenae_mobile/src/shared/widgets/dn_support_row.dart';
 class FacilitiesScreen extends StatefulWidget {
   const FacilitiesScreen({
     super.key,
-    this.destinationId = 'dest-bromo',
+    this.destinationId = '',
     this.onPropose,
     this.onBack,
     this.onOpenDetail,
@@ -44,6 +44,28 @@ class _FacilitiesScreenState extends State<FacilitiesScreen> {
   bool _verifiedOnly = true;
   bool _economicOnly = false;
   bool _nearbyOnly = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  @override
+  void didUpdateWidget(covariant FacilitiesScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.destinationId != widget.destinationId) _load();
+  }
+
+  void _load() {
+    final destinationId = widget.destinationId;
+    if (destinationId.isEmpty) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted && widget.destinationId == destinationId) {
+        context.read<FacilitiesController>().load(destinationId);
+      }
+    });
+  }
 
   List<TravelSupport> _filter(List<TravelSupport> items) {
     return items.where((support) {
@@ -81,9 +103,17 @@ class _FacilitiesScreenState extends State<FacilitiesScreen> {
   @override
   Widget build(BuildContext context) {
     final destinations = context.watch<DestinationsController>();
-    final supports = context.watch<FacilitiesController>().supports;
-    final destination =
-        destinations.find(widget.destinationId) ?? destinations.items.first;
+    final facilities = context.watch<FacilitiesController>();
+    final loading =
+        facilities.destinationId != widget.destinationId || facilities.loading;
+    final failure = loading ? null : facilities.failure;
+    final supports = loading || failure != null
+        ? <TravelSupport>[]
+        : facilities
+              .supportsFor(widget.destinationId)
+              .where((support) => support.destinationId == widget.destinationId)
+              .toList();
+    final destination = destinations.find(widget.destinationId);
     final visible = _visibleFor(supports);
     final groups = <({SupportCategory category, String label, IconData icon})>[
       (
@@ -103,13 +133,33 @@ class _FacilitiesScreenState extends State<FacilitiesScreen> {
       ),
     ];
 
+    final appBar = DnAppBar(
+      title: 'Fasilitas sekitar',
+      showBack: true,
+      onBack: widget.onBack ?? () => context.pop(),
+    );
+    if (destination == null) {
+      return Scaffold(
+        backgroundColor: AppColors.canvas,
+        appBar: appBar,
+        body: const SafeArea(
+          child: Center(
+            child: Padding(
+              padding: EdgeInsets.all(AppSpacing.s5),
+              child: DnEmptyState(
+                variant: DnEmptyVariant.belumAdaData,
+                title: 'Destinasi tidak tersedia.',
+                body: 'Pilih destinasi untuk melihat fasilitas di sekitarnya.',
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+
     return Scaffold(
       backgroundColor: AppColors.canvas,
-      appBar: DnAppBar(
-        title: 'Fasilitas sekitar',
-        showBack: true,
-        onBack: widget.onBack ?? () => context.pop(),
-      ),
+      appBar: appBar,
       body: SafeArea(
         top: false,
         child: Column(
@@ -125,10 +175,11 @@ class _FacilitiesScreenState extends State<FacilitiesScreen> {
                 children: [
                   Text(destination.name, style: AppTextStyles.title),
                   const SizedBox(height: AppSpacing.s1),
-                  Text(
-                    '${supports.length} fasilitas di sekitar destinasi',
-                    style: AppTextStyles.bodySm,
-                  ),
+                  if (!loading && failure == null)
+                    Text(
+                      '${supports.length} fasilitas di sekitar destinasi',
+                      style: AppTextStyles.bodySm,
+                    ),
                   const SizedBox(height: AppSpacing.s4),
                   DnSegmented<SupportCategory?>(
                     segments: [
@@ -170,7 +221,28 @@ class _FacilitiesScreenState extends State<FacilitiesScreen> {
                     ),
                   ),
                   const SizedBox(height: AppSpacing.s4),
-                  if (visible.isEmpty)
+                  if (loading)
+                    const Padding(
+                      padding: EdgeInsets.symmetric(vertical: AppSpacing.s10),
+                      child: Center(
+                        child: CircularProgressIndicator(
+                          color: AppColors.primary,
+                          semanticsLabel: 'Memuat fasilitas',
+                        ),
+                      ),
+                    )
+                  else if (failure != null)
+                    Padding(
+                      padding: const EdgeInsets.symmetric(
+                        vertical: AppSpacing.s10,
+                      ),
+                      child: DnEmptyState(
+                        variant: DnEmptyVariant.gagal,
+                        body: failure.message,
+                        onAction: () => facilities.load(widget.destinationId),
+                      ),
+                    )
+                  else if (visible.isEmpty)
                     const Padding(
                       padding: EdgeInsets.symmetric(vertical: AppSpacing.s10),
                       child: DnEmptyState(

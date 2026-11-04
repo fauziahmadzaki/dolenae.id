@@ -1,3 +1,4 @@
+import 'package:dolenae_mobile/src/features/checklist/data/data_sources/checklist_seed_data_source.dart';
 import 'package:dolenae_mobile/src/features/destinations/data/data_sources/destination_seed_data_source.dart';
 import 'package:dolenae_mobile/src/features/facilities/data/data_sources/facility_seed_data_source.dart';
 import 'package:dolenae_mobile/src/shared/icons/app_icons.dart';
@@ -175,7 +176,10 @@ void main() {
   testWidgets('Checklist Persiapan menampilkan progress, filter kategori, dan item toggle', (tester) async {
     await tester.binding.setSurfaceSize(_phone);
     addTearDown(() => tester.binding.setSurfaceSize(null));
-    await tester.pumpWidget(wrapScreen(const ChecklistScreen()));
+    await tester.pumpWidget(wrapScreen(const ChecklistScreen(
+      destinationName: 'Gunung Bromo',
+      initialItems: ChecklistSeedData.items,
+    )));
     expect(find.text('Checklist Persiapan'), findsOneWidget);
     expect(find.text('Gunung Bromo'), findsOneWidget);
     expect(find.text('Semua'), findsOneWidget);
@@ -217,12 +221,12 @@ void main() {
     addTearDown(() => tester.binding.setSurfaceSize(null));
     await tester.pumpWidget(wrapScreen(const ProfileScreen()));
     expect(find.text('Profil'), findsWidgets);
-    expect(find.text('Dimas'), findsOneWidget);
-    expect(find.text('dimas@dolenae.id'), findsOneWidget);
-    expect(find.text('Wisatawan'), findsOneWidget);
+    expect(find.text('Belum masuk'), findsOneWidget);
+    expect(find.text('Dimas'), findsNothing);
+    expect(find.text('dimas@dolenae.id'), findsNothing);
     expect(find.text('Tersimpan'), findsOneWidget);
     expect(find.text('Rencana'), findsWidgets);
-    expect(find.text('Checklist'), findsOneWidget);
+    expect(find.text('Item checklist aktif'), findsOneWidget);
     expect(find.text('Ubah profil'), findsOneWidget);
     expect(find.text('AKUN & KEAMANAN'), findsOneWidget);
     expect(find.text('Edit profil'), findsOneWidget);

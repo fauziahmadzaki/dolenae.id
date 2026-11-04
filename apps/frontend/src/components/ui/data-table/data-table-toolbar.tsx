@@ -21,7 +21,7 @@ export interface DataTableToolbarProps {
   filters?: DataTableFilter[];
   /** Extra controls on the right side, after the result count. */
   actions?: ReactNode;
-  total: number;
+  total?: number;
   /** Plural noun used in the count and states, e.g. "pengguna". */
   itemLabel: string;
   className?: string;
@@ -62,9 +62,9 @@ export function DataTableToolbar({
       />
 
       <div className="ml-auto flex items-center gap-2">
-        <span className="text-sm text-body" aria-live="polite">
+        {total !== undefined && <span className="text-sm text-body" aria-live="polite">
           {total} {itemLabel}
-        </span>
+        </span>}
         {actions}
       </div>
     </div>

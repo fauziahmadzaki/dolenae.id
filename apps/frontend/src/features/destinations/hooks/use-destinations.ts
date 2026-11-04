@@ -1,6 +1,7 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useAuthStore } from "~/features/auth/hooks/auth-store";
 import type { Destination, DestinationDetail } from "~/types/domain";
 import {
   categoriesApi,
@@ -41,7 +42,9 @@ export function useDeleteDestination({ token, onDeleted }: DeleteOptions) {
   return useMutation({
     mutationFn: (destination: Destination) =>
       destinationsApi.remove(destination.id, token),
-    onSuccess: () => {
+    onMutate: () => useAuthStore.getState(),
+    onSuccess: (_result, _input, session) => {
+      if (useAuthStore.getState() !== session) return;
       cache.invalidateQueries({ queryKey: ["destinations"] });
       onDeleted?.();
     },
@@ -81,7 +84,9 @@ export function useSaveDestination({
       editing
         ? destinationsApi.update(id!, payload, token)
         : destinationsApi.create(payload, token),
-    onSuccess: (result) => {
+    onMutate: () => useAuthStore.getState(),
+    onSuccess: (result, _input, session) => {
+      if (useAuthStore.getState() !== session) return;
       cache.invalidateQueries({ queryKey: ["destinations"] });
       cache.invalidateQueries({ queryKey: ["destination", id] });
       onSaved?.(result.data);

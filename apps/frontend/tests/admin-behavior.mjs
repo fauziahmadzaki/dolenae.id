@@ -29,12 +29,15 @@ const { DataTable } = loadSource('../src/components/ui/data-table/data-table.tsx
   './data-table-toolbar': { DataTableToolbar: () => null },
   './data-table-types': { sortOptionsFromColumns: () => [] },
 });
+function renderTable(state = {}) {
+  return DataTable({ data: [], columns: [], getRowId: (row) => row.id, page: 3, pageSize: 10, total: 0,
+    sort: { sort: 'createdAt', order: 'desc' }, search: '', itemLabel: 'aktivitas',
+    onPageChange() {}, onPageSizeChange() {}, onSortChange() {}, onSearchChange() {}, ...state });
+}
 function correctedPage(state) {
   const changes = [];
   effects.length = 0;
-  DataTable({ data: [], columns: [], getRowId: (row) => row.id, page: 3, pageSize: 10, total: 0,
-    sort: { sort: 'createdAt', order: 'desc' }, search: '', itemLabel: 'aktivitas',
-    onPageChange: (page) => changes.push(page), onPageSizeChange() {}, onSortChange() {}, onSearchChange() {}, ...state });
+  renderTable({ onPageChange: (page) => changes.push(page), ...state });
   effects.forEach((effect) => effect());
   return changes;
 }
@@ -45,6 +48,17 @@ assert.deepEqual(correctedPage({ total: 21 }), []);
 assert.deepEqual(correctedPage({ total: 11 }), [2]);
 assert.deepEqual(correctedPage({ total: 0 }), [1]);
 console.log('PASS pagination: wait for successful server totals, preserve page on error/retry');
+
+const { renderToStaticMarkup } = require('react-dom/server');
+const { DataTableToolbar } = loadSource('../src/components/ui/data-table/data-table-toolbar.tsx', {
+  '~/lib/cn': { cn: (...values) => values.filter(Boolean).join(' ') },
+  './data-table-filter-panel': { DataTableFilterPanel: () => null },
+});
+const toolbarMarkup = (state) => renderToStaticMarkup(DataTableToolbar(renderTable(state).props.children[0].props));
+assert(!toolbarMarkup({ isLoading: true }).includes('0 aktivitas'), 'unknown loading total must not be presented as zero');
+assert(!toolbarMarkup({ error: new Error('offline') }).includes('0 aktivitas'), 'failed replies must not manufacture a zero total');
+assert(toolbarMarkup({ total: 0 }).includes('0 aktivitas'), 'confirmed empty server totals must remain visible');
+console.log('PASS counts: no invented zeros while loading or failed');
 
 const { QueryClient } = require('@tanstack/react-query');
 const sessionCache = new QueryClient({ defaultOptions: { queries: { retry: false } } });
@@ -68,6 +82,119 @@ sessionCache.setQueryData(['users'], { private: true });
 useAuthStore.getState().setSession(session);
 assert.equal(sessionCache.getQueryCache().getAll().length, 0, 'login must not reuse a previous session cache');
 console.log('PASS auth cache: login/logout clear private data, cancel stale reads');
+
+const queryLibrary = require('@tanstack/react-query');
+const { ApiError } = loadSource('../src/lib/api/types.ts');
+const pendingReads = [];
+const readPrivate = (...args) => new Promise((resolve) => pendingReads.push({ args, resolve }));
+const queryDependencies = { ...queryLibrary, useQuery: (options) => options };
+const mutationDependencies = { ...queryDependencies, useMutation: (options) => options, useQueryClient: () => sessionCache };
+const userHooks = loadSource('../src/features/users/hooks/use-users.ts', {
+  '@tanstack/react-query': mutationDependencies,
+  '~/features/auth/hooks/auth-store': { useAuthStore },
+  '~/lib/api/types': { ApiError },
+  '../api/users': { usersApi: { list: readPrivate, get: readPrivate } },
+});
+const destinationHooks = loadSource('../src/features/destinations/hooks/use-destinations.ts', {
+  '@tanstack/react-query': mutationDependencies,
+  '~/features/auth/hooks/auth-store': { useAuthStore },
+  '../api/destinations': { destinationsApi: { list: readPrivate, get: readPrivate } },
+});
+for (const [label, options] of [
+  ['users', (token) => userHooks.useUsers({ page: 1 }, token, true)],
+  ['user detail', (token) => userHooks.useUser('same-id', token, true)],
+  ['destinations', (token) => destinationHooks.useDestinations({ page: 1 }, token, true)],
+  ['destination detail', (token) => destinationHooks.useDestination('same-id', token, true)],
+]) {
+  useAuthStore.getState().setSession(session);
+  const observer = new queryLibrary.QueryObserver(sessionCache, options(session.token));
+  const unsubscribe = observer.subscribe(() => {});
+  const firstRead = observer.refetch();
+  pendingReads.shift().resolve({ data: ['private session A'] });
+  await firstRead;
+  assert.deepEqual(observer.getCurrentResult().data.data, ['private session A']);
+  useAuthStore.getState().setSession({ ...session, token: 'test-session-b' });
+  observer.setOptions(options('test-session-b'));
+  assert.equal(observer.getCurrentResult().data, undefined, `${label}: mounted readers must not retain old-session data`);
+  const secondRead = observer.refetch();
+  pendingReads.shift().resolve({ data: ['private session B'] });
+  await secondRead;
+  assert.deepEqual(observer.getCurrentResult().data.data, ['private session B']);
+  unsubscribe();
+  observer.destroy();
+}
+useAuthStore.getState().clearSession();
+console.log('PASS session observers: user/destination list/detail hide prior session while switching');
+
+const notifications = [];
+const navigations = [];
+let saved = 0;
+const adminShared = loadSource('../src/features/operations/shared.tsx', {
+  react: { useEffect: (effect) => effects.push(effect) },
+  'next/navigation': { useRouter: () => ({ replace: (path) => navigations.push(path) }) },
+  '@tanstack/react-query': { ...queryDependencies, useMutation: (options) => options, useQueryClient: () => sessionCache },
+  '~/features/auth/hooks/use-auth': { useAuth: () => ({ ...useAuthStore.getState(), logout: useAuthStore.getState().clearSession }) },
+  '~/features/auth/hooks/auth-store': { useAuthStore },
+  '~/lib/api/client': { get: readPrivate },
+  '~/lib/api/types': { ApiError },
+  '~/components/ui/button': {},
+  '~/components/ui/dialog': {},
+  '~/components/ui/toaster': { useToast: () => ({ toast: (message) => notifications.push(message) }) },
+});
+useAuthStore.getState().setSession(session);
+const adminObserver = new queryLibrary.QueryObserver(sessionCache, adminShared.useAdminQuery('/admin/supports'));
+const unsubscribeAdmin = adminObserver.subscribe(() => {});
+const adminRead = adminObserver.refetch();
+pendingReads.shift().resolve({ data: ['private admin A'] });
+await adminRead;
+useAuthStore.getState().setSession({ ...session, token: 'test-session-b' });
+adminObserver.setOptions(adminShared.useAdminQuery('/admin/supports'));
+assert.equal(adminObserver.getCurrentResult().data, undefined, 'admin placeholder must not display previous-session rows for the same user');
+unsubscribeAdmin();
+adminObserver.destroy();
+useAuthStore.getState().clearSession();
+console.log('PASS admin queries: no previous-session placeholder data');
+for (const outcome of ['success', 'unauthorized', 'same-token']) {
+  useAuthStore.getState().setSession(session);
+  let finish;
+  const observer = new queryLibrary.MutationObserver(sessionCache, adminShared.useAdminMutation(
+    () => new Promise((resolve, reject) => { finish = outcome === 'unauthorized' ? reject : resolve; }),
+    () => { saved++; },
+  ));
+  const mutation = observer.mutate({});
+  await new Promise((resolve) => setImmediate(resolve));
+  useAuthStore.getState().clearSession();
+  const newToken = outcome === 'same-token' ? session.token : 'test-session-b';
+  useAuthStore.getState().setSession({ ...session, token: newToken });
+  finish(outcome === 'unauthorized' ? new ApiError(401, 'UNAUTHORIZED', 'Expired session A') : { data: 'old saved' });
+  await mutation.catch(() => undefined);
+  assert.equal(saved, 0, 'late admin mutation must not close a new-session dialog');
+  assert.deepEqual(notifications, [], 'late admin mutation must not announce a success in another session');
+  assert.deepEqual(navigations, [], 'late unauthorized mutation must not redirect a new session');
+  assert.equal(useAuthStore.getState().token, newToken, 'late unauthorized mutation must not log out a new session');
+}
+useAuthStore.getState().clearSession();
+console.log('PASS admin mutations: ignore stale success/401 after logout or session switch');
+
+for (const [label, configure, input] of [
+  ['users', () => userHooks.useUserMutation({ token: session.token, onSaved: () => { saved++; }, onUnauthorized: () => { navigations.push('logout'); } }), { kind: 'create', payload: {} }],
+  ['destination delete', () => destinationHooks.useDeleteDestination({ token: session.token, onDeleted: () => { saved++; } }), { id: 'same-id' }],
+  ['destination save', () => destinationHooks.useSaveDestination({ token: session.token, editing: false, onSaved: () => { saved++; } }), {}],
+]) {
+  useAuthStore.getState().setSession(session);
+  const callbacks = configure();
+  let finish;
+  const observer = new queryLibrary.MutationObserver(sessionCache, { ...callbacks, mutationFn: () => new Promise((resolve) => { finish = resolve; }) });
+  const mutation = observer.mutate(input);
+  await new Promise((resolve) => setImmediate(resolve));
+  useAuthStore.getState().clearSession();
+  useAuthStore.getState().setSession(session);
+  finish({ data: { id: 'old-session-result' } });
+  await mutation;
+  assert.equal(saved, 0, `${label}: late mutation must not announce success or close another session's dialog`);
+}
+useAuthStore.getState().clearSession();
+console.log('PASS user/destination mutations: ignore completion after session reset');
 import { promoSchema, supportSchema, faqSchema, feedbackSchema } from '../src/features/operations/validation.ts';
 import { qrGeometry } from '../src/features/operations/qr-geometry.ts';
 

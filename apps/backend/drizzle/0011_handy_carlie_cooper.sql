@@ -1,0 +1,1 @@
+ALTER TABLE "travel_supports" ADD CONSTRAINT "travel_supports_prices" CHECK ("travel_supports"."price_min" >= 0 AND "travel_supports"."price_max" >= 0 AND "travel_supports"."price_min" <= "travel_supports"."price_max");

@@ -78,6 +78,13 @@
       "when": 1793729225758,
       "tag": "0010_closed_falcon",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1793770984175,
+      "tag": "0011_handy_carlie_cooper",
+      "breakpoints": true
     }
   ]
 }

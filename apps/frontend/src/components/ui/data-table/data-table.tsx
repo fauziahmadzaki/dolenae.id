@@ -96,7 +96,7 @@ export function DataTable<T>({
         sortOptions={sortOptions ?? sortOptionsFromColumns(columns)}
         filters={filters}
         actions={actions}
-        total={total}
+        total={isLoading || error ? undefined : total}
         itemLabel={itemLabel}
       />
 

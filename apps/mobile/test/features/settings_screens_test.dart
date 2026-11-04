@@ -273,7 +273,7 @@ void main() {
       expect(find.text('DATA SAYA'), findsOneWidget);
     });
 
-    testWidgets('menyalakan verifikasi dua langkah menulis ke store', (
+    testWidgets('verifikasi dua langkah belum tersedia tidak mengubah store', (
       tester,
     ) async {
       await usePhone(tester);
@@ -287,7 +287,9 @@ void main() {
 
       await tester.tap(find.byType(Switch).first);
       await tester.pumpAndSettle();
-      expect(store.settings.settings.privacy.twoFactor, isTrue);
+      expect(store.settings.settings.privacy.twoFactor, isFalse);
+      expect(tester.widget<Switch>(find.byType(Switch).first).onChanged, isNull);
+      expect(find.text('Belum tersedia'), findsWidgets);
     });
 
     testWidgets('ganti kata sandi memanggil delegate', (tester) async {

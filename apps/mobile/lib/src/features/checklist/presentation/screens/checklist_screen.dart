@@ -47,7 +47,9 @@ class _ChecklistScreenState extends State<ChecklistScreen> {
   List<ChecklistItem> get _items => widget.initialItems != null
       ? _previewItems
       : context.read<ChecklistController>().items;
-  bool get _hasDestination => RegExp(r'^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$').hasMatch(widget.destinationId ?? '');
+  bool get _hasDestination => RegExp(
+    r'^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$',
+  ).hasMatch(widget.destinationId ?? '');
   ChecklistCategory? _selectedCategory; // null = Semua
 
   @override
@@ -66,7 +68,9 @@ class _ChecklistScreenState extends State<ChecklistScreen> {
   void _load() {
     if (widget.initialItems != null || !_hasDestination) return;
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) context.read<ChecklistController>().load(widget.destinationId!);
+      if (mounted) {
+        context.read<ChecklistController>().load(widget.destinationId!);
+      }
     });
   }
 
@@ -74,31 +78,68 @@ class _ChecklistScreenState extends State<ChecklistScreen> {
     final selected = await showModalBottomSheet<Destination>(
       context: context,
       isScrollControlled: true,
-      builder: (context) => SafeArea(child: SizedBox(
-        height: MediaQuery.sizeOf(context).height * .7,
-        child: Consumer<DestinationsController>(builder: (context, catalog, _) {
-          final destinations = catalog.items.where((d) => RegExp(r'^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$').hasMatch(d.id)).toList();
-          if (catalog.isLoading && destinations.isEmpty) return const Center(child: Text('Memuat destinasi...'));
-          if (destinations.isEmpty) return Padding(
-            padding: const EdgeInsets.all(AppSpacing.s4),
-            child: Center(child: DnEmptyState(
-              variant: catalog.error == null ? DnEmptyVariant.belumAdaData : DnEmptyVariant.gagal,
-              title: 'Destinasi belum tersedia', body: catalog.error ?? 'Muat katalog untuk memilih destinasi.',
-              actionLabel: 'Coba lagi', onAction: catalog.load,
-            )),
-          );
-          return ListView(children: [
-            Padding(padding: const EdgeInsets.all(AppSpacing.s4), child: Text('Pilih destinasi', style: AppTextStyles.title)),
-            for (final destination in destinations)
-              ListTile(title: Text(destination.name), subtitle: Text(destination.locationLabel), onTap: () => Navigator.pop(context, destination)),
-          ]);
-        }),
-      )),
+      builder: (context) => SafeArea(
+        child: SizedBox(
+          height: MediaQuery.sizeOf(context).height * .7,
+          child: Consumer<DestinationsController>(
+            builder: (context, catalog, _) {
+              final destinations = catalog.items
+                  .where(
+                    (d) => RegExp(
+                      r'^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$',
+                    ).hasMatch(d.id),
+                  )
+                  .toList();
+              if (catalog.isLoading && destinations.isEmpty) {
+                return const Center(child: Text('Memuat destinasi...'));
+              }
+              if (destinations.isEmpty) {
+                return Padding(
+                  padding: const EdgeInsets.all(AppSpacing.s4),
+                  child: Center(
+                    child: DnEmptyState(
+                      variant: catalog.error == null
+                          ? DnEmptyVariant.belumAdaData
+                          : DnEmptyVariant.gagal,
+                      title: 'Destinasi belum tersedia',
+                      body:
+                          catalog.error ??
+                          'Muat katalog untuk memilih destinasi.',
+                      actionLabel: 'Coba lagi',
+                      onAction: catalog.load,
+                    ),
+                  ),
+                );
+              }
+              return ListView(
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.all(AppSpacing.s4),
+                    child: Text('Pilih destinasi', style: AppTextStyles.title),
+                  ),
+                  for (final destination in destinations)
+                    ListTile(
+                      title: Text(destination.name),
+                      subtitle: Text(destination.locationLabel),
+                      onTap: () => Navigator.pop(context, destination),
+                    ),
+                ],
+              );
+            },
+          ),
+        ),
+      ),
     );
     if (!mounted || selected == null) return;
-    context.go(Uri(path: '/checklist', queryParameters: {
-      'destinationId': selected.id, 'destinationName': selected.name,
-    }).toString());
+    context.go(
+      Uri(
+        path: '/checklist',
+        queryParameters: {
+          'destinationId': selected.id,
+          'destinationName': selected.name,
+        },
+      ).toString(),
+    );
   }
 
   Future<void> _toggleItem(String id) async {
@@ -154,54 +195,59 @@ class _ChecklistScreenState extends State<ChecklistScreen> {
       ),
       body: SafeArea(
         child: widget.initialItems == null && !_hasDestination
-            ? Center(child: Padding(
-                padding: const EdgeInsets.all(AppSpacing.s4),
-                child: DnEmptyState(variant: DnEmptyVariant.belumAdaData,
-                  title: 'Pilih destinasi terlebih dahulu',
-                  body: 'Checklist disimpan untuk destinasi pilihanmu.',
-                  actionLabel: 'Pilih destinasi', onAction: _chooseDestination),
-              ))
+            ? Center(
+                child: Padding(
+                  padding: const EdgeInsets.all(AppSpacing.s4),
+                  child: DnEmptyState(
+                    variant: DnEmptyVariant.belumAdaData,
+                    title: 'Pilih destinasi terlebih dahulu',
+                    body: 'Checklist disimpan untuk destinasi pilihanmu.',
+                    actionLabel: 'Pilih destinasi',
+                    onAction: _chooseDestination,
+                  ),
+                ),
+              )
             : controller?.isLoading == true
             ? const Center(child: Text('Memuat checklist...'))
             : Column(
-          children: [
-            Expanded(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.all(AppSpacing.s4),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    if (controller?.failure != null) ...[
-                      DnEmptyState(
-                        variant: DnEmptyVariant.gagal,
-                        body: controller!.failure!.message,
-                        onAction: _load,
+                children: [
+                  Expanded(
+                    child: SingleChildScrollView(
+                      padding: const EdgeInsets.all(AppSpacing.s4),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          if (controller?.failure != null) ...[
+                            DnEmptyState(
+                              variant: DnEmptyVariant.gagal,
+                              body: controller!.failure!.message,
+                              onAction: _load,
+                            ),
+                            const SizedBox(height: AppSpacing.s4),
+                          ],
+                          _buildProgressCard(),
+                          const SizedBox(height: AppSpacing.s4),
+                          _buildCategoryFilterTabs(),
+                          const SizedBox(height: AppSpacing.s4),
+                          if (_items.isEmpty && controller?.failure == null)
+                            const DnEmptyState(
+                              variant: DnEmptyVariant.belumAdaData,
+                              title: 'Belum ada item checklist',
+                              body: 'Tambahkan kebutuhan perjalananmu.',
+                            ),
+                          for (final entry in grouped.entries) ...[
+                            _buildCategoryGroup(entry.key, entry.value),
+                            const SizedBox(height: AppSpacing.s4),
+                          ],
+                          _buildAddItemButton(context),
+                          const SizedBox(height: AppSpacing.s6),
+                        ],
                       ),
-                      const SizedBox(height: AppSpacing.s4),
-                    ],
-                    _buildProgressCard(),
-                    const SizedBox(height: AppSpacing.s4),
-                    _buildCategoryFilterTabs(),
-                    const SizedBox(height: AppSpacing.s4),
-                    if (_items.isEmpty && controller?.failure == null)
-                      const DnEmptyState(
-                        variant: DnEmptyVariant.belumAdaData,
-                        title: 'Belum ada item checklist',
-                        body: 'Tambahkan kebutuhan perjalananmu.',
-                      ),
-                    for (final entry in grouped.entries) ...[
-                      _buildCategoryGroup(entry.key, entry.value),
-                      const SizedBox(height: AppSpacing.s4),
-                    ],
-                    _buildAddItemButton(context),
-                    const SizedBox(height: AppSpacing.s6),
-                  ],
-                ),
+                    ),
+                  ),
+                  _buildBottomCta(context),
+                ],
               ),
-            ),
-            _buildBottomCta(context),
-          ],
-        ),
       ),
     );
   }
@@ -375,7 +421,8 @@ class _ChecklistScreenState extends State<ChecklistScreen> {
 
   Widget _buildItemRow(ChecklistItem item) {
     return InkWell(
-      onTap: widget.initialItems == null &&
+      onTap:
+          widget.initialItems == null &&
               context.read<ChecklistController>().isMutating
           ? null
           : () => _toggleItem(item.id),
@@ -466,13 +513,19 @@ class _ChecklistScreenState extends State<ChecklistScreen> {
       borderRadius: BorderRadius.circular(AppRadius.lg),
       child: InkWell(
         borderRadius: BorderRadius.circular(AppRadius.lg),
-        onTap: widget.onAddItem ?? () => context.push(Uri(
-          path: '/checklist/add',
-          queryParameters: {
-            if (widget.destinationId != null) 'destinationId': widget.destinationId!,
-            if (widget.destinationName.isNotEmpty) 'destinationName': widget.destinationName,
-          },
-        ).toString()),
+        onTap:
+            widget.onAddItem ??
+            () => context.push(
+              Uri(
+                path: '/checklist/add',
+                queryParameters: {
+                  if (widget.destinationId != null)
+                    'destinationId': widget.destinationId!,
+                  if (widget.destinationName.isNotEmpty)
+                    'destinationName': widget.destinationName,
+                },
+              ).toString(),
+            ),
         child: Container(
           height: 48,
           alignment: Alignment.center,
@@ -510,16 +563,27 @@ class _ChecklistScreenState extends State<ChecklistScreen> {
         label: 'Tandai siap',
         icon: AppIcons.squareCheck,
         height: 48,
-        onPressed: _totalCount == 0 || _completedCount != _totalCount ||
-                (widget.initialItems == null && context.read<ChecklistController>().isMutating)
+        onPressed:
+            _totalCount == 0 ||
+                _completedCount != _totalCount ||
+                (widget.initialItems == null &&
+                    (context.read<ChecklistController>().isMutating ||
+                        context.read<ChecklistController>().failure != null))
             ? null
             : widget.onMarkReady ??
-            () {
-              context.push(Uri(path: '/checklist/done', queryParameters: {
-                if (widget.destinationId != null) 'destinationId': widget.destinationId!,
-                if (widget.destinationName.isNotEmpty) 'destinationName': widget.destinationName,
-              }).toString());
-            },
+                  () {
+                    context.push(
+                      Uri(
+                        path: '/checklist/done',
+                        queryParameters: {
+                          if (widget.destinationId != null)
+                            'destinationId': widget.destinationId!,
+                          if (widget.destinationName.isNotEmpty)
+                            'destinationName': widget.destinationName,
+                        },
+                      ).toString(),
+                    );
+                  },
       ),
     );
   }

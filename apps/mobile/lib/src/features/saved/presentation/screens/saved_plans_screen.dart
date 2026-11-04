@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
 import 'package:dolenae_mobile/src/features/saved/presentation/controllers/saved_controller.dart';
+import 'package:dolenae_mobile/src/features/plan/presentation/controllers/plan_controller.dart';
 import 'package:dolenae_mobile/src/app/theme/app_colors.dart';
 import 'package:dolenae_mobile/src/app/theme/app_spacing.dart';
 import 'package:dolenae_mobile/src/features/saved/domain/entities/saved_item.dart';
@@ -104,7 +105,15 @@ class SavedPlansScreen extends StatelessWidget {
                     completed: plan.destinationCount,
                     total: plan.destinationTotal,
                     onTap: onOpenPlan == null
-                        ? () => context.go('/plan')
+                        ? () async {
+                            final result = await context.read<PlanController>().loadPlan(plan.id);
+                            if (!context.mounted) return;
+                            if (result.isFailure) {
+                              showDnToast(context, result.failureOrNull!.message, type: DnToastType.gagal);
+                              return;
+                            }
+                            context.go('/plan');
+                          }
                         : () => onOpenPlan!(plan.id),
                     onMore: store.isLoading ? null : () async {
                       final confirmed = await showDnDialog(

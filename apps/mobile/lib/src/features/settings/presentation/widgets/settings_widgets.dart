@@ -236,6 +236,7 @@ class SettingsScaffold extends StatelessWidget {
     required this.children,
     this.cta,
     this.onBack,
+    this.showStatus = true,
     this.padding = const EdgeInsets.fromLTRB(
       AppSpacing.s5,
       AppSpacing.s4,
@@ -250,10 +251,12 @@ class SettingsScaffold extends StatelessWidget {
   /// Bar CTA di bawah; bila null isi layar digulir penuh.
   final Widget? cta;
   final VoidCallback? onBack;
+  final bool showStatus;
   final EdgeInsets padding;
 
   @override
   Widget build(BuildContext context) {
+    final store = context.watch<SettingsController>();
     return Scaffold(
       backgroundColor: AppColors.canvas,
       appBar: SettingsAppBar(title: title, onBack: onBack),
@@ -262,7 +265,16 @@ class SettingsScaffold extends StatelessWidget {
         child: Column(
           children: [
             Expanded(
-              child: ListView(padding: padding, children: children),
+              child: ListView(padding: padding, children: [
+                if (showStatus && store.isLoading) const LinearProgressIndicator(),
+                if (showStatus && store.failure != null)
+                  DnEmptyState(
+                    variant: DnEmptyVariant.gagal,
+                    body: store.failure!.message,
+                    onAction: store.isLoading ? null : store.load,
+                  ),
+                ...children,
+              ]),
             ),
             if (cta != null)
               Container(

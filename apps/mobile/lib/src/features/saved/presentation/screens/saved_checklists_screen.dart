@@ -91,7 +91,18 @@ class SavedChecklistsScreen extends StatelessWidget {
                 itemBuilder: (context, index) {
                   final checklist = saved[index];
 
-                  return Container(
+                  return InkWell(
+                    onTap: () {
+                      if (onOpenChecklist != null) {
+                        onOpenChecklist!(checklist.id);
+                        return;
+                      }
+                      context.go(Uri(path: '/checklist', queryParameters: {
+                        'destinationId': checklist.id,
+                        'destinationName': checklist.destinationName,
+                      }).toString());
+                    },
+                    child: Container(
                     padding: const EdgeInsets.all(AppSpacing.s4),
                     decoration: BoxDecoration(
                       color: AppColors.canvasSubtle,
@@ -192,6 +203,7 @@ class SavedChecklistsScreen extends StatelessWidget {
                         ),
                       ],
                     ),
+                  ),
                   );
                 },
               ),

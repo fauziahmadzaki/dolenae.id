@@ -77,6 +77,17 @@ describe("personal repository SQL boundaries", () => {
     expect(support.text).toContain("for share");
     expect(support.values).toEqual([parent, id]);
   });
+  it("joins only published live destinations without filtering stored trip items", async () => {
+    await repo.listTripItems(owner, [parent]);
+    const [entry] = statements();
+    const [join, where] = entry.text.split(" where ");
+    expect(join).toContain('left join "destinations" on');
+    expect(join).toMatch(/"destinations"\."status" = \$\d+/);
+    expect(entry.values).toContain("published");
+    expect(where).not.toContain('"destinations".');
+    expect(where).toContain('"trip_items"."user_id"');
+    expect(where).toContain('"trip_items"."trip_id"');
+  });
   it("uses published joins for saved reads and caps returned personal arrays", async () => {
     await repo.listSavedDestinations(owner);
     await repo.listSavedChecklists(owner);

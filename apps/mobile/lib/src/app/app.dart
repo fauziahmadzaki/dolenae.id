@@ -87,11 +87,16 @@ class _DolenaeAppState extends State<DolenaeApp> {
     _checklist = ChecklistController(dependencies.checklistRepository);
     _payments = PaymentController(repository: dependencies.paymentRepository);
     _auth.addListener(_syncSession);
+    dependencies.apiClient.onUnauthorized = _onUnauthorized;
     _syncSession();
 
     _router = AppRouter.create(_auth);
     // Validate the restored token; a revoked session redirects to /login.
     unawaited(_auth.verifySession());
+  }
+
+  Future<void> _onUnauthorized(String requestToken) async {
+    if (_auth.token == requestToken) await _auth.logout();
   }
 
   void _syncSession() {
@@ -117,6 +122,7 @@ class _DolenaeAppState extends State<DolenaeApp> {
 
   @override
   void dispose() {
+    widget.dependencies.apiClient.onUnauthorized = null;
     _auth.removeListener(_syncSession);
     _router.dispose();
     _destinations.dispose();

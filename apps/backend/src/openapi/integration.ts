@@ -78,6 +78,8 @@ export const integrationSchemas = {
   SavedTrip: object({ id: uuid, name: str, startDate: date, endDate: date, destinationCount: { type: "integer" }, destinationTotal: { type: "integer" }, status: { type: "string", enum: ["aktif", "arsip"] }, savedAt: dateTime }),
   SavedChecklist: object({ id: uuid, name: str, destinationName: str, completedCount: { type: "integer" }, totalCount: { type: "integer" }, finished: bool, savedAt: dateTime }),
   Notification: object({ id: uuid, kind: { type: "string", enum: ["rekomendasi", "rencana", "checklist", "usulan", "sistem"] }, title: str, body: str, read: bool, href: nullableText, createdAt: dateTime }),
+  SelfProfile: object({ user: ref("AuthUser") }, ["user"]),
+  UpdateSelfProfile: object({ name: { ...str, minLength: 2, maxLength: 120 } }, ["name"], true),
   UserPreferences: object(settingsProperties),
   UpdateUserPreferences: object(settingsProperties, [], true),
   Faq: object({ id: uuid, ...faqProperties }),
@@ -136,7 +138,7 @@ add("/admin/facility-proposals", "get", "Review facility suggestions", "Facility
 add("/admin/facility-proposals/{id}", "patch", "Review suggestion without publishing a facility", "FacilityProposal", { input: "ReviewFacilityProposal" });
 add("/admin/metrics", "get", "Persisted platform totals; revenue is dummy only", "AdminMetrics");
 add("/admin/activity", "get", "Audit activity", "AuditActivity", { paged: true, filters: ["targetType"] });
-add("/admin/merchants", "get", "Merchant users (admin only)", "User", { paged: true });
+add("/admin/merchants", "get", "Merchant users (admin only)", "AuthUser", { paged: true });
 add("/promos", "get", "Currently active simulation promos", "Promo", { public: true, list: true });
 add("/admin/promos", "get", "Manage simulation promos", "Promo", { paged: true });
 add("/admin/promos", "post", "Create simulation promo", "Promo", { input: "CreatePromo" });
@@ -170,6 +172,8 @@ add("/saved/checklists/{id}", "delete", "Delete my destination checklist", null)
 add("/notifications", "get", "My in-app notifications", "Notification", { list: true });
 add("/notifications/{id}/read", "patch", "Mark my notification read", "Notification", { input: object({ read: { type: "boolean", const: true } }, [], true) });
 add("/notifications/read-all", "patch", "Mark all my notifications read", null);
+add("/users/me", "get", "My existing public identity", "SelfProfile");
+add("/users/me", "patch", "Update only my trimmed name (2..120 characters)", "SelfProfile", { input: "UpdateSelfProfile" });
 add("/users/me/settings", "get", "My preferences; does not enable 2FA", "UserPreferences");
 add("/users/me/settings", "patch", "Update my preferences; not security enrollment", "UserPreferences", { input: "UpdateUserPreferences" });
 add("/faqs", "get", "Published help content", "Faq", { public: true, list: true });

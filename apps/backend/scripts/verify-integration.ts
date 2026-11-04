@@ -74,6 +74,16 @@ async function verifyHttp() {
     const anonymous = await call("get", "/admin/metrics", undefined, undefined, 401);
     assert.equal(anonymous.error.code, "UNAUTHORIZED");
     await call("get", "/admin/metrics", traveler, undefined, 403);
+    await call("get", "/users/me", undefined, undefined, 401);
+    const identity = (await call("get", "/users/me", traveler)).data.user;
+    assert.equal(identity.id, people[1]!.id);
+    assert.ok(!("passwordHash" in identity) && !("googleId" in identity));
+    const renamed = (await call("patch", "/users/me", traveler, { name: "  Nama Integrasi  " })).data.user;
+    assert.equal(renamed.name, "Nama Integrasi");
+    assert.equal((await call("get", "/users/me", traveler)).data.user.name, "Nama Integrasi");
+    await call("patch", "/users/me", traveler, { name: "Nama Tidak Sah", role: "admin" }, 422);
+    assert.equal((await call("get", "/users/me", traveler)).data.user.name, "Nama Integrasi");
+    assert.equal((await call("get", "/users/me", other)).data.user.name, people[2]!.name);
     const destination = (await call("post", "/destinations", admin, {
       name: "Integrasi Gunung Uji", slug: "integrasi-gunung-uji", status: "published", difficulty: "ramah-pemula", entryFee: 20000,
     }, 201)).data;

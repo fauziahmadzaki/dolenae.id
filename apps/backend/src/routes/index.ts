@@ -12,14 +12,16 @@ import { uploadRouter } from "./upload.route";
 import { userRouter } from "./user.route";
 import { operationsRouter } from "./operations.route";
 import { personalRouter } from "./personal.route";
+import { profileRouter } from "./profile.route";
 
 /** Main API router, mounted at `/api`. Add domain routes here. */
 export const apiRouter = Router();
 
 apiRouter.use("/health", healthRouter);
 apiRouter.use("/auth", authRouter);
-// Personal /users/me/settings must precede the admin-only users router.
+// Personal routes must precede the admin-only users router.
 apiRouter.use("/", personalRouter);
+apiRouter.use("/users", profileRouter);
 apiRouter.use("/users", userRouter);
 apiRouter.use("/categories", categoryRouter);
 apiRouter.use("/destinations", destinationRouter);

@@ -9,10 +9,10 @@ type JoinedItem = Awaited<ReturnType<typeof repo.listTripItems>>[number];
 function toItem({ item, destination }: JoinedItem) {
   return {
     id: item.id, tripId: item.tripId, destinationId: item.destinationId,
-    destinationName: destination.name,
-    destinationMeta: [destination.regency, destination.province].filter(Boolean).join(", "),
-    difficulty: destination.difficulty, date: item.date, order: item.order,
-    notes: item.notes, supportIds: item.supportIds, entryFee: destination.entryFee,
+    destinationName: destination?.name ?? "Destinasi tidak tersedia",
+    destinationMeta: [destination?.regency, destination?.province].filter(Boolean).join(", "),
+    difficulty: destination?.difficulty ?? "", date: item.date, order: item.order,
+    notes: item.notes, supportIds: item.supportIds, entryFee: destination?.entryFee ?? null,
   };
 }
 function toTrip(row: TripRow, items: JoinedItem[]) {
@@ -119,7 +119,7 @@ export const personalService = {
     return result;
   },
   async saveDestination(userId: string, destinationId: string) {
-    return repo.transaction(async (tx) => {
+    const row = await repo.transaction(async (tx) => {
       await repo.lockUser(userId, tx);
       await requireDestination(destinationId, tx);
       let row = await repo.findSavedDestination(userId, destinationId, tx);
@@ -127,8 +127,11 @@ export const personalService = {
         if (await repo.countSavedDestinations(userId, tx) >= 500) throw new ConflictError("Maksimal 500 destinasi tersimpan per akun");
         row = await repo.insertSavedDestination(userId, destinationId, tx);
       }
-      return { id: row.id, destination: await destinationService.getById(destinationId), savedAt: row.savedAt };
+      return row;
     });
+    const destination = await destinationService.getById(destinationId);
+    if (destination.status !== "published") throw new NotFoundError("Destinasi tidak ditemukan");
+    return { id: row.id, destination, savedAt: row.savedAt };
   },
   async deleteSavedDestination(userId: string, destinationId: string) {
     await repo.deleteSavedDestination(userId, destinationId);

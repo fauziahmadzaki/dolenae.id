@@ -4,7 +4,7 @@
 Lengkapi fitur belum selesai dari PRD/desain pada backend Express + Drizzle, admin Next.js, Flutter; integrasi nyata, test, dokumentasi batas fitur.
 
 ## Next Step
-Tutup gap UI Flutter/profile dan race harga terkonfirmasi; terima hasil closure/frontend, review spesifikasi kemudian kualitas sebelum migrasi/QA browser.
+Selesaikan profil parsial dan 4 blocker review (personal DB/draft, fasilitas, payment401); verifikasi race PostgreSQL serta migration0011 sebelum regresi/QA.
 
 ## Current Phase
 Phase 3

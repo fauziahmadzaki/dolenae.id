@@ -36,6 +36,7 @@ const paths: Record<string, string[]> = {
   "/api/notifications": ["get"],
   "/api/notifications/{id}/read": ["patch"],
   "/api/notifications/read-all": ["patch"],
+  "/api/users/me": ["get", "patch"],
   "/api/users/me/settings": ["get", "patch"],
   "/api/faqs": ["get"],
   "/api/admin/faqs": ["get", "post"],
@@ -72,6 +73,18 @@ describe("integration API documentation", () => {
     expect(schemas.CreateDummyPayment.properties).not.toHaveProperty("amount");
     expect(schemas.CreateDummyPayment.additionalProperties).toBe(false);
     expect(document.paths["/api/payments/{id}/simulate"].post.responses["409"]).toBeDefined();
+  });
+
+  it("documents strict name-only self profile using the existing public identity", () => {
+    const schema = document.components.schemas.UpdateSelfProfile;
+    expect(schema).toMatchObject({
+      type: "object", required: ["name"], additionalProperties: false,
+      properties: { name: { type: "string", minLength: 2, maxLength: 120 } },
+    });
+    expect(Object.keys(schema.properties)).toEqual(["name"]);
+    const response = document.components.schemas.SelfProfile;
+    expect(response).toMatchObject({ properties: { user: { $ref: "#/components/schemas/AuthUser" } }, required: ["user"] });
+    expect(document.paths["/api/users/me"].patch.requestBody.content["application/json"].schema).toEqual({ $ref: "#/components/schemas/UpdateSelfProfile" });
   });
 
   it("documents bounded pagination and partial owner settings", () => {

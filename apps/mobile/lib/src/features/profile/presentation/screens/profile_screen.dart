@@ -3,6 +3,9 @@ import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
 import 'package:dolenae_mobile/src/features/auth/presentation/controllers/auth_controller.dart';
+import 'package:dolenae_mobile/src/features/checklist/presentation/controllers/checklist_controller.dart';
+import 'package:dolenae_mobile/src/features/plan/presentation/controllers/plan_controller.dart';
+import 'package:dolenae_mobile/src/features/saved/presentation/controllers/saved_controller.dart';
 import 'package:dolenae_mobile/src/app/theme/app_colors.dart';
 import 'package:dolenae_mobile/src/app/theme/app_radius.dart';
 import 'package:dolenae_mobile/src/app/theme/app_shadows.dart';
@@ -18,23 +21,11 @@ import 'package:dolenae_mobile/src/shared/widgets/dn_bottom_nav.dart';
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({
     super.key,
-    this.userName = 'Dimas',
-    this.userEmail = 'dimas@dolenae.id',
-    this.userRole = 'Wisatawan',
-    this.savedCount = 4,
-    this.planCount = 2,
-    this.checklistCount = 12,
     this.onEditProfile,
     this.onSettings,
     this.onLogout,
   });
 
-  final String userName;
-  final String userEmail;
-  final String userRole;
-  final int savedCount;
-  final int planCount;
-  final int checklistCount;
   final VoidCallback? onEditProfile;
   final VoidCallback? onSettings;
   final VoidCallback? onLogout;
@@ -56,10 +47,11 @@ class ProfileScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final auth = context.watch<AuthController?>();
-    final displayName = auth?.user?.name ?? userName;
-    final displayEmail = auth?.user?.email ?? userEmail;
-    final displayRole = auth?.user?.roleLabel ?? userRole;
+    final auth = context.watch<AuthController>();
+    final user = auth.user;
+    final saved = context.watch<SavedController>();
+    final plans = context.watch<PlanController>();
+    final checklist = context.watch<ChecklistController>();
 
     return Scaffold(
       backgroundColor: AppColors.canvas,
@@ -75,9 +67,13 @@ class ProfileScreen extends StatelessWidget {
                   children: [
                     _buildProfileCard(
                       context,
-                      displayName,
-                      displayEmail,
-                      displayRole,
+                      user?.name ?? 'Belum masuk',
+                      user?.email ?? '',
+                      user?.roleLabel ?? '',
+                      user == null ? 0 : saved.savedDestinations.length,
+                      user == null ? 0 : plans.plans.length,
+                      user == null ? 0 : checklist.totalCount,
+                      user == null ? null : checklist.destinationId,
                     ),
                     const SizedBox(height: AppSpacing.s4),
                     _buildGroupHeader('AKUN & KEAMANAN'),
@@ -127,11 +123,7 @@ class ProfileScreen extends StatelessWidget {
               IconButton(
                 icon: const Icon(AppIcons.settings, color: AppColors.onPrimary),
                 tooltip: 'Pengaturan',
-                onPressed:
-                    onSettings ??
-                    () => ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Pengaturan aplikasi')),
-                    ),
+                onPressed: onSettings ?? () => context.push('/settings'),
               ),
             ],
           ),
@@ -145,6 +137,10 @@ class ProfileScreen extends StatelessWidget {
     String displayName,
     String displayEmail,
     String displayRole,
+    int savedCount,
+    int planCount,
+    int checklistCount,
+    String? checklistDestinationId,
   ) {
     return Container(
       padding: const EdgeInsets.all(AppSpacing.s4),
@@ -231,8 +227,17 @@ class ProfileScreen extends StatelessWidget {
               _buildStatItem(
                 context,
                 '$checklistCount',
-                'Checklist',
-                () => context.push('/checklist'),
+                'Item checklist aktif',
+                checklistDestinationId == null
+                    ? null
+                    : () => context.push(
+                        Uri(
+                          path: '/checklist',
+                          queryParameters: {
+                            'destinationId': checklistDestinationId,
+                          },
+                        ).toString(),
+                      ),
               ),
             ],
           ),
@@ -327,18 +332,11 @@ class ProfileScreen extends StatelessWidget {
         title: 'Edit profil',
         onTap: onEditProfile ?? () => context.push('/profile/edit'),
       ),
-      _MenuItem(
-        icon: AppIcons.key,
-        title: 'Ubah kata sandi',
-        onTap: () => ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text('Fitur ubah kata sandi'))),
-      ),
+      const _MenuItem(icon: AppIcons.key, title: 'Ubah kata sandi'),
       _MenuItem(
         icon: AppIcons.shield,
         title: 'Privasi & keamanan',
-        onTap: () => ScaffoldMessenger.of(context)
-            .showSnackBar(const SnackBar(content: Text('Privasi & keamanan'))),
+        onTap: () => context.push('/settings/privacy'),
       ),
     ]);
   }
@@ -348,15 +346,12 @@ class ProfileScreen extends StatelessWidget {
       _MenuItem(
         icon: AppIcons.bell,
         title: 'Setelan notifikasi',
-        onTap: () => ScaffoldMessenger.of(context)
-            .showSnackBar(const SnackBar(content: Text('Setelan notifikasi'))),
+        onTap: () => context.push('/settings/notifications'),
       ),
       _MenuItem(
         icon: AppIcons.palette,
         title: 'Tema & bahasa',
-        onTap: () =>
-            ScaffoldMessenger.of(context)
-                .showSnackBar(const SnackBar(content: Text('Tema & bahasa'))),
+        onTap: () => context.push('/settings/theme'),
       ),
     ]);
   }
@@ -366,16 +361,12 @@ class ProfileScreen extends StatelessWidget {
       _MenuItem(
         icon: AppIcons.helpCircle,
         title: 'Bantuan & FAQ',
-        onTap: () =>
-            ScaffoldMessenger.of(context)
-                .showSnackBar(const SnackBar(content: Text('Bantuan & FAQ'))),
+        onTap: () => context.push('/settings/faq'),
       ),
       _MenuItem(
         icon: AppIcons.messageSquare,
         title: 'Kirim masukan',
-        onTap: () =>
-            ScaffoldMessenger.of(context)
-                .showSnackBar(const SnackBar(content: Text('Kirim masukan'))),
+        onTap: () => context.push('/settings/feedback'),
       ),
     ]);
   }
@@ -419,14 +410,13 @@ class ProfileScreen extends StatelessWidget {
             ),
             const SizedBox(width: AppSpacing.s3),
             Expanded(
-              child: Text(
-                item.title,
-                style: const TextStyle(
-                  fontFamily: 'Inter',
-                  fontSize: 14,
-                  fontWeight: FontWeight.w400,
-                  color: AppColors.ink,
-                ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(item.title, style: AppTextStyles.body),
+                  if (item.onTap == null)
+                    Text('Belum tersedia', style: AppTextStyles.caption),
+                ],
               ),
             ),
             const Icon(AppIcons.chevronRight, size: 18, color: AppColors.body),
@@ -436,27 +426,26 @@ class ProfileScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildLogoutCard(BuildContext context, AuthController? auth) {
+  Widget _buildLogoutCard(BuildContext context, AuthController auth) {
     return Material(
       color: AppColors.canvasSubtle,
       borderRadius: BorderRadius.circular(AppRadius.lg),
       child: InkWell(
         borderRadius: BorderRadius.circular(AppRadius.lg),
-        onTap:
-            onLogout ??
-            () async {
-              if (auth != null) {
-                await auth.logout();
-                if (context.mounted) context.go('/login');
-                return;
-              }
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Berhasil keluar'),
-                  backgroundColor: AppColors.primary,
-                ),
-              );
-            },
+        onTap: !auth.isAuthenticated
+            ? null
+            : onLogout ??
+                  () async {
+                    final failure = await auth.logout();
+                    if (!context.mounted) return;
+                    if (failure != null) {
+                      ScaffoldMessenger.of(
+                        context,
+                      ).showSnackBar(SnackBar(content: Text(failure.message)));
+                    } else {
+                      context.go('/login');
+                    }
+                  },
         child: Container(
           height: 56,
           padding: const EdgeInsets.symmetric(horizontal: 12),
@@ -497,13 +486,9 @@ class ProfileScreen extends StatelessWidget {
 }
 
 class _MenuItem {
-  const _MenuItem({
-    required this.icon,
-    required this.title,
-    required this.onTap,
-  });
+  const _MenuItem({required this.icon, required this.title, this.onTap});
 
   final IconData icon;
   final String title;
-  final VoidCallback onTap;
+  final VoidCallback? onTap;
 }

@@ -13,6 +13,7 @@ import { personalRouter } from "../../src/routes/personal.route";
 import { errorHandler, notFoundHandler } from "../../src/middleware/error-handler";
 import { requestId } from "../../src/middleware/request-id";
 import { signAccessToken } from "../../src/utils/jwt";
+import { destinationRepository } from "../../src/repositories/destination.repository";
 
 const app = express();
 app.use(express.json(), requestId());
@@ -123,6 +124,32 @@ describe("trip items", () => {
     expect((await call("delete", `/trips/${second.id}/items/${item.id}`)).status).toBe(404);
     expect(state.items).toHaveLength(1);
   });
+  it("redacts unpublished live destination fields but retains the itinerary on reads and people updates", async () => {
+    const trip = await createTrip();
+    const item = (await call("post", `/trips/${trip.id}/items`, { ...itemBody, notes: "Bawa air" })).body.data;
+    Object.assign(state.destinations[0], { status: "draft", name: "Private renamed destination", regency: "Private regency", province: "Private province", difficulty: "sulit", entryFee: 987654 });
+    const expected = { ...item, destinationName: "Destinasi tidak tersedia", destinationMeta: "", difficulty: "", entryFee: null };
+    const detail = await call("get", `/trips/${trip.id}`);
+    expect(detail.status).toBe(200);
+    expect(detail.body.data.items).toEqual([expected]);
+    expect((await call("get", "/trips")).body.data[0].items).toEqual([expected]);
+    const updated = await call("patch", `/trips/${trip.id}`, { peopleCount: 4 });
+    expect(updated.status).toBe(200);
+    expect(updated.body.data).toMatchObject({ peopleCount: 4, items: [expected] });
+    expect((await call("get", "/saved/plans")).body.data[0]).toMatchObject({ destinationCount: 1, destinationTotal: 1 });
+    expect((await call("delete", `/trips/${trip.id}/items/${item.id}`)).status).toBe(200);
+  });
+  it("still validates stored unpublished item dates and counts every item toward the cap", async () => {
+    const trip = await createTrip();
+    await call("post", `/trips/${trip.id}/items`, itemBody);
+    state.destinations[0].status = "draft";
+    expect((await call("patch", `/trips/${trip.id}`, { endDate: "2026-12-01" })).status).toBe(400);
+    expect(state.trips[0].endDate).toBe(trip.endDate);
+    const base = state.items[0];
+    state.items = Array.from({ length: 100 }, (_, order) => ({ ...base, id: String(order), order }));
+    expect((await call("post", `/trips/${trip.id}/items`, itemBody)).status).toBe(409);
+    expect(state.items).toHaveLength(100);
+  });
   it.each([
     [{ date: "2026-02-30" }, 422], [{ date: "2026-12-04" }, 400], [{ date: "2026-11-30" }, 400],
     [{ destinationId: draftId }, 404], [{ supportIds: [otherId] }, 400], [{ destinationId: "broken" }, 422], [{ order: 200 }, 422],
@@ -185,6 +212,39 @@ describe("personal checklists", () => {
 });
 
 describe("saved destinations and plans", () => {
+  it("hydrates new and existing saves only after the locking transaction commits", async () => {
+    const events: string[] = [];
+    const transaction = memory.transaction;
+    const findById = destinationRepository.findById;
+    const tx = vi.spyOn(memory, "transaction").mockImplementation(async (work) => {
+      const row = await transaction(work);
+      events.push("commit");
+      return row;
+    });
+    const read = vi.spyOn(destinationRepository, "findById").mockImplementation(async (id) => {
+      events.push("pooled read");
+      return findById(id);
+    });
+    try {
+      const first = await call("post", "/saved/destinations", { destinationId });
+      const repeat = await call("post", "/saved/destinations", { destinationId });
+      expect(first.status).toBe(201);
+      expect(repeat.status).toBe(201);
+      expect(repeat.body.data).toEqual(first.body.data);
+      expect(state.saved).toHaveLength(1);
+      expect(events).toEqual(["commit", "pooled read", "commit", "pooled read"]);
+    } finally { tx.mockRestore(); read.mockRestore(); }
+  });
+  it("does not expose a destination unpublished between save commit and hydration", async () => {
+    const findById = destinationRepository.findById;
+    const read = vi.spyOn(destinationRepository, "findById").mockImplementationOnce(async (id) => ({ ...(await findById(id))!, status: "draft" }));
+    try {
+      const response = await call("post", "/saved/destinations", { destinationId });
+      expect(response.status).toBe(404);
+      expect(response.body).not.toHaveProperty("data");
+      expect(state.saved).toHaveLength(1);
+    } finally { read.mockRestore(); }
+  });
   it("saves idempotently, returns public destination shape, deletes idempotently", async () => {
     expect((await call("get", "/saved/destinations")).body.data).toEqual([]);
     const saved = await call("post", "/saved/destinations", { destinationId });

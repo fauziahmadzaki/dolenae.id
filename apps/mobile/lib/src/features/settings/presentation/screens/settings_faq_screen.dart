@@ -62,6 +62,7 @@ class _SettingsFaqScreenState extends State<SettingsFaqScreen> {
 
     return SettingsScaffold(
       title: 'Bantuan dan FAQ',
+      showStatus: false,
       onBack: widget.onBack ?? () => context.pop(),
       children: [
         if (widget.items == null && store.isLoading)

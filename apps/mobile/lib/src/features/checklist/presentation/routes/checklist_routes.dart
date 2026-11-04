@@ -17,10 +17,17 @@ final List<RouteBase> checklistRoutes = [
     path: '/checklist/done',
     redirect: (context, state) {
       final controller = context.read<ChecklistController>();
-      if (controller.destinationId != state.uri.queryParameters['destinationId'] ||
-          controller.isLoading || controller.isMutating || controller.items.isEmpty ||
+      if (controller.destinationId !=
+              state.uri.queryParameters['destinationId'] ||
+          controller.isLoading ||
+          controller.isMutating ||
+          controller.failure != null ||
+          controller.items.isEmpty ||
           controller.completedCount != controller.totalCount) {
-        return Uri(path: '/checklist', queryParameters: state.uri.queryParameters).toString();
+        return Uri(
+          path: '/checklist',
+          queryParameters: state.uri.queryParameters,
+        ).toString();
       }
       return null;
     },

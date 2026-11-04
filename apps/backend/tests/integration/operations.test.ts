@@ -167,13 +167,30 @@ describe("supports operations", () => {
   });
 
   it.each([
+    { code: "23514", constraint: "travel_supports_prices" },
+    { cause: { code: "23514", constraint: "travel_supports_prices" } },
+  ])("maps only the support price constraint to its validation response: %j", async (failure) => {
+    vi.spyOn(repo, "findSupport").mockResolvedValue(support);
+    vi.spyOn(repo, "updateSupport").mockRejectedValue(Object.assign(new Error("secret SQL"), failure));
+    const res = await request(app).patch(`/api/admin/supports/${id}`).auth(admin, { type: "bearer" }).send({ priceMin: 150000 });
+    expect(res.status).toBe(422);
+    expect(res.body).toEqual({ success: false, error: { code: "VALIDATION_ERROR", message: "Rentang harga fasilitas tidak valid" } });
+  });
+
+  it.each([
     { code: "23514", constraint: "unrelated_check" },
     { code: "23514" },
-    { code: "XX000", constraint: "travel_supports_prices" },
     { code: "23514", cause: { constraint: "travel_supports_prices" } },
-  ])("does not classify unrelated database failures as support price validation: %j", async (failure) => {
+    { constraint: "travel_supports_prices", cause: { code: "23514" } },
+  ])("preserves generic check validation without matching separate error nodes: %j", async (failure) => {
     vi.spyOn(repo, "findSupport").mockResolvedValue(support);
-    const error = Object.assign(new Error("database failure"), failure);
+    vi.spyOn(repo, "updateSupport").mockRejectedValue(Object.assign(new Error("secret SQL"), failure));
+    await expect(operationsService.updateSupport(id, { priceMin: 150000 }, actorId)).rejects.toMatchObject({ statusCode: 422, code: "VALIDATION_ERROR", message: "Nilai atau rentang data tidak valid" });
+  });
+
+  it("does not classify a non-check failure bearing the support price constraint", async () => {
+    vi.spyOn(repo, "findSupport").mockResolvedValue(support);
+    const error = Object.assign(new Error("database failure"), { code: "XX000", constraint: "travel_supports_prices" });
     vi.spyOn(repo, "updateSupport").mockRejectedValue(error);
     await expect(operationsService.updateSupport(id, { priceMin: 150000 }, actorId)).rejects.toBe(error);
   });

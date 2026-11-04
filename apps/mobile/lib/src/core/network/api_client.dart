@@ -38,7 +38,18 @@ class ApiClient {
   final String baseUrl;
 
   /// Token Bearer untuk request terautentikasi.
-  String? token;
+  String? get token => _token;
+  String? _token;
+  int _sessionRevision = 0;
+
+  set token(String? value) {
+    if (_token == value) return;
+    _token = value;
+    _sessionRevision++;
+  }
+
+  /// Pemulihan sesi hanya untuk 401 dari sesi request yang masih aktif.
+  FutureOr<void> Function(String requestToken)? onUnauthorized;
 
   Future<Map<String, dynamic>> get(
     String path, {
@@ -102,6 +113,8 @@ class ApiClient {
     Future<http.Response> Function() request, {
     Duration? timeout,
   }) async {
+    final requestToken = token;
+    final sessionRevision = _sessionRevision;
     http.Response response;
     try {
       response = await request().timeout(timeout ?? _timeout);
@@ -117,6 +130,18 @@ class ApiClient {
       throw const ApiException(
         'Tidak dapat terhubung ke server. Periksa koneksi internet.',
       );
+    }
+
+    if (response.statusCode == 401 &&
+        requestToken != null &&
+        requestToken.isNotEmpty &&
+        requestToken == token &&
+        sessionRevision == _sessionRevision) {
+      try {
+        await onUnauthorized?.call(requestToken);
+      } catch (_) {
+        // Pemulihan sesi tidak boleh menutupi error HTTP asli.
+      }
     }
 
     final decoded = _decode(response);

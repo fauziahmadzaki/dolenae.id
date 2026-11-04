@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import { getQueryClient } from "~/lib/query/client";
 import type { AuthSession, AuthTokenResponse, AuthUser } from "../types";
 
 /**
@@ -61,11 +62,13 @@ export const useAuthStore = create<AuthStoreState>((set) => ({
 
   setSession: (response, remember = true) => {
     writeSession({ token: response.token, user: response.user }, remember);
+    getQueryClient().clear();
     set({ token: response.token, user: response.user });
   },
 
   clearSession: () => {
     clearStoredSession();
+    getQueryClient().clear();
     set({ token: null, user: null });
   },
 }));

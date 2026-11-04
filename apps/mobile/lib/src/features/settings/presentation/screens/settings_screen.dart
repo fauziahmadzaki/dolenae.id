@@ -10,6 +10,7 @@ import 'package:dolenae_mobile/src/features/settings/domain/entities/app_setting
 import 'package:dolenae_mobile/src/shared/icons/app_icons.dart';
 import 'package:dolenae_mobile/src/shared/widgets/dn_dialog.dart';
 import 'package:dolenae_mobile/src/shared/widgets/dn_switch.dart';
+import 'package:dolenae_mobile/src/shared/widgets/dn_empty_state.dart';
 import 'package:dolenae_mobile/src/features/settings/presentation/widgets/settings_widgets.dart';
 
 /// Layar Pengaturan (Node Figma: 81:877).
@@ -74,6 +75,13 @@ class SettingsScreen extends StatelessWidget {
             AppSpacing.s5,
           ),
           children: [
+            if (store.isLoading) const LinearProgressIndicator(),
+            if (store.failure != null)
+              DnEmptyState(
+                variant: DnEmptyVariant.gagal,
+                body: store.failure!.message,
+                onAction: store.isLoading ? null : store.load,
+              ),
             SettingsGroup(
               label: 'AKUN',
               children: [

@@ -75,7 +75,7 @@ dbIt("atomically resolves competing paid/cancelled requests on separate PostgreS
     const results = await Promise.all([simulate(id, "paid"), simulate(id, "cancelled")]);
     expect(results.map((r) => r.status).sort()).toEqual([201, 409]);
     const [stored] = await db.select().from(schema.dummyPayments).where(eq(schema.dummyPayments.id, id));
-    const winner = results.find((r) => r.status === 200)!;
+    const winner = results.find((r) => r.status === 201)!;
     expect(stored!.status).toBe(winner.body.data.status);
     expect(Boolean(stored!.paidAt)).toBe(stored!.status === "paid");
     const logs = await db.select().from(schema.operationActivity).where(eq(schema.operationActivity.targetId, id));
@@ -134,6 +134,20 @@ dbIt("database rejects invalid support prices on insert and update", async () =>
   }
   const [stored] = await db.select().from(schema.travelSupports).where(eq(schema.travelSupports.id, valid!.id));
   expect(stored).toMatchObject({ priceMin: 100, priceMax: 200 });
+});
+
+dbIt("database accepts nullable support prices and int32 boundaries", async () => {
+  const [valid] = await db.insert(schema.travelSupports).values({ destinationId, name: "Nullable prices", category: "food" }).returning();
+  for (const prices of [
+    { priceMin: null, priceMax: null }, { priceMin: 0, priceMax: null }, { priceMin: null, priceMax: 0 },
+    { priceMin: 2147483647, priceMax: null }, { priceMin: null, priceMax: 2147483647 },
+    { priceMin: 0, priceMax: 0 }, { priceMin: 0, priceMax: 2147483647 }, { priceMin: 2147483647, priceMax: 2147483647 },
+  ]) {
+    const [inserted] = await db.insert(schema.travelSupports).values({ destinationId, name: "Boundary prices", category: "food", ...prices }).returning();
+    expect(inserted).toMatchObject(prices);
+    const [updated] = await db.update(schema.travelSupports).set(prices).where(eq(schema.travelSupports.id, valid!.id)).returning();
+    expect(updated).toMatchObject(prices);
+  }
 });
 
 dbIt("database enforces foreign keys and dummy amount/provider invariants", async () => {

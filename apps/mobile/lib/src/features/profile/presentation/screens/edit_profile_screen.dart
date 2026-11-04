@@ -71,10 +71,14 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     final userId = auth.user?.id;
     final failure = await auth.updateProfile(_nameController.text);
     if (!mounted || auth.token != token || auth.user?.id != userId) return;
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-      content: Text(failure?.message ?? 'Perubahan profil berhasil disimpan!'),
-      backgroundColor: failure == null ? AppColors.success : AppColors.danger,
-    ));
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          failure?.message ?? 'Perubahan profil berhasil disimpan!',
+        ),
+        backgroundColor: failure == null ? AppColors.success : AppColors.danger,
+      ),
+    );
     if (failure != null) return;
     widget.onSave?.call();
     if (!mounted) return;
@@ -132,6 +136,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                       controller: _nameController,
                       hint: 'Nama lengkap Anda',
                       enabled: canSave,
+                      unavailable: false,
                     ),
                     const SizedBox(height: 12),
                     _buildField(
@@ -157,7 +162,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                     _buildBioField(),
                     const SizedBox(height: AppSpacing.s5),
                     DnPrimaryButton(
-                      label: auth.isUpdatingProfile ? 'Menyimpan...' : 'Simpan perubahan',
+                      label: auth.isUpdatingProfile
+                          ? 'Menyimpan...'
+                          : 'Simpan perubahan',
                       height: 48,
                       onPressed: canSave ? _saveChanges : null,
                     ),
@@ -228,6 +235,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     required TextEditingController controller,
     required String hint,
     bool enabled = false,
+    bool unavailable = true,
     TextInputType keyboardType = TextInputType.text,
   }) {
     return Column(
@@ -237,7 +245,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
           label,
           style: AppTextStyles.caption.copyWith(color: AppColors.body),
         ),
-        if (!enabled) const Text('Belum tersedia'),
+        if (unavailable) const Text('Belum tersedia'),
         const SizedBox(height: 6),
         Container(
           height: 48,
@@ -261,7 +269,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                 vertical: 14,
               ),
               border: InputBorder.none,
-              hintText: enabled ? hint : 'Belum tersedia',
+              hintText: unavailable ? 'Belum tersedia' : hint,
               hintStyle: const TextStyle(
                 fontFamily: 'Inter',
                 fontSize: 14,
@@ -305,8 +313,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
             decoration: const InputDecoration(
               contentPadding: EdgeInsets.all(14),
               border: InputBorder.none,
-              hintText:
-                  'Tulis bio singkat tentang hobi atau pengalaman mendaki Anda',
+              hintText: 'Belum tersedia',
               hintStyle: TextStyle(
                 fontFamily: 'Inter',
                 fontSize: 14,

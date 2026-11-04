@@ -365,7 +365,9 @@ void main() {
       tester,
     ) async {
       await usePhone(tester);
-      await tester.pumpWidget(wrapScreen(const FacilitiesScreen()));
+      await tester.pumpWidget(
+        wrapScreen(const FacilitiesScreen(destinationId: 'dest-bromo')),
+      );
       await tester.pumpAndSettle();
 
       expect(find.text('Fasilitas sekitar'), findsOneWidget);
@@ -378,7 +380,9 @@ void main() {
 
     testWidgets('memilih kategori menyaring daftar', (tester) async {
       await usePhone(tester);
-      await tester.pumpWidget(wrapScreen(const FacilitiesScreen()));
+      await tester.pumpWidget(
+        wrapScreen(const FacilitiesScreen(destinationId: 'dest-bromo')),
+      );
       await tester.pumpAndSettle();
 
       await tester.tap(find.text('Transport'));
@@ -394,7 +398,12 @@ void main() {
       await usePhone(tester);
       var proposed = 0;
       await tester.pumpWidget(
-        wrapScreen(FacilitiesScreen(onPropose: () => proposed++)),
+        wrapScreen(
+          FacilitiesScreen(
+            destinationId: 'dest-bromo',
+            onPropose: () => proposed++,
+          ),
+        ),
       );
       await tester.pumpAndSettle();
 
@@ -408,7 +417,9 @@ void main() {
       'filter kombinasi yang tidak ada hasil memunculkan empty state',
       (tester) async {
         await usePhone(tester);
-        await tester.pumpWidget(wrapScreen(const FacilitiesScreen()));
+        await tester.pumpWidget(
+          wrapScreen(const FacilitiesScreen(destinationId: 'dest-bromo')),
+        );
         await tester.pumpAndSettle();
 
         await tester.tap(find.text('Transport'));
