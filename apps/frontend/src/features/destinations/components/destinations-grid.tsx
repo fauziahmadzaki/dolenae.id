@@ -21,18 +21,9 @@ export function DestinationsGrid({
           className="overflow-hidden rounded-xl border border-hairline bg-surface"
         >
           <div className="relative h-36 bg-canvas-subtle">
-            {destination.images[0] ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={destination.images[0]}
-                alt=""
-                className="h-full w-full object-cover"
-              />
-            ) : (
-              <div className="flex h-full items-center justify-center text-primary/60">
-                <Mountain aria-hidden className="h-10 w-10" />
-              </div>
-            )}
+            <div className="flex h-full items-center justify-center text-primary/60">
+              <Mountain aria-hidden className="h-10 w-10" />
+            </div>
             <DestinationStatusBadge
               status={destination.status}
               className="absolute left-3 top-3"

@@ -25,16 +25,7 @@ export function destinationColumns({
       cell: (destination) => (
         <div className="flex items-center gap-3">
           <span className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-canvas-subtle text-primary">
-            {destination.images[0] ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={destination.images[0]}
-                alt=""
-                className="h-full w-full object-cover"
-              />
-            ) : (
-              <Mountain aria-hidden className="h-5 w-5" />
-            )}
+            <Mountain aria-hidden className="h-5 w-5" />
           </span>
           <div className="min-w-0">
             <Link
