@@ -9,10 +9,13 @@ import 'package:dolenae_mobile/src/app/theme/app_spacing.dart';
 import 'package:dolenae_mobile/src/app/theme/app_text_styles.dart';
 import 'package:dolenae_mobile/src/features/destinations/domain/entities/destination.dart';
 import 'package:dolenae_mobile/src/features/destinations/presentation/controllers/destinations_controller.dart';
+import 'package:dolenae_mobile/src/features/plan/domain/entities/plan_draft.dart';
+import 'package:dolenae_mobile/src/features/plan/presentation/screens/plan_generating_screen.dart';
 import 'package:dolenae_mobile/src/shared/icons/app_icons.dart';
 import 'package:dolenae_mobile/src/shared/widgets/dn_app_bar.dart';
 import 'package:dolenae_mobile/src/shared/widgets/dn_buttons.dart';
 import 'package:dolenae_mobile/src/shared/widgets/dn_icon_circle.dart';
+import 'package:dolenae_mobile/src/shared/widgets/dn_toast.dart';
 
 /// Layar Pilih Destinasi (Node Figma: 84:1221).
 ///
@@ -21,17 +24,21 @@ import 'package:dolenae_mobile/src/shared/widgets/dn_icon_circle.dart';
 class SelectDestinationScreen extends StatefulWidget {
   const SelectDestinationScreen({
     super.key,
+    this.draft,
     this.initialSelectedIds = const {'dest-bromo', 'dest-prau'},
     this.onConfirm,
     this.onBack,
   });
 
+  /// Diisi saat layar dipakai sebagai langkah pembuatan rencana baru.
+  final PlanDraft? draft;
   final Set<String> initialSelectedIds;
   final ValueChanged<Set<String>>? onConfirm;
   final VoidCallback? onBack;
 
   @override
-  State<SelectDestinationScreen> createState() => _SelectDestinationScreenState();
+  State<SelectDestinationScreen> createState() =>
+      _SelectDestinationScreenState();
 }
 
 class _SelectDestinationScreenState extends State<SelectDestinationScreen> {
@@ -52,6 +59,15 @@ class _SelectDestinationScreenState extends State<SelectDestinationScreen> {
   }
 
   void _toggleDestination(String id) {
+    if (!_selectedIds.contains(id) && _selectedIds.length >= 7) {
+      showDnToast(
+        context,
+        'Maksimal 7 destinasi untuk satu rencana.',
+        type: DnToastType.info,
+      );
+      return;
+    }
+
     setState(() {
       if (_selectedIds.contains(id)) {
         _selectedIds.remove(id);
@@ -64,21 +80,33 @@ class _SelectDestinationScreenState extends State<SelectDestinationScreen> {
   void _handleConfirm() {
     if (widget.onConfirm != null) {
       widget.onConfirm!(_selectedIds);
+      return;
+    }
+
+    final draft = widget.draft;
+    if (draft != null) {
+      final items = context
+          .read<DestinationsController>()
+          .items
+          .where((destination) => _selectedIds.contains(destination.id))
+          .toList(growable: false);
+      context.pushReplacement(
+        '/plan/generating',
+        extra: PlanGenerationArgs(draft: draft, destinations: items),
+      );
+      return;
+    }
+
+    if (context.canPop()) {
+      context.pop(_selectedIds);
     } else {
-      if (context.canPop()) {
-        context.pop(_selectedIds);
-      } else {
-        context.go('/plan');
-      }
+      context.go('/plan');
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final filtered = context
-        .watch<DestinationsController>()
-        .items
-        .where((d) {
+    final filtered = context.watch<DestinationsController>().items.where((d) {
       if (_query.isEmpty) return true;
       return d.name.toLowerCase().contains(_query.toLowerCase()) ||
           d.regency.toLowerCase().contains(_query.toLowerCase());
@@ -86,6 +114,8 @@ class _SelectDestinationScreenState extends State<SelectDestinationScreen> {
 
     final ctaLabel = _selectedIds.isEmpty
         ? 'Pilih destinasi'
+        : widget.draft != null
+        ? 'Susun rencana (${_selectedIds.length})'
         : 'Tambahkan ${_selectedIds.length} destinasi';
 
     return Scaffold(
@@ -93,13 +123,15 @@ class _SelectDestinationScreenState extends State<SelectDestinationScreen> {
       appBar: DnAppBar(
         title: 'Pilih destinasi',
         showBack: true,
-        onBack: widget.onBack ?? () {
-          if (context.canPop()) {
-            context.pop();
-          } else {
-            context.go('/plan');
-          }
-        },
+        onBack:
+            widget.onBack ??
+            () {
+              if (context.canPop()) {
+                context.pop();
+              } else {
+                context.go('/plan');
+              }
+            },
       ),
       body: SafeArea(
         child: Column(
@@ -114,7 +146,8 @@ class _SelectDestinationScreenState extends State<SelectDestinationScreen> {
                     const SizedBox(height: AppSpacing.s3),
                     for (int i = 0; i < filtered.length; i++) ...[
                       _buildSelectableRow(filtered[i]),
-                      if (i < filtered.length - 1) const SizedBox(height: AppSpacing.s3),
+                      if (i < filtered.length - 1)
+                        const SizedBox(height: AppSpacing.s3),
                     ],
                     const SizedBox(height: AppSpacing.s4),
                   ],
@@ -161,7 +194,11 @@ class _SelectDestinationScreenState extends State<SelectDestinationScreen> {
                 _searchController.clear();
                 setState(() => _query = '');
               },
-              child: const Icon(AppIcons.close, size: 16, color: AppColors.body),
+              child: const Icon(
+                AppIcons.close,
+                size: 16,
+                color: AppColors.body,
+              ),
             ),
         ],
       ),
@@ -189,11 +226,7 @@ class _SelectDestinationScreenState extends State<SelectDestinationScreen> {
           ),
           child: Row(
             children: [
-              const DnIconCircle(
-                icon: AppIcons.mapPin,
-                size: 36,
-                iconSize: 18,
-              ),
+              const DnIconCircle(icon: AppIcons.mapPin, size: 36, iconSize: 18),
               const SizedBox(width: AppSpacing.s3),
               Expanded(
                 child: Column(
@@ -212,7 +245,9 @@ class _SelectDestinationScreenState extends State<SelectDestinationScreen> {
                     const SizedBox(height: 2),
                     Text(
                       '${destination.elevationLabel} · ${destination.regency}',
-                      style: AppTextStyles.caption.copyWith(color: AppColors.body),
+                      style: AppTextStyles.caption.copyWith(
+                        color: AppColors.body,
+                      ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
@@ -228,7 +263,9 @@ class _SelectDestinationScreenState extends State<SelectDestinationScreen> {
                   borderRadius: BorderRadius.circular(6),
                   color: isSelected ? AppColors.primary : Colors.transparent,
                   border: Border.all(
-                    color: isSelected ? AppColors.primary : AppColors.borderStrong,
+                    color: isSelected
+                        ? AppColors.primary
+                        : AppColors.borderStrong,
                     width: 1.5,
                   ),
                 ),

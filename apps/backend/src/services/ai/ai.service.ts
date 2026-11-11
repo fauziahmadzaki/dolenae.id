@@ -5,17 +5,58 @@ import { AppError } from "../../utils/errors";
 import { destinationService } from "../destination.service";
 import { generateWithGemini } from "./gemini.service";
 import {
+  buildDeterministicChecklist,
   buildDeterministicItinerary,
   buildRecommendationCards,
 } from "./itinerary.service";
 import { aiRetrieval, type AiContext, type AiPreferenceInput } from "./retrieval.service";
-import type { AiItineraryPayload, AiOptions } from "./types";
+import type {
+  AiChecklistItem,
+  AiItineraryPayload,
+  AiOptions,
+} from "./types";
+
+const normalizeProvinceName = (value?: string | null): string =>
+  (value ?? "")
+    .trim()
+    .toLowerCase()
+    .replace(/^provinsi\s+/, "")
+    .replace(/^dki\s+/, "jakarta ")
+    .replace(/^di\s+/, "yogyakarta ")
+    .trim();
+
+function needsInterprovinceTransport(
+  context: AiContext,
+  input: AiPreferenceInput,
+): boolean {
+  const origin = normalizeProvinceName(input.originProvince);
+  if (!origin) return false;
+  return context.destinations.some((destination) => {
+    const province = normalizeProvinceName(destination.province);
+    return province.length > 0 && province !== origin;
+  });
+}
+
+function mergeChecklistItems(
+  primary: AiChecklistItem[],
+  fallback: AiChecklistItem[],
+): AiChecklistItem[] {
+  const seen = new Set<string>();
+  const merged: AiChecklistItem[] = [];
+  for (const item of [...primary, ...fallback]) {
+    const key = item.name.trim().toLowerCase();
+    if (!key || seen.has(key)) continue;
+    seen.add(key);
+    merged.push(item);
+  }
+  return merged;
+}
 
 const hashInput = (input: AiPreferenceInput): string =>
   createHash("sha256")
     // Bump when the prompt/retrieval contract changes so older cached rows do
     // not bypass new grounding/notice rules.
-    .update("ai-v3:")
+    .update("ai-v6:")
     .update(JSON.stringify(input, Object.keys(input).sort()))
     .digest("hex");
 
@@ -24,24 +65,35 @@ export function attachQueryNotice(
   result: AiItineraryPayload,
   context: AiContext,
 ): AiItineraryPayload {
-  if (context.queryMatched) return result;
+  const warnings = [...result.briefing.warnings];
+  let notice = result.notice;
 
-  const terms = context.unmatchedTerms.join(", ");
-  const label = terms ? ` (${terms})` : "";
-  const hasAlternatives = context.destinations.length > 0;
-  const notice = hasAlternatives
-    ? `Maaf, destinasi yang kamu cari${label} belum ada di Dolenae. Berikut rekomendasi alternatif yang paling sesuai dengan preferensimu.`
-    : `Maaf, destinasi yang kamu cari${label} belum ada di Dolenae dan belum ada alternatif yang cocok. Coba longgarkan preferensimu.`;
-  const warning = hasAlternatives
-    ? `Kata kunci "${terms}" belum ada di data destinasi; itinerary memakai alternatif terdekat.`
-    : `Kata kunci "${terms}" belum ada di data destinasi dan tidak ada alternatif yang cocok.`;
+  if (context.invalidDestinationIds.length > 0) {
+    warnings.unshift(
+      `${context.invalidDestinationIds.length} destinasi pilihan tidak ditemukan di katalog dan dilewati.`,
+    );
+  }
+
+  if (!context.queryMatched) {
+    const terms = context.unmatchedTerms.join(", ");
+    const label = terms ? ` (${terms})` : "";
+    const hasAlternatives = context.destinations.length > 0;
+    notice = hasAlternatives
+      ? `Maaf, destinasi yang kamu cari${label} belum ada di Dolenae. Berikut rekomendasi alternatif yang paling sesuai dengan preferensimu.`
+      : `Maaf, destinasi yang kamu cari${label} belum ada di Dolenae dan belum ada alternatif yang cocok. Coba longgarkan preferensimu.`;
+    warnings.unshift(
+      hasAlternatives
+        ? `Kata kunci "${terms}" belum ada di data destinasi; itinerary memakai alternatif terdekat.`
+        : `Kata kunci "${terms}" belum ada di data destinasi dan tidak ada alternatif yang cocok.`,
+    );
+  }
 
   return {
     ...result,
     notice,
     briefing: {
       ...result.briefing,
-      warnings: [...new Set([warning, ...result.briefing.warnings])],
+      warnings: [...new Set(warnings)],
     },
   };
 }
@@ -131,6 +183,49 @@ export const aiService = {
       result = buildDeterministicItinerary(context, input);
     }
     result = attachQueryNotice(result, context);
+
+    // Keep the AI checklist useful even when the model returns only a few
+    // items. The deterministic list fills the gaps without touching the
+    // model's itinerary.
+    const originDiff = needsInterprovinceTransport(context, input);
+    const hasInterprovinceAlternatives = result.checklistItems.some(
+      (item) =>
+        item.alternativeGroup === "transport-antarprovinsi" ||
+        /pesawat|kapal laut/i.test(item.name),
+    );
+    if (
+      context.destinations.length > 0 &&
+      (result.checklistItems.length < 12 ||
+        (originDiff && !hasInterprovinceAlternatives))
+    ) {
+      const requestedDays = Math.min(
+        Math.max(input.durationDays ?? 2, 1),
+        7,
+      );
+      const fallback = buildDeterministicChecklist(
+        context,
+        input,
+        context.destinations,
+        requestedDays,
+      );
+      const additions =
+        result.checklistItems.length < 12
+          ? fallback
+          : fallback.filter(
+              (item) =>
+                item.alternativeGroup === "transport-antarprovinsi",
+            );
+      const checklistItems = mergeChecklistItems(
+        result.checklistItems,
+        additions,
+      );
+      result = {
+        ...result,
+        checklistItems,
+        checklist: checklistItems.map((item) => item.name),
+      };
+    }
+
     result = {
       ...result,
       recommendations: buildRecommendationCards(context, result),

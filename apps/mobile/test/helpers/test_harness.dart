@@ -26,8 +26,16 @@ import 'package:dolenae_mobile/src/features/facilities/domain/repositories/facil
 import 'package:dolenae_mobile/src/features/facilities/presentation/controllers/facilities_controller.dart';
 import 'package:dolenae_mobile/src/features/notifications/data/repositories/notification_repository_impl.dart';
 import 'package:dolenae_mobile/src/features/notifications/presentation/controllers/notifications_controller.dart';
-import 'package:dolenae_mobile/src/features/plan/data/repositories/plan_repository_impl.dart';
+import 'package:dolenae_mobile/src/features/plan/data/data_sources/plan_seed_data_source.dart';
+import 'package:dolenae_mobile/src/features/plan/domain/entities/trip_plan.dart';
+import 'package:dolenae_mobile/src/features/plan/domain/entities/user_location.dart';
+import 'package:dolenae_mobile/src/features/plan/domain/repositories/location_repository.dart';
+import 'package:dolenae_mobile/src/features/plan/domain/repositories/plan_repository.dart';
 import 'package:dolenae_mobile/src/features/plan/presentation/controllers/plan_controller.dart';
+import 'package:dolenae_mobile/src/features/checklist/presentation/screens/add_checklist_item_screen.dart';
+import 'package:dolenae_mobile/src/features/plan/presentation/screens/plan_checklist_screen.dart';
+import 'package:dolenae_mobile/src/features/plan/presentation/screens/plan_detail_screen.dart';
+import 'package:dolenae_mobile/src/features/plan/presentation/screens/trip_plan_screen.dart';
 import 'package:dolenae_mobile/src/features/routes/domain/entities/route_graph.dart';
 import 'package:dolenae_mobile/src/features/routes/domain/repositories/route_repository.dart';
 import 'package:dolenae_mobile/src/features/routes/presentation/controllers/routes_controller.dart';
@@ -125,6 +133,7 @@ class TestStores {
     AuthRepository? authRepository,
     String? rememberedEmail,
     CategoryRepository? categoryRepository,
+    List<TripPlan>? plans,
   }) : auth = AuthController(
          repository: authRepository ?? const _TestAuthRepository(),
          initialRememberedEmail: rememberedEmail,
@@ -146,7 +155,11 @@ class TestStores {
          initialSupports: FacilitySeedData.supports,
        ),
        routes = RoutesController(const _TestRouteRepository()),
-       plan = PlanController(const PlanRepositoryImpl()),
+       plan = PlanController(
+         _TestPlanRepository(plans),
+         AiRepositoryImpl(),
+         const _TestLocationRepository(),
+       ),
        checklist = ChecklistController(ChecklistRepositoryImpl());
 
   final AuthController auth;
@@ -165,6 +178,47 @@ class TestStores {
 
 /// Buat controller baru untuk assert terhadap perubahan state di layar.
 TestStores newStore() => TestStores();
+
+class _TestLocationRepository implements LocationRepository {
+  const _TestLocationRepository();
+
+  @override
+  Future<Result<UserLocation>> detectCurrent() async => const Success(
+    UserLocation(
+      latitude: -6.2,
+      longitude: 106.8,
+      province: 'DKI Jakarta',
+      city: 'Jakarta',
+    ),
+  );
+}
+
+class _TestPlanRepository implements PlanRepository {
+  _TestPlanRepository([List<TripPlan>? plans])
+    : _plans = [...(plans ?? PlanSeedData.plans)];
+
+  List<TripPlan> _plans;
+
+  @override
+  Future<Result<List<TripPlan>>> load() async => Success(_plans);
+
+  @override
+  Future<Result<void>> save(TripPlan plan) async {
+    final index = _plans.indexWhere((item) => item.id == plan.id);
+    if (index >= 0) {
+      _plans[index] = plan;
+    } else {
+      _plans = [plan, ..._plans];
+    }
+    return const Success(null);
+  }
+
+  @override
+  Future<Result<void>> delete(String id) async {
+    _plans = _plans.where((plan) => plan.id != id).toList();
+    return const Success(null);
+  }
+}
 
 class _TestCategoryRepository implements CategoryRepository {
   const _TestCategoryRepository();
@@ -204,7 +258,9 @@ class _TestFacilityRepository implements FacilityRepository {
     if (destinationId == 'dest-bromo' || destinationId == 'bromo') {
       return Success(_items);
     }
-    final matches = _items.where((s) => s.destinationId == destinationId).toList();
+    final matches = _items
+        .where((s) => s.destinationId == destinationId)
+        .toList();
     return Success(matches);
   }
 
@@ -246,6 +302,28 @@ Widget wrapScreen(Widget child, {TestStores? store}) {
         builder: (_, _) => const _StubScreen(),
       ),
       GoRoute(path: '/destination/:id', builder: (_, _) => const _StubScreen()),
+      GoRoute(path: '/plan', builder: (_, _) => const TripPlanScreen()),
+      GoRoute(
+        path: '/plan/:id',
+        builder: (_, state) =>
+            PlanDetailScreen(planId: state.pathParameters['id'] ?? ''),
+        routes: [
+          GoRoute(
+            path: 'checklist',
+            builder: (_, state) =>
+                PlanChecklistScreen(planId: state.pathParameters['id'] ?? ''),
+            routes: [
+              GoRoute(
+                path: 'add',
+                builder: (_, _) => const AddChecklistItemScreen(
+                  initialName: '',
+                  initialNote: '',
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
     ],
   );
   return MultiProvider(

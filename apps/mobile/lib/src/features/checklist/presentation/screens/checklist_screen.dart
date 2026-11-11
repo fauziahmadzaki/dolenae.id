@@ -53,7 +53,9 @@ class _ChecklistScreenState extends State<ChecklistScreen> {
     if (widget.initialItems != null) {
       setState(() {
         _items = _items.map((item) {
-          if (item.id == id) return item.copyWith(isCompleted: !item.isCompleted);
+          if (item.id == id) {
+            return item.copyWith(isCompleted: !item.isCompleted);
+          }
           return item;
         }).toList();
       });
@@ -86,13 +88,15 @@ class _ChecklistScreenState extends State<ChecklistScreen> {
       appBar: DnAppBar(
         title: 'Checklist Persiapan',
         showBack: true,
-        onBack: widget.onBack ?? () {
-          if (context.canPop()) {
-            context.pop();
-          } else {
-            context.go('/plan');
-          }
-        },
+        onBack:
+            widget.onBack ??
+            () {
+              if (context.canPop()) {
+                context.pop();
+              } else {
+                context.go('/plan');
+              }
+            },
       ),
       body: SafeArea(
         child: Column(
@@ -163,7 +167,9 @@ class _ChecklistScreenState extends State<ChecklistScreen> {
               value: _progress,
               minHeight: 8,
               backgroundColor: AppColors.canvas,
-              valueColor: const AlwaysStoppedAnimation<Color>(AppColors.primary),
+              valueColor: const AlwaysStoppedAnimation<Color>(
+                AppColors.primary,
+              ),
             ),
           ),
           const SizedBox(height: 8),
@@ -190,19 +196,39 @@ class _ChecklistScreenState extends State<ChecklistScreen> {
           _buildFilterChip(
             label: 'Perlengkapan',
             isSelected: _selectedCategory == ChecklistCategory.perlengkapan,
-            onTap: () => setState(() => _selectedCategory = ChecklistCategory.perlengkapan),
+            onTap: () => setState(
+              () => _selectedCategory = ChecklistCategory.perlengkapan,
+            ),
           ),
           const SizedBox(width: 8),
           _buildFilterChip(
             label: 'Kesehatan',
             isSelected: _selectedCategory == ChecklistCategory.kesehatan,
-            onTap: () => setState(() => _selectedCategory = ChecklistCategory.kesehatan),
+            onTap: () =>
+                setState(() => _selectedCategory = ChecklistCategory.kesehatan),
           ),
           const SizedBox(width: 8),
           _buildFilterChip(
             label: 'Konservasi',
             isSelected: _selectedCategory == ChecklistCategory.konservasi,
-            onTap: () => setState(() => _selectedCategory = ChecklistCategory.konservasi),
+            onTap: () => setState(
+              () => _selectedCategory = ChecklistCategory.konservasi,
+            ),
+          ),
+          const SizedBox(width: 8),
+          _buildFilterChip(
+            label: 'Administrasi',
+            isSelected: _selectedCategory == ChecklistCategory.administrasi,
+            onTap: () => setState(
+              () => _selectedCategory = ChecklistCategory.administrasi,
+            ),
+          ),
+          const SizedBox(width: 8),
+          _buildFilterChip(
+            label: 'Biaya',
+            isSelected: _selectedCategory == ChecklistCategory.biaya,
+            onTap: () =>
+                setState(() => _selectedCategory = ChecklistCategory.biaya),
           ),
         ],
       ),
@@ -242,12 +268,16 @@ class _ChecklistScreenState extends State<ChecklistScreen> {
     );
   }
 
-  Widget _buildCategoryGroup(ChecklistCategory category, List<ChecklistItem> items) {
+  Widget _buildCategoryGroup(
+    ChecklistCategory category,
+    List<ChecklistItem> items,
+  ) {
     final title = switch (category) {
       ChecklistCategory.perlengkapan => 'PERLENGKAPAN',
       ChecklistCategory.kesehatan => 'KESEHATAN',
       ChecklistCategory.konservasi => 'KONSERVASI',
       ChecklistCategory.administrasi => 'ADMINISTRASI',
+      ChecklistCategory.biaya => 'BIAYA',
     };
 
     return Column(
@@ -294,9 +324,13 @@ class _ChecklistScreenState extends State<ChecklistScreen> {
               height: 22,
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(6),
-                color: item.isCompleted ? AppColors.primary : Colors.transparent,
+                color: item.isCompleted
+                    ? AppColors.primary
+                    : Colors.transparent,
                 border: Border.all(
-                  color: item.isCompleted ? AppColors.primary : AppColors.borderStrong,
+                  color: item.isCompleted
+                      ? AppColors.primary
+                      : AppColors.borderStrong,
                   width: 1.5,
                 ),
               ),
@@ -340,7 +374,9 @@ class _ChecklistScreenState extends State<ChecklistScreen> {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
               decoration: BoxDecoration(
-                color: item.isRequired ? const Color(0xFFFBEEDB) : AppColors.canvas,
+                color: item.isRequired
+                    ? const Color(0xFFFBEEDB)
+                    : AppColors.canvas,
                 borderRadius: BorderRadius.circular(AppRadius.pill),
                 border: Border.all(color: AppColors.hairline),
               ),
@@ -397,22 +433,22 @@ class _ChecklistScreenState extends State<ChecklistScreen> {
       padding: const EdgeInsets.all(AppSpacing.s4),
       decoration: const BoxDecoration(
         color: AppColors.canvas,
-        border: Border(
-          top: BorderSide(color: AppColors.hairline),
-        ),
+        border: Border(top: BorderSide(color: AppColors.hairline)),
       ),
       child: DnPrimaryButton(
         label: 'Tandai siap',
         icon: AppIcons.squareCheck,
         height: 48,
-        onPressed: widget.onMarkReady ?? () {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Kesiapan checklist tersimpan!'),
-              backgroundColor: AppColors.success,
-            ),
-          );
-        },
+        onPressed:
+            widget.onMarkReady ??
+            () {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Kesiapan checklist tersimpan!'),
+                  backgroundColor: AppColors.success,
+                ),
+              );
+            },
       ),
     );
   }

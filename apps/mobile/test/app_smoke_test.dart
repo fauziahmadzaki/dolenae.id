@@ -96,18 +96,25 @@ void main() {
     expect(find.text('Tambah ke rencana'), findsOneWidget);
   });
 
-  testWidgets('Rencana Perjalanan menampilkan ringkasan, briefing AI, dan hari', (tester) async {
+  testWidgets('Rencana menampilkan daftar dan membuka detail rencana', (tester) async {
     await tester.binding.setSurfaceSize(_phone);
     addTearDown(() => tester.binding.setSurfaceSize(null));
     await tester.pumpWidget(wrapScreen(const TripPlanScreen()));
-    expect(find.text('Rencana Perjalanan'), findsOneWidget);
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 400));
+
+    expect(find.text('Rencana'), findsWidgets);
     expect(find.text('Trip Dieng'), findsOneWidget);
-    expect(find.text('BRIEFING AI'), findsOneWidget);
+    expect(find.text('Trip Bromo'), findsOneWidget);
+
+    await tester.tap(find.text('Trip Dieng'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Rencana Perjalanan'), findsOneWidget);
+    expect(find.text('RINGKASAN AI'), findsOneWidget);
     expect(find.text('HARI 1'), findsOneWidget);
-    expect(find.text('Gunung Prau'), findsOneWidget);
-    expect(find.text('HARI 2'), findsOneWidget);
-    expect(find.text('Gunung Bromo'), findsOneWidget);
-    expect(find.text('Tambah destinasi'), findsOneWidget);
+    expect(find.text('Gunung Prau'), findsWidgets);
+    expect(find.text('ESTIMASI BIAYA'), findsOneWidget);
   });
 
   testWidgets('Buat Rencana Baru menampilkan form dan stepper orang', (tester) async {

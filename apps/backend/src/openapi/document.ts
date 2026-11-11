@@ -1269,6 +1269,12 @@ export const openApiDocument = {
               schema: {
                 type: "object",
                 properties: {
+                  destinationIds: {
+                    type: "array",
+                    items: { type: "string" },
+                    maxItems: 7,
+                  },
+                  originProvince: { type: "string", maxLength: 80 },
                   rawText: { type: "string", maxLength: 1000 },
                   regions: { type: "array", items: { type: "string" } },
                   activities: { type: "array", items: { type: "string" } },
@@ -1286,7 +1292,7 @@ export const openApiDocument = {
           },
         },
         responses: {
-          "200": { description: "Itinerary, briefing, checklist, sources, card recommendations and optional not-found notice" },
+          "200": { description: "Itinerary, briefing, checklist (with per-person estimated costs), sources, card recommendations and optional not-found notice" },
           "401": { description: "Missing token" },
           "429": { description: "Daily AI quota exceeded" },
           "422": { description: "Validation error" },

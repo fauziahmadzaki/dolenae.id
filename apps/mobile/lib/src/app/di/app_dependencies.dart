@@ -27,7 +27,10 @@ import 'package:dolenae_mobile/src/features/facilities/data/repositories/facilit
 import 'package:dolenae_mobile/src/features/facilities/domain/repositories/facility_repository.dart';
 import 'package:dolenae_mobile/src/features/notifications/data/repositories/notification_repository_impl.dart';
 import 'package:dolenae_mobile/src/features/notifications/domain/repositories/notification_repository.dart';
+import 'package:dolenae_mobile/src/features/plan/data/data_sources/plan_local_data_source.dart';
+import 'package:dolenae_mobile/src/features/plan/data/repositories/location_repository_impl.dart';
 import 'package:dolenae_mobile/src/features/plan/data/repositories/plan_repository_impl.dart';
+import 'package:dolenae_mobile/src/features/plan/domain/repositories/location_repository.dart';
 import 'package:dolenae_mobile/src/features/plan/domain/repositories/plan_repository.dart';
 import 'package:dolenae_mobile/src/features/routes/data/repositories/route_repository_impl.dart';
 import 'package:dolenae_mobile/src/features/routes/domain/repositories/route_repository.dart';
@@ -53,6 +56,7 @@ class AppDependencies {
     required this.facilityRepository,
     required this.routeRepository,
     required this.planRepository,
+    required this.locationRepository,
     required this.checklistRepository,
   });
 
@@ -88,9 +92,13 @@ class AppDependencies {
       savedRepository: SavedRepositoryImpl(),
       aiRepository: AiRepositoryImpl(AiRemoteDataSource(client)),
       exploreRepository: ExploreRepositoryImpl(),
-      facilityRepository: FacilityRepositoryImpl(api: client, preferences: prefs),
+      facilityRepository: FacilityRepositoryImpl(
+        api: client,
+        preferences: prefs,
+      ),
       routeRepository: RouteRepositoryImpl(client),
-      planRepository: const PlanRepositoryImpl(),
+      planRepository: PlanRepositoryImpl(PlanLocalDataSource(prefs)),
+      locationRepository: const LocationRepositoryImpl(),
       checklistRepository: ChecklistRepositoryImpl(),
     );
   }
@@ -108,5 +116,6 @@ class AppDependencies {
   final FacilityRepository facilityRepository;
   final RouteRepository routeRepository;
   final PlanRepository planRepository;
+  final LocationRepository locationRepository;
   final ChecklistRepository checklistRepository;
 }

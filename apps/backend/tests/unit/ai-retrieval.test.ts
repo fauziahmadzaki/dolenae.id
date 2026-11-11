@@ -79,6 +79,42 @@ describe("AI retrieval relaxation", () => {
     expect(generic.queryMatched).toBe(true);
   });
 
+  it("keeps explicitly selected destinations in the requested order", async () => {
+    const second = {
+      ...destination,
+      id: "22222222-2222-4222-a222-222222222222",
+      name: "Gunung Kedua",
+    };
+    list.mockResolvedValue({
+      items: [destination, second],
+      meta: {},
+    } as never);
+
+    const context = await aiRetrieval.build({
+      destinationIds: [
+        "22222222-2222-4222-a222-222222222222",
+        destination.id,
+      ],
+    });
+
+    expect(context.destinations.map((item) => item.name)).toEqual([
+      "Gunung Kedua",
+      "Gunung Uji",
+    ]);
+    expect(context.invalidDestinationIds).toEqual([]);
+  });
+
+  it("reports explicit destination IDs that are not published", async () => {
+    const context = await aiRetrieval.build({
+      destinationIds: ["99999999-9999-4999-a999-999999999999"],
+    });
+
+    expect(context.destinations).toHaveLength(0);
+    expect(context.invalidDestinationIds).toEqual([
+      "99999999-9999-4999-a999-999999999999",
+    ]);
+  });
+
   it("returns no destinations and all relaxed filters when nothing can match", async () => {
     list.mockResolvedValue({ items: [], meta: {} } as never);
 

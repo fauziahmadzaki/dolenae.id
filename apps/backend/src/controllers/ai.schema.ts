@@ -8,6 +8,12 @@ const stringList = (maxItems: number, maxLength: number) =>
 
 /** Preferences sent by the mobile AI screen. */
 export const aiItinerarySchema = z.object({
+  /** Explicit destinations selected by the mobile plan builder. */
+  destinationIds: z
+    .array(z.string().trim().min(1).max(80))
+    .max(7)
+    .optional(),
+  originProvince: z.string().trim().max(80).optional(),
   rawText: z.string().trim().max(1000).optional(),
   regions: stringList(5, 80),
   activities: stringList(8, 80),

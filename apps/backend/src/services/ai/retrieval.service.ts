@@ -7,6 +7,9 @@ import {
 import { routeService } from "../route.service";
 
 export interface AiPreferenceInput {
+  /** Destinations explicitly picked by the user; order is preserved. */
+  destinationIds?: string[];
+  originProvince?: string;
   rawText?: string;
   regions?: string[];
   activities?: string[];
@@ -70,6 +73,8 @@ export interface AiContext {
   /** False when a significant keyword in rawText is absent from the catalog. */
   queryMatched: boolean;
   unmatchedTerms: string[];
+  /** Requested destination IDs that are not published or no longer exist. */
+  invalidDestinationIds: string[];
 }
 
 type DroppedFilter =
@@ -155,7 +160,9 @@ const QUERY_STOPWORDS = new Set([
   "puncak",
   "ramah",
   "rekomendasi",
+  "rencana",
   "sama",
+  "susun",
   "saya",
   "sekitar",
   "siang",
@@ -303,6 +310,16 @@ export const aiRetrieval = {
       (term) => !haystack.includes(term),
     );
 
+    const requestedIds = [...new Set(input.destinationIds ?? [])];
+    const requestedDestinations = requestedIds
+      .map((id) => all.find((destination) => destination.id === id))
+      .filter(
+        (destination): destination is PublicDestination => Boolean(destination),
+      );
+    const invalidDestinationIds = requestedIds.filter(
+      (id) => !all.some((destination) => destination.id === id),
+    );
+
     const present: DroppedFilter[] = [];
     if (input.activities?.length) present.push("activities");
     if (input.terrains?.length) present.push("terrains");
@@ -310,29 +327,38 @@ export const aiRetrieval = {
     if (input.regions?.length) present.push("regions");
     if (input.difficulty != null) present.push("difficulty");
 
-    // Try the full filter set first, then progressively drop one filter.
+    // Explicit destination IDs win over preference filters: the user picked
+    // these destinations, so keep all published ones in the given order.
     let selected: Array<{ destination: PublicDestination; lexical: number }> = [];
     let relaxed: DroppedFilter[] = [];
 
-    for (let index = 0; index <= present.length; index += 1) {
-      const dropped = present.slice(0, index);
-      const result = all
-        .filter((destination) => matchesFilters(destination, input, dropped))
-        .map((destination) => ({
-          destination,
-          lexical: lexicalScore(destination, rawText),
-        }))
-        .sort(
-          (a, b) =>
-            b.lexical - a.lexical ||
-            a.destination.name.localeCompare(b.destination.name),
-        )
-        .slice(0, 8);
+    if (requestedIds.length > 0) {
+      selected = requestedDestinations.map((destination) => ({
+        destination,
+        lexical: lexicalScore(destination, rawText),
+      }));
+    } else {
+      // Try the full filter set first, then progressively drop one filter.
+      for (let index = 0; index <= present.length; index += 1) {
+        const dropped = present.slice(0, index);
+        const result = all
+          .filter((destination) => matchesFilters(destination, input, dropped))
+          .map((destination) => ({
+            destination,
+            lexical: lexicalScore(destination, rawText),
+          }))
+          .sort(
+            (a, b) =>
+              b.lexical - a.lexical ||
+              a.destination.name.localeCompare(b.destination.name),
+          )
+          .slice(0, 8);
 
-      relaxed = dropped;
-      if (result.length > 0) {
-        selected = result;
-        break;
+        relaxed = dropped;
+        if (result.length > 0) {
+          selected = result;
+          break;
+        }
       }
     }
 
@@ -407,6 +433,7 @@ export const aiRetrieval = {
       relaxed: relaxed.map((filter) => FILTER_LABEL[filter]),
       queryMatched: unmatchedTerms.length === 0,
       unmatchedTerms,
+      invalidDestinationIds,
     };
   },
 };

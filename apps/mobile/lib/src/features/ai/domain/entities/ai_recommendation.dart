@@ -4,6 +4,8 @@ import 'package:dolenae_mobile/src/features/ai/domain/entities/ai_itinerary.dart
 /// Preferensi yang dikumpulkan di AI Preferensi (subset `packages/types/src/ai.ts`).
 class AiPreference {
   const AiPreference({
+    this.destinationIds = const [],
+    this.originProvince,
     this.rawText = '',
     this.regions = const [],
     this.activities = const [],
@@ -15,6 +17,12 @@ class AiPreference {
     this.needsTransport = false,
     this.note = '',
   });
+
+  /// Destinasi yang dipilih eksplisit; urutan dipertahankan backend.
+  final List<String> destinationIds;
+
+  /// Provinsi asal user untuk estimasi transport antarprovinsi.
+  final String? originProvince;
 
   /// Prompt bebas pengguna ("teks natural").
   final String rawText;
@@ -29,6 +37,8 @@ class AiPreference {
   final String? note;
 
   AiPreference copyWith({
+    List<String>? destinationIds,
+    String? originProvince,
     String? rawText,
     List<String>? regions,
     List<String>? activities,
@@ -44,6 +54,8 @@ class AiPreference {
     String? note,
   }) {
     return AiPreference(
+      destinationIds: destinationIds ?? this.destinationIds,
+      originProvince: originProvince ?? this.originProvince,
       rawText: rawText ?? this.rawText,
       regions: regions ?? this.regions,
       activities: activities ?? this.activities,
@@ -60,6 +72,8 @@ class AiPreference {
   }
 
   bool get hasAnyInput =>
+      destinationIds.isNotEmpty ||
+      (originProvince?.trim().isNotEmpty ?? false) ||
       rawText.trim().isNotEmpty ||
       regions.isNotEmpty ||
       activities.isNotEmpty ||
@@ -97,6 +111,7 @@ class AiResult {
     required this.summary,
     required this.items,
     required this.relatedChecklist,
+    this.relatedChecklistItems = const [],
     this.kind = 'rule-based',
     this.itinerary,
     this.briefing,
@@ -110,6 +125,7 @@ class AiResult {
   final String summary;
   final List<AiRecommendation> items;
   final List<String> relatedChecklist;
+  final List<AiChecklistItem> relatedChecklistItems;
   final String kind;
 
   /// Itinerary terstruktur (hasil backend AI); null untuk hasil rule-based lama.

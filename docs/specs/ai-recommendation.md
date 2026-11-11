@@ -28,6 +28,8 @@ pelonggaran dikirim sebagai warning.
 
 ```json
 {
+  "destinationIds": ["uuid-destinasi-1", "uuid-destinasi-2"],
+  "originProvince": "Jawa Barat",
   "rawText": "sunrise gunung di Jawa Timur",
   "regions": ["Jawa Timur"],
   "activities": ["Sunrise"],
@@ -41,9 +43,21 @@ pelonggaran dikirim sebagai warning.
 }
 ```
 
-Semua field opsional. Batas: `rawText` 1000 karakter, `durationDays` 1–7,
-`note` 500 karakter. Kirim `refresh: true` untuk melewati cache 24 jam (dipakai
-tombol “Tanya lagi”).
+Semua field opsional. Batas: `rawText` 1000 karakter, `destinationIds` maks. 7,
+`durationDays` 1–7, `note` 500 karakter. Kirim `refresh: true` untuk melewati
+cache 24 jam (dipakai tombol “Tanya lagi”).
+
+`destinationIds` dipakai alur **Buat Rencana** di mobile. Bila diisi, backend
+mempertahankan urutan destinasi terpilih, hanya memakai destinasi `published`,
+dan menjadwalkan semuanya ke hari 1–n (beberapa destinasi bisa berbagi satu
+hari). ID yang tidak ditemukan dilewati dan dilaporkan sebagai warning. Output
+Gemini yang tidak memakai semua destinasi terpilih ditolak dan diganti builder
+deterministik.
+
+`originProvince` diisi mobile dari lokasi user (atau input manual). Bila berbeda
+dari provinsi destinasi, checklist menambahkan dua opsi transport antarprovinsi
+(pesawat dan kapal laut) dengan `alternativeGroup` yang sama; hanya satu opsi
+yang `selected` dan dihitung ke total.
 
 ## Response
 
@@ -127,6 +141,8 @@ ditemukan pada katalog destinasi published. Hasil tetap berisi alternatif, dan
    angka karangan.
 7. Jika kata kunci penting dari prompt tidak ada di katalog (mis. “Everest”),
    response menyertakan `notice` dan warning; itinerary tetap berisi alternatif.
+8. Jika `destinationIds` dikirim, semua ID valid wajib muncul di itinerary;
+   Gemini yang melewatkan salah satunya akan jatuh ke builder deterministik.
 
 ## Konfigurasi backend
 
@@ -196,3 +212,64 @@ AES-256-GCM** di tabel `app_settings`:
   ditampilkan pada layar hasil card-first.
 - UI AI Hasil mengikuti layout card-first; itinerary/briefing tetap dikirim API
   untuk kebutuhan tampilan lain di masa depan.
+
+## Mobile — tab Rencana
+
+- `/plan` menampilkan **daftar kartu rencana** (bukan satu rencana aktif).
+  Kartu berisi judul, status, tanggal, durasi, jumlah destinasi, dan budget.
+- Kartu ditekan → masuk ke `/plan/:id` yang menampilkan ringkasan, itinerary
+  hari 1–n, ringkasan AI, dan estimasi biaya (total + per orang).
+- Rencana disimpan lokal di `SharedPreferences` (`plan.list.v1`); seed hanya
+  dipakai saat penyimpanan belum ada.
+- Rencana bisa dihapus dari ikon sampah di kartu daftar atau dari app bar
+  halaman detail. Keduanya memakai dialog konfirmasi destruktif; setelah
+  dihapus data rencana, itinerary, dan checklist ikut hilang dari penyimpanan.
+- Alur buat rencana:
+  1. `/plan/new` — nama, tanggal, 1–7 hari, orang, budget, catatan.
+  2. `/plan/select-destination` — pilih maks. 7 destinasi.
+  3. Rencana disimpan sebagai **Draft**, lalu `/plan/generating` memanggil AI
+     dengan `destinationIds`. Loading memakai skeleton, bukan spinner.
+  4. Sukses → `/plan/:id`; gagal → draft tetap tersimpan, detail menampilkan
+     warning dan tombol **Coba lagi**.
+
+## Mobile — checklist persiapan per rencana
+
+- Detail rencana punya kartu **Checklist persiapan** dengan progress
+  `selesai/total`; tap membuka `/plan/:id/checklist`.
+- Di `/plan/new`, user dapat menekan **Gunakan lokasi saat ini** untuk mengisi
+  provinsi asal. Izin ditolak / geocode gagal → isi provinsi manual.
+- Provinsi asal disimpan di `TripPlan.originProvince` dan ditampilkan di
+  checklist/detail rencana.
+- Checklist disimpan di `TripPlan.checklist` dan ikut tersimpan di
+  `SharedPreferences`.
+- Pengguna bisa menambah item sendiri lewat `/plan/:id/checklist/add`
+  (nama, kategori, wajib/opsional, catatan) dan mencentang item.
+- Tombol **Generate dari AI** memakai ulang `POST /api/ai/itineraries` dengan
+  konteks rencana (`destinationIds`, `durationDays`, `budgetPerPerson`,
+  `note`), lalu mengambil array `checklistItems`.
+- Response AI juga menyertakan `checklistItems` berisi
+  `{ name, category, estimatedCost, note, isRequired }`.
+  `estimatedCost` adalah estimasi **per orang** dalam rupiah.
+- Kategori `biaya` dipakai untuk tiket masuk, transportasi, penginapan, dan
+  makan; kategori lain untuk perlengkapan, kesehatan, konservasi, dan
+  administrasi.
+- Prompt Gemini meminta **14–18 item** yang mencakup perlengkapan, pakaian,
+  kesehatan, administrasi, konservasi, dan biaya perjalanan.
+- Biaya hanya diberikan untuk item yang perlu dibeli/sewa (tiket, transport,
+  penginapan, makan, air minum, P3K, sewa tenda). Perlengkapan pribadi
+  tahan lama memakai biaya `null` dan catatan “jika belum punya”.
+- Total estimasi **tidak dipaksa mengisi budget**; hasil boleh di bawah
+  budget. Jika AI mengembalikan kurang dari 12 item, checklist deterministic
+  digabung agar tetap lengkap.
+- Setiap item punya toggle **Sudah punya**. Item yang aktif dilewati dari
+  total biaya, tetapi status selesai/progress checklist tidak berubah.
+- Item transport antarprovinsi tampil sebagai dua alternatif
+  (`alternativeGroup: transport-antarprovinsi`). Hanya opsi yang dipilih yang
+  dihitung; opsi lain ditandai sebagai alternatif.
+- Hasil AI **digabung** dengan checklist lama: duplikat nama diabaikan, item
+  custom dan status centang tidak berubah.
+- Header checklist menampilkan total estimasi per orang, status
+  `Budget masih longgar · sisa Rp…`, `Budget terpakai penuh`, atau
+  `Melebihi budget Rp…`, plus catatan biaya tak terduga.
+- Saat generate, layar menampilkan skeleton baris; kegagalan AI tidak
+  menghapus checklist lama.

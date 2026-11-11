@@ -79,7 +79,12 @@ class _DolenaeAppState extends State<DolenaeApp> {
     _explore = ExploreController(dependencies.exploreRepository);
     _facilities = FacilitiesController(dependencies.facilityRepository);
     _routes = RoutesController(dependencies.routeRepository);
-    _plan = PlanController(dependencies.planRepository);
+    _plan = PlanController(
+      dependencies.planRepository,
+      dependencies.aiRepository,
+      dependencies.locationRepository,
+    );
+    unawaited(_plan.load());
     _checklist = ChecklistController(dependencies.checklistRepository);
 
     _router = AppRouter.create(_auth);
