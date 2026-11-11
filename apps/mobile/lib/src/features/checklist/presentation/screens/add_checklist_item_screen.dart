@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 
 import 'package:dolenae_mobile/src/app/theme/app_colors.dart';
@@ -16,10 +17,14 @@ import 'package:dolenae_mobile/src/shared/widgets/dn_buttons.dart';
 class AddChecklistItemScreen extends StatefulWidget {
   const AddChecklistItemScreen({
     super.key,
+    this.initialName = 'Jaket windproof',
+    this.initialNote = 'Untuk suhu dingin saat sunrise.',
     this.onSave,
     this.onBack,
   });
 
+  final String initialName;
+  final String initialNote;
   final ValueChanged<ChecklistItem>? onSave;
   final VoidCallback? onBack;
 
@@ -28,15 +33,25 @@ class AddChecklistItemScreen extends StatefulWidget {
 }
 
 class _AddChecklistItemScreenState extends State<AddChecklistItemScreen> {
-  final _nameController = TextEditingController(text: 'Jaket windproof');
-  final _noteController = TextEditingController(text: 'Untuk suhu dingin saat sunrise.');
+  late final TextEditingController _nameController;
+  late final TextEditingController _costController;
+  late final TextEditingController _noteController;
 
   ChecklistCategory _selectedCategory = ChecklistCategory.perlengkapan;
   bool _isRequired = true;
 
   @override
+  void initState() {
+    super.initState();
+    _nameController = TextEditingController(text: widget.initialName);
+    _costController = TextEditingController();
+    _noteController = TextEditingController(text: widget.initialNote);
+  }
+
+  @override
   void dispose() {
     _nameController.dispose();
+    _costController.dispose();
     _noteController.dispose();
     super.dispose();
   }
@@ -59,7 +74,10 @@ class _AddChecklistItemScreenState extends State<AddChecklistItemScreen> {
       category: _selectedCategory,
       isRequired: _isRequired,
       isCompleted: false,
-      note: _noteController.text.trim().isEmpty ? null : _noteController.text.trim(),
+      estimatedCost: int.tryParse(_costController.text),
+      note: _noteController.text.trim().isEmpty
+          ? null
+          : _noteController.text.trim(),
     );
 
     widget.onSave?.call(newItem);
@@ -86,13 +104,15 @@ class _AddChecklistItemScreenState extends State<AddChecklistItemScreen> {
       appBar: DnAppBar(
         title: 'Tambah item',
         showBack: true,
-        onBack: widget.onBack ?? () {
-          if (context.canPop()) {
-            context.pop();
-          } else {
-            context.go('/checklist');
-          }
-        },
+        onBack:
+            widget.onBack ??
+            () {
+              if (context.canPop()) {
+                context.pop();
+              } else {
+                context.go('/checklist');
+              }
+            },
       ),
       body: SafeArea(
         child: Column(
@@ -104,6 +124,8 @@ class _AddChecklistItemScreenState extends State<AddChecklistItemScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     _buildNameField(),
+                    const SizedBox(height: AppSpacing.s4),
+                    _buildCostField(),
                     const SizedBox(height: AppSpacing.s4),
                     _buildCategoryField(),
                     const SizedBox(height: AppSpacing.s4),
@@ -146,10 +168,63 @@ class _AddChecklistItemScreenState extends State<AddChecklistItemScreen> {
               color: AppColors.ink,
             ),
             decoration: const InputDecoration(
-              contentPadding: EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+              contentPadding: EdgeInsets.symmetric(
+                horizontal: 14,
+                vertical: 14,
+              ),
               border: InputBorder.none,
               hintText: 'Contoh: Jaket windproof',
               hintStyle: TextStyle(
+                fontFamily: 'Inter',
+                fontSize: 14,
+                color: AppColors.body,
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildCostField() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Estimasi biaya (opsional)',
+          style: AppTextStyles.caption.copyWith(color: AppColors.body),
+        ),
+        const SizedBox(height: 6),
+        Container(
+          height: 48,
+          decoration: BoxDecoration(
+            color: AppColors.canvasSubtle,
+            borderRadius: BorderRadius.circular(AppRadius.lg),
+            border: Border.all(color: AppColors.hairline),
+          ),
+          child: TextField(
+            controller: _costController,
+            keyboardType: TextInputType.number,
+            inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+            style: const TextStyle(
+              fontFamily: 'Inter',
+              fontSize: 14,
+              color: AppColors.ink,
+            ),
+            decoration: const InputDecoration(
+              contentPadding: EdgeInsets.symmetric(
+                horizontal: 14,
+                vertical: 14,
+              ),
+              border: InputBorder.none,
+              hintText: 'Contoh: 25000',
+              hintStyle: TextStyle(
+                fontFamily: 'Inter',
+                fontSize: 14,
+                color: AppColors.body,
+              ),
+              prefixText: 'Rp ',
+              prefixStyle: TextStyle(
                 fontFamily: 'Inter',
                 fontSize: 14,
                 color: AppColors.body,
@@ -192,6 +267,11 @@ class _AddChecklistItemScreenState extends State<AddChecklistItemScreen> {
               _buildCategoryChip(
                 label: 'Administrasi',
                 category: ChecklistCategory.administrasi,
+              ),
+              const SizedBox(width: 8),
+              _buildCategoryChip(
+                label: 'Biaya',
+                category: ChecklistCategory.biaya,
               ),
             ],
           ),

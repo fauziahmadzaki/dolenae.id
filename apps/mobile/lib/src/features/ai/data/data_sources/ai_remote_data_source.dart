@@ -82,6 +82,10 @@ class AiRemoteDataSource {
       '/ai/itineraries',
       timeout: _aiTimeout,
       body: {
+        if (preference.destinationIds.isNotEmpty)
+          'destinationIds': preference.destinationIds,
+        if (preference.originProvince?.trim().isNotEmpty ?? false)
+          'originProvince': preference.originProvince!.trim(),
         if (preference.rawText.trim().isNotEmpty)
           'rawText': preference.rawText.trim(),
         if (preference.regions.isNotEmpty) 'regions': preference.regions,
@@ -112,6 +116,22 @@ class AiRemoteDataSource {
     final checklist = (map['checklist'] as List? ?? const [])
         .whereType<String>()
         .toList(growable: false);
+    final checklistItemsJson = map['checklistItems'];
+    final checklistItems = checklistItemsJson is List
+        ? checklistItemsJson
+              .whereType<Map>()
+              .map(
+                (item) =>
+                    AiChecklistItem.fromJson(item.cast<String, dynamic>()),
+              )
+              .where((item) => item.name.trim().isNotEmpty)
+              .toList(growable: false)
+        : checklist
+              .map((name) => AiChecklistItem(name: name))
+              .toList(growable: false);
+    final relatedChecklist = checklist.isNotEmpty
+        ? checklist
+        : checklistItems.map((item) => item.name).toList(growable: false);
 
     final itinerary = itineraryJson is Map
         ? AiItinerary.fromJson(itineraryJson.cast<String, dynamic>())
@@ -142,7 +162,8 @@ class AiRemoteDataSource {
           ? itinerary!.summary
           : 'Itinerary berhasil disusun.',
       items: items,
-      relatedChecklist: checklist,
+      relatedChecklist: relatedChecklist,
+      relatedChecklistItems: checklistItems,
       kind: map['engine'] as String? ?? 'gemini',
       itinerary: itinerary,
       briefing: briefing,

@@ -7,6 +7,8 @@ import 'package:dolenae_mobile/src/app/theme/app_radius.dart';
 import 'package:dolenae_mobile/src/app/theme/app_spacing.dart';
 import 'package:dolenae_mobile/src/app/theme/app_text_styles.dart';
 import 'package:dolenae_mobile/src/features/destinations/presentation/controllers/destinations_controller.dart';
+import 'package:dolenae_mobile/src/features/plan/domain/entities/plan_draft.dart';
+import 'package:dolenae_mobile/src/features/plan/presentation/controllers/plan_controller.dart';
 import 'package:dolenae_mobile/src/shared/icons/app_icons.dart';
 import 'package:dolenae_mobile/src/shared/widgets/dn_app_bar.dart';
 import 'package:dolenae_mobile/src/shared/widgets/dn_buttons.dart';
@@ -23,15 +25,20 @@ class PlanNewScreen extends StatefulWidget {
     super.key,
     this.initialName = '',
     this.initialNote = '',
+    this.initialOriginProvince = '',
     this.onSubmit,
     this.onBack,
   });
 
   final String initialName;
   final String initialNote;
+  final String initialOriginProvince;
 
   /// Dipanggil dengan ringkasan rencana; bila null memakai alur navigasi.
-  final ValueChanged<({String name, String dateRange, int days, int people, int budget})>? onSubmit;
+  final ValueChanged<
+    ({String name, String dateRange, int days, int people, int budget})
+  >?
+  onSubmit;
   final VoidCallback? onBack;
 
   @override
@@ -41,11 +48,14 @@ class PlanNewScreen extends StatefulWidget {
 class _PlanNewScreenState extends State<PlanNewScreen> {
   late String _name = widget.initialName;
   late String _note = widget.initialNote;
+  late String _originProvince = widget.initialOriginProvince;
   late DateTime _startDate = DateTime.now().add(const Duration(days: 14));
   int _days = 2;
   int _people = 2;
   String _budget = '';
 
+  bool _detectingLocation = false;
+  String? _locationError;
   String? _nameError;
 
   bool get _canSubmit => _name.trim().isNotEmpty;
@@ -71,6 +81,24 @@ class _PlanNewScreenState extends State<PlanNewScreen> {
       'Des',
     ];
     return '${date.day} ${months[date.month - 1]} ${date.year}';
+  }
+
+  Future<void> _detectLocation() async {
+    setState(() {
+      _detectingLocation = true;
+      _locationError = null;
+    });
+    final result = await context.read<PlanController>().detectLocation();
+    if (!mounted) return;
+    final location = result.valueOrNull;
+    setState(() {
+      _detectingLocation = false;
+      if (location != null) {
+        _originProvince = location.province;
+      } else {
+        _locationError = result.failureOrNull?.message;
+      }
+    });
   }
 
   void _pickDate() async {
@@ -106,13 +134,27 @@ class _PlanNewScreenState extends State<PlanNewScreen> {
       onSubmit(payload);
       return;
     }
-    context.push('/plan/success');
+
+    context.push(
+      '/plan/select-destination',
+      extra: PlanDraft(
+        name: payload.name,
+        startDate: _startDate,
+        days: payload.days,
+        peopleCount: payload.people,
+        totalBudget: payload.budget,
+        originProvince: _originProvince.trim(),
+        note: _note.trim(),
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
-    final destinationCount =
-        context.watch<DestinationsController>().items.length;
+    final destinationCount = context
+        .watch<DestinationsController>()
+        .items
+        .length;
     return Scaffold(
       backgroundColor: AppColors.canvas,
       appBar: DnAppBar(
@@ -141,6 +183,64 @@ class _PlanNewScreenState extends State<PlanNewScreen> {
                     onChanged: (value) => setState(() => _name = value),
                   ),
                   const SizedBox(height: AppSpacing.s4),
+                  Container(
+                    padding: const EdgeInsets.all(AppSpacing.s4),
+                    decoration: BoxDecoration(
+                      color: AppColors.canvasSubtle,
+                      borderRadius: BorderRadius.circular(AppRadius.lg),
+                      border: Border.all(color: AppColors.hairline),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            const Icon(
+                              AppIcons.mapPin,
+                              size: 16,
+                              color: AppColors.primary,
+                            ),
+                            const SizedBox(width: AppSpacing.s2),
+                            Text('Lokasi asal', style: AppTextStyles.titleSm),
+                          ],
+                        ),
+                        const SizedBox(height: AppSpacing.s1),
+                        Text(
+                          'Dipakai untuk estimasi tiket pesawat/kapal laut '
+                          'jika provinsimu berbeda dengan destinasi.',
+                          style: AppTextStyles.caption,
+                        ),
+                        const SizedBox(height: AppSpacing.s3),
+                        DnInput(
+                          label: 'Provinsi asal',
+                          hint: 'Mis. Jawa Barat',
+                          value: _originProvince,
+                          onChanged: (value) =>
+                              setState(() => _originProvince = value),
+                        ),
+                        const SizedBox(height: AppSpacing.s2),
+                        DnOutlineButton(
+                          label: _detectingLocation
+                              ? 'Mendeteksi lokasi…'
+                              : 'Gunakan lokasi saat ini',
+                          icon: AppIcons.locateFixed,
+                          onPressed: _detectingLocation
+                              ? null
+                              : _detectLocation,
+                        ),
+                        if (_locationError != null) ...[
+                          const SizedBox(height: AppSpacing.s2),
+                          Text(
+                            _locationError!,
+                            style: AppTextStyles.caption.copyWith(
+                              color: AppColors.warning,
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: AppSpacing.s4),
                   DnDateField(
                     label: 'Tanggal mulai',
                     value: _format(_startDate),
@@ -163,8 +263,9 @@ class _PlanNewScreenState extends State<PlanNewScreen> {
                             DnStepper(
                               value: _days,
                               min: 1,
-                              max: 30,
-                              onChanged: (value) => setState(() => _days = value),
+                              max: 7,
+                              onChanged: (value) =>
+                                  setState(() => _days = value),
                             ),
                           ],
                         ),
@@ -255,7 +356,7 @@ class _PlanNewScreenState extends State<PlanNewScreen> {
                 border: Border(top: BorderSide(color: AppColors.hairline)),
               ),
               child: DnPrimaryButton(
-                label: 'Simpan rencana',
+                label: 'Lanjut pilih destinasi',
                 onPressed: _canSubmit ? _submit : null,
               ),
             ),

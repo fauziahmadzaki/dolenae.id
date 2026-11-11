@@ -105,6 +105,40 @@ class AiBriefing {
   bool get isEmpty => grounded.isEmpty && general.isEmpty && warnings.isEmpty;
 }
 
+/// Item checklist hasil AI beserta estimasi biaya per orang.
+class AiChecklistItem {
+  const AiChecklistItem({
+    required this.name,
+    this.category,
+    this.estimatedCost,
+    this.note,
+    this.isRequired = true,
+    this.alternativeGroup,
+    this.selected,
+  });
+
+  final String name;
+  final String? category;
+  final int? estimatedCost;
+  final String? note;
+  final bool isRequired;
+  final String? alternativeGroup;
+  final bool? selected;
+
+  factory AiChecklistItem.fromJson(Map<String, dynamic> json) {
+    final cost = json['estimatedCost'];
+    return AiChecklistItem(
+      name: json['name'] as String? ?? 'Item',
+      category: json['category'] as String?,
+      estimatedCost: cost is num ? cost.toInt() : null,
+      note: json['note'] as String?,
+      isRequired: json['isRequired'] as bool? ?? true,
+      alternativeGroup: json['alternativeGroup'] as String?,
+      selected: json['selected'] as bool?,
+    );
+  }
+}
+
 class AiSource {
   const AiSource({required this.type, required this.id, required this.label});
 

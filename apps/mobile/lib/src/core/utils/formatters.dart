@@ -13,6 +13,12 @@ String formatThousands(num value) {
   return parts.length > 1 ? '$buffer.${parts[1]}' : buffer.toString();
 }
 
+/// Formats a rupiah amount without decimals, e.g. `Rp1.250.000`.
+String formatRupiah(num value) {
+  if (value <= 0) return 'Belum diisi';
+  return 'Rp${formatThousands(value)}';
+}
+
 /// Drops the trailing `.0` from whole numbers.
 String formatCompactNumber(num value) {
   return value % 1 == 0 ? value.toInt().toString() : value.toString();

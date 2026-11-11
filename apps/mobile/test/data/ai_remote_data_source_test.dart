@@ -36,6 +36,15 @@ const _itineraryResponse = {
       'warnings': <String>[],
     },
     'checklist': <String>[],
+    'checklistItems': [
+      {
+        'name': 'Tiket masuk Gunung Uji',
+        'category': 'biaya',
+        'estimatedCost': 25000,
+        'note': 'Per orang',
+        'isRequired': true,
+      },
+    ],
     'sources': <Map<String, dynamic>>[],
     'engine': 'gemini',
     'notice': 'Maaf, destinasi belum ada.',
@@ -96,6 +105,25 @@ void main() {
     expect(card.score, 95);
     expect(card.rank, 1);
     expect(card.reasons, contains('Homestay tersedia.'));
+  });
+
+  test('parses detailed checklist items with costs', () async {
+    final client = ApiClient(
+      baseUrl: 'http://test/api',
+      httpClient: MockClient((_) async {
+        return http.Response(jsonEncode(_itineraryResponse), 200);
+      }),
+    );
+
+    final result = await AiRemoteDataSource(client)
+        .generate(const AiPreference());
+
+    expect(result.relatedChecklist, ['Tiket masuk Gunung Uji']);
+    expect(result.relatedChecklistItems, hasLength(1));
+    final item = result.relatedChecklistItems.single;
+    expect(item.category, 'biaya');
+    expect(item.estimatedCost, 25000);
+    expect(item.note, 'Per orang');
   });
 
   test('parses catalog-derived options', () async {
