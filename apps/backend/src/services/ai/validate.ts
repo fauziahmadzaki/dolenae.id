@@ -1,6 +1,39 @@
 import { z } from "zod";
+import { inferChecklistCategory } from "./checklist.util";
 import type { AiContext } from "./retrieval.service";
-import type { AiItineraryPayload, AiSource } from "./types";
+import type {
+  AiChecklistCategory,
+  AiChecklistItem,
+  AiItineraryPayload,
+  AiSource,
+} from "./types";
+
+const CHECKLIST_CATEGORIES: AiChecklistCategory[] = [
+  "perlengkapan",
+  "kesehatan",
+  "konservasi",
+  "administrasi",
+  "biaya",
+];
+
+function normalizeChecklistCategory(value: string): AiChecklistCategory {
+  const normalized = value.trim().toLowerCase();
+  return CHECKLIST_CATEGORIES.includes(normalized as AiChecklistCategory)
+    ? (normalized as AiChecklistCategory)
+    : inferChecklistCategory(value);
+}
+
+function parseEstimatedCost(value: unknown): number | null {
+  if (typeof value === "number" && Number.isFinite(value)) {
+    return Math.max(0, Math.round(value));
+  }
+  if (typeof value === "string") {
+    const digits = value.replace(/\D/g, "");
+    if (!digits) return null;
+    return Math.max(0, Number.parseInt(digits, 10));
+  }
+  return null;
+}
 
 const itemSchema = z.object({
   destinationId: z.string().nullable().optional(),
@@ -34,6 +67,20 @@ const payloadSchema = z.object({
     warnings: z.array(z.string().max(600)).max(20),
   }),
   checklist: z.array(z.string().max(160)).max(30).default([]),
+  checklistItems: z
+    .array(
+      z.object({
+        name: z.string().trim().min(1).max(160),
+        category: z.string().max(40).optional(),
+        estimatedCost: z.union([z.number(), z.string()]).optional().nullable(),
+        note: z.string().trim().max(300).optional(),
+        isRequired: z.boolean().optional(),
+        alternativeGroup: z.string().trim().max(80).optional(),
+        selected: z.boolean().optional(),
+      }),
+    )
+    .max(40)
+    .optional(),
 });
 
 /**
@@ -112,15 +159,94 @@ export function validateAiPayload(
   );
   if (context.destinations.length > 0 && !grounded) return null;
 
+  // Explicitly selected destinations are a hard requirement. If the model
+  // drops one, fall back to the deterministic builder which schedules all.
+  if ((context.preference.destinationIds?.length ?? 0) > 0) {
+    const usedIds = new Set(
+      days
+        .flatMap((day) => day.items.map((item) => item.destinationId))
+        .filter((id): id is string => Boolean(id)),
+    );
+    const missing = context.destinations.some(
+      (destination) => !usedIds.has(destination.id),
+    );
+    if (missing) return null;
+  }
+
+  const checklistItems = normalizeChecklistItems(parsed.data);
+
   return {
     itinerary: {
       ...parsed.data.itinerary,
       days,
     },
     briefing: parsed.data.briefing,
-    checklist: parsed.data.checklist,
+    checklist: checklistItems.map((item) => item.name),
+    checklistItems,
     sources: [...sources.values()],
     engine,
     model: model ?? null,
   };
+}
+
+type RawChecklistItem = {
+  name: string;
+  category?: string;
+  estimatedCost?: number | string | null;
+  note?: string;
+  isRequired?: boolean;
+  alternativeGroup?: string;
+  selected?: boolean;
+};
+
+function normalizeChecklistItems(parsed: {
+  checklist: string[];
+  checklistItems?: RawChecklistItem[];
+}): AiChecklistItem[] {
+  const source: RawChecklistItem[] =
+    parsed.checklistItems && parsed.checklistItems.length > 0
+      ? parsed.checklistItems
+      : parsed.checklist.map((name) => ({
+          name,
+          isRequired: true,
+        }));
+  const seen = new Set<string>();
+  const items: AiChecklistItem[] = [];
+
+  for (const item of source) {
+    const name = item.name.trim();
+    const key = name.toLowerCase();
+    if (!name || seen.has(key)) continue;
+    seen.add(key);
+    items.push({
+      name,
+      category: item.category
+        ? normalizeChecklistCategory(item.category)
+        : inferChecklistCategory(name),
+      estimatedCost: parseEstimatedCost(item.estimatedCost),
+      note: item.note?.trim() || undefined,
+      isRequired: item.isRequired ?? true,
+      alternativeGroup: item.alternativeGroup?.trim() || undefined,
+      selected: item.selected,
+    });
+  }
+
+  // Only one option per alternative group may be counted.
+  const groups = new Map<string, AiChecklistItem[]>();
+  for (const item of items) {
+    if (!item.alternativeGroup) continue;
+    const group = groups.get(item.alternativeGroup) ?? [];
+    group.push(item);
+    groups.set(item.alternativeGroup, group);
+  }
+  for (const group of groups.values()) {
+    const selected = group.filter((item) => item.selected !== false);
+    if (selected.length > 1) {
+      for (const item of selected.slice(1)) item.selected = false;
+    } else if (selected.length === 0) {
+      group[0]!.selected = true;
+    }
+  }
+
+  return items;
 }

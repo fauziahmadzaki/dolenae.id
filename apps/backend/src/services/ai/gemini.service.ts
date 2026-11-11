@@ -36,8 +36,16 @@ ATURAN WAJIB:
     "general": ["info umum yang perlu diverifikasi"],
     "warnings": ["peringatan"]
   },
-  "checklist": ["..."]
-}`;
+  "checklistItems": [
+    { "name": "...", "category": "perlengkapan|kesehatan|konservasi|administrasi|biaya",
+      "estimatedCost": 25000, "note": "...", "isRequired": true }
+  ]
+}
+10. "checklistItems" adalah estimasi biaya PER ORANG dalam rupiah. Sertakan tiket masuk, transport, penginapan, makan, dan item yang perlu dibeli/sewa. Gunakan harga dari context bila tersedia; jika tidak ada, beri estimasi wajar dan jelaskan di "note".
+11. Buat 14–18 item checklist yang lengkap dan relevan: perlengkapan wajib, pakaian berlapis, alas kaki, kesehatan, administrasi, konservasi, dan biaya perjalanan. Sesuaikan dengan durasi, medan, aktivitas, dan kebutuhan transport/penginapan.
+12. Jangan mengisi estimatedCost hanya untuk menghabiskan budget. Total boleh jauh di bawah preference.budgetPerPerson. Perlengkapan pribadi tahan lama (jaket, sepatu, headlamp, daypack) memakai estimatedCost null dengan note "jika belum punya"; hanya tiket, transport, penginapan, makan, air minum, P3K, sewa tenda, dan item habis pakai yang diberi biaya.
+13. Kategori "biaya" untuk tiket/transport/penginapan/makan; kategori lain untuk perlengkapan, kesehatan, konservasi, dan administrasi.
+14. Jika preference.originProvince diisi dan berbeda dari provinsi destinasi, sertakan DUA item biaya: "Tiket pesawat antarprovinsi" dan "Tiket kapal laut antarprovinsi". Keduanya memakai "alternativeGroup": "transport-antarprovinsi"; hanya satu yang "selected": true (pilih pesawat jika budget cukup, kapal laut jika budget ketat). Jelaskan estimasi dan cek jadwal di "note". Jangan menambahkan keduanya tanpa group.`;
 
 interface GeminiResponse {
   candidates?: Array<{

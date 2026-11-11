@@ -59,6 +59,26 @@ export interface AiRecommendationCard {
   reasons: string[];
 }
 
+export type AiChecklistCategory =
+  | "perlengkapan"
+  | "kesehatan"
+  | "konservasi"
+  | "administrasi"
+  | "biaya";
+
+export interface AiChecklistItem {
+  name: string;
+  category: AiChecklistCategory;
+  /** Estimated cost per person in rupiah; null when no reliable estimate. */
+  estimatedCost: number | null;
+  note?: string;
+  isRequired: boolean;
+  /** Marks a set of mutually exclusive options, e.g. flight vs ferry. */
+  alternativeGroup?: string;
+  /** Whether this alternative is selected for the cost total. */
+  selected?: boolean;
+}
+
 export interface AiItineraryPayload {
   itinerary: {
     title: string;
@@ -66,7 +86,9 @@ export interface AiItineraryPayload {
     days: AiItineraryDay[];
   };
   briefing: AiBriefing;
+  /** Legacy string-only checklist kept for older clients. */
   checklist: string[];
+  checklistItems: AiChecklistItem[];
   sources: AiSource[];
   engine: AiEngine;
   model?: string | null;

@@ -60,6 +60,7 @@ const context: AiContext = {
   relaxed: [],
   queryMatched: true,
   unmatchedTerms: [],
+  invalidDestinationIds: [],
 };
 
 describe("AI itinerary", () => {
@@ -79,6 +80,98 @@ describe("AI itinerary", () => {
     expect(result.briefing.general.length).toBeGreaterThan(0);
     expect(result.sources.map((source) => source.type)).toContain("route");
     expect(result.sources.map((source) => source.type)).toContain("support");
+  });
+
+  it("schedules every explicitly selected destination across the days", () => {
+    const secondId = "44444444-4444-4444-a444-444444444444";
+    const thirdId = "55555555-5555-4555-a555-555555555555";
+    const first = context.destinations[0]!;
+    const selectedContext: AiContext = {
+      ...context,
+      preference: { destinationIds: [destinationId, secondId, thirdId] },
+      destinations: [
+        first,
+        { ...first, id: secondId, name: "Gunung Dua", slug: "gunung-dua" },
+        { ...first, id: thirdId, name: "Gunung Tiga", slug: "gunung-tiga" },
+      ],
+    };
+
+    const result = buildDeterministicItinerary(selectedContext, {
+      destinationIds: [destinationId, secondId, thirdId],
+      durationDays: 2,
+    });
+
+    expect(result.itinerary.days).toHaveLength(2);
+    expect(
+      result.itinerary.days.flatMap((day) =>
+        day.items.map((item) => item.destinationName),
+      ),
+    ).toEqual(["Gunung Uji", "Gunung Dua", "Gunung Tiga"]);
+    expect(result.itinerary.days[0]?.items).toHaveLength(2);
+  });
+
+  it("builds a complete cost-aware checklist without filling the budget", () => {
+    const result = buildDeterministicItinerary(context, {
+      durationDays: 1,
+      budgetPerPerson: 1500000,
+      needsAccommodation: true,
+      needsTransport: true,
+    });
+
+    expect(result.checklistItems.length).toBeGreaterThanOrEqual(12);
+    expect(result.checklist).toEqual(
+      result.checklistItems.map((item) => item.name),
+    );
+    expect(
+      result.checklistItems.find((item) => item.name.includes("Tiket masuk"))
+        ?.estimatedCost,
+    ).toBe(30000);
+    expect(
+      result.checklistItems.some((item) => item.category === "biaya"),
+    ).toBe(true);
+    expect(
+      result.checklistItems.find((item) => item.name.includes("Jaket"))
+        ?.estimatedCost,
+    ).toBeNull();
+    const total = result.checklistItems.reduce(
+      (sum, item) => sum + (item.estimatedCost ?? 0),
+      0,
+    );
+    expect(total).toBeGreaterThan(0);
+    expect(total).toBeLessThan(1500000);
+  });
+
+  it("adds flight and ferry alternatives when the origin province differs", () => {
+    const result = buildDeterministicItinerary(context, {
+      durationDays: 1,
+      budgetPerPerson: 1500000,
+      originProvince: "Jawa Barat",
+    });
+    const alternatives = result.checklistItems.filter(
+      (item) => item.alternativeGroup === "transport-antarprovinsi",
+    );
+
+    expect(alternatives).toHaveLength(2);
+    expect(
+      alternatives.find((item) => item.name.includes("pesawat"))?.selected,
+    ).toBe(true);
+    expect(
+      alternatives.find((item) => item.name.includes("kapal"))?.selected,
+    ).toBe(false);
+  });
+
+  it("does not add interprovince alternatives when the province matches", () => {
+    const result = buildDeterministicItinerary(context, {
+      durationDays: 1,
+      budgetPerPerson: 1500000,
+      originProvince: "Jawa Timur",
+    });
+
+    expect(
+      result.checklistItems.some(
+        (item) => item.alternativeGroup === "transport-antarprovinsi",
+      ),
+    ).toBe(false);
   });
 
   it("warns when no destination matches", () => {
@@ -190,6 +283,108 @@ describe("AI itinerary", () => {
     expect(unknown?.routeId).toBeNull();
     expect(result!.sources).toHaveLength(2);
     expect(result!.engine).toBe("gemini");
+  });
+
+  it("rejects a payload that drops an explicitly selected destination", () => {
+    const secondId = "44444444-4444-4444-a444-444444444444";
+    const selectedContext: AiContext = {
+      ...context,
+      preference: { destinationIds: [destinationId, secondId] },
+      destinations: [
+        ...context.destinations,
+        {
+          ...context.destinations[0]!,
+          id: secondId,
+          name: "Gunung Dua",
+          slug: "gunung-dua",
+        },
+      ],
+    };
+
+    const result = validateAiPayload(
+      {
+        itinerary: {
+          title: "Trip Uji",
+          summary: "Ringkasan",
+          days: [
+            {
+              day: 1,
+              title: "Hari 1",
+              items: [
+                {
+                  destinationId,
+                  destinationName: "Gunung Uji",
+                  activity: "Eksplor",
+                },
+              ],
+            },
+          ],
+        },
+        briefing: { grounded: [], general: [], warnings: [] },
+        checklist: [],
+      },
+      selectedContext,
+      "gemini",
+    );
+
+    expect(result).toBeNull();
+  });
+
+  it("keeps detailed AI checklist items with costs", () => {
+    const result = validateAiPayload(
+      {
+        itinerary: {
+          title: "Trip Uji",
+          summary: "Ringkasan",
+          days: [
+            {
+              day: 1,
+              title: "Hari 1",
+              items: [
+                {
+                  destinationId,
+                  destinationName: "Gunung Uji",
+                  activity: "Eksplor",
+                },
+              ],
+            },
+          ],
+        },
+        briefing: { grounded: [], general: [], warnings: [] },
+        checklist: [],
+        checklistItems: [
+          {
+            name: "Tiket masuk Gunung Uji",
+            category: "biaya",
+            estimatedCost: "Rp 30.000",
+            note: "Per orang",
+            isRequired: true,
+          },
+          {
+            name: "Air minum 2L",
+            category: "perlengkapan",
+            estimatedCost: 20000,
+            isRequired: false,
+          },
+        ],
+      },
+      context,
+      "gemini",
+    );
+
+    expect(result).not.toBeNull();
+    expect(result!.checklist).toEqual([
+      "Tiket masuk Gunung Uji",
+      "Air minum 2L",
+    ]);
+    expect(result!.checklistItems[0]).toMatchObject({
+      name: "Tiket masuk Gunung Uji",
+      category: "biaya",
+      estimatedCost: 30000,
+      note: "Per orang",
+      isRequired: true,
+    });
+    expect(result!.checklistItems[1]?.isRequired).toBe(false);
   });
 
   it("rejects an ungrounded payload when destinations exist", () => {
