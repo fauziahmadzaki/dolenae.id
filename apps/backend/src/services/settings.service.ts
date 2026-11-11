@@ -1,4 +1,4 @@
-import { loadEnv } from "../config/env";
+import { AppConfig } from "../config/AppConfig";
 import { settingsRepository } from "../repositories/settings.repository";
 import {
   decryptSecret,
@@ -35,7 +35,7 @@ export const settingsService = {
   async getGeminiConfig(): Promise<GeminiConfig> {
     if (cache && Date.now() - cache.at < CACHE_TTL_MS) return cache.value;
 
-    const env = loadEnv();
+    const config = AppConfig.load();
     const rows = await settingsRepository.findMany([
       API_KEY_SETTING,
       MODEL_SETTING,
@@ -44,8 +44,8 @@ export const settingsService = {
     const modelRow = rows.find((row) => row.key === MODEL_SETTING);
 
     const value: GeminiConfig = {
-      apiKey: keyRow ? decryptSecret(keyRow.value) : env.GEMINI_API_KEY,
-      model: modelRow?.value || env.AI_MODEL,
+      apiKey: keyRow ? decryptSecret(keyRow.value) : config.geminiApiKey,
+      model: modelRow?.value || config.aiModel,
       source: keyRow ? "db" : "env",
     };
 

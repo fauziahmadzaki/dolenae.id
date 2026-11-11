@@ -33,4 +33,3 @@ export const aiItinerarySchema = z.object({
   refresh: z.boolean().optional(),
 });
 
-export type AiItineraryBody = z.infer<typeof aiItinerarySchema>;

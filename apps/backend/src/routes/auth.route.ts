@@ -8,7 +8,7 @@ import {
   resendVerificationSchema,
   resetPasswordSchema,
   verifyEmailSchema,
-} from "../controllers/auth.schema";
+} from "../schemas/auth.schema";
 import { authRequired } from "../middleware/auth";
 import { validate } from "../middleware/validate";
 

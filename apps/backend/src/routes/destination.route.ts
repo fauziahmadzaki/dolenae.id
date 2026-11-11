@@ -5,7 +5,7 @@ import {
   destinationIdParamsSchema,
   destinationListQuerySchema,
   updateDestinationSchema,
-} from "../controllers/destination.schema";
+} from "../schemas/destination.schema";
 import { authOptional, authRequired, requireRole } from "../middleware/auth";
 import { validate } from "../middleware/validate";
 

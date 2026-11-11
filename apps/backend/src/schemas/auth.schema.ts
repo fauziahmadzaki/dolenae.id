@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { USER_ROLES } from "../types/auth";
 
 export const passwordSchema = z
   .string()
@@ -10,7 +11,7 @@ export const registerSchema = z.object({
   email: z.string().trim().email("Email tidak valid").max(255),
   password: passwordSchema,
   // Public registration can only create a `wisatawan` (never admin/merchant).
-  role: z.literal("wisatawan").optional(),
+  role: z.literal(USER_ROLES[0]).optional(),
 });
 
 export const loginSchema = z.object({
@@ -39,10 +40,3 @@ export const resendVerificationSchema = z.object({
   email: z.string().trim().email("Email tidak valid"),
 });
 
-export type RegisterInput = z.infer<typeof registerSchema>;
-export type LoginInput = z.infer<typeof loginSchema>;
-export type GoogleInput = z.infer<typeof googleSchema>;
-export type ForgotPasswordInput = z.infer<typeof forgotPasswordSchema>;
-export type ResetPasswordInput = z.infer<typeof resetPasswordSchema>;
-export type VerifyEmailInput = z.infer<typeof verifyEmailSchema>;
-export type ResendVerificationInput = z.infer<typeof resendVerificationSchema>;

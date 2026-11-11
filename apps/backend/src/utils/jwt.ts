@@ -1,12 +1,12 @@
 import { jwtVerify, SignJWT } from "jose";
-import { loadEnv } from "../config/env";
+import { AppConfig } from "../config/AppConfig";
 import type { JwtPayload, UserRole } from "../types/auth";
 import { UnauthorizedError } from "./errors";
 
 const ALG = "HS256";
 
 function getSecret(): Uint8Array {
-  return new TextEncoder().encode(loadEnv().JWT_SECRET);
+  return new TextEncoder().encode(AppConfig.load().jwtSecret);
 }
 
 /** Sign a short-lived access token for a user. */
@@ -15,7 +15,7 @@ export async function signAccessToken(payload: JwtPayload): Promise<string> {
     .setProtectedHeader({ alg: ALG })
     .setSubject(payload.sub)
     .setIssuedAt()
-    .setExpirationTime(loadEnv().JWT_EXPIRES_IN)
+    .setExpirationTime(AppConfig.load().jwtExpiresIn)
     .sign(getSecret());
 }
 

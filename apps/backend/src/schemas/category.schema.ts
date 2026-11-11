@@ -44,6 +44,3 @@ export const categoryIdParamsSchema = z.object({
   id: z.string().uuid("ID kategori harus berupa format UUID yang valid"),
 });
 
-export type CategoryListQuery = z.infer<typeof categoryListQuerySchema>;
-export type CreateCategoryBody = z.infer<typeof createCategorySchema>;
-export type UpdateCategoryBody = z.infer<typeof updateCategorySchema>;

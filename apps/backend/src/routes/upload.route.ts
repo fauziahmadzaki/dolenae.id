@@ -1,17 +1,17 @@
 import { Router } from "express";
 import multer from "multer";
-import { loadEnv } from "../config/env";
+import { AppConfig } from "../config/AppConfig";
 import { uploadController } from "../controllers/upload.controller";
 import {
   deleteUploadQuerySchema,
   uploadQuerySchema,
-} from "../controllers/upload.schema";
+} from "../schemas/upload.schema";
 import { authRequired, requireRole } from "../middleware/auth";
 import { validate } from "../middleware/validate";
 import { ValidationError } from "../utils/errors";
 import { ALLOWED_IMAGE_TYPES } from "../utils/storage";
 
-const maxBytes = loadEnv().MAX_UPLOAD_MB * 1024 * 1024;
+const maxBytes = AppConfig.load().maxUploadMb * 1024 * 1024;
 
 const upload = multer({
   storage: multer.memoryStorage(),

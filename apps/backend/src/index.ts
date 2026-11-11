@@ -1,13 +1,13 @@
 import { createApp } from "./app";
-import { loadEnv } from "./config/env";
+import { AppConfig } from "./config/AppConfig";
 import { closeDatabase, pingDatabase } from "./db/client";
 
-const env = loadEnv();
+const config = AppConfig.load();
 const app = createApp();
 
-const server = app.listen(env.PORT, () => {
+const server = app.listen(config.port, () => {
   console.log(
-    `Dolenae API running at http://localhost:${env.PORT} (${env.NODE_ENV})`,
+    `Dolenae API running at http://localhost:${config.port} (${config.nodeEnv})`,
   );
 });
 

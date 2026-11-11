@@ -148,9 +148,3 @@ export const updateTrailRouteSchema = z
     "Setidaknya satu field harus diisi",
   );
 
-export type CreateTrackNodeBody = z.infer<typeof createTrackNodeSchema>;
-export type UpdateTrackNodeBody = z.infer<typeof updateTrackNodeSchema>;
-export type CreateRouteSegmentBody = z.infer<typeof createRouteSegmentSchema>;
-export type UpdateRouteSegmentBody = z.infer<typeof updateRouteSegmentSchema>;
-export type CreateTrailRouteBody = z.infer<typeof createTrailRouteSchema>;
-export type UpdateTrailRouteBody = z.infer<typeof updateTrailRouteSchema>;

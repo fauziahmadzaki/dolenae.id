@@ -1,11 +1,12 @@
 import type { RequestHandler } from "express";
 import { getValidated } from "../middleware/validate";
-import {
-  destinationService,
-  type CreateDestinationDto,
-  type UpdateDestinationDto,
-} from "../services/destination.service";
-import type { DestinationListQuery } from "./destination.schema";
+import { destinationService } from "../services/destination.service";
+import type {
+  CreateDestinationBody,
+  DestinationIdParams,
+  DestinationListQuery,
+  UpdateDestinationBody,
+} from "../types/destination";
 import { ok } from "../utils/response";
 import { NotFoundError } from "../utils/errors";
 
@@ -27,7 +28,7 @@ export const destinationController = {
   /** GET /api/destinations/:id — detail destinasi beserta kategori (publik). */
   getById: (async (req, res, next) => {
     try {
-      const params = getValidated<{ id: string }>(req, "params");
+      const params = getValidated<DestinationIdParams>(req, "params");
       const destination = await destinationService.getById(params.id);
       if (req.user?.role !== "admin" && destination.status !== "published") {
         throw new NotFoundError("Destinasi tidak ditemukan");
@@ -41,7 +42,7 @@ export const destinationController = {
   /** POST /api/destinations — admin membuat destinasi. */
   create: (async (req, res, next) => {
     try {
-      const body = getValidated<CreateDestinationDto>(req, "body");
+      const body = getValidated<CreateDestinationBody>(req, "body");
       const destination = await destinationService.create(body);
       return ok(res, destination, undefined, 201);
     } catch (err) {
@@ -52,8 +53,8 @@ export const destinationController = {
   /** PATCH /api/destinations/:id — admin memperbarui destinasi. */
   update: (async (req, res, next) => {
     try {
-      const params = getValidated<{ id: string }>(req, "params");
-      const body = getValidated<UpdateDestinationDto>(req, "body");
+      const params = getValidated<DestinationIdParams>(req, "params");
+      const body = getValidated<UpdateDestinationBody>(req, "body");
       const destination = await destinationService.update(params.id, body);
       return ok(res, destination);
     } catch (err) {
@@ -64,7 +65,7 @@ export const destinationController = {
   /** DELETE /api/destinations/:id — admin menghapus destinasi. */
   delete: (async (req, res, next) => {
     try {
-      const params = getValidated<{ id: string }>(req, "params");
+      const params = getValidated<DestinationIdParams>(req, "params");
       const result = await destinationService.delete(params.id);
       return ok(res, result);
     } catch (err) {

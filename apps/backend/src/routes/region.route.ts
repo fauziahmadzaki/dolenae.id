@@ -4,7 +4,7 @@ import {
   districtQuerySchema,
   regencyQuerySchema,
   reverseQuerySchema,
-} from "../controllers/region.schema";
+} from "../schemas/region.schema";
 import { validate } from "../middleware/validate";
 
 export const regionRouter = Router();

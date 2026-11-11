@@ -1,5 +1,5 @@
 import { OAuth2Client } from "google-auth-library";
-import { loadEnv } from "../config/env";
+import { AppConfig } from "../config/AppConfig";
 import type { UserRow } from "../db/schema";
 import { emailVerificationRepository } from "../repositories/email-verification.repository";
 import { passwordResetRepository } from "../repositories/password-reset.repository";
@@ -24,7 +24,7 @@ import type {
   ResendVerificationInput,
   ResetPasswordInput,
   VerifyEmailInput,
-} from "../controllers/auth.schema";
+} from "../types/auth";
 
 /** Map a DB row to the public user shape (never leaks the password hash). */
 function toAuthUser(row: UserRow): AuthUser {
@@ -58,7 +58,7 @@ const VERIFICATION_RESEND_COOLDOWN_MS = 60_000;
  * email the link. Older unused tokens are invalidated on the way.
  */
 async function sendVerificationLink(row: UserRow): Promise<void> {
-  const env = loadEnv();
+  const config = AppConfig.load();
   const rawToken = generateToken();
 
   await emailVerificationRepository.invalidateForUser(row.id);
@@ -67,7 +67,7 @@ async function sendVerificationLink(row: UserRow): Promise<void> {
     tokenHash: hashToken(rawToken),
   });
 
-  const verifyUrl = `${env.APP_WEB_URL}/auth/verify-email?token=${rawToken}`;
+  const verifyUrl = `${config.appWebUrl}/auth/verify-email?token=${rawToken}`;
   await sendVerificationEmail(row.email, verifyUrl);
 }
 
@@ -114,16 +114,16 @@ export const authService = {
 
   /** Verify a Google ID token, then create or link the local user. */
   async googleLogin(input: GoogleInput): Promise<AuthTokenResponse> {
-    const { GOOGLE_CLIENT_ID } = loadEnv();
-    if (!GOOGLE_CLIENT_ID) {
+    const googleClientId = AppConfig.load().googleClientId;
+    if (!googleClientId) {
       throw new InternalError("Google sign-in belum dikonfigurasi");
     }
 
     let payload;
     try {
-      const ticket = await new OAuth2Client(GOOGLE_CLIENT_ID).verifyIdToken({
+      const ticket = await new OAuth2Client(googleClientId).verifyIdToken({
         idToken: input.idToken,
-        audience: GOOGLE_CLIENT_ID,
+        audience: googleClientId,
       });
       payload = ticket.getPayload();
     } catch {
@@ -177,17 +177,17 @@ export const authService = {
     const row = await userRepository.findByEmail(email);
     if (!row) return { message };
 
-    const env = loadEnv();
+    const config = AppConfig.load();
     const rawToken = generateToken();
     await passwordResetRepository.create({
       userId: row.id,
       tokenHash: hashToken(rawToken),
       expiresAt: new Date(
-        Date.now() + env.PASSWORD_RESET_TTL_MINUTES * 60 * 1000,
+        Date.now() + config.passwordResetTtlMinutes * 60 * 1000,
       ),
     });
 
-    const resetUrl = `${env.APP_WEB_URL}/auth/reset-password?token=${rawToken}`;
+    const resetUrl = `${config.appWebUrl}/auth/reset-password?token=${rawToken}`;
     await sendPasswordResetEmail(row.email, resetUrl);
     return { message };
   },

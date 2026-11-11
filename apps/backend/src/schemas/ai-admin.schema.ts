@@ -17,5 +17,3 @@ export const testAiSchema = z.object({
   prompt: z.string().trim().max(500).optional(),
 });
 
-export type UpdateAiSettingsBody = z.infer<typeof updateAiSettingsSchema>;
-export type TestAiBody = z.infer<typeof testAiSchema>;

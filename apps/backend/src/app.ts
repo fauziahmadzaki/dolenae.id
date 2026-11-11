@@ -4,7 +4,7 @@ import express from "express";
 import helmet from "helmet";
 import { resolve } from "node:path";
 import pinoHttp from "pino-http";
-import { corsOrigins, loadEnv } from "./config/env";
+import { AppConfig } from "./config/AppConfig";
 import { requestId } from "./middleware/request-id";
 import { errorHandler, notFoundHandler } from "./middleware/error-handler";
 import { openApiDocument } from "./openapi/document";
@@ -13,14 +13,14 @@ import { ok } from "./utils/response";
 
 /** Build the Express app: global middleware → `/api` router → 404 + error handler. */
 export function createApp() {
-  const env = loadEnv();
+  const config = AppConfig.load();
   const app = express();
 
   app.disable("x-powered-by");
   app.use(requestId());
   app.use(
     pinoHttp({
-      level: env.LOG_LEVEL,
+      level: config.logLevel,
       genReqId: (req) => (req as { requestId?: string }).requestId ?? "-",
     }),
   );
@@ -37,14 +37,14 @@ export function createApp() {
     helmetMiddleware(req, res, next);
   });
 
-  const origins = corsOrigins();
+  const origins = config.corsOrigins;
   app.use(
     cors({
       origin: (origin, callback) => {
         if (!origin || origins.length === 0 || origins.includes(origin)) {
           return callback(null, true);
         }
-        if (env.NODE_ENV !== "production") {
+        if (!config.isProduction) {
           const isLocalhost = /^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin);
           if (isLocalhost) return callback(null, true);
         }
@@ -60,17 +60,17 @@ export function createApp() {
   app.use(express.urlencoded({ extended: true, limit: "1mb" }));
 
   // Local storage driver: serve uploaded images from the API origin.
-  if (env.STORAGE_DRIVER === "local") {
+  if (config.storageDriver === "local") {
     app.use(
       "/uploads",
-      express.static(resolve(env.UPLOAD_DIR), {
+      express.static(resolve(config.uploadDir), {
         maxAge: "1y",
         immutable: true,
       }),
     );
   }
 
-  if (env.DOCS_ENABLED) {
+  if (config.docsEnabled) {
     app.get("/api/openapi.json", (_req, res) => res.json(openApiDocument));
     app.use(
       "/api/docs",

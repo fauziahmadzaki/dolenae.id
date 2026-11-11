@@ -5,7 +5,7 @@ import {
   categoryListQuerySchema,
   createCategorySchema,
   updateCategorySchema,
-} from "../controllers/category.schema";
+} from "../schemas/category.schema";
 import { authRequired, requireRole } from "../middleware/auth";
 import { validate } from "../middleware/validate";
 

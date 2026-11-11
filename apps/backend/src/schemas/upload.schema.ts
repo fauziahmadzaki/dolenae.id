@@ -10,5 +10,3 @@ export const deleteUploadQuerySchema = z.object({
   url: z.string().trim().url("URL gambar tidak valid"),
 });
 
-export type UploadQuery = z.infer<typeof uploadQuerySchema>;
-export type DeleteUploadQuery = z.infer<typeof deleteUploadQuerySchema>;

@@ -1,6 +1,5 @@
 import { z } from "zod";
 import { paginationSchema } from "../utils/pagination";
-
 import { BadRequestError } from "../utils/errors";
 
 export const supportIdParamsSchema = z.object({
@@ -10,5 +9,8 @@ export const supportIdParamsSchema = z.object({
     return result.data;
   }),
 });
-export const supportListQuerySchema = paginationSchema.pick({ page: true, limit: true });
-export type SupportListQuery = z.infer<typeof supportListQuerySchema>;
+
+export const supportListQuerySchema = paginationSchema.pick({
+  page: true,
+  limit: true,
+});

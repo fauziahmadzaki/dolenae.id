@@ -1,3 +1,14 @@
+import type { z } from "zod";
+import type {
+  forgotPasswordSchema,
+  googleSchema,
+  loginSchema,
+  registerSchema,
+  resendVerificationSchema,
+  resetPasswordSchema,
+  verifyEmailSchema,
+} from "../schemas/auth.schema";
+
 /** Domain types for authentication (kept in sync with the web/mobile clients). */
 
 export const USER_ROLES = ["wisatawan", "merchant", "admin"] as const;
@@ -46,3 +57,11 @@ export interface AuthPrincipal {
   email: string;
   role: UserRole;
 }
+
+export type RegisterInput = z.infer<typeof registerSchema>;
+export type LoginInput = z.infer<typeof loginSchema>;
+export type GoogleInput = z.infer<typeof googleSchema>;
+export type ForgotPasswordInput = z.infer<typeof forgotPasswordSchema>;
+export type ResetPasswordInput = z.infer<typeof resetPasswordSchema>;
+export type VerifyEmailInput = z.infer<typeof verifyEmailSchema>;
+export type ResendVerificationInput = z.infer<typeof resendVerificationSchema>;

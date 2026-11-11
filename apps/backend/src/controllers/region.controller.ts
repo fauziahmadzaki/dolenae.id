@@ -2,7 +2,7 @@ import type { RequestHandler } from "express";
 import { getValidated } from "../middleware/validate";
 import { regionService } from "../services/region.service";
 import { ok } from "../utils/response";
-import type { DistrictQuery, RegencyQuery, ReverseQuery } from "./region.schema";
+import type { DistrictQuery, RegencyQuery, ReverseQuery } from "../types/region";
 
 export const regionController = {
   /** GET /api/regions/provinces — all provinces (public). */

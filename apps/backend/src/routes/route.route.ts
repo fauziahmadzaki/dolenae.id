@@ -9,7 +9,7 @@ import {
   updateRouteSegmentSchema,
   updateTrackNodeSchema,
   updateTrailRouteSchema,
-} from "../controllers/route.schema";
+} from "../schemas/route.schema";
 import { authRequired, requireRole } from "../middleware/auth";
 import { validate } from "../middleware/validate";
 

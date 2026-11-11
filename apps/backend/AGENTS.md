@@ -25,7 +25,8 @@ Aturan kerja untuk agen AI di backend Dolenae. Baca juga `AGENTS.md` root.
 src/
   index.ts              # bootstrap: ping DB, listen, graceful shutdown
   app.ts                # Express app: middleware → routes → 404 → error handler
-  config/env.ts         # env divalidasi Zod (.env)
+  schemas/env.schema.ts # schema env Zod (.env)
+  config/AppConfig.ts   # loader + getter environment
   db/client.ts          # Pool + Drizzle; pingDatabase()/closeDatabase()
   db/schema.ts          # definisi tabel Drizzle
   middleware/
@@ -34,13 +35,14 @@ src/
     error-handler.ts    # notFound + error handler global
   routes/               # definisi endpoint (tipis)
   controllers/          # handler request/response
+  schemas/              # schema validasi Zod
   services/             # logika bisnis
   repositories/         # satu-satunya lapisan yang akses DB
   utils/
     response.ts         # ok() / fail() envelope
     errors.ts           # AppError + turunannya
     pagination.ts       # skema query + buildMeta()
-  types/                # api.ts, express.d.ts
+  types/                # tipe domain + z.infer per entity
 ```
 
 ## Arsitektur & konvensi

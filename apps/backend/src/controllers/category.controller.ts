@@ -1,7 +1,12 @@
 import type { RequestHandler } from "express";
 import { getValidated } from "../middleware/validate";
-import { categoryService, type CreateCategoryDto, type UpdateCategoryDto } from "../services/category.service";
-import type { CategoryListQuery } from "./category.schema";
+import { categoryService } from "../services/category.service";
+import type {
+  CategoryIdParams,
+  CategoryListQuery,
+  CreateCategoryBody,
+  UpdateCategoryBody,
+} from "../types/category";
 import { ok } from "../utils/response";
 
 export const categoryController = {
@@ -19,7 +24,7 @@ export const categoryController = {
   /** GET /api/categories/:id — detail kategori (publik). */
   getById: (async (req, res, next) => {
     try {
-      const params = getValidated<{ id: string }>(req, "params");
+      const params = getValidated<CategoryIdParams>(req, "params");
       const category = await categoryService.getById(params.id);
       return ok(res, category);
     } catch (err) {
@@ -30,7 +35,7 @@ export const categoryController = {
   /** POST /api/categories — admin membuat kategori. */
   create: (async (req, res, next) => {
     try {
-      const body = getValidated<CreateCategoryDto>(req, "body");
+      const body = getValidated<CreateCategoryBody>(req, "body");
       const category = await categoryService.create(body);
       return ok(res, category, undefined, 201);
     } catch (err) {
@@ -41,8 +46,8 @@ export const categoryController = {
   /** PATCH /api/categories/:id — admin memperbarui kategori. */
   update: (async (req, res, next) => {
     try {
-      const params = getValidated<{ id: string }>(req, "params");
-      const body = getValidated<UpdateCategoryDto>(req, "body");
+      const params = getValidated<CategoryIdParams>(req, "params");
+      const body = getValidated<UpdateCategoryBody>(req, "body");
       const category = await categoryService.update(params.id, body);
       return ok(res, category);
     } catch (err) {
@@ -53,7 +58,7 @@ export const categoryController = {
   /** DELETE /api/categories/:id — admin menghapus kategori. */
   delete: (async (req, res, next) => {
     try {
-      const params = getValidated<{ id: string }>(req, "params");
+      const params = getValidated<CategoryIdParams>(req, "params");
       const result = await categoryService.delete(params.id);
       return ok(res, result);
     } catch (err) {

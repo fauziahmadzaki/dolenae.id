@@ -3,13 +3,13 @@ import {
   createDecipheriv,
   randomBytes,
 } from "node:crypto";
-import { loadEnv } from "../config/env";
+import { AppConfig } from "../config/AppConfig";
 
 const VERSION = "v1";
 const ALGORITHM = "aes-256-gcm";
 
 function encryptionKey(): Buffer {
-  const key = Buffer.from(loadEnv().APP_ENCRYPTION_KEY, "base64");
+  const key = Buffer.from(AppConfig.load().appEncryptionKey, "base64");
   if (key.length !== 32) {
     throw new Error("APP_ENCRYPTION_KEY must be a 32-byte base64 value");
   }
