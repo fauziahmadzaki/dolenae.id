@@ -1,6 +1,6 @@
 import { drizzle, type NodePgDatabase } from "drizzle-orm/node-postgres";
 import { Pool } from "pg";
-import { loadEnv } from "../config/env";
+import { AppConfig } from "../config/AppConfig";
 import * as schema from "./schema";
 
 let pool: Pool | null = null;
@@ -8,7 +8,7 @@ let db: NodePgDatabase<typeof schema> | null = null;
 
 export function getPool(): Pool {
   if (!pool) {
-    pool = new Pool({ connectionString: loadEnv().DATABASE_URL });
+    pool = new Pool({ connectionString: AppConfig.load().databaseUrl });
   }
   return pool;
 }

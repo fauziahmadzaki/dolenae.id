@@ -4,10 +4,7 @@ import { listGeminiModels, testGeminiConnection } from "../services/ai/gemini.se
 import { settingsService } from "../services/settings.service";
 import { AppError, UnauthorizedError } from "../utils/errors";
 import { ok } from "../utils/response";
-import type {
-  TestAiBody,
-  UpdateAiSettingsBody,
-} from "./ai-admin.schema";
+import type { TestAiBody, UpdateAiSettingsBody } from "../types/ai";
 
 const TEST_LIMIT_PER_MINUTE = 5;
 const testCalls = new Map<string, number[]>();

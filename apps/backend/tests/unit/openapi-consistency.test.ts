@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { openApiDocument } from "../../src/openapi/document";
-import { supportIdParamsSchema, supportListQuerySchema } from "../../src/controllers/support.schema";
-import { destinationIdParamsSchema, routeEntityIdParamsSchema } from "../../src/controllers/route.schema";
+import { supportIdParamsSchema, supportListQuerySchema } from "../../src/schemas/support.schema";
+import { destinationIdParamsSchema, routeEntityIdParamsSchema } from "../../src/schemas/route.schema";
 
 const document = openApiDocument as unknown as Record<string, any>;
 const publicPaths = [

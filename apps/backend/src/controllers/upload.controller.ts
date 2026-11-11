@@ -3,7 +3,7 @@ import { getValidated } from "../middleware/validate";
 import { storageService } from "../services/storage.service";
 import { ValidationError } from "../utils/errors";
 import { ok } from "../utils/response";
-import type { DeleteUploadQuery, UploadQuery } from "./upload.schema";
+import type { DeleteUploadQuery, UploadQuery } from "../types/upload";
 
 export const uploadController = {
   /** POST /api/uploads — admin uploads one image (multipart field `file`). */

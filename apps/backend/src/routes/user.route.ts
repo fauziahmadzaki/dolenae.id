@@ -5,7 +5,7 @@ import {
   createUserSchema,
   updateUserSchema,
   userIdParamsSchema,
-} from "../controllers/user.schema";
+} from "../schemas/user.schema";
 import { validate } from "../middleware/validate";
 
 import { authRequired, requireRole } from "../middleware/auth";

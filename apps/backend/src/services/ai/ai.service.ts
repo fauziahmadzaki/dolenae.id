@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import { loadEnv } from "../../config/env";
+import { AppConfig } from "../../config/AppConfig";
 import { aiRepository } from "../../repositories/ai.repository";
 import { AppError } from "../../utils/errors";
 import { destinationService } from "../destination.service";
@@ -142,9 +142,9 @@ export const aiService = {
     input: AiPreferenceInput,
     options: { refresh?: boolean } = {},
   ): Promise<AiItineraryPayload> {
-    const env = loadEnv();
+    const config = AppConfig.load();
     const cacheSince = new Date(
-      Date.now() - env.AI_CACHE_TTL_HOURS * 60 * 60 * 1000,
+      Date.now() - config.aiCacheTtlHours * 60 * 60 * 1000,
     );
     const requestHash = hashInput(input);
 
@@ -162,11 +162,11 @@ export const aiService = {
     const dayStart = new Date();
     dayStart.setHours(0, 0, 0, 0);
     const usage = await aiRepository.countSince(userId, dayStart);
-    if (usage >= env.AI_DAILY_LIMIT) {
+    if (usage >= config.aiDailyLimit) {
       throw new AppError(
         429,
         "AI_RATE_LIMITED",
-        `Batas harian AI tercapai (${env.AI_DAILY_LIMIT}/hari). Coba lagi besok.`,
+        `Batas harian AI tercapai (${config.aiDailyLimit}/hari). Coba lagi besok.`,
       );
     }
 
@@ -239,7 +239,7 @@ export const aiService = {
         requestHash,
         request: input,
         result,
-        model: result.model ?? env.AI_MODEL,
+        model: result.model ?? config.aiModel,
         engine: result.engine,
         latencyMs,
         status: result.engine === "gemini" ? "ok" : "fallback",

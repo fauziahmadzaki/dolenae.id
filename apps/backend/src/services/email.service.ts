@@ -1,14 +1,14 @@
 import { Resend } from "resend";
-import { loadEnv } from "../config/env";
+import { AppConfig } from "../config/AppConfig";
 import { InternalError } from "../utils/errors";
 
 let client: Resend | null = null;
 
 /** Lazily create the Resend client; returns null in dev without an API key. */
 function getClient(): Resend | null {
-  const { RESEND_API_KEY } = loadEnv();
-  if (!RESEND_API_KEY) return null;
-  client ??= new Resend(RESEND_API_KEY);
+  const resendApiKey = AppConfig.load().resendApiKey;
+  if (!resendApiKey) return null;
+  client ??= new Resend(resendApiKey);
   return client;
 }
 
@@ -41,14 +41,14 @@ async function deliver({
     return;
   }
 
-  const { MAIL_FROM, MAIL_REPLY_TO } = loadEnv();
+  const config = AppConfig.load();
   const { error } = await resend.emails.send({
-    from: MAIL_FROM,
+    from: config.mailFrom,
     to,
     subject,
     html,
     text,
-    ...(MAIL_REPLY_TO ? { replyTo: MAIL_REPLY_TO } : {}),
+    ...(config.mailReplyTo ? { replyTo: config.mailReplyTo } : {}),
   });
 
   if (error) throw new InternalError(failureMessage, error);
@@ -172,7 +172,7 @@ export async function sendPasswordResetEmail(
   const intro =
     "Kami menerima permintaan untuk mengatur ulang kata sandi akun Dolenae.id kamu. Klik tombol berikut untuk membuat kata sandi baru.";
   const ctaLabel = "Buat kata sandi baru";
-  const note = `Tautan ini berlaku selama ${loadEnv().PASSWORD_RESET_TTL_MINUTES} menit. Abaikan email ini jika kamu tidak meminta reset password.`;
+  const note = `Tautan ini berlaku selama ${AppConfig.load().passwordResetTtlMinutes} menit. Abaikan email ini jika kamu tidak meminta reset password.`;
 
   await deliver({
     to,

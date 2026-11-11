@@ -16,6 +16,3 @@ export const reverseQuerySchema = z.object({
   lng: z.coerce.number().min(-180).max(180),
 });
 
-export type RegencyQuery = z.infer<typeof regencyQuerySchema>;
-export type DistrictQuery = z.infer<typeof districtQuerySchema>;
-export type ReverseQuery = z.infer<typeof reverseQuerySchema>;

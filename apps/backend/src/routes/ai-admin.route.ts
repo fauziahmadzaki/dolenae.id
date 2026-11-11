@@ -3,7 +3,7 @@ import { aiAdminController } from "../controllers/ai-admin.controller";
 import {
   testAiSchema,
   updateAiSettingsSchema,
-} from "../controllers/ai-admin.schema";
+} from "../schemas/ai-admin.schema";
 import { authRequired, requireRole } from "../middleware/auth";
 import { validate } from "../middleware/validate";
 

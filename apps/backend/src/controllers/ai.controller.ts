@@ -3,7 +3,7 @@ import { getValidated } from "../middleware/validate";
 import { aiService } from "../services/ai/ai.service";
 import { UnauthorizedError } from "../utils/errors";
 import { ok } from "../utils/response";
-import type { AiItineraryBody } from "./ai.schema";
+import type { AiItineraryBody } from "../types/ai";
 
 export const aiController = {
   /** GET /api/ai/options — filter values derived from the catalog. */

@@ -1,4 +1,4 @@
-import { loadEnv } from "../../config/env";
+import { AppConfig } from "../../config/AppConfig";
 import { settingsService } from "../settings.service";
 import { AppError, ValidationError } from "../../utils/errors";
 import type { AiContext, AiPreferenceInput } from "./retrieval.service";
@@ -82,9 +82,12 @@ export async function generateWithGemini(
   const config = await settingsService.getGeminiConfig();
   if (!config.apiKey) return null;
 
-  const env = loadEnv();
+  const appConfig = AppConfig.load();
   const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), env.AI_TIMEOUT_MS);
+  const timer = setTimeout(
+    () => controller.abort(),
+    appConfig.aiTimeoutMs,
+  );
 
   try {
     const url =
@@ -188,7 +191,7 @@ export async function testGeminiConnection(prompt: string): Promise<{
     throw new ValidationError("Simpan API key Gemini terlebih dahulu");
   }
 
-  const env = loadEnv();
+  const appConfig = AppConfig.load();
   const startedAt = Date.now();
 
   try {
@@ -207,7 +210,7 @@ export async function testGeminiConnection(prompt: string): Promise<{
             maxOutputTokens: 128,
           },
         }),
-        signal: AbortSignal.timeout(env.AI_TIMEOUT_MS),
+        signal: AbortSignal.timeout(appConfig.aiTimeoutMs),
       },
     );
 

@@ -11,7 +11,7 @@ import type {
   ResendVerificationInput,
   ResetPasswordInput,
   VerifyEmailInput,
-} from "./auth.schema";
+} from "../types/auth";
 
 export const authController = {
   /** POST /api/auth/register */

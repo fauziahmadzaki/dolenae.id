@@ -1,11 +1,12 @@
 import type { RequestHandler } from "express";
 import { getValidated } from "../middleware/validate";
-import {
-  userService,
-  type CreateUserDto,
-  type UpdateUserDto,
-} from "../services/user.service";
-import type { UserListQuery } from "./user.schema";
+import { userService } from "../services/user.service";
+import type {
+  CreateUserBody,
+  UpdateUserBody,
+  UserIdParams,
+  UserListQuery,
+} from "../types/user";
 import { ok } from "../utils/response";
 
 export const userController = {
@@ -23,7 +24,7 @@ export const userController = {
   /** GET /api/users/:id — detail pengguna berdasarkan ID. */
   getById: (async (req, res, next) => {
     try {
-      const params = getValidated<{ id: string }>(req, "params");
+      const params = getValidated<UserIdParams>(req, "params");
       const user = await userService.getById(params.id);
       return ok(res, user);
     } catch (err) {
@@ -34,7 +35,7 @@ export const userController = {
   /** POST /api/users — admin membuat pengguna baru. */
   create: (async (req, res, next) => {
     try {
-      const body = getValidated<CreateUserDto>(req, "body");
+      const body = getValidated<CreateUserBody>(req, "body");
       const user = await userService.create(body);
       return ok(res, user, undefined, 201);
     } catch (err) {
@@ -45,8 +46,8 @@ export const userController = {
   /** PATCH /api/users/:id — admin memperbarui pengguna. */
   update: (async (req, res, next) => {
     try {
-      const params = getValidated<{ id: string }>(req, "params");
-      const body = getValidated<UpdateUserDto>(req, "body");
+      const params = getValidated<UserIdParams>(req, "params");
+      const body = getValidated<UpdateUserBody>(req, "body");
       const user = await userService.update(params.id, body);
       return ok(res, user);
     } catch (err) {
@@ -57,7 +58,7 @@ export const userController = {
   /** DELETE /api/users/:id — admin menghapus pengguna. */
   delete: (async (req, res, next) => {
     try {
-      const params = getValidated<{ id: string }>(req, "params");
+      const params = getValidated<UserIdParams>(req, "params");
       const currentUserId = req.user?.id;
       const result = await userService.delete(params.id, currentUserId);
       return ok(res, result);

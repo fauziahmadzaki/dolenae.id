@@ -12,11 +12,11 @@ import {
   PutBucketPolicyCommand,
   S3Client,
 } from "@aws-sdk/client-s3";
-import { loadEnv } from "../src/config/env";
+import { AppConfig } from "../src/config/AppConfig";
 
-const env = loadEnv();
+const config = AppConfig.load();
 
-if (env.STORAGE_DRIVER === "local") {
+if (config.storageDriver === "local") {
   console.log(
     "STORAGE_DRIVER=local — uploads are stored on disk and served via /uploads. Skip bucket setup.",
   );
@@ -24,22 +24,22 @@ if (env.STORAGE_DRIVER === "local") {
 }
 
 const client = new S3Client({
-  region: env.S3_REGION,
-  endpoint: env.S3_ENDPOINT,
-  forcePathStyle: env.S3_FORCE_PATH_STYLE,
+  region: config.s3Region,
+  endpoint: config.s3Endpoint,
+  forcePathStyle: config.s3ForcePathStyle,
   credentials: {
-    accessKeyId: env.S3_ACCESS_KEY_ID,
-    secretAccessKey: env.S3_SECRET_ACCESS_KEY,
+    accessKeyId: config.s3AccessKeyId,
+    secretAccessKey: config.s3SecretAccessKey,
   },
 });
 
 async function ensureBucket() {
   try {
-    await client.send(new HeadBucketCommand({ Bucket: env.S3_BUCKET }));
-    console.log(`Bucket "${env.S3_BUCKET}" sudah ada.`);
+    await client.send(new HeadBucketCommand({ Bucket: config.s3Bucket }));
+    console.log(`Bucket "${config.s3Bucket}" sudah ada.`);
   } catch {
-    await client.send(new CreateBucketCommand({ Bucket: env.S3_BUCKET }));
-    console.log(`+ bucket "${env.S3_BUCKET}" dibuat.`);
+    await client.send(new CreateBucketCommand({ Bucket: config.s3Bucket }));
+    console.log(`+ bucket "${config.s3Bucket}" dibuat.`);
   }
 }
 
@@ -53,8 +53,8 @@ async function allowPublicRead() {
         Principal: { AWS: ["*"] },
         Action: ["s3:GetObject"],
         Resource: [
-          `arn:aws:s3:::${env.S3_BUCKET}/destinations/*`,
-          `arn:aws:s3:::${env.S3_BUCKET}/nodes/*`,
+          `arn:aws:s3:::${config.s3Bucket}/destinations/*`,
+          `arn:aws:s3:::${config.s3Bucket}/nodes/*`,
         ],
       },
     ],
@@ -62,7 +62,7 @@ async function allowPublicRead() {
 
   await client.send(
     new PutBucketPolicyCommand({
-      Bucket: env.S3_BUCKET,
+      Bucket: config.s3Bucket,
       Policy: JSON.stringify(policy),
     }),
   );
@@ -71,4 +71,4 @@ async function allowPublicRead() {
 
 await ensureBucket();
 await allowPublicRead();
-console.log(`Selesai. URL publik: ${env.S3_PUBLIC_URL}`);
+console.log(`Selesai. URL publik: ${config.s3PublicUrl}`);

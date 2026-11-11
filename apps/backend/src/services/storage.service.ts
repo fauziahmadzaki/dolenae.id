@@ -6,7 +6,7 @@ import {
   PutObjectCommand,
   S3Client,
 } from "@aws-sdk/client-s3";
-import { loadEnv } from "../config/env";
+import { AppConfig } from "../config/AppConfig";
 import { ValidationError } from "../utils/errors";
 import {
   IMAGE_EXTENSIONS,
@@ -34,23 +34,24 @@ let client: S3Client | null = null;
 function s3(): S3Client {
   if (client) return client;
 
-  const env = loadEnv();
+  const config = AppConfig.load();
   client = new S3Client({
-    region: env.S3_REGION,
-    endpoint: env.S3_ENDPOINT,
-    forcePathStyle: env.S3_FORCE_PATH_STYLE,
+    region: config.s3Region,
+    endpoint: config.s3Endpoint,
+    forcePathStyle: config.s3ForcePathStyle,
     credentials: {
-      accessKeyId: env.S3_ACCESS_KEY_ID,
-      secretAccessKey: env.S3_SECRET_ACCESS_KEY,
+      accessKeyId: config.s3AccessKeyId,
+      secretAccessKey: config.s3SecretAccessKey,
     },
   });
   return client;
 }
 
 const trimSlash = (value: string) => value.replace(/\/+$/, "");
-const s3Base = () => trimSlash(loadEnv().S3_PUBLIC_URL);
-const localRoot = () => resolve(loadEnv().UPLOAD_DIR);
-const localBase = () => `${trimSlash(loadEnv().PUBLIC_API_URL)}/uploads`;
+const s3Base = () => trimSlash(AppConfig.load().s3PublicUrl);
+const localRoot = () => resolve(AppConfig.load().uploadDir);
+const localBase = () =>
+  `${trimSlash(AppConfig.load().publicApiUrl)}/uploads`;
 
 export const storageService = {
   /** Upload an image and return its public URL plus object key. */
@@ -58,7 +59,7 @@ export const storageService = {
     file: UploadFile,
     folder = "destinations",
   ): Promise<UploadedImage> {
-    const env = loadEnv();
+    const config = AppConfig.load();
     const extension = IMAGE_EXTENSIONS[file.mimetype];
 
     if (!extension) {
@@ -80,7 +81,7 @@ export const storageService = {
       mime: file.mimetype,
     };
 
-    if (env.STORAGE_DRIVER === "local") {
+    if (config.storageDriver === "local") {
       const target = join(localRoot(), key);
       await mkdir(dirname(target), { recursive: true });
       await writeFile(target, file.buffer);
@@ -89,7 +90,7 @@ export const storageService = {
 
     await s3().send(
       new PutObjectCommand({
-        Bucket: env.S3_BUCKET,
+        Bucket: config.s3Bucket,
         Key: key,
         Body: file.buffer,
         ContentType: file.mimetype,
@@ -102,9 +103,9 @@ export const storageService = {
 
   /** Delete an image, but only when the URL points to our own storage. */
   async deleteByUrl(url: string): Promise<{ key: string; deleted: true }> {
-    const env = loadEnv();
+    const config = AppConfig.load();
 
-    if (env.STORAGE_DRIVER === "local") {
+    if (config.storageDriver === "local") {
       const key = keyFromPublicUrl(url, localBase());
       if (!key) {
         throw new ValidationError("URL gambar bukan milik storage Dolenae");
@@ -117,13 +118,13 @@ export const storageService = {
       return { key, deleted: true };
     }
 
-    const key = keyFromPublicUrl(url, env.S3_PUBLIC_URL);
+    const key = keyFromPublicUrl(url, config.s3PublicUrl);
     if (!key) {
       throw new ValidationError("URL gambar bukan milik storage Dolenae");
     }
 
     await s3().send(
-      new DeleteObjectCommand({ Bucket: env.S3_BUCKET, Key: key }),
+      new DeleteObjectCommand({ Bucket: config.s3Bucket, Key: key }),
     );
 
     return { key, deleted: true };

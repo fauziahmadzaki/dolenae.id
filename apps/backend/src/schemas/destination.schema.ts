@@ -73,6 +73,3 @@ export const destinationIdParamsSchema = z.object({
   id: z.string().uuid("ID destinasi harus berupa format UUID yang valid"),
 });
 
-export type DestinationListQuery = z.infer<typeof destinationListQuerySchema>;
-export type CreateDestinationBody = z.infer<typeof createDestinationSchema>;
-export type UpdateDestinationBody = z.infer<typeof updateDestinationSchema>;
