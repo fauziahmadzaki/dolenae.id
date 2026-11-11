@@ -7,14 +7,18 @@ export interface AppSettingWithUser extends AppSettingRow {
   updatedByName: string | null;
 }
 
-export const settingsRepository = {
+class SettingsRepository {
+  private get db() {
+    return getDb();
+  }
+
   async findMany(keys: string[]): Promise<AppSettingRow[]> {
     if (keys.length === 0) return [];
-    return getDb().select().from(appSettings).where(inArray(appSettings.key, keys));
-  },
+    return this.db.select().from(appSettings).where(inArray(appSettings.key, keys));
+  }
 
   async findWithUser(key: string): Promise<AppSettingWithUser | undefined> {
-    const [row] = await getDb()
+    const [row] = await this.db
       .select({
         key: appSettings.key,
         value: appSettings.value,
@@ -28,7 +32,7 @@ export const settingsRepository = {
       .where(eq(appSettings.key, key))
       .limit(1);
     return row;
-  },
+  }
 
   async upsert(input: {
     key: string;
@@ -36,7 +40,7 @@ export const settingsRepository = {
     encrypted: boolean;
     updatedBy: string;
   }): Promise<void> {
-    await getDb()
+    await this.db
       .insert(appSettings)
       .values({
         key: input.key,
@@ -54,9 +58,11 @@ export const settingsRepository = {
           updatedAt: new Date(),
         },
       });
-  },
+  }
 
   async remove(key: string): Promise<void> {
-    await getDb().delete(appSettings).where(eq(appSettings.key, key));
-  },
-};
+    await this.db.delete(appSettings).where(eq(appSettings.key, key));
+  }
+}
+
+export const settingsRepository = new SettingsRepository();

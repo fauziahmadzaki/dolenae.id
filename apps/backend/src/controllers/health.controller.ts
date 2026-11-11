@@ -2,9 +2,9 @@ import type { RequestHandler } from "express";
 import { pingDatabase } from "../db/client";
 import { ok } from "../utils/response";
 
-export const healthController = {
+class HealthController {
   /** GET /api/health */
-  get: (async (_req, res) => {
+  get: RequestHandler = async (_req, res) => {
     const dbConnected = await pingDatabase();
     ok(res, {
       status: "ok",
@@ -14,5 +14,7 @@ export const healthController = {
       db: dbConnected ? "connected" : "down",
       timestamp: new Date().toISOString(),
     });
-  }) satisfies RequestHandler,
-};
+  };
+}
+
+export const healthController = new HealthController();

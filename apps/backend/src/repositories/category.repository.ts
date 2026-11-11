@@ -15,60 +15,64 @@ export type CategoryPatch = Partial<
 
 export type CategoryListParams = Pagination & { type?: CategoryType };
 
-export const categoryRepository = {
+class CategoryRepository {
+  private get db() {
+    return getDb();
+  }
+
   async findById(id: string): Promise<CategoryRow | undefined> {
-    const [row] = await getDb()
+    const [row] = await this.db
       .select()
       .from(categories)
       .where(eq(categories.id, id))
       .limit(1);
     return row;
-  },
+  }
 
   async findBySlug(slug: string): Promise<CategoryRow | undefined> {
-    const [row] = await getDb()
+    const [row] = await this.db
       .select()
       .from(categories)
       .where(eq(categories.slug, slug))
       .limit(1);
     return row;
-  },
+  }
 
   async slugExists(slug: string): Promise<boolean> {
-    const [row] = await getDb()
+    const [row] = await this.db
       .select({ value: sql<number>`1` })
       .from(categories)
       .where(eq(categories.slug, slug))
       .limit(1);
     return Boolean(row);
-  },
+  }
 
   async create(data: NewCategoryRow): Promise<CategoryRow> {
-    const [row] = await getDb().insert(categories).values(data).returning();
+    const [row] = await this.db.insert(categories).values(data).returning();
     return row!;
-  },
+  }
 
   async update(id: string, patch: CategoryPatch): Promise<CategoryRow | undefined> {
-    const [row] = await getDb()
+    const [row] = await this.db
       .update(categories)
       .set({ ...patch, updatedAt: new Date() })
       .where(eq(categories.id, id))
       .returning();
     return row;
-  },
+  }
 
   async delete(id: string): Promise<boolean> {
-    const [row] = await getDb()
+    const [row] = await this.db
       .delete(categories)
       .where(eq(categories.id, id))
       .returning({ id: categories.id });
     return Boolean(row);
-  },
+  }
 
   async list(
     params: CategoryListParams,
   ): Promise<{ items: CategoryRow[]; total: number }> {
-    const db = getDb();
+    const db = this.db;
     const { limit, offset, sort, order, search } = params;
 
     const where = and(
@@ -101,23 +105,25 @@ export const categoryRepository = {
       .where(where ? and(where) : undefined);
 
     return { items: rows, total: Number(totalRow?.value ?? 0) };
-  },
+  }
 
   /** Batch check: returns the subset of ids that exist in `categories`. */
   async findExistingIds(ids: string[]): Promise<string[]> {
     if (ids.length === 0) return [];
-    const rows = await getDb()
+    const rows = await this.db
       .select({ id: categories.id })
       .from(categories)
       .where(inArray(categories.id, ids));
     return rows.map((r) => r.id);
-  },
+  }
 
   async findByIds(ids: string[]): Promise<CategoryRow[]> {
     if (ids.length === 0) return [];
-    return getDb()
+    return this.db
       .select()
       .from(categories)
       .where(inArray(categories.id, ids));
-  },
-};
+  }
+}
+
+export const categoryRepository = new CategoryRepository();

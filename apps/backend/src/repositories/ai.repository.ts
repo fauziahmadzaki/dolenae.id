@@ -2,13 +2,17 @@ import { and, count, desc, eq, gte } from "drizzle-orm";
 import { getDb } from "../db/client";
 import { aiItineraries, type AiItineraryRow } from "../db/schema";
 
-export const aiRepository = {
+class AiRepository {
+  private get db() {
+    return getDb();
+  }
+
   async findRecent(
     userId: string,
     requestHash: string,
     since: Date,
   ): Promise<AiItineraryRow | undefined> {
-    const [row] = await getDb()
+    const [row] = await this.db
       .select()
       .from(aiItineraries)
       .where(
@@ -21,10 +25,10 @@ export const aiRepository = {
       .orderBy(desc(aiItineraries.createdAt))
       .limit(1);
     return row;
-  },
+  }
 
   async countSince(userId: string, since: Date): Promise<number> {
-    const [row] = await getDb()
+    const [row] = await this.db
       .select({ value: count() })
       .from(aiItineraries)
       .where(
@@ -34,7 +38,7 @@ export const aiRepository = {
         ),
       );
     return Number(row?.value ?? 0);
-  },
+  }
 
   async save(input: {
     userId: string;
@@ -46,7 +50,7 @@ export const aiRepository = {
     latencyMs: number;
     status: string;
   }): Promise<AiItineraryRow> {
-    const [row] = await getDb()
+    const [row] = await this.db
       .insert(aiItineraries)
       .values({
         userId: input.userId,
@@ -60,5 +64,7 @@ export const aiRepository = {
       })
       .returning();
     return row!;
-  },
-};
+  }
+}
+
+export const aiRepository = new AiRepository();

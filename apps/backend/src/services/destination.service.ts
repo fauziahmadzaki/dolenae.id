@@ -78,93 +78,95 @@ export interface CreateDestinationDto {
 
 export type UpdateDestinationDto = Partial<CreateDestinationDto>;
 
-const toNumber = (value: string | null): number | null =>
-  value === null ? null : Number(value);
-
-const toNumeric = (value: number | null | undefined): string | null =>
-  value === null || value === undefined ? null : String(value);
-
 type CategoryLookup = Map<string, PublicCategory>;
 
-function toPublicDestination(
-  row: DestinationRow,
-  categoryIds: string[],
-  categories: PublicCategory[],
-): PublicDestination {
-  // Classification is derived from the official category links, so a renamed
-  // category is reflected everywhere without duplicated columns.
-  const terrain = categories
-    .filter((category) => category.type === "terrain")
-    .map((category) => category.name)
-    .sort((a, b) => a.localeCompare(b));
-  const activities = categories
-    .filter((category) => category.type === "activity")
-    .map((category) => category.name)
-    .sort((a, b) => a.localeCompare(b));
-
-  return {
-    id: row.id,
-    name: row.name,
-    slug: row.slug,
-    tagline: row.tagline,
-    description: row.description,
-    difficulty: row.difficulty,
-    bestSeason: row.bestSeason,
-    tags: row.tags,
-    terrain,
-    activities,
-    location: {
-      province: row.province,
-      regency: row.regency,
-      district: row.district,
-      latitude: toNumber(row.latitude),
-      longitude: toNumber(row.longitude),
-      accessPoint: row.accessPoint,
-    },
-    access: {
-      description: row.accessDescription,
-      transport: row.accessTransport,
-      duration: row.accessDuration,
-      distanceKm: toNumber(row.accessDistanceKm),
-    },
-    facilities: row.facilities,
-    entryFee: row.entryFee,
-    elevationMeters: row.elevationMeters,
-    images: row.images,
-    guideRequired: row.guideRequired,
-    status: row.status,
-    verified: row.verified,
-    categoryIds,
-    createdAt: row.createdAt.toISOString(),
-    updatedAt: row.updatedAt.toISOString(),
-  };
-}
-
-/** Validate category ids and build a lookup map for the response. */
-async function resolveCategories(
-  categoryIds: string[],
-): Promise<CategoryLookup> {
-  const unique = [...new Set(categoryIds)];
-  const rows = await categoryRepository.findByIds(unique);
-  const found = new Set(rows.map((row) => row.id));
-  const missing = unique.filter((id) => !found.has(id));
-  if (missing.length > 0) {
-    throw new BadRequestError("Kategori tidak ditemukan", { categoryIds: missing });
+class DestinationService {
+  private toNumber(value: string | null): number | null {
+    return value === null ? null : Number(value);
   }
-  return new Map(rows.map((row) => [row.id, toPublicCategory(row)]));
-}
 
-export const destinationService = {
+  private toNumeric(value: number | null | undefined): string | null {
+    return value === null || value === undefined ? null : String(value);
+  }
+
+  private toPublicDestination(
+    row: DestinationRow,
+    categoryIds: string[],
+    categories: PublicCategory[],
+  ): PublicDestination {
+    // Classification is derived from the official category links, so a renamed
+    // category is reflected everywhere without duplicated columns.
+    const terrain = categories
+      .filter((category) => category.type === "terrain")
+      .map((category) => category.name)
+      .sort((a, b) => a.localeCompare(b));
+    const activities = categories
+      .filter((category) => category.type === "activity")
+      .map((category) => category.name)
+      .sort((a, b) => a.localeCompare(b));
+
+    return {
+      id: row.id,
+      name: row.name,
+      slug: row.slug,
+      tagline: row.tagline,
+      description: row.description,
+      difficulty: row.difficulty,
+      bestSeason: row.bestSeason,
+      tags: row.tags,
+      terrain,
+      activities,
+      location: {
+        province: row.province,
+        regency: row.regency,
+        district: row.district,
+        latitude: this.toNumber(row.latitude),
+        longitude: this.toNumber(row.longitude),
+        accessPoint: row.accessPoint,
+      },
+      access: {
+        description: row.accessDescription,
+        transport: row.accessTransport,
+        duration: row.accessDuration,
+        distanceKm: this.toNumber(row.accessDistanceKm),
+      },
+      facilities: row.facilities,
+      entryFee: row.entryFee,
+      elevationMeters: row.elevationMeters,
+      images: row.images,
+      guideRequired: row.guideRequired,
+      status: row.status,
+      verified: row.verified,
+      categoryIds,
+      createdAt: row.createdAt.toISOString(),
+      updatedAt: row.updatedAt.toISOString(),
+    };
+  }
+
+  /** Validate category ids and build a lookup map for the response. */
+  private async resolveCategories(
+    categoryIds: string[],
+  ): Promise<CategoryLookup> {
+    const unique = [...new Set(categoryIds)];
+    const rows = await categoryRepository.findByIds(unique);
+    const found = new Set(rows.map((row) => row.id));
+    const missing = unique.filter((id) => !found.has(id));
+    if (missing.length > 0) {
+      throw new BadRequestError("Kategori tidak ditemukan", { categoryIds: missing });
+    }
+    return new Map(rows.map((row) => [row.id, toPublicCategory(row)]));
+  }
+
   async getById(id: string): Promise<PublicDestinationDetail> {
     const row = await destinationRepository.findById(id);
     if (!row) throw new NotFoundError("Destinasi tidak ditemukan");
     const categoryIds = await destinationRepository.findCategoryIds(id);
-    const lookup = await resolveCategories(categoryIds);
+    const lookup = await this.resolveCategories(categoryIds);
     const categories = categoryIds
       .map((categoryId) => lookup.get(categoryId))
       .filter((c): c is PublicCategory => Boolean(c));
-    return { ...toPublicDestination(row, categoryIds, categories), categories };
-  },
+    return { ...this.toPublicDestination(row, categoryIds, categories), categories };
+  }
 
   async list(
     query: PaginationQuery & {
@@ -205,11 +207,11 @@ export const destinationService = {
         const categories = categoryIds
           .map((categoryId) => categoryById.get(categoryId))
           .filter((category): category is PublicCategory => Boolean(category));
-        return toPublicDestination(row, categoryIds, categories);
+        return this.toPublicDestination(row, categoryIds, categories);
       }),
       meta: buildMeta(total, query.page, query.limit),
     };
-  },
+  }
 
   async create(input: CreateDestinationDto): Promise<PublicDestinationDetail> {
     const slug = input.slug?.trim() || slugify(input.name);
@@ -219,7 +221,7 @@ export const destinationService = {
     }
 
     const categoryIds = [...new Set(input.categoryIds ?? [])];
-    if (categoryIds.length > 0) await resolveCategories(categoryIds);
+    if (categoryIds.length > 0) await this.resolveCategories(categoryIds);
 
     const row = await destinationRepository.create({
       name: input.name,
@@ -232,13 +234,13 @@ export const destinationService = {
       province: input.location?.province ?? null,
       regency: input.location?.regency ?? null,
       district: input.location?.district ?? null,
-      latitude: toNumeric(input.location?.latitude),
-      longitude: toNumeric(input.location?.longitude),
+      latitude: this.toNumeric(input.location?.latitude),
+      longitude: this.toNumeric(input.location?.longitude),
       accessPoint: input.location?.accessPoint ?? null,
       accessDescription: input.access?.description ?? null,
       accessTransport: input.access?.transport ?? [],
       accessDuration: input.access?.duration ?? null,
-      accessDistanceKm: toNumeric(input.access?.distanceKm),
+      accessDistanceKm: this.toNumeric(input.access?.distanceKm),
       facilities: input.facilities ?? [],
       entryFee: input.entryFee ?? null,
       elevationMeters: input.elevationMeters ?? null,
@@ -252,7 +254,7 @@ export const destinationService = {
     }
 
     return this.getById(row.id);
-  },
+  }
 
   async update(
     id: string,
@@ -275,7 +277,7 @@ export const destinationService = {
     let categoryIds: string[] | undefined;
     if (input.categoryIds !== undefined) {
       categoryIds = [...new Set(input.categoryIds)];
-      if (categoryIds.length > 0) await resolveCategories(categoryIds);
+      if (categoryIds.length > 0) await this.resolveCategories(categoryIds);
     }
 
     const patch: Parameters<typeof destinationRepository.update>[1] = {};
@@ -291,10 +293,10 @@ export const destinationService = {
       if (input.location.regency !== undefined) patch.regency = input.location.regency;
       if (input.location.district !== undefined) patch.district = input.location.district;
       if (input.location.latitude !== undefined) {
-        patch.latitude = toNumeric(input.location.latitude);
+        patch.latitude = this.toNumeric(input.location.latitude);
       }
       if (input.location.longitude !== undefined) {
-        patch.longitude = toNumeric(input.location.longitude);
+        patch.longitude = this.toNumeric(input.location.longitude);
       }
       if (input.location.accessPoint !== undefined) {
         patch.accessPoint = input.location.accessPoint;
@@ -309,7 +311,7 @@ export const destinationService = {
       }
       if (input.access.duration !== undefined) patch.accessDuration = input.access.duration;
       if (input.access.distanceKm !== undefined) {
-        patch.accessDistanceKm = toNumeric(input.access.distanceKm);
+        patch.accessDistanceKm = this.toNumeric(input.access.distanceKm);
       }
     }
     if (input.facilities !== undefined) patch.facilities = input.facilities;
@@ -329,7 +331,7 @@ export const destinationService = {
     }
 
     return this.getById(id);
-  },
+  }
 
   async delete(id: string): Promise<{ id: string; deleted: true }> {
     const existing = await destinationRepository.findById(id);
@@ -337,5 +339,7 @@ export const destinationService = {
     const deleted = await destinationRepository.delete(id);
     if (!deleted) throw new NotFoundError("Gagal menghapus destinasi");
     return { id, deleted: true };
-  },
-};
+  }
+}
+
+export const destinationService = new DestinationService();

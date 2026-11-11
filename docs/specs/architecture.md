@@ -67,7 +67,29 @@ PBL/
 - **Fase 4:** AI recommendation (rule-based + adapter LLM opsional).
 - **Fase 5:** trip planning + finalisasi dokumen.
 
+## Pola Backend (`apps/backend`)
+
+Backend saat ini memakai **Express 5 + TypeScript + Drizzle ORM** dengan alur
+`routes → controllers → services → repositories → db`. Layer `repositories`,
+`services`, dan `controllers` memakai pola **class-based OOP**.
+
+- **Repository** — class dengan getter `private get db()` yang mengembalikan
+  `getDb()`. Satu instance diekspor sebagai singleton, mis.
+  `export const destinationRepository = new DestinationRepository()`.
+- **Service** — class dengan helper internal sebagai `private` method
+  (mis. `toPublicDestination`, `resolveCategories`). Instance diekspor sebagai
+  singleton. Helper yang dipakai lintas service/test tetap diekspor sebagai
+  named export (mis. `toPublicCategory`, `validateAiPayload`).
+- **Controller** — class dengan handler berupa **arrow function property**
+  bertipe `RequestHandler`, bukan method biasa, agar `this` tetap terikat saat
+  dipanggil Express. Instance diekspor sebagai singleton, mis.
+  `export const destinationController = new DestinationController()`.
+- **Routes, middleware, schemas, types, utils, dan db** tetap memakai pola
+  fungsi/konstanta dan tidak berubah saat refactor ini.
+
+Nama export lama dipertahankan agar `routes/` tidak perlu diubah.
+
 ## Keputusan Terkait
 
-Lihat `docs/decisions/` untuk ADR. Teknologi spesifik (Hono, TanStack Start,
+Lihat `docs/decisions/` untuk ADR. Teknologi spesifik (Express, TanStack Start,
 Flutter) memerlukan ADR tersendiri saat diimplementasikan.

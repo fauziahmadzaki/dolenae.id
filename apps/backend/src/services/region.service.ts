@@ -33,61 +33,69 @@ function loadJson<T>(file: string): T {
   return JSON.parse(readFileSync(url, "utf8")) as T;
 }
 
-// Static datasets are read once at startup (~1 MB in total).
-const provinces = loadJson<RegionSummary[]>("provinces.json");
-const regencies = loadJson<RegencySummary[]>("regencies.json");
-const districts = loadJson<DistrictSummary[]>("districts.json");
-const centroids = loadJson<Centroid[]>("district-centroids.json");
+class RegionService {
+  // Static datasets are read once at startup (~1 MB in total).
+  private readonly provinceRows = loadJson<RegionSummary[]>("provinces.json");
+  private readonly regencyRows = loadJson<RegencySummary[]>("regencies.json");
+  private readonly districtRows = loadJson<DistrictSummary[]>("districts.json");
+  private readonly centroids = loadJson<Centroid[]>("district-centroids.json");
 
-const districtByCode = new Map(districts.map((row) => [row.code, row]));
-const regencyByCode = new Map(regencies.map((row) => [row.code, row]));
-const provinceByCode = new Map(provinces.map((row) => [row.code, row]));
+  private readonly districtByCode = new Map(
+    this.districtRows.map((row) => [row.code, row]),
+  );
+  private readonly regencyByCode = new Map(
+    this.regencyRows.map((row) => [row.code, row]),
+  );
+  private readonly provinceByCode = new Map(
+    this.provinceRows.map((row) => [row.code, row]),
+  );
 
-function haversineKm(
-  fromLat: number,
-  fromLng: number,
-  toLat: number,
-  toLng: number,
-): number {
-  const rad = Math.PI / 180;
-  const dLat = (toLat - fromLat) * rad;
-  const dLng = (toLng - fromLng) * rad;
-  const a =
-    Math.sin(dLat / 2) ** 2 +
-    Math.cos(fromLat * rad) *
-      Math.cos(toLat * rad) *
-      Math.sin(dLng / 2) ** 2;
-  return 6371 * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-}
+  private haversineKm(
+    fromLat: number,
+    fromLng: number,
+    toLat: number,
+    toLng: number,
+  ): number {
+    const rad = Math.PI / 180;
+    const dLat = (toLat - fromLat) * rad;
+    const dLng = (toLng - fromLng) * rad;
+    const a =
+      Math.sin(dLat / 2) ** 2 +
+      Math.cos(fromLat * rad) *
+        Math.cos(toLat * rad) *
+        Math.sin(dLng / 2) ** 2;
+    return 6371 * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  }
 
-const toSummary = (row: RegionSummary): RegionSummary => ({
-  code: row.code,
-  name: row.name,
-});
+  private toSummary(row: RegionSummary): RegionSummary {
+    return {
+      code: row.code,
+      name: row.name,
+    };
+  }
 
-export const regionService = {
   /** All provinces, sorted by name. */
   provinces(): RegionSummary[] {
-    return [...provinces]
+    return [...this.provinceRows]
       .sort((a, b) => a.name.localeCompare(b.name))
-      .map(toSummary);
-  },
+      .map((row) => this.toSummary(row));
+  }
 
   /** Regencies (kabupaten/kota) of a province. */
   regencies(provinceCode: string): RegionSummary[] {
-    return regencies
+    return this.regencyRows
       .filter((row) => row.provinceCode === provinceCode)
       .sort((a, b) => a.name.localeCompare(b.name))
-      .map(toSummary);
-  },
+      .map((row) => this.toSummary(row));
+  }
 
   /** Districts (kecamatan) of a regency. */
   districts(regencyCode: string): RegionSummary[] {
-    return districts
+    return this.districtRows
       .filter((row) => row.regencyCode === regencyCode)
       .sort((a, b) => a.name.localeCompare(b.name))
-      .map(toSummary);
-  },
+      .map((row) => this.toSummary(row));
+  }
 
   /**
    * Approximate reverse geocode: nearest district centroid. Good enough to
@@ -97,8 +105,8 @@ export const regionService = {
     let best: Centroid | undefined;
     let bestKm = Number.POSITIVE_INFINITY;
 
-    for (const centroid of centroids) {
-      const km = haversineKm(lat, lng, centroid.lat, centroid.lng);
+    for (const centroid of this.centroids) {
+      const km = this.haversineKm(lat, lng, centroid.lat, centroid.lng);
       if (km < bestKm) {
         bestKm = km;
         best = centroid;
@@ -107,18 +115,20 @@ export const regionService = {
 
     if (!best) return null;
 
-    const district = districtByCode.get(best.code);
+    const district = this.districtByCode.get(best.code);
     if (!district) return null;
 
-    const regency = regencyByCode.get(district.regencyCode);
-    const province = provinceByCode.get(district.provinceCode);
+    const regency = this.regencyByCode.get(district.regencyCode);
+    const province = this.provinceByCode.get(district.provinceCode);
     if (!regency || !province) return null;
 
     return {
-      province: toSummary(province),
-      regency: toSummary(regency),
-      district: toSummary(district),
+      province: this.toSummary(province),
+      regency: this.toSummary(regency),
+      district: this.toSummary(district),
       distanceKm: Number(bestKm.toFixed(1)),
     };
-  },
-};
+  }
+}
+
+export const regionService = new RegionService();

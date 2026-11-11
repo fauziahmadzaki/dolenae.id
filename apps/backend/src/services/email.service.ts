@@ -2,16 +2,6 @@ import { Resend } from "resend";
 import { AppConfig } from "../config/AppConfig";
 import { InternalError } from "../utils/errors";
 
-let client: Resend | null = null;
-
-/** Lazily create the Resend client; returns null in dev without an API key. */
-function getClient(): Resend | null {
-  const resendApiKey = AppConfig.load().resendApiKey;
-  if (!resendApiKey) return null;
-  client ??= new Resend(resendApiKey);
-  return client;
-}
-
 interface Delivery {
   to: string;
   subject: string;
@@ -23,43 +13,6 @@ interface Delivery {
   failureMessage: string;
 }
 
-/**
- * Send one transactional email. Without `RESEND_API_KEY` (dev/test) the
- * message is logged to the console instead of being sent.
- */
-async function deliver({
-  to,
-  subject,
-  html,
-  text,
-  devHint,
-  failureMessage,
-}: Delivery): Promise<void> {
-  const resend = getClient();
-  if (!resend) {
-    console.info(`[email] (dev) ${devHint}`);
-    return;
-  }
-
-  const config = AppConfig.load();
-  const { error } = await resend.emails.send({
-    from: config.mailFrom,
-    to,
-    subject,
-    html,
-    text,
-    ...(config.mailReplyTo ? { replyTo: config.mailReplyTo } : {}),
-  });
-
-  if (error) throw new InternalError(failureMessage, error);
-}
-
-const FONT = "Arial,Helvetica,sans-serif";
-const INK = "#17211b";
-const BODY = "#4a5149";
-const MUTED = "#7c8a7e";
-const PRIMARY = "#1e3b2e";
-
 interface EmailContent {
   title: string;
   /** Body paragraphs as HTML. */
@@ -70,18 +23,72 @@ interface EmailContent {
   note: string;
 }
 
-/**
- * Table-based, inline-styled layout so the CTA renders as a button in Gmail,
- * Outlook and Apple Mail (email clients strip `<style>` blocks).
- */
-function renderHtml({
-  title,
-  body,
-  ctaLabel,
-  ctaUrl,
-  note,
-}: EmailContent): string {
-  return `<!DOCTYPE html>
+class EmailService {
+  private static readonly FONT = "Arial,Helvetica,sans-serif";
+  private static readonly INK = "#17211b";
+  private static readonly BODY = "#4a5149";
+  private static readonly MUTED = "#7c8a7e";
+  private static readonly PRIMARY = "#1e3b2e";
+
+  private client: Resend | null = null;
+
+  /** Lazily create the Resend client; returns null in dev without an API key. */
+  private getClient(): Resend | null {
+    const resendApiKey = AppConfig.load().resendApiKey;
+    if (!resendApiKey) return null;
+    this.client ??= new Resend(resendApiKey);
+    return this.client;
+  }
+
+  /**
+   * Send one transactional email. Without `RESEND_API_KEY` (dev/test) the
+   * message is logged to the console instead of being sent.
+   */
+  private async deliver({
+    to,
+    subject,
+    html,
+    text,
+    devHint,
+    failureMessage,
+  }: Delivery): Promise<void> {
+    const resend = this.getClient();
+    if (!resend) {
+      console.info(`[email] (dev) ${devHint}`);
+      return;
+    }
+
+    const config = AppConfig.load();
+    const { error } = await resend.emails.send({
+      from: config.mailFrom,
+      to,
+      subject,
+      html,
+      text,
+      ...(config.mailReplyTo ? { replyTo: config.mailReplyTo } : {}),
+    });
+
+    if (error) throw new InternalError(failureMessage, error);
+  }
+
+  /**
+   * Table-based, inline-styled layout so the CTA renders as a button in Gmail,
+   * Outlook and Apple Mail (email clients strip `<style>` blocks).
+   */
+  private renderHtml({
+    title,
+    body,
+    ctaLabel,
+    ctaUrl,
+    note,
+  }: EmailContent): string {
+    const FONT = EmailService.FONT;
+    const INK = EmailService.INK;
+    const BODY = EmailService.BODY;
+    const MUTED = EmailService.MUTED;
+    const PRIMARY = EmailService.PRIMARY;
+
+    return `<!DOCTYPE html>
 <html lang="id">
 <head>
 <meta charset="utf-8">
@@ -141,53 +148,86 @@ function renderHtml({
   </table>
 </body>
 </html>`;
+  }
+
+  private renderText(
+    title: string,
+    intro: string,
+    ctaLabel: string,
+    url: string,
+    note: string,
+  ): string {
+    return [
+      title,
+      "",
+      intro,
+      "",
+      `${ctaLabel}: ${url}`,
+      "",
+      note,
+      "",
+      "© 2026 Dolenae.id",
+    ].join("\n");
+  }
+
+  /** Send the password-reset email. */
+  async sendPasswordResetEmail(to: string, resetUrl: string): Promise<void> {
+    const title = "Atur ulang kata sandi";
+    const intro =
+      "Kami menerima permintaan untuk mengatur ulang kata sandi akun Dolenae.id kamu. Klik tombol berikut untuk membuat kata sandi baru.";
+    const ctaLabel = "Buat kata sandi baru";
+    const note = `Tautan ini berlaku selama ${AppConfig.load().passwordResetTtlMinutes} menit. Abaikan email ini jika kamu tidak meminta reset password.`;
+
+    await this.deliver({
+      to,
+      subject: "Reset Password Dolenae.id",
+      html: this.renderHtml({
+        title,
+        body: `<p style="margin:0;">${intro}</p>`,
+        ctaLabel,
+        ctaUrl: resetUrl,
+        note,
+      }),
+      text: this.renderText(title, intro, ctaLabel, resetUrl, note),
+      devHint: `password reset for ${to}: ${resetUrl}`,
+      failureMessage: "Gagal mengirim email reset password",
+    });
+  }
+
+  /** Send the email-verification link (soft verification, no expiry). */
+  async sendVerificationEmail(to: string, verifyUrl: string): Promise<void> {
+    const title = "Verifikasi email kamu";
+    const intro =
+      "Terima kasih sudah mendaftar di Dolenae.id. Klik tombol berikut untuk memverifikasi alamat email kamu dan memastikan notifikasi penting sampai ke inbox.";
+    const ctaLabel = "Verifikasi email";
+    const note =
+      "Tautan ini tidak kedaluwarsa. Abaikan email ini jika kamu tidak membuat akun Dolenae.id.";
+
+    await this.deliver({
+      to,
+      subject: "Verifikasi Email Dolenae.id",
+      html: this.renderHtml({
+        title,
+        body: `<p style="margin:0;">${intro}</p>`,
+        ctaLabel,
+        ctaUrl: verifyUrl,
+        note,
+      }),
+      text: this.renderText(title, intro, ctaLabel, verifyUrl, note),
+      devHint: `verify email for ${to}: ${verifyUrl}`,
+      failureMessage: "Gagal mengirim email verifikasi",
+    });
+  }
 }
 
-function renderText(
-  title: string,
-  intro: string,
-  ctaLabel: string,
-  url: string,
-  note: string,
-): string {
-  return [
-    title,
-    "",
-    intro,
-    "",
-    `${ctaLabel}: ${url}`,
-    "",
-    note,
-    "",
-    "© 2026 Dolenae.id",
-  ].join("\n");
-}
+export const emailService = new EmailService();
 
 /** Send the password-reset email. */
 export async function sendPasswordResetEmail(
   to: string,
   resetUrl: string,
 ): Promise<void> {
-  const title = "Atur ulang kata sandi";
-  const intro =
-    "Kami menerima permintaan untuk mengatur ulang kata sandi akun Dolenae.id kamu. Klik tombol berikut untuk membuat kata sandi baru.";
-  const ctaLabel = "Buat kata sandi baru";
-  const note = `Tautan ini berlaku selama ${AppConfig.load().passwordResetTtlMinutes} menit. Abaikan email ini jika kamu tidak meminta reset password.`;
-
-  await deliver({
-    to,
-    subject: "Reset Password Dolenae.id",
-    html: renderHtml({
-      title,
-      body: `<p style="margin:0;">${intro}</p>`,
-      ctaLabel,
-      ctaUrl: resetUrl,
-      note,
-    }),
-    text: renderText(title, intro, ctaLabel, resetUrl, note),
-    devHint: `password reset for ${to}: ${resetUrl}`,
-    failureMessage: "Gagal mengirim email reset password",
-  });
+  return emailService.sendPasswordResetEmail(to, resetUrl);
 }
 
 /** Send the email-verification link (soft verification, no expiry). */
@@ -195,25 +235,5 @@ export async function sendVerificationEmail(
   to: string,
   verifyUrl: string,
 ): Promise<void> {
-  const title = "Verifikasi email kamu";
-  const intro =
-    "Terima kasih sudah mendaftar di Dolenae.id. Klik tombol berikut untuk memverifikasi alamat email kamu dan memastikan notifikasi penting sampai ke inbox.";
-  const ctaLabel = "Verifikasi email";
-  const note =
-    "Tautan ini tidak kedaluwarsa. Abaikan email ini jika kamu tidak membuat akun Dolenae.id.";
-
-  await deliver({
-    to,
-    subject: "Verifikasi Email Dolenae.id",
-    html: renderHtml({
-      title,
-      body: `<p style="margin:0;">${intro}</p>`,
-      ctaLabel,
-      ctaUrl: verifyUrl,
-      note,
-    }),
-    text: renderText(title, intro, ctaLabel, verifyUrl, note),
-    devHint: `verify email for ${to}: ${verifyUrl}`,
-    failureMessage: "Gagal mengirim email verifikasi",
-  });
+  return emailService.sendVerificationEmail(to, verifyUrl);
 }

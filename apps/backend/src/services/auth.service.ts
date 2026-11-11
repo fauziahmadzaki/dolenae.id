@@ -26,52 +26,52 @@ import type {
   VerifyEmailInput,
 } from "../types/auth";
 
-/** Map a DB row to the public user shape (never leaks the password hash). */
-function toAuthUser(row: UserRow): AuthUser {
-  return {
-    id: row.id,
-    name: row.name,
-    email: row.email,
-    role: row.role,
-    provider: row.provider,
-    avatarUrl: row.avatarUrl,
-    emailVerifiedAt: row.emailVerifiedAt?.toISOString() ?? null,
-    createdAt: row.createdAt.toISOString(),
-    updatedAt: row.updatedAt.toISOString(),
-  };
-}
+class AuthService {
+  /** Cooldown between two verification emails for the same account. */
+  private static readonly VERIFICATION_RESEND_COOLDOWN_MS = 60_000;
 
-async function issueToken(row: UserRow): Promise<AuthTokenResponse> {
-  const token = await signAccessToken({
-    sub: row.id,
-    email: row.email,
-    role: row.role,
-  });
-  return { token, user: toAuthUser(row) };
-}
+  /** Map a DB row to the public user shape (never leaks the password hash). */
+  private toAuthUser(row: UserRow): AuthUser {
+    return {
+      id: row.id,
+      name: row.name,
+      email: row.email,
+      role: row.role,
+      provider: row.provider,
+      avatarUrl: row.avatarUrl,
+      emailVerifiedAt: row.emailVerifiedAt?.toISOString() ?? null,
+      createdAt: row.createdAt.toISOString(),
+      updatedAt: row.updatedAt.toISOString(),
+    };
+  }
 
-/** Cooldown between two verification emails for the same account. */
-const VERIFICATION_RESEND_COOLDOWN_MS = 60_000;
+  private async issueToken(row: UserRow): Promise<AuthTokenResponse> {
+    const token = await signAccessToken({
+      sub: row.id,
+      email: row.email,
+      role: row.role,
+    });
+    return { token, user: this.toAuthUser(row) };
+  }
 
-/**
- * Create a fresh (single-use, non-expiring) verification token for the user and
- * email the link. Older unused tokens are invalidated on the way.
- */
-async function sendVerificationLink(row: UserRow): Promise<void> {
-  const config = AppConfig.load();
-  const rawToken = generateToken();
+  /**
+   * Create a fresh (single-use, non-expiring) verification token for the user and
+   * email the link. Older unused tokens are invalidated on the way.
+   */
+  private async sendVerificationLink(row: UserRow): Promise<void> {
+    const config = AppConfig.load();
+    const rawToken = generateToken();
 
-  await emailVerificationRepository.invalidateForUser(row.id);
-  await emailVerificationRepository.create({
-    userId: row.id,
-    tokenHash: hashToken(rawToken),
-  });
+    await emailVerificationRepository.invalidateForUser(row.id);
+    await emailVerificationRepository.create({
+      userId: row.id,
+      tokenHash: hashToken(rawToken),
+    });
 
-  const verifyUrl = `${config.appWebUrl}/auth/verify-email?token=${rawToken}`;
-  await sendVerificationEmail(row.email, verifyUrl);
-}
+    const verifyUrl = `${config.appWebUrl}/auth/verify-email?token=${rawToken}`;
+    await sendVerificationEmail(row.email, verifyUrl);
+  }
 
-export const authService = {
   async register(input: RegisterInput): Promise<AuthTokenResponse> {
     const email = input.email.toLowerCase();
     if (await userRepository.findByEmail(email)) {
@@ -89,13 +89,13 @@ export const authService = {
     // Soft verification: the account is usable right away, so a mail failure
     // must not block registration.
     try {
-      await sendVerificationLink(row);
+      await this.sendVerificationLink(row);
     } catch (error) {
       console.warn("[auth] failed to send verification email", error);
     }
 
-    return issueToken(row);
-  },
+    return this.issueToken(row);
+  }
 
   async login(input: LoginInput): Promise<AuthTokenResponse> {
     const email = input.email.toLowerCase();
@@ -109,8 +109,8 @@ export const authService = {
     }
 
     await userRepository.touchLastLogin(row.id);
-    return issueToken(row);
-  },
+    return this.issueToken(row);
+  }
 
   /** Verify a Google ID token, then create or link the local user. */
   async googleLogin(input: GoogleInput): Promise<AuthTokenResponse> {
@@ -161,8 +161,8 @@ export const authService = {
       });
     }
 
-    return issueToken(row);
-  },
+    return this.issueToken(row);
+  }
 
   /**
    * Start the password-reset flow. Always resolves with the same message so a
@@ -190,7 +190,7 @@ export const authService = {
     const resetUrl = `${config.appWebUrl}/auth/reset-password?token=${rawToken}`;
     await sendPasswordResetEmail(row.email, resetUrl);
     return { message };
-  },
+  }
 
   async resetPassword(
     input: ResetPasswordInput,
@@ -207,7 +207,7 @@ export const authService = {
     });
     await passwordResetRepository.markUsed(record.id);
     return { message: "Password berhasil diperbarui." };
-  },
+  }
 
   /**
    * Confirm an email address with the token from the verification link.
@@ -231,7 +231,7 @@ export const authService = {
     await emailVerificationRepository.invalidateForUser(row.id);
 
     return { message: "Email berhasil diverifikasi." };
-  },
+  }
 
   /**
    * Re-send the verification link. Always resolves with the same message so a
@@ -248,23 +248,26 @@ export const authService = {
     const latest = await emailVerificationRepository.findLatestByUser(row.id);
     if (
       latest &&
-      Date.now() - latest.createdAt.getTime() < VERIFICATION_RESEND_COOLDOWN_MS
+      Date.now() - latest.createdAt.getTime() <
+        AuthService.VERIFICATION_RESEND_COOLDOWN_MS
     ) {
       return { message };
     }
 
     try {
-      await sendVerificationLink(row);
+      await this.sendVerificationLink(row);
     } catch (error) {
       console.warn("[auth] failed to send verification email", error);
     }
 
     return { message };
-  },
+  }
 
   async getMe(userId: string): Promise<AuthUser> {
     const row = await userRepository.findById(userId);
     if (!row) throw new NotFoundError("Pengguna tidak ditemukan");
-    return toAuthUser(row);
-  },
-};
+    return this.toAuthUser(row);
+  }
+}
+
+export const authService = new AuthService();

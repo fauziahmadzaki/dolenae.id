@@ -5,18 +5,18 @@ import { UnauthorizedError } from "../utils/errors";
 import { ok } from "../utils/response";
 import type { AiItineraryBody } from "../types/ai";
 
-export const aiController = {
+class AiController {
   /** GET /api/ai/options — filter values derived from the catalog. */
-  options: (async (_req, res, next) => {
+  options: RequestHandler = async (_req, res, next) => {
     try {
-      return ok(res, await aiService.getOptions());
+      ok(res, await aiService.getOptions());
     } catch (error) {
       next(error);
     }
-  }) as RequestHandler,
+  };
 
   /** POST /api/ai/itineraries — grounded itinerary for the signed-in user. */
-  generate: (async (req, res, next) => {
+  generate: RequestHandler = async (req, res, next) => {
     try {
       if (!req.user) throw new UnauthorizedError();
       const body = getValidated<AiItineraryBody>(req, "body");
@@ -24,9 +24,11 @@ export const aiController = {
       const result = await aiService.generate(req.user.id, input, {
         refresh,
       });
-      return ok(res, result);
+      ok(res, result);
     } catch (error) {
       next(error);
     }
-  }) as RequestHandler,
-};
+  };
+}
+
+export const aiController = new AiController();

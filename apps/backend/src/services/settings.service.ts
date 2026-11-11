@@ -6,10 +6,6 @@ import {
   maskSecret,
 } from "../utils/crypto";
 
-const API_KEY_SETTING = "gemini.api_key";
-const MODEL_SETTING = "gemini.model";
-const CACHE_TTL_MS = 60_000;
-
 export interface GeminiConfig {
   apiKey: string;
   model: string;
@@ -25,23 +21,36 @@ export interface PublicAiSettings {
   updatedBy: string | null;
 }
 
-let cache: { value: GeminiConfig; at: number } | null = null;
+class SettingsService {
+  private static readonly API_KEY_SETTING = "gemini.api_key";
+  private static readonly MODEL_SETTING = "gemini.model";
+  private static readonly CACHE_TTL_MS = 60_000;
 
-const invalidate = () => {
-  cache = null;
-};
+  private static cache: { value: GeminiConfig; at: number } | null = null;
 
-export const settingsService = {
+  private static invalidate(): void {
+    SettingsService.cache = null;
+  }
+
   async getGeminiConfig(): Promise<GeminiConfig> {
-    if (cache && Date.now() - cache.at < CACHE_TTL_MS) return cache.value;
+    if (
+      SettingsService.cache &&
+      Date.now() - SettingsService.cache.at < SettingsService.CACHE_TTL_MS
+    ) {
+      return SettingsService.cache.value;
+    }
 
     const config = AppConfig.load();
     const rows = await settingsRepository.findMany([
-      API_KEY_SETTING,
-      MODEL_SETTING,
+      SettingsService.API_KEY_SETTING,
+      SettingsService.MODEL_SETTING,
     ]);
-    const keyRow = rows.find((row) => row.key === API_KEY_SETTING);
-    const modelRow = rows.find((row) => row.key === MODEL_SETTING);
+    const keyRow = rows.find(
+      (row) => row.key === SettingsService.API_KEY_SETTING,
+    );
+    const modelRow = rows.find(
+      (row) => row.key === SettingsService.MODEL_SETTING,
+    );
 
     const value: GeminiConfig = {
       apiKey: keyRow ? decryptSecret(keyRow.value) : config.geminiApiKey,
@@ -49,14 +58,18 @@ export const settingsService = {
       source: keyRow ? "db" : "env",
     };
 
-    cache = { value, at: Date.now() };
+    SettingsService.cache = { value, at: Date.now() };
     return value;
-  },
+  }
 
   async getPublicAiSettings(): Promise<PublicAiSettings> {
     const config = await this.getGeminiConfig();
-    const keyRow = await settingsRepository.findWithUser(API_KEY_SETTING);
-    const modelRow = await settingsRepository.findWithUser(MODEL_SETTING);
+    const keyRow = await settingsRepository.findWithUser(
+      SettingsService.API_KEY_SETTING,
+    );
+    const modelRow = await settingsRepository.findWithUser(
+      SettingsService.MODEL_SETTING,
+    );
     const latest =
       [keyRow, modelRow]
         .filter((row): row is NonNullable<typeof row> => Boolean(row))
@@ -71,7 +84,7 @@ export const settingsService = {
       updatedAt: latest?.updatedAt.toISOString() ?? null,
       updatedBy: latest?.updatedByName ?? null,
     };
-  },
+  }
 
   async saveAiSettings(input: {
     apiKey?: string;
@@ -83,7 +96,7 @@ export const settingsService = {
 
     if (apiKey) {
       await settingsRepository.upsert({
-        key: API_KEY_SETTING,
+        key: SettingsService.API_KEY_SETTING,
         value: encryptSecret(apiKey),
         encrypted: true,
         updatedBy: input.updatedBy,
@@ -91,20 +104,22 @@ export const settingsService = {
     }
     if (model) {
       await settingsRepository.upsert({
-        key: MODEL_SETTING,
+        key: SettingsService.MODEL_SETTING,
         value: model,
         encrypted: false,
         updatedBy: input.updatedBy,
       });
     }
 
-    invalidate();
+    SettingsService.invalidate();
     return this.getPublicAiSettings();
-  },
+  }
 
   async clearApiKey(_updatedBy: string): Promise<PublicAiSettings> {
-    await settingsRepository.remove(API_KEY_SETTING);
-    invalidate();
+    await settingsRepository.remove(SettingsService.API_KEY_SETTING);
+    SettingsService.invalidate();
     return this.getPublicAiSettings();
-  },
-};
+  }
+}
+
+export const settingsService = new SettingsService();

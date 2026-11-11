@@ -6,37 +6,37 @@ import { AppError, UnauthorizedError } from "../utils/errors";
 import { ok } from "../utils/response";
 import type { TestAiBody, UpdateAiSettingsBody } from "../types/ai";
 
-const TEST_LIMIT_PER_MINUTE = 5;
-const testCalls = new Map<string, number[]>();
+class AiAdminController {
+  private static readonly TEST_LIMIT_PER_MINUTE = 5;
+  private static readonly testCalls = new Map<string, number[]>();
 
-function enforceTestRateLimit(userId: string): void {
-  const now = Date.now();
-  const recent = (testCalls.get(userId) ?? []).filter(
-    (timestamp) => now - timestamp < 60_000,
-  );
-  if (recent.length >= TEST_LIMIT_PER_MINUTE) {
-    throw new AppError(
-      429,
-      "AI_TEST_RATE_LIMITED",
-      "Terlalu banyak test koneksi. Coba lagi sebentar.",
+  private enforceTestRateLimit(userId: string): void {
+    const now = Date.now();
+    const recent = (AiAdminController.testCalls.get(userId) ?? []).filter(
+      (timestamp) => now - timestamp < 60_000,
     );
+    if (recent.length >= AiAdminController.TEST_LIMIT_PER_MINUTE) {
+      throw new AppError(
+        429,
+        "AI_TEST_RATE_LIMITED",
+        "Terlalu banyak test koneksi. Coba lagi sebentar.",
+      );
+    }
+    recent.push(now);
+    AiAdminController.testCalls.set(userId, recent);
   }
-  recent.push(now);
-  testCalls.set(userId, recent);
-}
 
-export const aiAdminController = {
   /** GET /api/admin/ai/settings */
-  getSettings: (async (_req, res, next) => {
+  getSettings: RequestHandler = async (_req, res, next) => {
     try {
-      return ok(res, await settingsService.getPublicAiSettings());
+      ok(res, await settingsService.getPublicAiSettings());
     } catch (error) {
       next(error);
     }
-  }) as RequestHandler,
+  };
 
   /** PUT /api/admin/ai/settings */
-  updateSettings: (async (req, res, next) => {
+  updateSettings: RequestHandler = async (req, res, next) => {
     try {
       if (!req.user) throw new UnauthorizedError();
       const body = getValidated<UpdateAiSettingsBody>(req, "body");
@@ -45,33 +45,35 @@ export const aiAdminController = {
         model: body.model,
         updatedBy: req.user.id,
       });
-      return ok(res, settings);
+      ok(res, settings);
     } catch (error) {
       next(error);
     }
-  }) as RequestHandler,
+  };
 
   /** GET /api/admin/ai/models */
-  listModels: (async (_req, res, next) => {
+  listModels: RequestHandler = async (_req, res, next) => {
     try {
-      return ok(res, await listGeminiModels());
+      ok(res, await listGeminiModels());
     } catch (error) {
       next(error);
     }
-  }) as RequestHandler,
+  };
 
   /** POST /api/admin/ai/test */
-  test: (async (req, res, next) => {
+  test: RequestHandler = async (req, res, next) => {
     try {
       if (!req.user) throw new UnauthorizedError();
-      enforceTestRateLimit(req.user.id);
+      this.enforceTestRateLimit(req.user.id);
       const body = getValidated<TestAiBody>(req, "body");
       const prompt =
         body.prompt?.trim() ||
         "Balas dengan satu kalimat singkat: koneksi berhasil.";
-      return ok(res, await testGeminiConnection(prompt));
+      ok(res, await testGeminiConnection(prompt));
     } catch (error) {
       next(error);
     }
-  }) as RequestHandler,
-};
+  };
+}
+
+export const aiAdminController = new AiAdminController();

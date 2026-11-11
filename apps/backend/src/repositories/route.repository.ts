@@ -58,58 +58,62 @@ export type TrailRoutePatch = Partial<
   >
 >;
 
-export const routeRepository = {
+class RouteRepository {
+  private get db() {
+    return getDb();
+  }
+
   // --- Track nodes ---------------------------------------------------------
 
   async listNodes(destinationId: string): Promise<TrackNodeRow[]> {
-    return getDb()
+    return this.db
       .select()
       .from(trackNodes)
       .where(eq(trackNodes.destinationId, destinationId))
       .orderBy(asc(trackNodes.createdAt));
-  },
+  }
 
   async findNodeById(id: string): Promise<TrackNodeRow | undefined> {
-    const [row] = await getDb()
+    const [row] = await this.db
       .select()
       .from(trackNodes)
       .where(eq(trackNodes.id, id))
       .limit(1);
     return row;
-  },
+  }
 
   async findNodesByIds(ids: string[]): Promise<TrackNodeRow[]> {
     if (ids.length === 0) return [];
-    return getDb().select().from(trackNodes).where(inArray(trackNodes.id, ids));
-  },
+    return this.db.select().from(trackNodes).where(inArray(trackNodes.id, ids));
+  }
 
   async createNode(data: NewTrackNodeRow): Promise<TrackNodeRow> {
-    const [row] = await getDb().insert(trackNodes).values(data).returning();
+    const [row] = await this.db.insert(trackNodes).values(data).returning();
     return row!;
-  },
+  }
 
   async updateNode(
     id: string,
     patch: TrackNodePatch,
   ): Promise<TrackNodeRow | undefined> {
-    const [row] = await getDb()
+    const [row] = await this.db
       .update(trackNodes)
       .set({ ...patch, updatedAt: new Date() })
       .where(eq(trackNodes.id, id))
       .returning();
     return row;
-  },
+  }
 
   async deleteNode(id: string): Promise<boolean> {
-    const [row] = await getDb()
+    const [row] = await this.db
       .delete(trackNodes)
       .where(eq(trackNodes.id, id))
       .returning({ id: trackNodes.id });
     return Boolean(row);
-  },
+  }
 
   async countNodeSegments(nodeId: string): Promise<number> {
-    const [row] = await getDb()
+    const [row] = await this.db
       .select({ value: count() })
       .from(routeSegments)
       .where(
@@ -119,11 +123,11 @@ export const routeRepository = {
         ),
       );
     return Number(row?.value ?? 0);
-  },
+  }
 
   /** Segments touching a node (used to clean up when a node is deleted). */
   async findSegmentsForNode(nodeId: string): Promise<RouteSegmentRow[]> {
-    return getDb()
+    return this.db
       .select()
       .from(routeSegments)
       .where(
@@ -132,34 +136,34 @@ export const routeRepository = {
           eq(routeSegments.toNodeId, nodeId),
         ),
       );
-  },
+  }
 
   async countNodeRoutes(nodeId: string): Promise<number> {
-    const [row] = await getDb()
+    const [row] = await this.db
       .select({ value: count() })
       .from(trailRouteNodes)
       .where(eq(trailRouteNodes.nodeId, nodeId));
     return Number(row?.value ?? 0);
-  },
+  }
 
   // --- Segments ------------------------------------------------------------
 
   async listSegments(destinationId: string): Promise<RouteSegmentRow[]> {
-    return getDb()
+    return this.db
       .select()
       .from(routeSegments)
       .where(eq(routeSegments.destinationId, destinationId))
       .orderBy(asc(routeSegments.createdAt));
-  },
+  }
 
   async findSegmentById(id: string): Promise<RouteSegmentRow | undefined> {
-    const [row] = await getDb()
+    const [row] = await this.db
       .select()
       .from(routeSegments)
       .where(eq(routeSegments.id, id))
       .limit(1);
     return row;
-  },
+  }
 
   /** Segment between two nodes, regardless of direction. */
   async findSegmentBetween(
@@ -167,7 +171,7 @@ export const routeRepository = {
     firstNodeId: string,
     secondNodeId: string,
   ): Promise<RouteSegmentRow | undefined> {
-    const [row] = await getDb()
+    const [row] = await this.db
       .select()
       .from(routeSegments)
       .where(
@@ -187,105 +191,105 @@ export const routeRepository = {
       )
       .limit(1);
     return row;
-  },
+  }
 
   async createSegment(data: NewRouteSegmentRow): Promise<RouteSegmentRow> {
-    const [row] = await getDb().insert(routeSegments).values(data).returning();
+    const [row] = await this.db.insert(routeSegments).values(data).returning();
     return row!;
-  },
+  }
 
   async updateSegment(
     id: string,
     patch: RouteSegmentPatch,
   ): Promise<RouteSegmentRow | undefined> {
-    const [row] = await getDb()
+    const [row] = await this.db
       .update(routeSegments)
       .set({ ...patch, updatedAt: new Date() })
       .where(eq(routeSegments.id, id))
       .returning();
     return row;
-  },
+  }
 
   async deleteSegment(id: string): Promise<boolean> {
-    const [row] = await getDb()
+    const [row] = await this.db
       .delete(routeSegments)
       .where(eq(routeSegments.id, id))
       .returning({ id: routeSegments.id });
     return Boolean(row);
-  },
+  }
 
   async countSegmentRoutes(segmentId: string): Promise<number> {
-    const [row] = await getDb()
+    const [row] = await this.db
       .select({ value: count() })
       .from(trailRouteSegments)
       .where(eq(trailRouteSegments.segmentId, segmentId));
     return Number(row?.value ?? 0);
-  },
+  }
 
   // --- Routes --------------------------------------------------------------
 
   async listRoutes(destinationId: string): Promise<TrailRouteRow[]> {
-    return getDb()
+    return this.db
       .select()
       .from(trailRoutes)
       .where(eq(trailRoutes.destinationId, destinationId))
       .orderBy(asc(trailRoutes.createdAt));
-  },
+  }
 
   async findRouteById(id: string): Promise<TrailRouteRow | undefined> {
-    const [row] = await getDb()
+    const [row] = await this.db
       .select()
       .from(trailRoutes)
       .where(eq(trailRoutes.id, id))
       .limit(1);
     return row;
-  },
+  }
 
   async createRoute(data: NewTrailRouteRow): Promise<TrailRouteRow> {
-    const [row] = await getDb().insert(trailRoutes).values(data).returning();
+    const [row] = await this.db.insert(trailRoutes).values(data).returning();
     return row!;
-  },
+  }
 
   async updateRoute(
     id: string,
     patch: TrailRoutePatch,
   ): Promise<TrailRouteRow | undefined> {
-    const [row] = await getDb()
+    const [row] = await this.db
       .update(trailRoutes)
       .set({ ...patch, updatedAt: new Date() })
       .where(eq(trailRoutes.id, id))
       .returning();
     return row;
-  },
+  }
 
   async deleteRoute(id: string): Promise<boolean> {
-    const [row] = await getDb()
+    const [row] = await this.db
       .delete(trailRoutes)
       .where(eq(trailRoutes.id, id))
       .returning({ id: trailRoutes.id });
     return Boolean(row);
-  },
+  }
 
   async findRouteNodeIds(routeId: string): Promise<string[]> {
-    const rows = await getDb()
+    const rows = await this.db
       .select({ nodeId: trailRouteNodes.nodeId })
       .from(trailRouteNodes)
       .where(eq(trailRouteNodes.routeId, routeId))
       .orderBy(asc(trailRouteNodes.position));
     return rows.map((row) => row.nodeId);
-  },
+  }
 
   async findRouteSegmentIds(routeId: string): Promise<string[]> {
-    const rows = await getDb()
+    const rows = await this.db
       .select({ segmentId: trailRouteSegments.segmentId })
       .from(trailRouteSegments)
       .where(eq(trailRouteSegments.routeId, routeId))
       .orderBy(asc(trailRouteSegments.position));
     return rows.map((row) => row.segmentId);
-  },
+  }
 
   async replaceRouteNodes(routeId: string, nodeIds: string[]): Promise<void> {
-    const db = getDb();
+    const db = this.db;
     await db
       .delete(trailRouteNodes)
       .where(eq(trailRouteNodes.routeId, routeId));
@@ -294,13 +298,13 @@ export const routeRepository = {
         nodeIds.map((nodeId, position) => ({ routeId, nodeId, position })),
       );
     }
-  },
+  }
 
   async replaceRouteSegments(
     routeId: string,
     segmentIds: string[],
   ): Promise<void> {
-    const db = getDb();
+    const db = this.db;
     await db
       .delete(trailRouteSegments)
       .where(eq(trailRouteSegments.routeId, routeId));
@@ -313,17 +317,17 @@ export const routeRepository = {
         })),
       );
     }
-  },
+  }
 
   // --- Route geometry ------------------------------------------------------
 
   async findRoutePoints(routeId: string) {
-    return getDb()
+    return this.db
       .select()
       .from(trailRoutePoints)
       .where(eq(trailRoutePoints.routeId, routeId))
       .orderBy(asc(trailRoutePoints.position));
-  },
+  }
 
   async replaceRoutePoints(
     routeId: string,
@@ -334,7 +338,7 @@ export const routeRepository = {
       nodeId: string | null;
     }[],
   ): Promise<void> {
-    const db = getDb();
+    const db = this.db;
     await db
       .delete(trailRoutePoints)
       .where(eq(trailRoutePoints.routeId, routeId));
@@ -350,5 +354,7 @@ export const routeRepository = {
         })),
       );
     }
-  },
-};
+  }
+}
+
+export const routeRepository = new RouteRepository();
