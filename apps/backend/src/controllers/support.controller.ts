@@ -4,19 +4,22 @@ import { supportService } from "../services/support.service";
 import { ok } from "../utils/response";
 import type { SupportIdParams, SupportListQuery } from "../types/support";
 
-export const supportController = {
-  getById: (async (req, res, next) => {
+class SupportController {
+  getById: RequestHandler = async (req, res, next) => {
     try {
       const { id } = getValidated<SupportIdParams>(req, "params");
-      return ok(res, await supportService.getById(id));
+      ok(res, await supportService.getById(id));
     } catch (err) { next(err); }
-  }) as RequestHandler,
-  list: (async (req, res, next) => {
+  };
+
+  list: RequestHandler = async (req, res, next) => {
     try {
       const { id } = getValidated<SupportIdParams>(req, "params");
       const query = getValidated<SupportListQuery>(req, "query");
       const result = await supportService.list(id, { ...query, order: "asc" });
-      return ok(res, result.items, result.meta);
+      ok(res, result.items, result.meta);
     } catch (err) { next(err); }
-  }) as RequestHandler,
-};
+  };
+}
+
+export const supportController = new SupportController();

@@ -13,53 +13,55 @@ import type {
   VerifyEmailInput,
 } from "../types/auth";
 
-export const authController = {
+class AuthController {
   /** POST /api/auth/register */
-  register: (async (req, res) => {
+  register: RequestHandler = async (req, res) => {
     const body = getValidated<RegisterInput>(req, "body");
     const result = await authService.register(body);
     ok(res, result, undefined, 201);
-  }) satisfies RequestHandler,
+  };
 
   /** POST /api/auth/login */
-  login: (async (req, res) => {
+  login: RequestHandler = async (req, res) => {
     const body = getValidated<LoginInput>(req, "body");
     ok(res, await authService.login(body));
-  }) satisfies RequestHandler,
+  };
 
   /** POST /api/auth/google */
-  google: (async (req, res) => {
+  google: RequestHandler = async (req, res) => {
     const body = getValidated<GoogleInput>(req, "body");
     ok(res, await authService.googleLogin(body));
-  }) satisfies RequestHandler,
+  };
 
   /** POST /api/auth/forgot-password */
-  forgotPassword: (async (req, res) => {
+  forgotPassword: RequestHandler = async (req, res) => {
     const body = getValidated<ForgotPasswordInput>(req, "body");
     ok(res, await authService.forgotPassword(body));
-  }) satisfies RequestHandler,
+  };
 
   /** POST /api/auth/reset-password */
-  resetPassword: (async (req, res) => {
+  resetPassword: RequestHandler = async (req, res) => {
     const body = getValidated<ResetPasswordInput>(req, "body");
     ok(res, await authService.resetPassword(body));
-  }) satisfies RequestHandler,
+  };
 
   /** POST /api/auth/verify-email */
-  verifyEmail: (async (req, res) => {
+  verifyEmail: RequestHandler = async (req, res) => {
     const body = getValidated<VerifyEmailInput>(req, "body");
     ok(res, await authService.verifyEmail(body));
-  }) satisfies RequestHandler,
+  };
 
   /** POST /api/auth/resend-verification */
-  resendVerification: (async (req, res) => {
+  resendVerification: RequestHandler = async (req, res) => {
     const body = getValidated<ResendVerificationInput>(req, "body");
     ok(res, await authService.resendVerification(body));
-  }) satisfies RequestHandler,
+  };
 
   /** GET /api/auth/me (protected) */
-  me: (async (req, res) => {
+  me: RequestHandler = async (req, res) => {
     if (!req.user) throw new UnauthorizedError();
     ok(res, { user: await authService.getMe(req.user.id) });
-  }) satisfies RequestHandler,
-};
+  };
+}
+
+export const authController = new AuthController();

@@ -23,95 +23,99 @@ export type UserPatch = Partial<
 /** Alias kept for the user-management service. */
 export type UpdateUserInput = UserPatch;
 
-/** A verified account with no login for this long counts as inactive. */
-const INACTIVE_AFTER_DAYS = 90;
+class UserRepository {
+  /** A verified account with no login for this long counts as inactive. */
+  private static readonly INACTIVE_AFTER_DAYS = 90;
 
-/** SQL condition for the derived account status shown in the admin table. */
-function statusCondition(status: UserStatusFilter) {
-  const cutoff = new Date(
-    Date.now() - INACTIVE_AFTER_DAYS * 24 * 60 * 60 * 1000,
-  );
-
-  switch (status) {
-    case "unverified":
-      return isNull(users.emailVerifiedAt);
-    case "inactive":
-      return and(
-        isNotNull(users.emailVerifiedAt),
-        or(isNull(users.lastLoginAt), lt(users.lastLoginAt, cutoff)),
-      );
-    case "active":
-      return and(
-        isNotNull(users.emailVerifiedAt),
-        isNotNull(users.lastLoginAt),
-        gt(users.lastLoginAt, cutoff),
-      );
+  private get db() {
+    return getDb();
   }
-}
 
-export const userRepository = {
+  /** SQL condition for the derived account status shown in the admin table. */
+  private statusCondition(status: UserStatusFilter) {
+    const cutoff = new Date(
+      Date.now() - UserRepository.INACTIVE_AFTER_DAYS * 24 * 60 * 60 * 1000,
+    );
+
+    switch (status) {
+      case "unverified":
+        return isNull(users.emailVerifiedAt);
+      case "inactive":
+        return and(
+          isNotNull(users.emailVerifiedAt),
+          or(isNull(users.lastLoginAt), lt(users.lastLoginAt, cutoff)),
+        );
+      case "active":
+        return and(
+          isNotNull(users.emailVerifiedAt),
+          isNotNull(users.lastLoginAt),
+          gt(users.lastLoginAt, cutoff),
+        );
+    }
+  }
+
   async emailExists(email: string): Promise<boolean> {
-    const db = getDb();
+    const db = this.db;
     const [row] = await db
       .select({ value: sql<number>`1` })
       .from(users)
       .where(eq(users.email, email))
       .limit(1);
     return Boolean(row);
-  },
+  }
 
   async findByEmail(email: string): Promise<UserRow | undefined> {
-    const [row] = await getDb()
+    const [row] = await this.db
       .select()
       .from(users)
       .where(eq(users.email, email))
       .limit(1);
     return row;
-  },
+  }
 
   async findById(id: string): Promise<UserRow | undefined> {
-    const [row] = await getDb()
+    const [row] = await this.db
       .select()
       .from(users)
       .where(eq(users.id, id))
       .limit(1);
     return row;
-  },
+  }
 
   async findByGoogleId(googleId: string): Promise<UserRow | undefined> {
-    const [row] = await getDb()
+    const [row] = await this.db
       .select()
       .from(users)
       .where(eq(users.googleId, googleId))
       .limit(1);
     return row;
-  },
+  }
 
   async create(data: NewUserRow): Promise<UserRow> {
-    const [row] = await getDb().insert(users).values(data).returning();
+    const [row] = await this.db.insert(users).values(data).returning();
     return row!;
-  },
+  }
 
   async update(id: string, patch: UserPatch): Promise<UserRow | undefined> {
-    const [row] = await getDb()
+    const [row] = await this.db
       .update(users)
       .set({ ...patch, updatedAt: new Date() })
       .where(eq(users.id, id))
       .returning();
     return row;
-  },
+  }
 
   async touchLastLogin(id: string): Promise<void> {
-    await getDb()
+    await this.db
       .update(users)
       .set({ lastLoginAt: new Date(), updatedAt: new Date() })
       .where(eq(users.id, id));
-  },
+  }
 
   async list(
     params: Pagination & { role?: UserRow["role"]; status?: UserStatusFilter },
   ): Promise<{ items: UserRow[]; total: number }> {
-    const db = getDb();
+    const db = this.db;
     const { limit, offset, sort, order, search } = params;
 
     const where = and(
@@ -119,7 +123,7 @@ export const userRepository = {
         ? or(ilike(users.name, `%${search}%`), ilike(users.email, `%${search}%`))
         : undefined,
       params.role ? eq(users.role, params.role) : undefined,
-      params.status ? statusCondition(params.status) : undefined,
+      params.status ? this.statusCondition(params.status) : undefined,
     );
 
     const sortable = {
@@ -147,14 +151,16 @@ export const userRepository = {
       .where(where ? and(where) : undefined);
 
     return { items: rows, total: Number(totalRow?.value ?? 0) };
-  },
+  }
 
   async delete(id: string): Promise<boolean> {
-    const db = getDb();
+    const db = this.db;
     const [row] = await db
       .delete(users)
       .where(eq(users.id, id))
       .returning({ id: users.id });
     return Boolean(row);
-  },
-};
+  }
+}
+
+export const userRepository = new UserRepository();

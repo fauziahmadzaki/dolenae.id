@@ -13,86 +13,86 @@ import type {
   UpdateTrailRouteBody,
 } from "../types/route";
 
-export const routeController = {
-  publicProfile: (async (req, res, next) => {
+class RouteController {
+  publicProfile: RequestHandler = async (req, res, next) => {
     try {
       const { id } = getValidated<RouteEntityParams>(req, "params");
-      return ok(res, await routeService.profile(id, true));
+      ok(res, await routeService.profile(id, true));
     } catch (error) {
       next(error);
     }
-  }) as RequestHandler,
+  };
 
-  publicGraph: (async (req, res, next) => {
+  publicGraph: RequestHandler = async (req, res, next) => {
     try {
       const { destinationId } = getValidated<RouteDestinationParams>(req, "params");
-      return ok(res, await routeService.graph(destinationId, true));
+      ok(res, await routeService.graph(destinationId, true));
     } catch (error) {
       next(error);
     }
-  }) as RequestHandler,
+  };
 
-  graph: (async (req, res, next) => {
+  graph: RequestHandler = async (req, res, next) => {
     try {
       const { destinationId } = getValidated<RouteDestinationParams>(req, "params");
-      return ok(res, await routeService.graph(destinationId));
+      ok(res, await routeService.graph(destinationId));
     } catch (error) {
       next(error);
     }
-  }) as RequestHandler,
+  };
 
-  listNodes: (async (req, res, next) => {
+  listNodes: RequestHandler = async (req, res, next) => {
     try {
       const { destinationId } = getValidated<RouteDestinationParams>(req, "params");
-      return ok(res, await routeService.listNodes(destinationId));
+      ok(res, await routeService.listNodes(destinationId));
     } catch (error) {
       next(error);
     }
-  }) as RequestHandler,
+  };
 
-  createNode: (async (req, res, next) => {
+  createNode: RequestHandler = async (req, res, next) => {
     try {
       const { destinationId } = getValidated<RouteDestinationParams>(req, "params");
       const body = getValidated<CreateTrackNodeBody>(req, "body");
-      return ok(res, await routeService.createNode(destinationId, body), undefined, 201);
+      ok(res, await routeService.createNode(destinationId, body), undefined, 201);
     } catch (error) {
       next(error);
     }
-  }) as RequestHandler,
+  };
 
-  updateNode: (async (req, res, next) => {
+  updateNode: RequestHandler = async (req, res, next) => {
     try {
       const { id } = getValidated<RouteEntityParams>(req, "params");
       const body = getValidated<UpdateTrackNodeBody>(req, "body");
-      return ok(res, await routeService.updateNode(id, body));
+      ok(res, await routeService.updateNode(id, body));
     } catch (error) {
       next(error);
     }
-  }) as RequestHandler,
+  };
 
-  deleteNode: (async (req, res, next) => {
+  deleteNode: RequestHandler = async (req, res, next) => {
     try {
       const { id } = getValidated<RouteEntityParams>(req, "params");
-      return ok(res, await routeService.deleteNode(id));
+      ok(res, await routeService.deleteNode(id));
     } catch (error) {
       next(error);
     }
-  }) as RequestHandler,
+  };
 
-  listSegments: (async (req, res, next) => {
+  listSegments: RequestHandler = async (req, res, next) => {
     try {
       const { destinationId } = getValidated<RouteDestinationParams>(req, "params");
-      return ok(res, await routeService.listSegments(destinationId));
+      ok(res, await routeService.listSegments(destinationId));
     } catch (error) {
       next(error);
     }
-  }) as RequestHandler,
+  };
 
-  createSegment: (async (req, res, next) => {
+  createSegment: RequestHandler = async (req, res, next) => {
     try {
       const { destinationId } = getValidated<RouteDestinationParams>(req, "params");
       const body = getValidated<CreateRouteSegmentBody>(req, "body");
-      return ok(
+      ok(
         res,
         await routeService.createSegment(destinationId, body),
         undefined,
@@ -101,50 +101,50 @@ export const routeController = {
     } catch (error) {
       next(error);
     }
-  }) as RequestHandler,
+  };
 
-  updateSegment: (async (req, res, next) => {
+  updateSegment: RequestHandler = async (req, res, next) => {
     try {
       const { id } = getValidated<RouteEntityParams>(req, "params");
       const body = getValidated<UpdateRouteSegmentBody>(req, "body");
-      return ok(res, await routeService.updateSegment(id, body));
+      ok(res, await routeService.updateSegment(id, body));
     } catch (error) {
       next(error);
     }
-  }) as RequestHandler,
+  };
 
-  deleteSegment: (async (req, res, next) => {
+  deleteSegment: RequestHandler = async (req, res, next) => {
     try {
       const { id } = getValidated<RouteEntityParams>(req, "params");
-      return ok(res, await routeService.deleteSegment(id));
+      ok(res, await routeService.deleteSegment(id));
     } catch (error) {
       next(error);
     }
-  }) as RequestHandler,
+  };
 
-  listRoutes: (async (req, res, next) => {
+  listRoutes: RequestHandler = async (req, res, next) => {
     try {
       const { destinationId } = getValidated<RouteDestinationParams>(req, "params");
-      return ok(res, await routeService.listRoutes(destinationId));
+      ok(res, await routeService.listRoutes(destinationId));
     } catch (error) {
       next(error);
     }
-  }) as RequestHandler,
+  };
 
-  getRoute: (async (req, res, next) => {
+  getRoute: RequestHandler = async (req, res, next) => {
     try {
       const { id } = getValidated<RouteEntityParams>(req, "params");
-      return ok(res, await routeService.getRoute(id));
+      ok(res, await routeService.getRoute(id));
     } catch (error) {
       next(error);
     }
-  }) as RequestHandler,
+  };
 
-  createRoute: (async (req, res, next) => {
+  createRoute: RequestHandler = async (req, res, next) => {
     try {
       const { destinationId } = getValidated<RouteDestinationParams>(req, "params");
       const body = getValidated<CreateTrailRouteBody>(req, "body");
-      return ok(
+      ok(
         res,
         await routeService.createRoute(destinationId, body),
         undefined,
@@ -153,33 +153,35 @@ export const routeController = {
     } catch (error) {
       next(error);
     }
-  }) as RequestHandler,
+  };
 
-  updateRoute: (async (req, res, next) => {
+  updateRoute: RequestHandler = async (req, res, next) => {
     try {
       const { id } = getValidated<RouteEntityParams>(req, "params");
       const body = getValidated<UpdateTrailRouteBody>(req, "body");
-      return ok(res, await routeService.updateRoute(id, body));
+      ok(res, await routeService.updateRoute(id, body));
     } catch (error) {
       next(error);
     }
-  }) as RequestHandler,
+  };
 
-  deleteRoute: (async (req, res, next) => {
+  deleteRoute: RequestHandler = async (req, res, next) => {
     try {
       const { id } = getValidated<RouteEntityParams>(req, "params");
-      return ok(res, await routeService.deleteRoute(id));
+      ok(res, await routeService.deleteRoute(id));
     } catch (error) {
       next(error);
     }
-  }) as RequestHandler,
+  };
 
-  profile: (async (req, res, next) => {
+  profile: RequestHandler = async (req, res, next) => {
     try {
       const { id } = getValidated<RouteEntityParams>(req, "params");
-      return ok(res, await routeService.profile(id));
+      ok(res, await routeService.profile(id));
     } catch (error) {
       next(error);
     }
-  }) as RequestHandler,
-};
+  };
+}
+
+export const routeController = new RouteController();

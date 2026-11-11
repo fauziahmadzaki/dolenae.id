@@ -4,43 +4,45 @@ import { regionService } from "../services/region.service";
 import { ok } from "../utils/response";
 import type { DistrictQuery, RegencyQuery, ReverseQuery } from "../types/region";
 
-export const regionController = {
+class RegionController {
   /** GET /api/regions/provinces — all provinces (public). */
-  provinces: (async (_req, res, next) => {
+  provinces: RequestHandler = async (_req, res, next) => {
     try {
-      return ok(res, regionService.provinces());
+      ok(res, regionService.provinces());
     } catch (err) {
       next(err);
     }
-  }) as RequestHandler,
+  };
 
   /** GET /api/regions/regencies?province= — regencies of a province (public). */
-  regencies: (async (req, res, next) => {
+  regencies: RequestHandler = async (req, res, next) => {
     try {
       const { province } = getValidated<RegencyQuery>(req, "query");
-      return ok(res, regionService.regencies(province));
+      ok(res, regionService.regencies(province));
     } catch (err) {
       next(err);
     }
-  }) as RequestHandler,
+  };
 
   /** GET /api/regions/districts?regency= — districts of a regency (public). */
-  districts: (async (req, res, next) => {
+  districts: RequestHandler = async (req, res, next) => {
     try {
       const { regency } = getValidated<DistrictQuery>(req, "query");
-      return ok(res, regionService.districts(regency));
+      ok(res, regionService.districts(regency));
     } catch (err) {
       next(err);
     }
-  }) as RequestHandler,
+  };
 
   /** GET /api/regions/reverse?lat=&lng= — approximate reverse geocode (public). */
-  reverse: (async (req, res, next) => {
+  reverse: RequestHandler = async (req, res, next) => {
     try {
       const { lat, lng } = getValidated<ReverseQuery>(req, "query");
-      return ok(res, regionService.reverse(lat, lng));
+      ok(res, regionService.reverse(lat, lng));
     } catch (err) {
       next(err);
     }
-  }) as RequestHandler,
-};
+  };
+}
+
+export const regionController = new RegionController();

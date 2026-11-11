@@ -40,12 +40,12 @@ export function toPublicCategory(row: CategoryRow): PublicCategory {
   };
 }
 
-export const categoryService = {
+class CategoryService {
   async getById(id: string): Promise<PublicCategory> {
     const row = await categoryRepository.findById(id);
     if (!row) throw new NotFoundError("Kategori tidak ditemukan");
     return toPublicCategory(row);
-  },
+  }
 
   async list(
     query: PaginationQuery & { type?: CategoryType },
@@ -56,10 +56,10 @@ export const categoryService = {
       type: query.type,
     });
     return {
-      items: items.map(toPublicCategory),
+      items: items.map((row) => toPublicCategory(row)),
       meta: buildMeta(total, query.page, query.limit),
     };
-  },
+  }
 
   async create(input: CreateCategoryDto): Promise<PublicCategory> {
     const slug = input.slug?.trim() || slugify(input.name);
@@ -75,7 +75,7 @@ export const categoryService = {
       description: input.description ?? null,
     });
     return toPublicCategory(row);
-  },
+  }
 
   async update(id: string, input: UpdateCategoryDto): Promise<PublicCategory> {
     const existing = await categoryRepository.findById(id);
@@ -104,7 +104,7 @@ export const categoryService = {
     const updated = await categoryRepository.update(id, patch);
     if (!updated) throw new NotFoundError("Kategori tidak ditemukan");
     return toPublicCategory(updated);
-  },
+  }
 
   /**
    * Delete a category. Destination links are removed by the pivot cascade —
@@ -117,5 +117,7 @@ export const categoryService = {
     const deleted = await categoryRepository.delete(id);
     if (!deleted) throw new NotFoundError("Gagal menghapus kategori");
     return { id, deleted: true };
-  },
-};
+  }
+}
+
+export const categoryService = new CategoryService();

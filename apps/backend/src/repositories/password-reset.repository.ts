@@ -6,22 +6,26 @@ import {
   type PasswordResetTokenRow,
 } from "../db/schema";
 
-export const passwordResetRepository = {
+class PasswordResetRepository {
+  private get db() {
+    return getDb();
+  }
+
   async create(
     data: NewPasswordResetTokenRow,
   ): Promise<PasswordResetTokenRow> {
-    const [row] = await getDb()
+    const [row] = await this.db
       .insert(passwordResetTokens)
       .values(data)
       .returning();
     return row!;
-  },
+  }
 
   /** Find a token that exists, is unused, and has not expired. */
   async findValidByHash(
     tokenHash: string,
   ): Promise<PasswordResetTokenRow | undefined> {
-    const [row] = await getDb()
+    const [row] = await this.db
       .select()
       .from(passwordResetTokens)
       .where(
@@ -33,12 +37,14 @@ export const passwordResetRepository = {
       )
       .limit(1);
     return row;
-  },
+  }
 
   async markUsed(id: string): Promise<void> {
-    await getDb()
+    await this.db
       .update(passwordResetTokens)
       .set({ usedAt: new Date() })
       .where(eq(passwordResetTokens.id, id));
-  },
-};
+  }
+}
+
+export const passwordResetRepository = new PasswordResetRepository();

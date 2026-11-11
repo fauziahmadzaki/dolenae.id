@@ -5,9 +5,9 @@ import { ValidationError } from "../utils/errors";
 import { ok } from "../utils/response";
 import type { DeleteUploadQuery, UploadQuery } from "../types/upload";
 
-export const uploadController = {
+class UploadController {
   /** POST /api/uploads — admin uploads one image (multipart field `file`). */
-  create: (async (req, res, next) => {
+  create: RequestHandler = async (req, res, next) => {
     try {
       if (!req.file) {
         throw new ValidationError(
@@ -18,20 +18,22 @@ export const uploadController = {
       const { folder } = getValidated<UploadQuery>(req, "query");
       const image = await storageService.uploadImage(req.file, folder);
 
-      return ok(res, image, undefined, 201);
+      ok(res, image, undefined, 201);
     } catch (err) {
       next(err);
     }
-  }) as RequestHandler,
+  };
 
   /** DELETE /api/uploads?url= — admin removes an uploaded image. */
-  remove: (async (req, res, next) => {
+  remove: RequestHandler = async (req, res, next) => {
     try {
       const { url } = getValidated<DeleteUploadQuery>(req, "query");
       const result = await storageService.deleteByUrl(url);
-      return ok(res, result);
+      ok(res, result);
     } catch (err) {
       next(err);
     }
-  }) as RequestHandler,
-};
+  };
+}
+
+export const uploadController = new UploadController();

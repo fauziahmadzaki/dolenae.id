@@ -10,66 +10,68 @@ import type {
 import { ok } from "../utils/response";
 import { NotFoundError } from "../utils/errors";
 
-export const destinationController = {
+class DestinationController {
   /** GET /api/destinations — daftar destinasi (publik) dengan pagination & filter. */
-  list: (async (req, res, next) => {
+  list: RequestHandler = async (req, res, next) => {
     try {
       const query = getValidated<DestinationListQuery>(req, "query");
       const result = await destinationService.list({
         ...query,
         status: req.user?.role === "admin" ? query.status : "published",
       });
-      return ok(res, result.items, result.meta);
+      ok(res, result.items, result.meta);
     } catch (err) {
       next(err);
     }
-  }) as RequestHandler,
+  };
 
   /** GET /api/destinations/:id — detail destinasi beserta kategori (publik). */
-  getById: (async (req, res, next) => {
+  getById: RequestHandler = async (req, res, next) => {
     try {
       const params = getValidated<DestinationIdParams>(req, "params");
       const destination = await destinationService.getById(params.id);
       if (req.user?.role !== "admin" && destination.status !== "published") {
         throw new NotFoundError("Destinasi tidak ditemukan");
       }
-      return ok(res, destination);
+      ok(res, destination);
     } catch (err) {
       next(err);
     }
-  }) as RequestHandler,
+  };
 
   /** POST /api/destinations — admin membuat destinasi. */
-  create: (async (req, res, next) => {
+  create: RequestHandler = async (req, res, next) => {
     try {
       const body = getValidated<CreateDestinationBody>(req, "body");
       const destination = await destinationService.create(body);
-      return ok(res, destination, undefined, 201);
+      ok(res, destination, undefined, 201);
     } catch (err) {
       next(err);
     }
-  }) as RequestHandler,
+  };
 
   /** PATCH /api/destinations/:id — admin memperbarui destinasi. */
-  update: (async (req, res, next) => {
+  update: RequestHandler = async (req, res, next) => {
     try {
       const params = getValidated<DestinationIdParams>(req, "params");
       const body = getValidated<UpdateDestinationBody>(req, "body");
       const destination = await destinationService.update(params.id, body);
-      return ok(res, destination);
+      ok(res, destination);
     } catch (err) {
       next(err);
     }
-  }) as RequestHandler,
+  };
 
   /** DELETE /api/destinations/:id — admin menghapus destinasi. */
-  delete: (async (req, res, next) => {
+  delete: RequestHandler = async (req, res, next) => {
     try {
       const params = getValidated<DestinationIdParams>(req, "params");
       const result = await destinationService.delete(params.id);
-      return ok(res, result);
+      ok(res, result);
     } catch (err) {
       next(err);
     }
-  }) as RequestHandler,
-};
+  };
+}
+
+export const destinationController = new DestinationController();

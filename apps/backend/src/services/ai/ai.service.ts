@@ -16,89 +16,91 @@ import type {
   AiOptions,
 } from "./types";
 
-const normalizeProvinceName = (value?: string | null): string =>
-  (value ?? "")
-    .trim()
-    .toLowerCase()
-    .replace(/^provinsi\s+/, "")
-    .replace(/^dki\s+/, "jakarta ")
-    .replace(/^di\s+/, "yogyakarta ")
-    .trim();
-
-function needsInterprovinceTransport(
-  context: AiContext,
-  input: AiPreferenceInput,
-): boolean {
-  const origin = normalizeProvinceName(input.originProvince);
-  if (!origin) return false;
-  return context.destinations.some((destination) => {
-    const province = normalizeProvinceName(destination.province);
-    return province.length > 0 && province !== origin;
-  });
-}
-
-function mergeChecklistItems(
-  primary: AiChecklistItem[],
-  fallback: AiChecklistItem[],
-): AiChecklistItem[] {
-  const seen = new Set<string>();
-  const merged: AiChecklistItem[] = [];
-  for (const item of [...primary, ...fallback]) {
-    const key = item.name.trim().toLowerCase();
-    if (!key || seen.has(key)) continue;
-    seen.add(key);
-    merged.push(item);
-  }
-  return merged;
-}
-
-const hashInput = (input: AiPreferenceInput): string =>
-  createHash("sha256")
-    // Bump when the prompt/retrieval contract changes so older cached rows do
-    // not bypass new grounding/notice rules.
-    .update("ai-v6:")
-    .update(JSON.stringify(input, Object.keys(input).sort()))
-    .digest("hex");
-
-/** Add a consistent "not found in catalog" notice to any engine result. */
-export function attachQueryNotice(
-  result: AiItineraryPayload,
-  context: AiContext,
-): AiItineraryPayload {
-  const warnings = [...result.briefing.warnings];
-  let notice = result.notice;
-
-  if (context.invalidDestinationIds.length > 0) {
-    warnings.unshift(
-      `${context.invalidDestinationIds.length} destinasi pilihan tidak ditemukan di katalog dan dilewati.`,
-    );
+class AiService {
+  private normalizeProvinceName(value?: string | null): string {
+    return (value ?? "")
+      .trim()
+      .toLowerCase()
+      .replace(/^provinsi\s+/, "")
+      .replace(/^dki\s+/, "jakarta ")
+      .replace(/^di\s+/, "yogyakarta ")
+      .trim();
   }
 
-  if (!context.queryMatched) {
-    const terms = context.unmatchedTerms.join(", ");
-    const label = terms ? ` (${terms})` : "";
-    const hasAlternatives = context.destinations.length > 0;
-    notice = hasAlternatives
-      ? `Maaf, destinasi yang kamu cari${label} belum ada di Dolenae. Berikut rekomendasi alternatif yang paling sesuai dengan preferensimu.`
-      : `Maaf, destinasi yang kamu cari${label} belum ada di Dolenae dan belum ada alternatif yang cocok. Coba longgarkan preferensimu.`;
-    warnings.unshift(
-      hasAlternatives
-        ? `Kata kunci "${terms}" belum ada di data destinasi; itinerary memakai alternatif terdekat.`
-        : `Kata kunci "${terms}" belum ada di data destinasi dan tidak ada alternatif yang cocok.`,
-    );
+  private needsInterprovinceTransport(
+    context: AiContext,
+    input: AiPreferenceInput,
+  ): boolean {
+    const origin = this.normalizeProvinceName(input.originProvince);
+    if (!origin) return false;
+    return context.destinations.some((destination) => {
+      const province = this.normalizeProvinceName(destination.province);
+      return province.length > 0 && province !== origin;
+    });
   }
 
-  return {
-    ...result,
-    notice,
-    briefing: {
-      ...result.briefing,
-      warnings: [...new Set(warnings)],
-    },
-  };
-}
+  private mergeChecklistItems(
+    primary: AiChecklistItem[],
+    fallback: AiChecklistItem[],
+  ): AiChecklistItem[] {
+    const seen = new Set<string>();
+    const merged: AiChecklistItem[] = [];
+    for (const item of [...primary, ...fallback]) {
+      const key = item.name.trim().toLowerCase();
+      if (!key || seen.has(key)) continue;
+      seen.add(key);
+      merged.push(item);
+    }
+    return merged;
+  }
 
-export const aiService = {
+  private hashInput(input: AiPreferenceInput): string {
+    return createHash("sha256")
+      // Bump when the prompt/retrieval contract changes so older cached rows do
+      // not bypass new grounding/notice rules.
+      .update("ai-v6:")
+      .update(JSON.stringify(input, Object.keys(input).sort()))
+      .digest("hex");
+  }
+
+  /** Add a consistent "not found in catalog" notice to any engine result. */
+  attachQueryNotice(
+    result: AiItineraryPayload,
+    context: AiContext,
+  ): AiItineraryPayload {
+    const warnings = [...result.briefing.warnings];
+    let notice = result.notice;
+
+    if (context.invalidDestinationIds.length > 0) {
+      warnings.unshift(
+        `${context.invalidDestinationIds.length} destinasi pilihan tidak ditemukan di katalog dan dilewati.`,
+      );
+    }
+
+    if (!context.queryMatched) {
+      const terms = context.unmatchedTerms.join(", ");
+      const label = terms ? ` (${terms})` : "";
+      const hasAlternatives = context.destinations.length > 0;
+      notice = hasAlternatives
+        ? `Maaf, destinasi yang kamu cari${label} belum ada di Dolenae. Berikut rekomendasi alternatif yang paling sesuai dengan preferensimu.`
+        : `Maaf, destinasi yang kamu cari${label} belum ada di Dolenae dan belum ada alternatif yang cocok. Coba longgarkan preferensimu.`;
+      warnings.unshift(
+        hasAlternatives
+          ? `Kata kunci "${terms}" belum ada di data destinasi; itinerary memakai alternatif terdekat.`
+          : `Kata kunci "${terms}" belum ada di data destinasi dan tidak ada alternatif yang cocok.`,
+      );
+    }
+
+    return {
+      ...result,
+      notice,
+      briefing: {
+        ...result.briefing,
+        warnings: [...new Set(warnings)],
+      },
+    };
+  }
+
   /** Preference options derived from destinations currently in the catalog. */
   async getOptions(): Promise<AiOptions> {
     const list = await destinationService.list({
@@ -135,7 +137,7 @@ export const aiService = {
       ],
       durations: [1, 2, 3, 4, 5, 6, 7],
     };
-  },
+  }
 
   async generate(
     userId: string,
@@ -146,7 +148,7 @@ export const aiService = {
     const cacheSince = new Date(
       Date.now() - config.aiCacheTtlHours * 60 * 60 * 1000,
     );
-    const requestHash = hashInput(input);
+    const requestHash = this.hashInput(input);
 
     if (!options.refresh) {
       const cached = await aiRepository.findRecent(
@@ -182,12 +184,12 @@ export const aiService = {
     if (!result) {
       result = buildDeterministicItinerary(context, input);
     }
-    result = attachQueryNotice(result, context);
+    result = this.attachQueryNotice(result, context);
 
     // Keep the AI checklist useful even when the model returns only a few
     // items. The deterministic list fills the gaps without touching the
     // model's itinerary.
-    const originDiff = needsInterprovinceTransport(context, input);
+    const originDiff = this.needsInterprovinceTransport(context, input);
     const hasInterprovinceAlternatives = result.checklistItems.some(
       (item) =>
         item.alternativeGroup === "transport-antarprovinsi" ||
@@ -215,7 +217,7 @@ export const aiService = {
               (item) =>
                 item.alternativeGroup === "transport-antarprovinsi",
             );
-      const checklistItems = mergeChecklistItems(
+      const checklistItems = this.mergeChecklistItems(
         result.checklistItems,
         additions,
       );
@@ -247,5 +249,15 @@ export const aiService = {
       .catch(() => undefined);
 
     return result;
-  },
-};
+  }
+}
+
+export const aiService = new AiService();
+
+/** Add a consistent "not found in catalog" notice to any engine result. */
+export function attachQueryNotice(
+  result: AiItineraryPayload,
+  context: AiContext,
+): AiItineraryPayload {
+  return aiService.attachQueryNotice(result, context);
+}

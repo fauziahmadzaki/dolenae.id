@@ -47,12 +47,12 @@ export function toPublicUser(row: UserRow): PublicUser {
   };
 }
 
-export const userService = {
+class UserService {
   async getById(id: string): Promise<PublicUser> {
     const row = await userRepository.findById(id);
     if (!row) throw new NotFoundError("User tidak ditemukan");
     return toPublicUser(row);
-  },
+  }
 
   async list(
     query: PaginationQuery & { role?: UserRole; status?: UserStatusFilter },
@@ -64,8 +64,8 @@ export const userService = {
       status: query.status,
     });
     const meta = buildMeta(total, query.page, query.limit);
-    return { items: items.map(toPublicUser), meta };
-  },
+    return { items: items.map((row) => toPublicUser(row)), meta };
+  }
 
   async create(input: CreateUserDto): Promise<PublicUser> {
     const emailTaken = await userRepository.emailExists(input.email);
@@ -80,7 +80,7 @@ export const userService = {
       role: input.role,
     });
     return toPublicUser(row);
-  },
+  }
 
   async update(id: string, input: UpdateUserDto): Promise<PublicUser> {
     const existing = await userRepository.findById(id);
@@ -108,7 +108,7 @@ export const userService = {
       throw new NotFoundError("User tidak ditemukan");
     }
     return toPublicUser(updated);
-  },
+  }
 
   async delete(
     id: string,
@@ -126,5 +126,7 @@ export const userService = {
       throw new NotFoundError("Gagal menghapus user");
     }
     return { id, deleted: true };
-  },
-};
+  }
+}
+
+export const userService = new UserService();

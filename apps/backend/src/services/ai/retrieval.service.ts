@@ -84,216 +84,221 @@ type DroppedFilter =
   | "regions"
   | "difficulty";
 
-const FILTER_LABEL: Record<DroppedFilter, string> = {
-  activities: "aktivitas",
-  terrains: "medan",
-  budget: "budget",
-  regions: "wilayah",
-  difficulty: "tingkat kesulitan",
-};
+class AiRetrievalService {
+  private static readonly FILTER_LABEL: Record<DroppedFilter, string> = {
+    activities: "aktivitas",
+    terrains: "medan",
+    budget: "budget",
+    regions: "wilayah",
+    difficulty: "tingkat kesulitan",
+  };
 
-const normalize = (value: string) => value.trim().toLowerCase();
+  /** Filler/intent words that should not trigger a "not found" notice. */
+  private static readonly QUERY_STOPWORDS = new Set([
+    "ada",
+    "adalah",
+    "agar",
+    "aja",
+    "aku",
+    "anda",
+    "apa",
+    "apakah",
+    "atau",
+    "bagaimana",
+    "bagus",
+    "banyak",
+    "bisa",
+    "buat",
+    "budget",
+    "cari",
+    "coba",
+    "dari",
+    "dekat",
+    "dengan",
+    "destinasi",
+    "di",
+    "dimana",
+    "disini",
+    "dong",
+    "foto",
+    "fotografi",
+    "gimana",
+    "hari",
+    "hemat",
+    "ingin",
+    "itu",
+    "jalan",
+    "juga",
+    "kah",
+    "kalau",
+    "kami",
+    "kamu",
+    "kapan",
+    "ke",
+    "kita",
+    "kok",
+    "libur",
+    "liburan",
+    "lokasi",
+    "makan",
+    "makanan",
+    "malam",
+    "mana",
+    "mau",
+    "menengah",
+    "mudah",
+    "murah",
+    "nyaman",
+    "open",
+    "orang",
+    "pagi",
+    "pemula",
+    "pengen",
+    "penginapan",
+    "pergi",
+    "puncak",
+    "ramah",
+    "rekomendasi",
+    "rencana",
+    "sama",
+    "susun",
+    "saya",
+    "sekitar",
+    "siang",
+    "sore",
+    "sudah",
+    "sulit",
+    "tapi",
+    "tempat",
+    "terdekat",
+    "tidak",
+    "transport",
+    "trip",
+    "untuk",
+    "wisata",
+    "yang",
+  ]);
 
-/** Filler/intent words that should not trigger a "not found" notice. */
-const QUERY_STOPWORDS = new Set([
-  "ada",
-  "adalah",
-  "agar",
-  "aja",
-  "aku",
-  "anda",
-  "apa",
-  "apakah",
-  "atau",
-  "bagaimana",
-  "bagus",
-  "banyak",
-  "bisa",
-  "buat",
-  "budget",
-  "cari",
-  "coba",
-  "dari",
-  "dekat",
-  "dengan",
-  "destinasi",
-  "di",
-  "dimana",
-  "disini",
-  "dong",
-  "foto",
-  "fotografi",
-  "gimana",
-  "hari",
-  "hemat",
-  "ingin",
-  "itu",
-  "jalan",
-  "juga",
-  "kah",
-  "kalau",
-  "kami",
-  "kamu",
-  "kapan",
-  "ke",
-  "kita",
-  "kok",
-  "libur",
-  "liburan",
-  "lokasi",
-  "makan",
-  "makanan",
-  "malam",
-  "mana",
-  "mau",
-  "menengah",
-  "mudah",
-  "murah",
-  "nyaman",
-  "open",
-  "orang",
-  "pagi",
-  "pemula",
-  "pengen",
-  "penginapan",
-  "pergi",
-  "puncak",
-  "ramah",
-  "rekomendasi",
-  "rencana",
-  "sama",
-  "susun",
-  "saya",
-  "sekitar",
-  "siang",
-  "sore",
-  "sudah",
-  "sulit",
-  "tapi",
-  "tempat",
-  "terdekat",
-  "tidak",
-  "transport",
-  "trip",
-  "untuk",
-  "wisata",
-  "yang",
-]);
+  private normalize(value: string): string {
+    return value.trim().toLowerCase();
+  }
 
-function extractQueryTerms(rawText: string): string[] {
-  return [
-    ...new Set(
-      rawText
-        .toLowerCase()
-        .split(/[^a-z0-9]+/)
-        .filter(
-          (token) =>
-            token.length >= 4 &&
-            !/\d/.test(token) &&
-            !QUERY_STOPWORDS.has(token),
-        ),
-    ),
-  ];
-}
+  private extractQueryTerms(rawText: string): string[] {
+    return [
+      ...new Set(
+        rawText
+          .toLowerCase()
+          .split(/[^a-z0-9]+/)
+          .filter(
+            (token) =>
+              token.length >= 4 &&
+              !/\d/.test(token) &&
+              !AiRetrievalService.QUERY_STOPWORDS.has(token),
+          ),
+      ),
+    ];
+  }
 
-function catalogHaystack(destinations: PublicDestination[]): string {
-  return normalize(
-    destinations
-      .map((destination) =>
-        [
-          destination.name,
-          destination.tagline ?? "",
-          destination.description ?? "",
-          destination.tags.join(" "),
-          destination.terrain.join(" "),
-          destination.activities.join(" "),
-          destination.location.province ?? "",
-          destination.location.regency ?? "",
-        ].join(" "),
+  private catalogHaystack(destinations: PublicDestination[]): string {
+    return this.normalize(
+      destinations
+        .map((destination) =>
+          [
+            destination.name,
+            destination.tagline ?? "",
+            destination.description ?? "",
+            destination.tags.join(" "),
+            destination.terrain.join(" "),
+            destination.activities.join(" "),
+            destination.location.province ?? "",
+            destination.location.regency ?? "",
+          ].join(" "),
+        )
+        .join(" "),
+    );
+  }
+
+  private matchesAny(values: string[], needles: string[]): boolean {
+    return (
+      needles.length === 0 ||
+      needles.some((needle) =>
+        values.some((value) => this.normalize(value).includes(this.normalize(needle))),
       )
-      .join(" "),
-  );
-}
-
-const matchesAny = (values: string[], needles: string[]) =>
-  needles.length === 0 ||
-  needles.some((needle) =>
-    values.some((value) => normalize(value).includes(normalize(needle))),
-  );
-
-function matchesFilters(
-  destination: PublicDestination,
-  input: AiPreferenceInput,
-  dropped: DroppedFilter[],
-): boolean {
-  if (
-    !dropped.includes("regions") &&
-    input.regions?.length &&
-    !matchesAny(
-      [destination.location.province ?? "", destination.location.regency ?? ""],
-      input.regions,
-    )
-  ) {
-    return false;
+    );
   }
-  if (
-    !dropped.includes("terrains") &&
-    !matchesAny(destination.terrain, input.terrains ?? [])
-  ) {
-    return false;
-  }
-  if (
-    !dropped.includes("activities") &&
-    !matchesAny(destination.activities, input.activities ?? [])
-  ) {
-    return false;
-  }
-  if (
-    !dropped.includes("budget") &&
-    input.budgetPerPerson != null &&
-    destination.entryFee != null &&
-    destination.entryFee > input.budgetPerPerson
-  ) {
-    return false;
-  }
-  if (
-    !dropped.includes("difficulty") &&
-    input.difficulty != null &&
-    destination.difficulty !== input.difficulty
-  ) {
-    return false;
-  }
-  return true;
-}
 
-function lexicalScore(destination: PublicDestination, rawText: string): number {
-  const haystack = normalize(
-    [
-      destination.name,
-      destination.tagline ?? "",
-      destination.description ?? "",
-      destination.tags.join(" "),
-      destination.terrain.join(" "),
-      destination.activities.join(" "),
-    ].join(" "),
-  );
-  const tokens = rawText
-    .toLowerCase()
-    .split(/[^a-z0-9]+/)
-    .filter((token) => token.length > 2);
+  private matchesFilters(
+    destination: PublicDestination,
+    input: AiPreferenceInput,
+    dropped: DroppedFilter[],
+  ): boolean {
+    if (
+      !dropped.includes("regions") &&
+      input.regions?.length &&
+      !this.matchesAny(
+        [destination.location.province ?? "", destination.location.regency ?? ""],
+        input.regions,
+      )
+    ) {
+      return false;
+    }
+    if (
+      !dropped.includes("terrains") &&
+      !this.matchesAny(destination.terrain, input.terrains ?? [])
+    ) {
+      return false;
+    }
+    if (
+      !dropped.includes("activities") &&
+      !this.matchesAny(destination.activities, input.activities ?? [])
+    ) {
+      return false;
+    }
+    if (
+      !dropped.includes("budget") &&
+      input.budgetPerPerson != null &&
+      destination.entryFee != null &&
+      destination.entryFee > input.budgetPerPerson
+    ) {
+      return false;
+    }
+    if (
+      !dropped.includes("difficulty") &&
+      input.difficulty != null &&
+      destination.difficulty !== input.difficulty
+    ) {
+      return false;
+    }
+    return true;
+  }
 
-  return tokens.reduce(
-    (score, token) => score + (haystack.includes(token) ? 1 : 0),
-    0,
-  );
-}
+  private lexicalScore(destination: PublicDestination, rawText: string): number {
+    const haystack = this.normalize(
+      [
+        destination.name,
+        destination.tagline ?? "",
+        destination.description ?? "",
+        destination.tags.join(" "),
+        destination.terrain.join(" "),
+        destination.activities.join(" "),
+      ].join(" "),
+    );
+    const tokens = rawText
+      .toLowerCase()
+      .split(/[^a-z0-9]+/)
+      .filter((token) => token.length > 2);
 
-/**
- * Lexical + structured retrieval over published destinations, their supports
- * and routes. Hard filters are relaxed one by one when no destination matches,
- * so the itinerary can still be useful instead of returning an empty context.
- */
-export const aiRetrieval = {
+    return tokens.reduce(
+      (score, token) => score + (haystack.includes(token) ? 1 : 0),
+      0,
+    );
+  }
+
+  /**
+   * Lexical + structured retrieval over published destinations, their supports
+   * and routes. Hard filters are relaxed one by one when no destination matches,
+   * so the itinerary can still be useful instead of returning an empty context.
+   */
   async build(input: AiPreferenceInput): Promise<AiContext> {
     const rawText = input.rawText?.trim() ?? "";
     const list = await destinationService.list({
@@ -304,8 +309,8 @@ export const aiRetrieval = {
       status: "published",
     });
     const all = list.items;
-    const queryTerms = extractQueryTerms(rawText);
-    const haystack = catalogHaystack(all);
+    const queryTerms = this.extractQueryTerms(rawText);
+    const haystack = this.catalogHaystack(all);
     const unmatchedTerms = queryTerms.filter(
       (term) => !haystack.includes(term),
     );
@@ -335,17 +340,17 @@ export const aiRetrieval = {
     if (requestedIds.length > 0) {
       selected = requestedDestinations.map((destination) => ({
         destination,
-        lexical: lexicalScore(destination, rawText),
+        lexical: this.lexicalScore(destination, rawText),
       }));
     } else {
       // Try the full filter set first, then progressively drop one filter.
       for (let index = 0; index <= present.length; index += 1) {
         const dropped = present.slice(0, index);
         const result = all
-          .filter((destination) => matchesFilters(destination, input, dropped))
+          .filter((destination) => this.matchesFilters(destination, input, dropped))
           .map((destination) => ({
             destination,
-            lexical: lexicalScore(destination, rawText),
+            lexical: this.lexicalScore(destination, rawText),
           }))
           .sort(
             (a, b) =>
@@ -430,10 +435,12 @@ export const aiRetrieval = {
       routes: routes.filter((route) =>
         destinationIds.includes(route.destinationId),
       ),
-      relaxed: relaxed.map((filter) => FILTER_LABEL[filter]),
+      relaxed: relaxed.map((filter) => AiRetrievalService.FILTER_LABEL[filter]),
       queryMatched: unmatchedTerms.length === 0,
       unmatchedTerms,
       invalidDestinationIds,
     };
-  },
-};
+  }
+}
+
+export const aiRetrieval = new AiRetrievalService();
