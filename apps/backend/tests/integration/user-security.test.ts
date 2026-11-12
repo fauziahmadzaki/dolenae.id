@@ -1,8 +1,15 @@
 import request from "supertest";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-vi.mock("../../src/db/client", () => ({ pingDatabase: vi.fn().mockResolvedValue(true), getDb: vi.fn(), getPool: vi.fn() }));
+vi.mock("../../src/db/DatabaseClient", () => ({
+  database: {
+    getDb: vi.fn(),
+    getPool: vi.fn(),
+    ping: vi.fn().mockResolvedValue(true),
+    close: vi.fn().mockResolvedValue(undefined),
+  },
+}));
 import { createApp } from "../../src/app";
-import { userRepository } from "../../src/repositories/user.repository";
+import { userRepository } from "../../src/repositories/UserRepository";
 import { signAccessToken } from "../../src/utils/jwt";
 const app = createApp();
 const id = "12345678-1234-4234-a234-1234567890ab";

@@ -32,14 +32,14 @@ schemas/env.schema (env)   types/ (api, express.d.ts)
 | --- | --- |
 | `config/` | env (schema Zod + `AppConfig`) |
 | `routes/` | definisi endpoint (tipis) |
-| `controllers/` | handler request/response (tipis) |
+| `controllers/` | handler request/response (tipis); file = nama class (`UserController.ts`) |
 | `schemas/` | schema validasi Zod; tanpa export type |
-| `services/` | logika bisnis (tanpa req/res) |
-| `repositories/` | satu-satunya akses DB |
-| `db/` | Pool + Drizzle, schema |
+| `services/` | logika bisnis (tanpa req/res); file = nama class (`DestinationService.ts`) |
+| `repositories/` | satu-satunya akses DB; file = nama class (`UserRepository.ts`) |
+| `db/` | `DatabaseClient.ts` + `models/` per entity + `seeds/` |
 | `middleware/` | request-id, validate, error-handler |
 | `utils/` | response, errors, pagination |
-| `types/` | tipe domain + `z.infer` per entity, api.ts, express.d.ts |
+| `types/` | tipe domain + `z.infer` + tipe repository per entity, api.ts, express.d.ts |
 | `openapi/` | spec OpenAPI + Scalar |
 
 ## Verifikasi

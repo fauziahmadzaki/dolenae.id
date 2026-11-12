@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { routeController } from "../controllers/route.controller";
+import { routeController } from "../controllers/RouteController";
 import {
   createRouteSegmentSchema,
   createTrackNodeSchema,

@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { aiController } from "../controllers/ai.controller";
+import { aiController } from "../controllers/AiController";
 import { aiItinerarySchema } from "../schemas/ai.schema";
 import { authRequired } from "../middleware/auth";
 import { validate } from "../middleware/validate";

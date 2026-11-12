@@ -27,16 +27,19 @@ src/
   app.ts                # Express app: middleware → routes → 404 → error handler
   schemas/env.schema.ts # schema env Zod (.env)
   config/AppConfig.ts   # loader + getter environment
-  db/client.ts          # Pool + Drizzle; pingDatabase()/closeDatabase()
-  db/schema.ts          # definisi tabel Drizzle
+  db/DatabaseClient.ts  # class DatabaseClient + singleton `database`
+  db/models/            # satu file per entity (User.ts, Destination.ts, …)
+    index.ts            # barrel tabel + tipe
+    enums.ts            # semua pgEnum
+  db/seeds/             # seed.ts + seed-networks.ts (pnpm db:seed)
   middleware/
     request-id.ts       # x-request-id
     validate.ts         # validation pipe Zod (req.validated)
     error-handler.ts    # notFound + error handler global
   routes/               # definisi endpoint (tipis)
-  controllers/          # handler request/response
+  controllers/          # handler request/response (file = nama class)
   schemas/              # schema validasi Zod
-  services/             # logika bisnis
+  services/             # logika bisnis; file = nama class (DestinationService.ts)
   repositories/         # satu-satunya lapisan yang akses DB
   utils/
     response.ts         # ok() / fail() envelope

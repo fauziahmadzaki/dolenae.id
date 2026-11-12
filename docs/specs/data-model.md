@@ -30,7 +30,7 @@ Destinasi alam (gunung, bukit, danau, air terjun, dsb).
 
 Nilai `difficulty`: `ramah-pemula` | `menengah` | `sulit`.
 
-> Implementasi backend (`apps/backend/src/db/schema.ts`) menyimpan geografi dan
+> Implementasi backend (`apps/backend/src/db/models/`) menyimpan geografi dan
 > akses sebagai kolom datar (`province`, `regency`, `district`, `latitude`,
 > `longitude`, `accessPoint`, `accessDescription`, `accessTransport`,
 > `accessDuration`, `accessDistanceKm`), sedangkan API mengeksposnya sebagai

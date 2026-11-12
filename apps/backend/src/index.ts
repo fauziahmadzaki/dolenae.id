@@ -1,6 +1,6 @@
 import { createApp } from "./app";
 import { AppConfig } from "./config/AppConfig";
-import { closeDatabase, pingDatabase } from "./db/client";
+import { database } from "./db/DatabaseClient";
 
 const config = AppConfig.load();
 const app = createApp();
@@ -11,14 +11,14 @@ const server = app.listen(config.port, () => {
   );
 });
 
-void pingDatabase().then((connected) => {
+void database.ping().then((connected) => {
   console.log(connected ? "Database: connected" : "Database: NOT connected");
 });
 
 const shutdown = async (signal: string) => {
   console.log(`\n${signal} received, shutting down...`);
   server.close(async () => {
-    await closeDatabase();
+    await database.close();
     process.exit(0);
   });
 };

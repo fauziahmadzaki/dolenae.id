@@ -1,7 +1,7 @@
 import { Router } from "express";
 import multer from "multer";
 import { AppConfig } from "../config/AppConfig";
-import { uploadController } from "../controllers/upload.controller";
+import { uploadController } from "../controllers/UploadController";
 import {
   deleteUploadQuerySchema,
   uploadQuerySchema,

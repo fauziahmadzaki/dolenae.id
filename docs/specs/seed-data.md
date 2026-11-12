@@ -1,6 +1,6 @@
 # Seed Data Destinasi
 
-Sumber data seed `apps/backend/src/db/seed.ts` (+ `seed-networks.ts`).
+Sumber data seed `apps/backend/src/db/seeds/seed.ts` (+ `seed-networks.ts`).
 
 ## Cakupan
 

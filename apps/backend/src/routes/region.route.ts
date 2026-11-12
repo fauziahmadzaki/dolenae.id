@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { regionController } from "../controllers/region.controller";
+import { regionController } from "../controllers/RegionController";
 import {
   districtQuerySchema,
   regencyQuerySchema,

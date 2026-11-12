@@ -1,26 +1,26 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-vi.mock("../../src/services/destination.service", () => ({
+vi.mock("../../src/services/DestinationService", () => ({
   destinationService: {
     list: vi.fn(),
   },
 }));
 
-vi.mock("../../src/repositories/support.repository", () => ({
+vi.mock("../../src/repositories/SupportRepository", () => ({
   supportRepository: {
     list: vi.fn(async () => ({ items: [] })),
   },
 }));
 
-vi.mock("../../src/services/route.service", () => ({
+vi.mock("../../src/services/RouteService", () => ({
   routeService: {
     listRoutes: vi.fn(async () => []),
     profile: vi.fn(),
   },
 }));
 
-import { destinationService } from "../../src/services/destination.service";
-import { aiRetrieval } from "../../src/services/ai/retrieval.service";
+import { destinationService } from "../../src/services/DestinationService";
+import { aiRetrieval } from "../../src/services/ai/RetrievalService";
 
 const list = vi.mocked(destinationService.list);
 

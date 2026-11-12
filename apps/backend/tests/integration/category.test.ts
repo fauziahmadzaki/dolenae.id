@@ -1,15 +1,17 @@
 import request from "supertest";
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
-vi.mock("../../src/db/client", () => ({
-  pingDatabase: vi.fn().mockResolvedValue(true),
-  closeDatabase: vi.fn().mockResolvedValue(undefined),
-  getDb: vi.fn(),
-  getPool: vi.fn(),
+vi.mock("../../src/db/DatabaseClient", () => ({
+  database: {
+    getDb: vi.fn(),
+    getPool: vi.fn(),
+    ping: vi.fn().mockResolvedValue(true),
+    close: vi.fn().mockResolvedValue(undefined),
+  },
 }));
 
 import { createApp } from "../../src/app";
-import { categoryRepository } from "../../src/repositories/category.repository";
+import { categoryRepository } from "../../src/repositories/CategoryRepository";
 import { signAccessToken } from "../../src/utils/jwt";
 
 describe("Category CRUD API (/api/categories)", () => {

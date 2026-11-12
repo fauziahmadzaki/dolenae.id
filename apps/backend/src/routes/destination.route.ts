@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { destinationController } from "../controllers/destination.controller";
+import { destinationController } from "../controllers/DestinationController";
 import {
   createDestinationSchema,
   destinationIdParamsSchema,

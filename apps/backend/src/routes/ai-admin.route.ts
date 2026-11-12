@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { aiAdminController } from "../controllers/ai-admin.controller";
+import { aiController } from "../controllers/AiController";
 import {
   testAiSchema,
   updateAiSettingsSchema,
@@ -11,15 +11,15 @@ export const aiAdminRouter = Router();
 
 aiAdminRouter.use(authRequired, requireRole("admin"));
 
-aiAdminRouter.get("/settings", aiAdminController.getSettings);
+aiAdminRouter.get("/settings", aiController.getSettings);
 aiAdminRouter.put(
   "/settings",
   validate({ body: updateAiSettingsSchema }),
-  aiAdminController.updateSettings,
+  aiController.updateSettings,
 );
-aiAdminRouter.get("/models", aiAdminController.listModels);
+aiAdminRouter.get("/models", aiController.listModels);
 aiAdminRouter.post(
   "/test",
   validate({ body: testAiSchema }),
-  aiAdminController.test,
+  aiController.test,
 );

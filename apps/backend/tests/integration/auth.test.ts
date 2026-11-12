@@ -8,14 +8,16 @@ const store = vi.hoisted(() => ({
   verifyTokens: new Map<string, Record<string, unknown>>(),
 }));
 
-vi.mock("../../src/db/client", () => ({
-  getDb: vi.fn(),
-  getPool: vi.fn(),
-  pingDatabase: vi.fn().mockResolvedValue(true),
-  closeDatabase: vi.fn().mockResolvedValue(undefined),
+vi.mock("../../src/db/DatabaseClient", () => ({
+  database: {
+    getDb: vi.fn(),
+    getPool: vi.fn(),
+    ping: vi.fn().mockResolvedValue(true),
+    close: vi.fn().mockResolvedValue(undefined),
+  },
 }));
 
-vi.mock("../../src/repositories/user.repository", () => ({
+vi.mock("../../src/repositories/UserRepository", () => ({
   userRepository: {
     findByEmail: vi.fn(async (email: string) =>
       [...store.users.values()].find((u) => u.email === email),
@@ -50,7 +52,7 @@ vi.mock("../../src/repositories/user.repository", () => ({
   },
 }));
 
-vi.mock("../../src/repositories/password-reset.repository", () => ({
+vi.mock("../../src/repositories/PasswordResetRepository", () => ({
   passwordResetRepository: {
     create: vi.fn(async (data: Record<string, unknown>) => {
       const row = {
@@ -76,7 +78,7 @@ vi.mock("../../src/repositories/password-reset.repository", () => ({
   },
 }));
 
-vi.mock("../../src/repositories/email-verification.repository", () => ({
+vi.mock("../../src/repositories/EmailVerificationRepository", () => ({
   emailVerificationRepository: {
     create: vi.fn(async (data: Record<string, unknown>) => {
       const row = {
@@ -107,16 +109,17 @@ vi.mock("../../src/repositories/email-verification.repository", () => ({
   },
 }));
 
-vi.mock("../../src/services/email.service", () => ({
-  sendPasswordResetEmail: vi.fn(async () => undefined),
-  sendVerificationEmail: vi.fn(async () => undefined),
+vi.mock("../../src/services/EmailService", () => ({
+  emailService: {
+    sendPasswordResetEmail: vi.fn(async () => undefined),
+    sendVerificationEmail: vi.fn(async () => undefined),
+  },
 }));
 
 import { createApp } from "../../src/app";
-import {
-  sendPasswordResetEmail,
-  sendVerificationEmail,
-} from "../../src/services/email.service";
+import { emailService } from "../../src/services/EmailService";
+
+const { sendPasswordResetEmail, sendVerificationEmail } = emailService;
 
 const app = createApp();
 
@@ -247,7 +250,7 @@ describe("auth api", () => {
     expect(res.body.data.user.email).toBe(credentials.email);
   });
 
-  it("supports the forgot-password → reset-password flow", async () => {
+  it("supports the forgot-password â†’ reset-password flow", async () => {
     await registerUser();
 
     const forgot = await request(app)
