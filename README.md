@@ -19,10 +19,11 @@ Monorepo berisi tiga aplikasi dan dua paket bersama:
 | Bagian | Isi |
 | --- | --- |
 | `apps/mobile` | **Flutter** — pengalaman Wisatawan (Android/iOS) |
-| `apps/web` | **TanStack Start** (React 19 + TanStack Router + Vite + Tailwind v4) — landing, katalog destinasi, dashboard admin/merchant |
-| `apps/server` | **Hono** API (Node.js) — menyajikan data seed, nanti menggantikan data statis |
+| `apps/frontend` | **Next.js 16** (App Router, React 19, Tailwind v4) — landing, katalog destinasi, dashboard admin/merchant |
+| `apps/backend` | **Express 5** API (TypeScript, `tsx`) — REST `/api` + PostgreSQL/Drizzle |
 | `packages/types` | **Single source of truth** tipe domain (satu-satunya tempat ubah tipe) |
 | `packages/seed` | Data contoh destinasi & kebutuhan pendukung (penginapan, transportasi, makanan) |
+| `packages/regions` | Dataset wilayah Indonesia (provinsi/kabupaten/kecamatan) + reverse geocode |
 | `figma/` + `DESIGN.md` | Aset desain: token tema "Alam", panduan & skill figma-cli |
 
 ### Domain yang dimodelkan (`packages/types`)
@@ -34,24 +35,28 @@ Monorepo berisi tiga aplikasi dan dua paket bersama:
 - **AI** — preferensi, konteks & hasil rekomendasi, skor aturan.
 - **User** — wisatawan, merchant, admin.
 
-### Halaman web yang sudah ada (`apps/web/src/routes`)
+### Halaman web yang sudah ada (`apps/frontend/src/app`)
 
-`/` landing · `/destinations` katalog · `/destinations/$slug` detail ·
-`/login` masuk admin · `/admin` dashboard admin (guard) ·
-`/admin/users` daftar pengguna. Lihat `docs/specs/web-admin.md`.
+`/` landing · `/destinations` katalog · `/destinations/[slug]` detail ·
+`/auth/login` masuk admin · `/admin` dashboard admin (guard) ·
+`/admin/users` pengguna · `/admin/destinasi` destinasi & kategori ·
+`/admin/destinasi/[id]/rute` route builder. Lihat `docs/specs/web-admin.md`.
 
-### Endpoint API (`apps/server`)
+### Endpoint API (`apps/backend`)
 
-Semua di bawah `/api`:
+Semua di bawah `/api` (dokumentasi interaktif: `GET /api/docs`, spec:
+`GET /api/openapi.json`):
 
-`GET /api/health` · `POST /api/auth/register` · `POST /api/auth/login` ·
-`GET /api/users/me` · `GET /api/users` (admin) · `GET /api/destinations` ·
-`GET /api/destinations/:slug` · `GET /api/supports`
+`GET /api/health` · `POST /api/auth/{register,login,google,forgot-password,reset-password,verify-email,resend-verification}` ·
+`GET /api/auth/me` · `GET|POST|PATCH|DELETE /api/users` (admin) ·
+`/api/categories` · `/api/destinations` · `/api/supports` · `/api/regions/*` ·
+`/api/uploads` · `/api/ai/{options,itineraries}` · `/api/admin/ai/{settings,models,test}` ·
+`/api/destinations/:id/{route-graph,track-nodes,segments,routes}` (route builder).
 
-> **Fondasi backend sudah aktif:** PostgreSQL (Docker) + Drizzle, envelope
-> response seragam, global error handler, pagination, dan JWT auth. Endpoint
-> destinasi/support masih dari `packages/seed` sebagai jembatan. Detail:
-> `docs/specs/backend-setup.md`.
+> **Backend sudah memakai PostgreSQL + Drizzle** (bukan lagi data statis).
+> Envelope response seragam, global error handler, pagination, JWT auth, dan
+> upload S3/MinIO. Seed hanya untuk mengisi data awal (`pnpm db:seed` di
+> `apps/backend`). Detail: `docs/specs/backend-setup.md`.
 
 ---
 
@@ -59,10 +64,12 @@ Semua di bawah `/api`:
 
 | Layer | Teknologi |
 | --- | --- |
-| Web FE | TanStack Start (React 19, TanStack Router, Vite 8, Tailwind CSS v4) |
+| Web FE | Next.js 16 (App Router, React 19, Tailwind CSS v4) |
 | Mobile FE | Flutter (Dart SDK ^3.13) |
-| Backend | Hono + `@hono/node-server` + TypeScript (tsx) |
-| Shared | `@dolenae/types`, `@dolenae/seed` |
+| Backend | Express 5 + TypeScript (tsx) |
+| Database | PostgreSQL 16 + Drizzle ORM |
+| Auth | JWT (`jose`) |
+| Shared | `@dolenae/types`, `@dolenae/seed`, `@dolenae/regions` |
 | Package manager | pnpm workspace |
 
 ---
@@ -93,29 +100,31 @@ menautkan `@dolenae/types` & `@dolenae/seed` sebagai workspace dependency.
 
 Jalankan tiap aplikasi dari root (atau dari folder masing-masing paket).
 
-### Web (TanStack Start) — port 3000
+### Web (Next.js) — port 3000
 
 ```bash
 pnpm dev:web
 # buka http://localhost:3000
 ```
 
-### Server API (Hono) — port 3001
+### Backend API (Express) — port 3001
 
 ```bash
 # 1) Jalankan Postgres (Docker Desktop aktif)
-cd apps/server && docker compose up -d && cd ../..
+cd apps/backend && docker compose up -d && cd ../..
 
-# 2) Env + migrasi
-copy apps/server\.env.example apps/server\.env
-pnpm --filter @dolenae/server db:migrate
+# 2) Env + migrasi + seed
+cp apps/backend/.env.example apps/backend/.env
+cd apps/backend
+pnpm db:migrate
+pnpm db:seed
 
 # 3) Jalankan
-pnpm dev:server
+pnpm dev:api        # dari root
 # API di http://localhost:3001  (cek: http://localhost:3001/api/health)
 ```
 
-Port server bisa diubah lewat env `PORT`.
+Port backend bisa diubah lewat env `PORT`.
 
 ### Mobile (Flutter)
 
@@ -134,11 +143,10 @@ flutter run
 
 | Command | Fungsi |
 | --- | --- |
-| `pnpm dev:web` | Jalankan web TanStack Start (port 3000) |
-| `pnpm dev:server` | Jalankan Hono API dengan `tsx watch` (port 3001) |
-| `pnpm build` | Build semua paket (`pnpm -r build`) |
-| `pnpm typecheck` | Cek tipe semua paket TS |
-| `pnpm lint` | Lint semua paket |
+| `pnpm dev:web` | Jalankan web Next.js (port 3000) |
+| `pnpm dev:api` | Jalankan Express API dengan `tsx watch` (port 3001) |
+| `pnpm typecheck:api` | Cek tipe backend (`tsc --noEmit`) |
+| `cd apps/backend && pnpm typecheck && pnpm test` | Typecheck + Vitest backend |
 | `cd apps/mobile && flutter analyze` | Cek tipe/analisis Flutter |
 
 ---
@@ -149,11 +157,12 @@ flutter run
 PBL/
 ├── apps/
 │   ├── mobile/    # Flutter — pengalaman Wisatawan
-│   ├── server/    # Hono API
-│   └── web/       # TanStack Start — web Wisatawan & dashboard admin
+│   ├── backend/   # Express API + PostgreSQL/Drizzle
+│   └── frontend/  # Next.js — web Wisatawan & dashboard admin
 ├── packages/
 │   ├── seed/      # data dummy destinasi & kebutuhan pendukung
-│   └── types/     # tipe domain (single source of truth)
+│   ├── types/     # tipe domain (single source of truth)
+│   └── regions/   # dataset wilayah + reverse geocode
 ├── docs/          # PRD, specs, decisions, skills
 ├── figma/         # aset kerja figma-cli
 ├── DESIGN.md      # sumber token desain tema "Alam"
@@ -167,7 +176,7 @@ PBL/
 - `docs/prd/product-overview.md` — product overview (baca dulu sebelum kerja).
 - `docs/specs/architecture.md` — struktur monorepo & arsitektur.
 - `docs/specs/data-model.md` — entitas domain.
-- `docs/specs/backend-setup.md` — backend (Hono + Drizzle + Postgres), kontrak
+- `docs/specs/backend-setup.md` — backend (Express + Drizzle + Postgres), kontrak
   API, pagination, endpoint, cara menjalankan.
 - `docs/specs/web-admin.md` — halaman login & dashboard admin web.
 - `docs/specs/ui-ux-low-fi-system.md` — sistem desain low-fi.

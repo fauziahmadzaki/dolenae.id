@@ -1,11 +1,18 @@
 import { beforeEach, expect, it, vi } from "vitest";
 import { sql } from "drizzle-orm";
 import { getTableConfig, PgDialect } from "drizzle-orm/pg-core";
-import { getDb } from "../../src/db/client";
-import { travelSupports } from "../../src/db/schema";
-import { supportRepository } from "../../src/repositories/support.repository";
+import { database } from "../../src/db/DatabaseClient";
+import { travelSupports } from "../../src/db/models";
+import { supportRepository } from "../../src/repositories/SupportRepository";
 
-vi.mock("../../src/db/client", () => ({ getDb: vi.fn() }));
+vi.mock("../../src/db/DatabaseClient", () => ({
+  database: {
+    getDb: vi.fn(),
+    getPool: vi.fn(),
+    ping: vi.fn().mockResolvedValue(true),
+    close: vi.fn().mockResolvedValue(undefined),
+  },
+}));
 const dialect = new PgDialect();
 const id = "22222222-2222-4222-a222-222222222222";
 const where = vi.fn();
@@ -17,7 +24,7 @@ beforeEach(() => {
   vi.clearAllMocks();
   const rows = { from: vi.fn().mockReturnThis(), innerJoin: vi.fn().mockReturnThis(), where: where.mockReturnThis(), orderBy: orderBy.mockReturnThis(), limit: limit.mockReturnThis(), offset: offset.mockResolvedValue([]) };
   const total = { from: vi.fn().mockReturnThis(), innerJoin: vi.fn().mockReturnThis(), where: vi.fn().mockResolvedValue([{ value: 0 }]) };
-  vi.mocked(getDb).mockReturnValue({ select: vi.fn().mockReturnValueOnce(rows).mockReturnValueOnce(total) } as unknown as ReturnType<typeof getDb>);
+  vi.mocked(database.getDb).mockReturnValue({ select: vi.fn().mockReturnValueOnce(rows).mockReturnValueOnce(total) } as unknown as ReturnType<typeof database.getDb>);
 });
 
 it("lists only published destination supports with stable category/name/id order", async () => {

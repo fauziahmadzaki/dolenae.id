@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { supportController } from "../controllers/support.controller";
+import { supportController } from "../controllers/SupportController";
 import { supportIdParamsSchema, supportListQuerySchema } from "../schemas/support.schema";
 import { authOptional } from "../middleware/auth";
 import { validate } from "../middleware/validate";

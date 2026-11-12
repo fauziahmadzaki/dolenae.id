@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { categoryController } from "../controllers/category.controller";
+import { categoryController } from "../controllers/CategoryController";
 import {
   categoryIdParamsSchema,
   categoryListQuerySchema,

@@ -1,22 +1,24 @@
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import request from "supertest";
 
-vi.mock("../../src/db/client", () => ({
-  pingDatabase: vi.fn().mockResolvedValue(true),
-  closeDatabase: vi.fn().mockResolvedValue(undefined),
-  getDb: vi.fn(),
-  getPool: vi.fn(),
+vi.mock("../../src/db/DatabaseClient", () => ({
+  database: {
+    getDb: vi.fn(),
+    getPool: vi.fn(),
+    ping: vi.fn().mockResolvedValue(true),
+    close: vi.fn().mockResolvedValue(undefined),
+  },
 }));
 
-vi.mock("../../src/repositories/destination.repository", () => ({
+vi.mock("../../src/repositories/DestinationRepository", () => ({
   destinationRepository: { findById: vi.fn() },
 }));
 
-vi.mock("../../src/services/storage.service", () => ({
+vi.mock("../../src/services/StorageService", () => ({
   storageService: { deleteByUrl: vi.fn().mockResolvedValue({ deleted: true }) },
 }));
 
-vi.mock("../../src/repositories/route.repository", () => ({
+vi.mock("../../src/repositories/RouteRepository", () => ({
   routeRepository: {
     listNodes: vi.fn(),
     findNodeById: vi.fn(),
@@ -49,9 +51,9 @@ vi.mock("../../src/repositories/route.repository", () => ({
 }));
 
 import { createApp } from "../../src/app";
-import { destinationRepository } from "../../src/repositories/destination.repository";
-import { routeRepository } from "../../src/repositories/route.repository";
-import { storageService } from "../../src/services/storage.service";
+import { destinationRepository } from "../../src/repositories/DestinationRepository";
+import { routeRepository } from "../../src/repositories/RouteRepository";
+import { storageService } from "../../src/services/StorageService";
 import { signAccessToken } from "../../src/utils/jwt";
 
 const app = createApp();

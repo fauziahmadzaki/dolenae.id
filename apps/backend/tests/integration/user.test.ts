@@ -2,16 +2,18 @@ import request from "supertest";
 import { describe, expect, it, vi, beforeEach, beforeAll } from "vitest";
 
 // Mock DB client to isolate HTTP & validation layer
-vi.mock("../../src/db/client", () => ({
-  pingDatabase: vi.fn().mockResolvedValue(true),
-  closeDatabase: vi.fn().mockResolvedValue(undefined),
-  getDb: vi.fn(),
-  getPool: vi.fn(),
+vi.mock("../../src/db/DatabaseClient", () => ({
+  database: {
+    getDb: vi.fn(),
+    getPool: vi.fn(),
+    ping: vi.fn().mockResolvedValue(true),
+    close: vi.fn().mockResolvedValue(undefined),
+  },
 }));
 
 import { signAccessToken } from "../../src/utils/jwt";
 import { createApp } from "../../src/app";
-import { userRepository } from "../../src/repositories/user.repository";
+import { userRepository } from "../../src/repositories/UserRepository";
 
 describe("User Management CRUD API (/api/users)", () => {
   const app = createApp();

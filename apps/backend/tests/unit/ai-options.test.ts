@@ -1,13 +1,13 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-vi.mock("../../src/services/destination.service", () => ({
+vi.mock("../../src/services/DestinationService", () => ({
   destinationService: {
     list: vi.fn(),
   },
 }));
 
-import { destinationService } from "../../src/services/destination.service";
-import { aiService } from "../../src/services/ai/ai.service";
+import { destinationService } from "../../src/services/DestinationService";
+import { aiService } from "../../src/services/ai/AiService";
 
 const list = vi.mocked(destinationService.list);
 

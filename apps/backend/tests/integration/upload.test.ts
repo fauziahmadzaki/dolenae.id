@@ -1,14 +1,16 @@
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import request from "supertest";
 
-vi.mock("../../src/db/client", () => ({
-  pingDatabase: vi.fn().mockResolvedValue(true),
-  closeDatabase: vi.fn().mockResolvedValue(undefined),
-  getDb: vi.fn(),
-  getPool: vi.fn(),
+vi.mock("../../src/db/DatabaseClient", () => ({
+  database: {
+    getDb: vi.fn(),
+    getPool: vi.fn(),
+    ping: vi.fn().mockResolvedValue(true),
+    close: vi.fn().mockResolvedValue(undefined),
+  },
 }));
 
-vi.mock("../../src/services/storage.service", () => ({
+vi.mock("../../src/services/StorageService", () => ({
   storageService: {
     uploadImage: vi.fn(),
     deleteByUrl: vi.fn(),
@@ -16,7 +18,7 @@ vi.mock("../../src/services/storage.service", () => ({
 }));
 
 import { createApp } from "../../src/app";
-import { storageService } from "../../src/services/storage.service";
+import { storageService } from "../../src/services/StorageService";
 import { signAccessToken } from "../../src/utils/jwt";
 import { keyFromPublicUrl } from "../../src/utils/storage";
 

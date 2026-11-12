@@ -1,17 +1,17 @@
 # Web Admin — Dolenae.id
 
-Halaman **login** dan **dashboard admin** pada `apps/web` (TanStack Start),
-memakai API dari `apps/server`.
+Halaman **login** dan **dashboard admin** pada `apps/frontend` (Next.js App
+Router), memakai API dari `apps/backend`.
 
 ## 1. Menjalankan
 
 ```bash
 # Backend (wajib) — Postgres + API
-cd apps/server && docker compose up -d && cd ../..
-pnpm --filter @dolenae/server dev      # http://localhost:3001
+cd apps/backend && docker compose up -d && cd ../..
+pnpm dev:api                           # http://localhost:3001
 
 # Web
-cp apps/web/.env.example apps/web/.env # sekali saja
+cp apps/frontend/.env.example apps/frontend/.env.local # sekali saja
 pnpm dev:web                           # http://localhost:3000
 ```
 
@@ -26,12 +26,14 @@ Akun demo (dari `db:seed`):
 
 | Rute | Isi |
 | --- | --- |
-| `/login` | Form masuk admin — slicing desain Figma `Hi-Fi Web - Masuk` (`89:3328`) |
+| `/auth/login` | Form masuk admin — slicing desain Figma `Hi-Fi Web - Masuk` (`89:3328`) |
 | `/admin` | Dashboard (guard) — ringkasan kartu |
-| `/admin/destinations` | Destinasi — tab Kategori (CRUD) + tab Destinasi (tabel/card, CRUD). Tab aktif via `?tab=destinasi` |
-| `/admin/destinations/new` | Form tambah destinasi (5 langkah) + fasilitas |
-| `/admin/destinations/$id/edit` | Form edit destinasi |
+| `/admin/destinasi` | Destinasi — tab Kategori (CRUD) + tab Destinasi (tabel/card, CRUD). Tab aktif via `?tab=kategori` |
+| `/admin/destinasi/baru` | Form tambah destinasi (5 langkah) + fasilitas |
+| `/admin/destinasi/[id]/edit` | Form edit destinasi |
+| `/admin/destinasi/[id]/rute` | Route builder (titik, ruas, jalur, profil elevasi) |
 | `/admin/users` | Tabel pengguna + pagination + pencarian (khusus admin) |
+| `/admin/pengaturan` | Pengaturan AI (Gemini) + koneksi |
 | `/design-system` | Katalog komponen DS "Alam" (warna, Button, Input, Badge/Chip, Select, Dropdown, Card, Dialog, Toaster, Image uploader) |
 
 > **Kategori & Destinasi** di-slicing dari Figma page **`Hi-Fi Web`**:
@@ -65,7 +67,7 @@ Akun demo (dari `db:seed`):
 > tempel URL, thumbnail + badge `Utama`, hapus foto membersihkan berkas, tags,
 > harga tiket, radio status, ringkasan).
 >
-> `/login` sengaja **di luar** layout guard `/admin` agar tidak ikut proses
+> `/auth/login` sengaja **di luar** layout guard `/admin` agar tidak ikut proses
 > proteksi.
 >
 > Halaman admin memakai komponen DS dari `components/ui/` (Button, Input, Badge,
@@ -76,50 +78,44 @@ Akun demo (dari `db:seed`):
 > media kanan bg `primary`), header (`surface` + hairline) & footer (band
 > `primary`), tab Masuk/Daftar, input `canvas-subtle` radius 12, CTA pill
 > `primary`, divider "atau lanjut dengan", tombol Google, dan 3 poin nilai.
-> Token tema "Alam" ada di `src/styles/app.css` (`@theme`), komponen chrome di
-> `src/components/site-chrome.tsx`.
+> Token tema "Alam" ada di `src/app/globals.css` (`@theme`), komponen chrome di
+> `src/components/layout/`.
 
 ## 3. Struktur
 
-Prinsip: **route tipis** (hanya `createFileRoute` + wiring), UI & logic tinggal di
-`features/<name>/` — `pages/` (komponen halaman), `components/` (komponen fitur),
-`hooks/` (state & logic), `api/` (kontrak API), `types.ts`, `index.ts` (public API).
-`components/ui` (design system) & `components/icons` tetap **shared**.
+Prinsip: **route tipis** (`app/**/page.tsx` hanya menyusun halaman), UI & logic
+tinggal di `features/<name>/` — `components/`, `hooks/`, `api/`, `types.ts`.
+`components/ui` (design system), `components/layout`, dan `components/icons`
+tetap **shared**.
 
 ```
-apps/web/src/
-  styles/app.css                   # token tema "Alam" (@theme Tailwind v4) + font + animasi
-  lib/
-    api.ts                         # fetch + envelope + ApiError
-    cn.ts                          # clsx + tailwind-merge
-  components/                      # SHARED lintas fitur
-    site-chrome.tsx, mountain-scene.tsx
-    map-view.tsx, map-view-leaflet.tsx
-    icons/                         # 1 ikon = 1 file + barrel
-    layout/                        # admin-shell/sidebar/topbar/nav-items
+apps/frontend/src/
+  app/                             # Next.js App Router
+    layout.tsx, page.tsx, globals.css
+    auth/{login,forgot-password,reset-password,verify-email}/page.tsx
+    admin/layout.tsx               # AdminShell + auth guard
+    admin/page.tsx
+    admin/destinasi/{page.tsx,baru/page.tsx,[id]/edit/page.tsx,[id]/rute/page.tsx}
+    admin/users/page.tsx
+    admin/pengaturan/page.tsx
+    bantuan, karier, kontak, privasi-keamanan, tentang-kami, design-system
+  lib/                             # api/ (fetch + envelope), cn.ts, pagination, query
+  components/
     ui/                            # Design System "Alam"
-      button, input, badge, card, dialog, toast,
-      select, dropdown-menu, image-uploader, searchable-select
+    layout/                        # admin shell, sidebar, topbar
+    icons/                         # 1 ikon = 1 file + barrel
+    map/, media/, providers/
   features/
-    auth/         pages/login-page · hooks/use-auth · api/auth · session · types
-    users/        pages/users-page · hooks/use-users · api/users · types
-    dashboard/    pages/dashboard-page · components/* · data
-    discovery/    pages/{home,catalog,destination-detail}-page · lib/map-points
-    destinations/ api/{catalog,admin,categories,query} · types   (+ katalog publik & CRUD admin)
-    destinations-admin/
-                  pages/destinations-admin-page · components/{destination-form,
-                  category-dialog,category-grid,destination-table,destinations-toolbar,
-                  destinations-pagination,difficulty-pill,terrain-chips}
-                  · hooks/use-destinations-admin
-    regions/      api/regions                (provinsi/kabupaten/kecamatan + reverse)
-    uploads/      api/uploads                (uploadImage/deleteUpload)
-    design-system/pages/design-system-page
-  routes/                          # TIPIS — hanya createFileRoute + wiring
-    _public.tsx, _public.index.tsx, _public.destinations.tsx, _public.destinations.$slug.tsx
-    login.tsx
-    admin.tsx, admin.index.tsx, admin.destinations.index.tsx,
-    admin.destinations.new.tsx, admin.destinations.$id.edit.tsx, admin.users.tsx
-    design-system.tsx
+    admin/      components/        # shell pieces (sidebar, topbar, avatar)
+    auth/       hooks/use-auth · api · session
+    users/      api + komponen tabel pengguna
+    destinations/                  # katalog publik + CRUD admin + kategori
+    routes/                        # route builder (titik, ruas, jalur, profil)
+    regions/    api/regions
+    settings/   api pengaturan AI
+    public/     halaman informasi
+    landing/    komponen landing
+    media/      upload gambar
 ```
 
 ## 4. Autentikasi (fase prototype)
@@ -127,9 +123,9 @@ apps/web/src/
 - Token JWT disimpan di **localStorage** (`dolenae.admin.token`) dan user di
   `dolenae.admin.user`.
 - `AuthProvider` memulihkan sesi saat mount: validasi token (klaim `exp`) lalu
-  verifikasi ke `GET /api/users/me`.
-- Route `/admin` melakukan redirect ke `/login` bila belum ada sesi.
-- `Authorization: Bearer <token>` dikirim dari `lib/api.ts`.
+  verifikasi ke `GET /api/auth/me`.
+- Route `/admin` melakukan redirect ke `/auth/login` bila belum ada sesi.
+- `Authorization: Bearer <token>` dikirim dari `lib/api/client.ts`.
 
 ### Validasi form
 
@@ -137,9 +133,9 @@ Form login memakai **React Hook Form + Zod** (`zodResolver`), bukan validasi
 HTML (`noValidate` di form, tanpa atribut `required`). Pesan error ditampilkan
 per-field; error dari server (mis. kredensial salah) ditampilkan terpisah.
 
-- Skema: `apps/web/src/routes/login.tsx` (`loginSchema`).
+- Skema: `apps/frontend/src/features/auth/types/login-schema.ts` (`loginSchema`).
 - Dependency: `react-hook-form`, `@hookform/resolvers`, `zod`.
-- Validasi sisi server tetap ada di `apps/server` (`middleware/validate.ts`)
+- Validasi sisi server tetap ada di `apps/backend` (`middleware/validate.ts`)
   memakai skema Zod yang sama polanya.
 
 **Catatan:** proteksi ini bersifat **client-side**. Untuk produksi, guard harus
@@ -150,25 +146,28 @@ dipindah ke server (cookie httpOnly / beforeLoad SSR). Ini menyusul.
 | Aksi | Endpoint |
 | --- | --- |
 | Masuk | `POST /api/auth/login` → `{ token, user }` |
-| Validasi sesi | `GET /api/users/me` |
+| Validasi sesi | `GET /api/auth/me` |
 | Daftar pengguna | `GET /api/users?page&limit&search` |
 | Kategori (daftar/CRUD) | `GET/POST /api/categories`, `PATCH/DELETE /api/categories/:id` |
-| Destinasi admin | `GET /api/destinations?page&limit&search`, `GET /api/destinations/stats` |
-| Detail destinasi | `GET /api/destinations/:id` atau `GET /api/destinations/slug/:slug` |
+| Destinasi admin | `GET /api/destinations?page&limit&search` |
+| Detail destinasi | `GET /api/destinations/:id` |
 | Buat/ubah/hapus destinasi | `POST /api/destinations`, `PATCH/DELETE /api/destinations/:id` |
-| Fasilitas (CRUD) | `GET/POST /api/supports`, `PATCH/DELETE /api/supports/:id` |
+| Fasilitas destinasi | `GET /api/destinations/:id/supports`, `GET /api/supports/:id` |
 | Wilayah & reverse geocode | `GET /api/regions/provinces`, `/regencies?province=`, `/districts?regency=`, `/reverse?lat=&lng=` |
+| Route builder | `GET/POST /api/destinations/:id/{track-nodes,segments,routes}`, `GET /api/routes/:id/profile` |
+| Pengaturan AI | `GET/PUT /api/admin/ai/settings`, `GET /api/admin/ai/models`, `POST /api/admin/ai/test` |
 
-Env: `VITE_API_URL` (default `http://localhost:3001/api`).
+Env frontend: `NEXT_PUBLIC_API_URL` (default `http://localhost:3001/api`) untuk
+komponen client, `API_URL` untuk server component/SSR.
 
 ### Data destinasi (web publik)
 
-`apps/web/src/features/destinations/api.ts` memakai `apiFetch` ke backend Hono
-(`/api/destinations`), **bukan** `@dolenae/seed` langsung. Loader route
-memanggilnya, dan slug yang tidak ada melempar `notFound()` (HTTP 404).
+`apps/frontend/src/features/destinations/` memakai `api` dari `lib/api/client`
+ke backend Express (`/api/destinations`), **bukan** `@dolenae/seed` langsung.
+Halaman detail memanggil `notFound()` bila destinasi tidak ada.
 
-> Catatan: `/api/destinations` di server kini **dilayani dari tabel DB**
-> (Drizzle). `@dolenae/seed` hanya dipakai untuk mengisi awal via `db:seed`.
+> Catatan: `/api/destinations` di backend **dilayani dari tabel DB** (Drizzle).
+> `@dolenae/seed` hanya dipakai untuk mengisi awal via `db:seed`.
 > `categoryIds` pada form diturunkan dari chip terrain/aktivitas (dipetakan ke
 > kategori berdasarkan `slug`), sehingga destinasi baru ikut memiliki relasi
 > `destination_categories`.

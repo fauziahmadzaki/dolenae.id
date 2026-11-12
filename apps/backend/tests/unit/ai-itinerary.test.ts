@@ -1,11 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { attachQueryNotice } from "../../src/services/ai/ai.service";
-import {
-  buildDeterministicItinerary,
-  buildRecommendationCards,
-} from "../../src/services/ai/itinerary.service";
-import type { AiContext } from "../../src/services/ai/retrieval.service";
-import { validateAiPayload } from "../../src/services/ai/validate";
+import { aiService } from "../../src/services/ai/AiService";
+import { itineraryService } from "../../src/services/ai/ItineraryService";
+import { aiPayloadValidator } from "../../src/services/ai/AiPayloadValidator";
+import type { AiContext } from "../../src/types/ai";
 
 const destinationId = "11111111-1111-4111-a111-111111111111";
 const routeId = "22222222-2222-4222-a222-222222222222";
@@ -65,7 +62,7 @@ const context: AiContext = {
 
 describe("AI itinerary", () => {
   it("builds a grounded deterministic itinerary", () => {
-    const result = buildDeterministicItinerary(context, {
+    const result = itineraryService.build(context, {
       durationDays: 1,
       needsAccommodation: true,
     });
@@ -96,7 +93,7 @@ describe("AI itinerary", () => {
       ],
     };
 
-    const result = buildDeterministicItinerary(selectedContext, {
+    const result = itineraryService.build(selectedContext, {
       destinationIds: [destinationId, secondId, thirdId],
       durationDays: 2,
     });
@@ -111,7 +108,7 @@ describe("AI itinerary", () => {
   });
 
   it("builds a complete cost-aware checklist without filling the budget", () => {
-    const result = buildDeterministicItinerary(context, {
+    const result = itineraryService.build(context, {
       durationDays: 1,
       budgetPerPerson: 1500000,
       needsAccommodation: true,
@@ -142,7 +139,7 @@ describe("AI itinerary", () => {
   });
 
   it("adds flight and ferry alternatives when the origin province differs", () => {
-    const result = buildDeterministicItinerary(context, {
+    const result = itineraryService.build(context, {
       durationDays: 1,
       budgetPerPerson: 1500000,
       originProvince: "Jawa Barat",
@@ -161,7 +158,7 @@ describe("AI itinerary", () => {
   });
 
   it("does not add interprovince alternatives when the province matches", () => {
-    const result = buildDeterministicItinerary(context, {
+    const result = itineraryService.build(context, {
       durationDays: 1,
       budgetPerPerson: 1500000,
       originProvince: "Jawa Timur",
@@ -175,7 +172,7 @@ describe("AI itinerary", () => {
   });
 
   it("warns when no destination matches", () => {
-    const result = buildDeterministicItinerary(
+    const result = itineraryService.build(
       { ...context, destinations: [], supports: [], routes: [] },
       { durationDays: 2 },
     );
@@ -185,7 +182,7 @@ describe("AI itinerary", () => {
   });
 
   it("warns when filters were relaxed", () => {
-    const result = buildDeterministicItinerary(
+    const result = itineraryService.build(
       { ...context, relaxed: ["aktivitas", "medan"] },
       { durationDays: 1 },
     );
@@ -199,8 +196,8 @@ describe("AI itinerary", () => {
   });
 
   it("adds a not-found notice and warning", () => {
-    const result = buildDeterministicItinerary(context, { durationDays: 1 });
-    const withNotice = attachQueryNotice(result, {
+    const result = itineraryService.build(context, { durationDays: 1 });
+    const withNotice = aiService.attachQueryNotice(result, {
       ...context,
       queryMatched: false,
       unmatchedTerms: ["everest"],
@@ -211,8 +208,8 @@ describe("AI itinerary", () => {
   });
 
   it("builds card-ready recommendations from the grounded context", () => {
-    const payload = buildDeterministicItinerary(context, { durationDays: 1 });
-    const cards = buildRecommendationCards(
+    const payload = itineraryService.build(context, { durationDays: 1 });
+    const cards = itineraryService.buildRecommendations(
       { ...context, preference: { needsAccommodation: true } },
       payload,
     );
@@ -231,8 +228,8 @@ describe("AI itinerary", () => {
   });
 
   it("marks recommendation reasons as alternatives when the query misses", () => {
-    const payload = buildDeterministicItinerary(context, { durationDays: 1 });
-    const cards = buildRecommendationCards(
+    const payload = itineraryService.build(context, { durationDays: 1 });
+    const cards = itineraryService.buildRecommendations(
       { ...context, queryMatched: false, unmatchedTerms: ["everest"] },
       payload,
     );
@@ -241,7 +238,7 @@ describe("AI itinerary", () => {
   });
 
   it("drops unknown IDs from an LLM payload", () => {
-    const result = validateAiPayload(
+    const result = aiPayloadValidator.validate(
       {
         itinerary: {
           title: "Trip Uji",
@@ -301,7 +298,7 @@ describe("AI itinerary", () => {
       ],
     };
 
-    const result = validateAiPayload(
+    const result = aiPayloadValidator.validate(
       {
         itinerary: {
           title: "Trip Uji",
@@ -331,7 +328,7 @@ describe("AI itinerary", () => {
   });
 
   it("keeps detailed AI checklist items with costs", () => {
-    const result = validateAiPayload(
+    const result = aiPayloadValidator.validate(
       {
         itinerary: {
           title: "Trip Uji",
@@ -388,7 +385,7 @@ describe("AI itinerary", () => {
   });
 
   it("rejects an ungrounded payload when destinations exist", () => {
-    const result = validateAiPayload(
+    const result = aiPayloadValidator.validate(
       {
         itinerary: {
           title: "Trip Uji",
@@ -417,7 +414,7 @@ describe("AI itinerary", () => {
   });
 
   it("rejects a payload without valid days", () => {
-    const result = validateAiPayload(
+    const result = aiPayloadValidator.validate(
       { itinerary: { title: "x", summary: "y", days: [] } },
       context,
       "gemini",

@@ -1,10 +1,17 @@
 import { beforeEach, expect, it, vi } from "vitest";
 import { sql } from "drizzle-orm";
 import { PgDialect } from "drizzle-orm/pg-core";
-import { getDb } from "../../src/db/client";
-import { destinationRepository } from "../../src/repositories/destination.repository";
+import { database } from "../../src/db/DatabaseClient";
+import { destinationRepository } from "../../src/repositories/DestinationRepository";
 
-vi.mock("../../src/db/client", () => ({ getDb: vi.fn() }));
+vi.mock("../../src/db/DatabaseClient", () => ({
+  database: {
+    getDb: vi.fn(),
+    getPool: vi.fn(),
+    ping: vi.fn().mockResolvedValue(true),
+    close: vi.fn().mockResolvedValue(undefined),
+  },
+}));
 
 const orderBy = vi.fn();
 
@@ -21,9 +28,9 @@ beforeEach(() => {
     from: vi.fn().mockReturnThis(),
     where: vi.fn().mockResolvedValue([{ value: 0 }]),
   };
-  vi.mocked(getDb).mockReturnValue({
+  vi.mocked(database.getDb).mockReturnValue({
     select: vi.fn().mockReturnValueOnce(rows).mockReturnValueOnce(total),
-  } as unknown as ReturnType<typeof getDb>);
+  } as unknown as ReturnType<typeof database.getDb>);
 });
 
 it.each(["asc", "desc"] as const)("honors explicit id sort %s", async (order) => {
