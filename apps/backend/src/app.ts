@@ -2,8 +2,9 @@ import { apiReference } from "@scalar/express-api-reference";
 import cors from "cors";
 import express from "express";
 import helmet from "helmet";
+import { resolve } from "node:path";
 import pinoHttp from "pino-http";
-import { corsOrigins, loadEnv } from "./config/env";
+import { AppConfig } from "./config/AppConfig";
 import { requestId } from "./middleware/request-id";
 import { errorHandler, notFoundHandler } from "./middleware/error-handler";
 import { openApiDocument } from "./openapi/document";
@@ -12,18 +13,21 @@ import { ok } from "./utils/response";
 
 /** Build the Express app: global middleware → `/api` router → 404 + error handler. */
 export function createApp() {
-  const env = loadEnv();
+  const config = AppConfig.load();
   const app = express();
 
   app.disable("x-powered-by");
   app.use(requestId());
   app.use(
     pinoHttp({
-      level: env.LOG_LEVEL,
+      level: config.logLevel,
       genReqId: (req) => (req as { requestId?: string }).requestId ?? "-",
     }),
   );
-  const helmetMiddleware = helmet();
+  const helmetMiddleware = helmet({
+    // Uploaded images are embedded by the web app on another origin.
+    crossOriginResourcePolicy: { policy: "cross-origin" },
+  });
   app.use((req, res, next) => {
     // Scalar docs load a CDN script + inline module; CSP would block them.
     if (req.path.startsWith("/api/docs")) {
@@ -33,10 +37,19 @@ export function createApp() {
     helmetMiddleware(req, res, next);
   });
 
-  const origins = corsOrigins();
+  const origins = config.corsOrigins;
   app.use(
     cors({
-      origin: origins.length > 0 ? origins : true,
+      origin: (origin, callback) => {
+        if (!origin || origins.length === 0 || origins.includes(origin)) {
+          return callback(null, true);
+        }
+        if (!config.isProduction) {
+          const isLocalhost = /^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin);
+          if (isLocalhost) return callback(null, true);
+        }
+        return callback(null, false);
+      },
       credentials: true,
       allowedHeaders: ["Content-Type", "Authorization", "X-Request-Id"],
       exposedHeaders: ["X-Request-Id"],
@@ -46,7 +59,18 @@ export function createApp() {
   app.use(express.json({ limit: "1mb" }));
   app.use(express.urlencoded({ extended: true, limit: "1mb" }));
 
-  if (env.DOCS_ENABLED) {
+  // Local storage driver: serve uploaded images from the API origin.
+  if (config.storageDriver === "local") {
+    app.use(
+      "/uploads",
+      express.static(resolve(config.uploadDir), {
+        maxAge: "1y",
+        immutable: true,
+      }),
+    );
+  }
+
+  if (config.docsEnabled) {
     app.get("/api/openapi.json", (_req, res) => res.json(openApiDocument));
     app.use(
       "/api/docs",

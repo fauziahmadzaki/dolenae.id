@@ -1,6 +1,7 @@
 import type { ErrorRequestHandler, RequestHandler } from "express";
+import { MulterError } from "multer";
 import { ZodError } from "zod";
-import { isProduction } from "../config/env";
+import { AppConfig } from "../config/AppConfig";
 import { AppError } from "../utils/errors";
 import type { ApiFailure } from "../types/api";
 
@@ -39,8 +40,22 @@ export const errorHandler: ErrorRequestHandler = (err, req, res, _next) => {
     return;
   }
 
-  if (err instanceof ZodError) {
+  if (err instanceof MulterError) {
+    const message =
+      err.code === "LIMIT_FILE_SIZE"
+        ? `Ukuran gambar melebihi batas ${AppConfig.load().maxUploadMb} MB`
+        : err.code === "LIMIT_UNEXPECTED_FILE"
+          ? "Hanya satu file gambar yang boleh diunggah pada field 'file'"
+          : "Upload gambar gagal";
     const body: ApiFailure = {
+      success: false,
+      error: { code: "UPLOAD_ERROR", message },
+    };
+    res.status(422).json(body);
+    return;
+  }
+
+  if (err instanceof ZodError) {    const body: ApiFailure = {
       success: false,
       error: {
         code: "VALIDATION_ERROR",
@@ -61,7 +76,7 @@ export const errorHandler: ErrorRequestHandler = (err, req, res, _next) => {
     error: {
       code: "INTERNAL_ERROR",
       message: "Terjadi kesalahan pada server",
-      ...(isProduction()
+      ...(AppConfig.load().isProduction
         ? {}
         : { details: err instanceof Error ? err.message : String(err) }),
     },

@@ -25,8 +25,9 @@ src/
   lib/
     api/              # klien API: client.ts (browser), server.ts (SSR)
     query/            # setup TanStack Query + helper optimistic
+    pagination.ts     # PAGE_SIZES, pageCount(), pageRange()
     cn.ts             # gabung className
-  components/         # ui (button, input, select, dialog, toaster), providers
+  components/         # ui (button, input, select, dialog, data-table, toaster), providers
   types/              # tipe domain (manual)
   features/           # fitur web — menyusul
 ```
@@ -42,6 +43,10 @@ src/
 - **Data fetching:** TanStack Query (`useQuery`/`useMutation`).
   - Query client: `~/lib/query/client` (provider di root layout).
   - Optimistic update: `applyOptimistic` / `rollbackOptimistic` / `settleInvalidate`.
+- **Tabel admin:** pakai `~/components/ui/data-table` (`DataTable` +
+  `useDataTableState`) — sudah membawa search debounce, sort (Select + klik
+  header), ukuran halaman (10/25/50), dan pagination server-side.
+  Definisi kolom tinggal di `features/<fitur>/components/*-columns.tsx`.
 - Alias import `~/*` → `src/*`.
 - Komentar kode: bahasa Inggris, secukupnya.
 

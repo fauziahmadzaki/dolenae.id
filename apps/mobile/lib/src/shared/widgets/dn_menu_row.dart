@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:dolenae_mobile/src/shared/icons/app_icons.dart';
 
-import '../../app/theme/app_colors.dart';
-import 'dn_icon_circle.dart';
+import 'package:dolenae_mobile/src/app/theme/app_colors.dart';
+import 'package:dolenae_mobile/src/shared/widgets/dn_icon_circle.dart';
 
 /// Baris menu: ikon bulat + label + chevron.
 class DnMenuRow extends StatelessWidget {

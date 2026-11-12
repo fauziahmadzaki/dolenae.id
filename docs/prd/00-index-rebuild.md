@@ -3,7 +3,9 @@
 - **Versi:** 0.4
 - **Tanggal:** 09 Oktober 2026
 - **PIC:** Fauzi Ahmad Zaki (Initiator), Adi Achya, Widan Ababil
-- **Status:** Disetujui untuk eksekusi
+- **Status:** Disetujui untuk eksekusi — **sudah dieksekusi**. Dokumen ini
+  disimpan sebagai catatan historis migrasi TanStack/Hono → Next.js/Express.
+  Untuk kondisi repo terkini lihat `docs/specs/architecture.md` & `README.md`.
 
 > Dokumen ini adalah **index**. Detail per orang dan per modul ada di dokumen
 > terpisah (lihat §10 Peta Dokumen).
@@ -38,10 +40,10 @@ tidak disentuh**.
 | Data contoh | `packages/seed` | Tetap |
 | Dataset wilayah | `packages/regions` | Tetap |
 | Mobile | `apps/mobile` | Tetap (Flutter) |
-| Token desain | `DESIGN.md`, `apps/web/src/styles/app.css` | Diambil via git |
-| Komponen UI/Ikon | `apps/web/src/components/{ui,icons}` | Port ke frontend baru |
-| Skema & migrasi DB | `apps/server/src/db/schema.ts`, `apps/server/drizzle/` | Dipakai ulang |
-| Domain backend | `apps/server/src/{repositories,services}` | Port ke backend baru |
+| Token desain | `DESIGN.md`, `apps/frontend/src/app/globals.css` | Diambil via git |
+| Komponen UI/Ikon | `apps/frontend/src/components/{ui,icons}` | Port ke frontend baru |
+| Skema & migrasi DB | `apps/backend/src/db/models/`, `apps/backend/drizzle/` | Dipakai ulang |
+| Domain backend | `apps/backend/src/{repositories,services}` | Port ke backend baru |
 
 ## 5. Tech Stack Target
 

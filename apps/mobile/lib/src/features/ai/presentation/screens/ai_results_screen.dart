@@ -1,0 +1,447 @@
+import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
+import 'package:provider/provider.dart';
+
+import 'package:dolenae_mobile/src/features/ai/presentation/controllers/ai_controller.dart';
+import 'package:dolenae_mobile/src/app/theme/app_colors.dart';
+import 'package:dolenae_mobile/src/app/theme/app_radius.dart';
+import 'package:dolenae_mobile/src/app/theme/app_spacing.dart';
+import 'package:dolenae_mobile/src/app/theme/app_text_styles.dart';
+import 'package:dolenae_mobile/src/features/ai/domain/entities/ai_recommendation.dart';
+import 'package:dolenae_mobile/src/features/ai/presentation/widgets/ai_results_skeleton.dart';
+import 'package:dolenae_mobile/src/shared/icons/app_icons.dart';
+import 'package:dolenae_mobile/src/shared/widgets/dn_app_bar.dart';
+import 'package:dolenae_mobile/src/shared/widgets/dn_buttons.dart';
+import 'package:dolenae_mobile/src/shared/widgets/dn_empty_state.dart';
+import 'package:dolenae_mobile/src/shared/widgets/dn_recommendation_card.dart';
+import 'package:dolenae_mobile/src/shared/widgets/dn_toast.dart';
+
+/// Layar AI Hasil (Node Figma: 68:771).
+///
+/// Menampilkan recap prompt beserta chip hasil parsing, ringkasan dari mesin
+/// rekomendasi, lalu kartu rekomendasi lengkap dengan alasan dan aksi.
+/// Sumber data adalah [AiController.aiResult]; layar ini juga menangani
+/// kondisi belum ada hasil dan gagal memuat.
+class AiResultsScreen extends StatelessWidget {
+  const AiResultsScreen({
+    super.key,
+    this.result,
+    this.onBack,
+    this.onRetry,
+    this.onChangePreference,
+    this.onAskAgain,
+    this.onViewDetail,
+    this.onAddDestination,
+    this.hasError = false,
+  });
+
+  /// Hasil yang ditampilkan; bila null diambil dari [AiController].
+  final AiResult? result;
+  final VoidCallback? onBack;
+
+  /// Aksi saat state gagal memuat.
+  final VoidCallback? onRetry;
+
+  /// Menampilkan state `Rekomendasi AI gagal diproses` (`101:358`).
+  final bool hasError;
+  final VoidCallback? onChangePreference;
+  final VoidCallback? onAskAgain;
+  final void Function(String destinationId)? onViewDetail;
+  final void Function(String destinationId)? onAddDestination;
+
+  void _backToPreferences(BuildContext context) {
+    context.read<AiController>().resetAiRecommendation();
+    if (context.canPop()) {
+      context.pop();
+    } else {
+      context.go('/ai/preferences');
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final ai = context.watch<AiController>();
+    final data = result ?? ai.aiResult;
+    final failed = hasError || ai.error != null;
+    final loading = ai.isLoading;
+
+    return Scaffold(
+      backgroundColor: AppColors.canvas,
+      appBar: DnAppBar(
+        title: 'Hasil rekomendasi',
+        showBack: true,
+        onBack: onBack ?? () => _backToPreferences(context),
+      ),
+      body: SafeArea(
+        top: false,
+        child: Column(
+          children: [
+            Expanded(
+              child: loading
+                  ? AiResultsSkeleton(
+                      key: ValueKey('ai-skeleton-${ai.runId}'),
+                      preference: ai.aiPreference,
+                    )
+                  : failed
+                  ? _AiErrorState(
+                      message: ai.error,
+                      onRetry:
+                          onRetry ??
+                          () =>
+                              context.read<AiController>().runRecommendation(),
+                      onChangePreference:
+                          onChangePreference ??
+                          () => _backToPreferences(context),
+                    )
+                  : data == null
+                  ? _AiEmptyState(
+                      onChangePreference:
+                          onChangePreference ??
+                          () => _backToPreferences(context),
+                      onAskAgain: onAskAgain,
+                    )
+                  : KeyedSubtree(
+                      key: ValueKey('ai-result-${ai.runId}'),
+                      child: _AiResultsBody(
+                        result: data,
+                        onViewDetail: onViewDetail,
+                        onAddDestination: onAddDestination,
+                      ),
+                    ),
+            ),
+            if (!loading && data != null)
+              _ResultsCta(
+                onChangePreference:
+                    onChangePreference ?? () => _backToPreferences(context),
+                onAskAgain:
+                    onAskAgain ??
+                    () => context.read<AiController>().runRecommendation(
+                      refresh: true,
+                    ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _AiResultsBody extends StatelessWidget {
+  const _AiResultsBody({
+    required this.result,
+    this.onViewDetail,
+    this.onAddDestination,
+  });
+
+  final AiResult result;
+  final void Function(String destinationId)? onViewDetail;
+  final void Function(String destinationId)? onAddDestination;
+
+  List<String> get _preferenceChips {
+    final preference = result.preference;
+    return [
+      ...preference.regions,
+      ...preference.activities,
+      if (preference.durationDays != null) '${preference.durationDays} hari',
+      if (preference.difficulty != null)
+        _difficultyLabel(preference.difficulty!),
+    ];
+  }
+
+  static String _difficultyLabel(String value) => switch (value) {
+    'ramah-pemula' => 'Ramah pemula',
+    'menengah' => 'Menengah',
+    'sulit' => 'Sulit',
+    _ => value,
+  };
+
+  @override
+  Widget build(BuildContext context) {
+    final chips = _preferenceChips;
+
+    return ListView(
+      padding: const EdgeInsets.fromLTRB(
+        AppSpacing.s4,
+        AppSpacing.s4,
+        AppSpacing.s4,
+        AppSpacing.s5,
+      ),
+      children: [
+        Container(
+          padding: const EdgeInsets.all(AppSpacing.s4),
+          decoration: BoxDecoration(
+            color: AppColors.canvasSubtle,
+            borderRadius: BorderRadius.circular(AppRadius.lg),
+            border: Border.all(color: AppColors.hairline),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('PROMPTMU', style: AppTextStyles.overline),
+              const SizedBox(height: AppSpacing.s2),
+              Text(
+                result.preference.rawText.isEmpty
+                    ? 'Preferensi tersimpan'
+                    : result.preference.rawText,
+                style: AppTextStyles.bodySm.copyWith(color: AppColors.ink),
+              ),
+            ],
+          ),
+        ),
+        if (chips.isNotEmpty) ...[
+          const SizedBox(height: AppSpacing.s3),
+          Wrap(
+            spacing: AppSpacing.s2,
+            runSpacing: AppSpacing.s2,
+            children: chips
+                .map(
+                  (chip) => Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: AppSpacing.s3,
+                      vertical: AppSpacing.s2,
+                    ),
+                    decoration: BoxDecoration(
+                      color: AppColors.canvas,
+                      borderRadius: BorderRadius.circular(AppRadius.pill),
+                    ),
+                    child: Text(chip, style: AppTextStyles.caption),
+                  ),
+                )
+                .toList(),
+          ),
+        ],
+        const SizedBox(height: AppSpacing.s2),
+        Text(result.engineLabel, style: AppTextStyles.caption),
+        if (result.notice != null && result.notice!.trim().isNotEmpty) ...[
+          const SizedBox(height: AppSpacing.s4),
+          _AiNotice(message: result.notice!),
+        ],
+        const SizedBox(height: AppSpacing.s4),
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(AppSpacing.s4),
+          decoration: BoxDecoration(
+            color: AppColors.canvasSubtle,
+            borderRadius: BorderRadius.circular(AppRadius.lg),
+            border: Border.all(color: AppColors.hairline),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  const Icon(
+                    AppIcons.sparkles,
+                    size: 16,
+                    color: AppColors.accent,
+                  ),
+                  const SizedBox(width: AppSpacing.s2),
+                  Text('RINGKASAN AI', style: AppTextStyles.overline),
+                ],
+              ),
+              const SizedBox(height: AppSpacing.s2),
+              Text(result.summary, style: AppTextStyles.bodySm),
+            ],
+          ),
+        ),
+        const SizedBox(height: AppSpacing.s4),
+        if (result.items.isNotEmpty) ...[
+          ...result.items.map(
+            (item) => Padding(
+              padding: const EdgeInsets.only(bottom: AppSpacing.s3),
+              child: DnRecommendationCard(
+                recommendation: item,
+                showDifficultyBadge: false,
+                onViewDetail: onViewDetail == null
+                    ? () => context.push('/destination/${item.destination.id}')
+                    : () => onViewDetail!(item.destination.id),
+                onAdd: onAddDestination == null
+                    ? () => _showAddPending(context)
+                    : () => onAddDestination!(item.destination.id),
+              ),
+            ),
+          ),
+          const SizedBox(height: AppSpacing.s2),
+        ],
+      ],
+    );
+  }
+
+  void _showAddPending(BuildContext context) {
+    showDnToast(
+      context,
+      'Fitur tambah destinasi segera hadir.',
+      type: DnToastType.info,
+    );
+  }
+}
+
+/// Notice for a query whose destination is not in the catalog.
+class _AiNotice extends StatelessWidget {
+  const _AiNotice({required this.message});
+
+  final String message;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(AppSpacing.s3),
+      decoration: BoxDecoration(
+        color: AppColors.warning.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(AppRadius.lg),
+        border: Border.all(color: AppColors.warning.withValues(alpha: 0.35)),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Icon(
+            AppIcons.alertTriangle,
+            size: 16,
+            color: AppColors.warning,
+          ),
+          const SizedBox(width: AppSpacing.s2),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Destinasi belum tersedia',
+                  style: AppTextStyles.overline.copyWith(
+                    color: AppColors.warning,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(message, style: AppTextStyles.caption),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// State belum ada hasil dan gagal memuat.
+class _AiEmptyState extends StatelessWidget {
+  const _AiEmptyState({required this.onChangePreference, this.onAskAgain});
+
+  final VoidCallback onChangePreference;
+  final VoidCallback? onAskAgain;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.all(AppSpacing.s5),
+      child: Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const DnEmptyState(
+              variant: DnEmptyVariant.tanpaHasil,
+              body:
+                  'Belum ada rekomendasi. Isi preferensimu lalu minta '
+                  'rekomendasi baru.',
+            ),
+            const SizedBox(height: AppSpacing.s4),
+            DnPrimaryButton(
+              label: 'Isi preferensi',
+              onPressed: onChangePreference,
+            ),
+            if (onAskAgain != null) ...[
+              const SizedBox(height: AppSpacing.s2),
+              DnOutlineButton(label: 'Coba lagi', onPressed: onAskAgain),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// State `Gagal memuat AI` (`101:358`): app bar tetap tampil, hanya isi
+/// yang diganti panel kegagalan beserta CTA dan aksi cadangan.
+class _AiErrorState extends StatelessWidget {
+  const _AiErrorState({
+    required this.onRetry,
+    required this.onChangePreference,
+    this.message,
+  });
+
+  final VoidCallback onRetry;
+  final VoidCallback onChangePreference;
+  final String? message;
+
+  @override
+  Widget build(BuildContext context) {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.fromLTRB(
+        AppSpacing.s5,
+        AppSpacing.s8,
+        AppSpacing.s5,
+        AppSpacing.s6,
+      ),
+      child: Column(
+        children: [
+          DnEmptyState(
+            icon: AppIcons.alertTriangle,
+            iconColor: AppColors.danger,
+            title: 'Rekomendasi AI gagal diproses',
+            body: message ?? 'Coba lagi sebentar lagi atau ubah preferensi.',
+            actionLabel: 'Coba lagi',
+            onAction: onRetry,
+          ),
+          const SizedBox(height: AppSpacing.s2),
+          DnGhostButton(
+            label: 'Ubah preferensi',
+            onPressed: onChangePreference,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ResultsCta extends StatelessWidget {
+  const _ResultsCta({
+    required this.onChangePreference,
+    required this.onAskAgain,
+  });
+
+  final VoidCallback onChangePreference;
+  final VoidCallback onAskAgain;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.fromLTRB(
+        AppSpacing.s4,
+        AppSpacing.s4,
+        AppSpacing.s4,
+        AppSpacing.s5,
+      ),
+      decoration: const BoxDecoration(
+        color: AppColors.canvas,
+        border: Border(top: BorderSide(color: AppColors.hairline)),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: DnOutlineButton(
+              label: 'Ubah preferensi',
+              onPressed: onChangePreference,
+            ),
+          ),
+          const SizedBox(width: AppSpacing.s3),
+          Expanded(
+            child: DnPrimaryButton(
+              label: 'Tanya lagi',
+              icon: AppIcons.sparkles,
+              onPressed: onAskAgain,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}

@@ -35,7 +35,7 @@ const NAV_MAIN: NavItem[] = [
 ];
 
 const NAV_SYSTEM: NavItem[] = [
-  { label: "Pengguna", href: "/admin/pengguna", icon: Users },
+  { label: "Pengguna", href: "/admin/users", icon: Users },
   { label: "Pengaturan", href: "/admin/pengaturan", icon: Settings },
 ];
 

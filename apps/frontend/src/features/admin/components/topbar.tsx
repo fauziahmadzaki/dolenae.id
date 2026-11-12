@@ -8,6 +8,14 @@ import { UserAvatar } from "./user-avatar";
 /** Page meta rendered in the topbar left — extend as admin pages are added. */
 const PAGE_META: Record<string, { breadcrumb: string; title: string }> = {
   "/admin": { breadcrumb: "Admin / Dashboard", title: "Ringkasan platform" },
+  "/admin/destinasi": {
+    breadcrumb: "Admin / Destinasi",
+    title: "Destinasi & kategori",
+  },
+  "/admin/destinasi/baru": {
+    breadcrumb: "Admin / Destinasi / Tambah",
+    title: "Tambah destinasi",
+  },
 };
 
 function pageMeta(pathname: string): { breadcrumb: string; title: string } {

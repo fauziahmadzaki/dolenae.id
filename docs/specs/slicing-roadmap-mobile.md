@@ -239,7 +239,7 @@ Rekomendasi` di desain.
   foto milik sendiri sebelum rilis.
 - **Peta di Detail Destinasi** masih frame `Map` dirakit dari primitif, belum
   peta interaktif. Peta Leaflet interaktif ada di sisi web
-  (`apps/web/src/components/map-view-leaflet.tsx`) dan belum dipakai di mobile.
+  (`apps/frontend/src/components/map/`) dan belum dipakai di mobile.
 - **Data seed sudah siap** (`packages/seed`), jadi tidak ada alasan layar baru
   diisi data placeholder.
 - **State management sudah ditambahkan.** `provider ^6.1.2` plus

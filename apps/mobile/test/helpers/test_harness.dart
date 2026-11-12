@@ -1,10 +1,48 @@
 import 'dart:io';
 
-import 'package:dolenae_mobile/src/app/state/ai_state.dart';
-import 'package:dolenae_mobile/src/app/state/notifications_state.dart';
-import 'package:dolenae_mobile/src/app/state/saved_state.dart';
-import 'package:dolenae_mobile/src/app/state/search_state.dart';
-import 'package:dolenae_mobile/src/app/state/settings_state.dart';
+import 'package:dolenae_mobile/src/features/categories/domain/entities/category.dart'
+    as categories;
+import 'package:dolenae_mobile/src/features/categories/domain/repositories/category_repository.dart';
+import 'package:dolenae_mobile/src/features/categories/presentation/controllers/categories_controller.dart';
+
+import 'package:dolenae_mobile/src/core/error/app_failure.dart';
+import 'package:dolenae_mobile/src/core/result/result.dart';
+import 'package:dolenae_mobile/src/features/ai/data/repositories/ai_repository_impl.dart';
+import 'package:dolenae_mobile/src/features/ai/presentation/controllers/ai_controller.dart';
+import 'package:dolenae_mobile/src/features/auth/domain/entities/auth_session.dart';
+import 'package:dolenae_mobile/src/features/auth/domain/repositories/auth_repository.dart';
+import 'package:dolenae_mobile/src/features/auth/presentation/controllers/auth_controller.dart';
+import 'package:dolenae_mobile/src/features/checklist/data/repositories/checklist_repository_impl.dart';
+import 'package:dolenae_mobile/src/features/checklist/presentation/controllers/checklist_controller.dart';
+import 'package:dolenae_mobile/src/features/destinations/data/data_sources/destination_seed_data_source.dart';
+import 'package:dolenae_mobile/src/features/destinations/domain/entities/destination_catalog.dart';
+import 'package:dolenae_mobile/src/features/destinations/domain/repositories/destination_repository.dart';
+import 'package:dolenae_mobile/src/features/destinations/presentation/controllers/destinations_controller.dart';
+import 'package:dolenae_mobile/src/features/explore/data/repositories/explore_repository_impl.dart';
+import 'package:dolenae_mobile/src/features/explore/presentation/controllers/explore_controller.dart';
+import 'package:dolenae_mobile/src/features/facilities/data/data_sources/facility_seed_data_source.dart';
+import 'package:dolenae_mobile/src/features/facilities/domain/entities/travel_support.dart';
+import 'package:dolenae_mobile/src/features/facilities/domain/repositories/facility_repository.dart';
+import 'package:dolenae_mobile/src/features/facilities/presentation/controllers/facilities_controller.dart';
+import 'package:dolenae_mobile/src/features/notifications/data/repositories/notification_repository_impl.dart';
+import 'package:dolenae_mobile/src/features/notifications/presentation/controllers/notifications_controller.dart';
+import 'package:dolenae_mobile/src/features/plan/data/data_sources/plan_seed_data_source.dart';
+import 'package:dolenae_mobile/src/features/plan/domain/entities/trip_plan.dart';
+import 'package:dolenae_mobile/src/features/plan/domain/entities/user_location.dart';
+import 'package:dolenae_mobile/src/features/plan/domain/repositories/location_repository.dart';
+import 'package:dolenae_mobile/src/features/plan/domain/repositories/plan_repository.dart';
+import 'package:dolenae_mobile/src/features/plan/presentation/controllers/plan_controller.dart';
+import 'package:dolenae_mobile/src/features/checklist/presentation/screens/add_checklist_item_screen.dart';
+import 'package:dolenae_mobile/src/features/plan/presentation/screens/plan_checklist_screen.dart';
+import 'package:dolenae_mobile/src/features/plan/presentation/screens/plan_detail_screen.dart';
+import 'package:dolenae_mobile/src/features/plan/presentation/screens/trip_plan_screen.dart';
+import 'package:dolenae_mobile/src/features/routes/domain/entities/route_graph.dart';
+import 'package:dolenae_mobile/src/features/routes/domain/repositories/route_repository.dart';
+import 'package:dolenae_mobile/src/features/routes/presentation/controllers/routes_controller.dart';
+import 'package:dolenae_mobile/src/features/saved/data/repositories/saved_repository_impl.dart';
+import 'package:dolenae_mobile/src/features/saved/presentation/controllers/saved_controller.dart';
+import 'package:dolenae_mobile/src/features/settings/data/repositories/settings_repository_impl.dart';
+import 'package:dolenae_mobile/src/features/settings/presentation/controllers/settings_controller.dart';
 import 'package:dolenae_mobile/src/app/theme/app_theme.dart';
 import 'package:dolenae_mobile/src/shared/widgets/dn_input.dart';
 import 'package:flutter/material.dart';
@@ -89,26 +127,165 @@ ByteData? _readAnyFontBytes() {
   return null;
 }
 
-/// Kumpulan state per-domain untuk diinjeksi ke layar saat pengujian.
+/// Kumpulan controller per-domain untuk diinjeksi ke layar saat pengujian.
 class TestStores {
-  TestStores()
-    : notifications = NotificationsState(),
-      saved = SavedState(),
-      ai = AiState(),
-      settings = SettingsState(),
-      search = SearchState();
+  TestStores({
+    AuthRepository? authRepository,
+    String? rememberedEmail,
+    CategoryRepository? categoryRepository,
+    List<TripPlan>? plans,
+  }) : auth = AuthController(
+         repository: authRepository ?? const _TestAuthRepository(),
+         initialRememberedEmail: rememberedEmail,
+       ),
+       categoriesController = CategoriesController(
+         categoryRepository ?? const _TestCategoryRepository(),
+       )..load(),
+       notifications = NotificationsController(NotificationRepositoryImpl()),
+       saved = SavedController(SavedRepositoryImpl()),
+       ai = AiController(repository: AiRepositoryImpl()),
+       settings = SettingsController(SettingsRepositoryImpl()),
+       search = ExploreController(ExploreRepositoryImpl()),
+       destinations = DestinationsController(
+         repository: const _TestDestinationRepository(),
+         initialItems: DestinationSeedData.items,
+       ),
+       facilities = FacilitiesController(
+         const _TestFacilityRepository(FacilitySeedData.supports),
+         initialSupports: FacilitySeedData.supports,
+       ),
+       routes = RoutesController(const _TestRouteRepository()),
+       plan = PlanController(
+         _TestPlanRepository(plans),
+         AiRepositoryImpl(),
+         const _TestLocationRepository(),
+       ),
+       checklist = ChecklistController(ChecklistRepositoryImpl());
 
-  final NotificationsState notifications;
-  final SavedState saved;
-  final AiState ai;
-  final SettingsState settings;
-  final SearchState search;
+  final AuthController auth;
+  final CategoriesController categoriesController;
+  final NotificationsController notifications;
+  final SavedController saved;
+  final AiController ai;
+  final SettingsController settings;
+  final ExploreController search;
+  final DestinationsController destinations;
+  final FacilitiesController facilities;
+  final RoutesController routes;
+  final PlanController plan;
+  final ChecklistController checklist;
 }
 
-/// Buat state baru untuk assert terhadap perubahan state di layar.
+/// Buat controller baru untuk assert terhadap perubahan state di layar.
 TestStores newStore() => TestStores();
 
-/// Bungkus [child] dengan tema aplikasi, state per-domain, dan router minimal.
+class _TestLocationRepository implements LocationRepository {
+  const _TestLocationRepository();
+
+  @override
+  Future<Result<UserLocation>> detectCurrent() async => const Success(
+    UserLocation(
+      latitude: -6.2,
+      longitude: 106.8,
+      province: 'DKI Jakarta',
+      city: 'Jakarta',
+    ),
+  );
+}
+
+class _TestPlanRepository implements PlanRepository {
+  _TestPlanRepository([List<TripPlan>? plans])
+    : _plans = [...(plans ?? PlanSeedData.plans)];
+
+  List<TripPlan> _plans;
+
+  @override
+  Future<Result<List<TripPlan>>> load() async => Success(_plans);
+
+  @override
+  Future<Result<void>> save(TripPlan plan) async {
+    final index = _plans.indexWhere((item) => item.id == plan.id);
+    if (index >= 0) {
+      _plans[index] = plan;
+    } else {
+      _plans = [plan, ..._plans];
+    }
+    return const Success(null);
+  }
+
+  @override
+  Future<Result<void>> delete(String id) async {
+    _plans = _plans.where((plan) => plan.id != id).toList();
+    return const Success(null);
+  }
+}
+
+class _TestCategoryRepository implements CategoryRepository {
+  const _TestCategoryRepository();
+  @override
+  List<categories.Category>? get cachedItems => null;
+  @override
+  bool get hasCache => false;
+  @override
+  Future<Result<List<categories.Category>>> load({
+    bool refresh = false,
+  }) async =>
+      const Failure(NetworkFailure('Offline', code: 'CATEGORY_OFFLINE'));
+}
+
+/// Repository destinasi sederhana yang langsung mengembalikan data seed.
+class _TestDestinationRepository implements DestinationRepository {
+  const _TestDestinationRepository();
+
+  @override
+  Stream<DestinationCatalog> watchCatalog() {
+    return Stream.value(
+      const DestinationCatalog(items: DestinationSeedData.items),
+    );
+  }
+
+  @override
+  Future<Result<void>> refresh() async => const Success(null);
+}
+
+/// Repository fasilitas sederhana yang langsung mengembalikan data seed.
+class _TestFacilityRepository implements FacilityRepository {
+  const _TestFacilityRepository(this._items);
+  final List<TravelSupport> _items;
+
+  @override
+  Future<Result<List<TravelSupport>>> list(String destinationId) async {
+    if (destinationId == 'dest-bromo' || destinationId == 'bromo') {
+      return Success(_items);
+    }
+    final matches = _items
+        .where((s) => s.destinationId == destinationId)
+        .toList();
+    return Success(matches);
+  }
+
+  @override
+  Future<Result<TravelSupport>> getById(String id) async {
+    for (final item in _items) {
+      if (item.id == id) return Success(item);
+    }
+    return const Failure(
+      NetworkFailure('Fasilitas tidak tersedia.', code: '404'),
+    );
+  }
+}
+
+class _TestRouteRepository implements RouteRepository {
+  const _TestRouteRepository();
+  @override
+  Future<Result<RouteGraph>> graph(String id) async =>
+      const Success(RouteGraph(nodes: [], segments: [], routes: []));
+  @override
+  Future<Result<RouteProfile>> profile(String id) async =>
+      const Failure(NetworkFailure('Profil jalur tidak tersedia.'));
+}
+
+/// Bungkus [child] dengan tema aplikasi, controller per-domain, dan router minimal.
 ///
 /// Router dipasang supaya `context.push` maupun `context.pop` di dalam layar
 /// tidak melempar error saat diuji; semua tujuan lain diarahkan ke [_StubScreen].
@@ -118,20 +295,51 @@ Widget wrapScreen(Widget child, {TestStores? store}) {
     initialLocation: '/',
     routes: [
       GoRoute(path: '/', builder: (_, _) => child),
+      GoRoute(path: '/home', builder: (_, _) => const _StubScreen()),
       GoRoute(path: '/susun/:lain', builder: (_, _) => const _StubScreen()),
       GoRoute(
-        path: '/destination/:id',
+        path: '/auth/forgot-password',
         builder: (_, _) => const _StubScreen(),
+      ),
+      GoRoute(path: '/destination/:id', builder: (_, _) => const _StubScreen()),
+      GoRoute(path: '/plan', builder: (_, _) => const TripPlanScreen()),
+      GoRoute(
+        path: '/plan/:id',
+        builder: (_, state) =>
+            PlanDetailScreen(planId: state.pathParameters['id'] ?? ''),
+        routes: [
+          GoRoute(
+            path: 'checklist',
+            builder: (_, state) =>
+                PlanChecklistScreen(planId: state.pathParameters['id'] ?? ''),
+            routes: [
+              GoRoute(
+                path: 'add',
+                builder: (_, _) => const AddChecklistItemScreen(
+                  initialName: '',
+                  initialNote: '',
+                ),
+              ),
+            ],
+          ),
+        ],
       ),
     ],
   );
   return MultiProvider(
     providers: [
+      ChangeNotifierProvider.value(value: stores.auth),
+      ChangeNotifierProvider.value(value: stores.categoriesController),
       ChangeNotifierProvider.value(value: stores.notifications),
       ChangeNotifierProvider.value(value: stores.saved),
       ChangeNotifierProvider.value(value: stores.ai),
       ChangeNotifierProvider.value(value: stores.settings),
       ChangeNotifierProvider.value(value: stores.search),
+      ChangeNotifierProvider.value(value: stores.destinations),
+      ChangeNotifierProvider.value(value: stores.facilities),
+      ChangeNotifierProvider.value(value: stores.routes),
+      ChangeNotifierProvider.value(value: stores.plan),
+      ChangeNotifierProvider.value(value: stores.checklist),
     ],
     child: MaterialApp.router(
       debugShowCheckedModeBanner: false,
@@ -174,6 +382,64 @@ Finder inputFor(String label) => find.descendant(
   of: find.ancestor(of: find.text(label), matching: find.byType(DnInput)),
   matching: find.byType(TextField),
 );
+
+/// Repository auth palsu untuk widget test: tanpa jaringan dan tanpa storage.
+class _TestAuthRepository implements AuthRepository {
+  const _TestAuthRepository();
+
+  static const _user = AuthUser(
+    id: 'user-1',
+    name: 'Dimas Pratama',
+    email: 'dimas@dolenae.id',
+    role: 'wisatawan',
+  );
+
+  static const _session = AuthSession(token: 'token-uji', user: _user);
+
+  @override
+  Future<Result<AuthSession>> restore() async =>
+      const Failure(AuthFailure('Sesi tidak ditemukan.'));
+
+  @override
+  Future<Result<AuthSession>> verify() async =>
+      const Failure(AuthFailure('Sesi tidak ditemukan.'));
+
+  @override
+  Future<Result<AuthSession>> login({
+    required String email,
+    required String password,
+  }) async => const Success(_session);
+
+  @override
+  Future<Result<AuthSession>> register({
+    required String name,
+    required String email,
+    required String password,
+  }) async => const Success(_session);
+
+  @override
+  Future<Result<AuthSession>> googleSignIn() async => const Failure(
+    AuthFailure('Google belum dikonfigurasi.', code: 'GOOGLE_FAILED'),
+  );
+
+  @override
+  Future<Result<String>> forgotPassword({required String email}) async =>
+      const Success('Tautan sudah dikirim.');
+
+  @override
+  Future<Result<String>> resendVerificationEmail({
+    required String email,
+  }) async => const Success('Tautan verifikasi sudah dikirim.');
+
+  @override
+  Future<Result<void>> logout() async => const Success(null);
+
+  @override
+  Future<String?> readRememberedEmail() async => null;
+
+  @override
+  Future<void> writeRememberedEmail(String? email) async {}
+}
 
 /// Placeholder untuk navigasi yang tidak sedang diuji.
 class _StubScreen extends StatelessWidget {

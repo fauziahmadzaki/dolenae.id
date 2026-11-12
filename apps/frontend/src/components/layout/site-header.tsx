@@ -39,14 +39,14 @@ export function SiteHeader() {
             </nav>
           </details>
           <Link
-            href="/login"
+            href="/auth/login"
             prefetch={false}
             className="hidden h-10 items-center px-4 text-sm font-semibold text-primary hover:underline sm:inline-flex"
           >
             Masuk
           </Link>
           <Link
-            href="/register"
+            href="/auth/register"
             prefetch={false}
             className="inline-flex h-10 items-center rounded-full bg-primary px-5 text-sm font-semibold text-on-primary transition-colors hover:bg-primary-hover"
           >

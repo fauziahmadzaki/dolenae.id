@@ -1,11 +1,11 @@
 import { Router } from "express";
-import { userController } from "../controllers/user.controller";
+import { userController } from "../controllers/UserController";
 import {
   userListQuerySchema,
   createUserSchema,
   updateUserSchema,
   userIdParamsSchema,
-} from "../controllers/user.schema";
+} from "../schemas/user.schema";
 import { validate } from "../middleware/validate";
 
 import { authRequired, requireRole } from "../middleware/auth";

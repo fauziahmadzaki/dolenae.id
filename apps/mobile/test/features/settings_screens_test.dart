@@ -1,14 +1,14 @@
-import 'package:dolenae_mobile/src/data/models/app_settings.dart';
-import 'package:dolenae_mobile/src/data/models/faq_item.dart';
-import 'package:dolenae_mobile/src/data/models/feedback.dart';
-import 'package:dolenae_mobile/src/data/seed/seed_data.dart';
-import 'package:dolenae_mobile/src/features/settings/presentation/settings_account_screen.dart';
-import 'package:dolenae_mobile/src/features/settings/presentation/settings_faq_screen.dart';
-import 'package:dolenae_mobile/src/features/settings/presentation/settings_feedback_screen.dart';
-import 'package:dolenae_mobile/src/features/settings/presentation/settings_notifications_screen.dart';
-import 'package:dolenae_mobile/src/features/settings/presentation/settings_privacy_screen.dart';
-import 'package:dolenae_mobile/src/features/settings/presentation/settings_screen.dart';
-import 'package:dolenae_mobile/src/features/settings/presentation/settings_theme_screen.dart';
+import 'package:dolenae_mobile/src/features/settings/domain/entities/app_settings.dart';
+import 'package:dolenae_mobile/src/features/settings/domain/entities/faq_item.dart';
+import 'package:dolenae_mobile/src/features/settings/domain/entities/feedback.dart';
+import 'package:dolenae_mobile/src/features/settings/data/data_sources/settings_seed_data_source.dart';
+import 'package:dolenae_mobile/src/features/settings/presentation/screens/settings_account_screen.dart';
+import 'package:dolenae_mobile/src/features/settings/presentation/screens/settings_faq_screen.dart';
+import 'package:dolenae_mobile/src/features/settings/presentation/screens/settings_feedback_screen.dart';
+import 'package:dolenae_mobile/src/features/settings/presentation/screens/settings_notifications_screen.dart';
+import 'package:dolenae_mobile/src/features/settings/presentation/screens/settings_privacy_screen.dart';
+import 'package:dolenae_mobile/src/features/settings/presentation/screens/settings_screen.dart';
+import 'package:dolenae_mobile/src/features/settings/presentation/screens/settings_theme_screen.dart';
 import 'package:dolenae_mobile/src/shared/icons/app_icons.dart';
 import 'package:dolenae_mobile/src/shared/widgets/dn_faq_accordion.dart';
 import 'package:flutter/material.dart';
@@ -130,7 +130,7 @@ void main() {
       await tester.pumpWidget(wrapScreen(const SettingsAccountScreen()));
       await tester.pumpAndSettle();
 
-      final devices = SeedData.settings.activeDevices;
+      final devices = SettingsSeedData.settings.activeDevices;
       expect(devices, isNotEmpty);
 
       await scrollTo(tester, find.text('PERANGKAT AKTIF'));
@@ -321,7 +321,7 @@ void main() {
 
     testWidgets('memilih kategori tanpa isi memunculkan empty state', (tester) async {
       await usePhone(tester);
-      final akunOnly = SeedData.faqs
+      final akunOnly = SettingsSeedData.faqs
           .where((item) => item.category == FaqCategory.akun)
           .toList();
       expect(akunOnly, isNotEmpty);
@@ -370,7 +370,7 @@ void main() {
 
     testWidgets('akordeon terbuka menampilkan jawaban', (tester) async {
       await usePhone(tester);
-      final item = SeedData.faqs.first;
+      final item = SettingsSeedData.faqs.first;
       await tester.pumpWidget(wrapScreen(SettingsFaqScreen(items: [item])));
       await tester.pumpAndSettle();
 

@@ -19,31 +19,62 @@ wisata alam sejenis).
 - `docs/prd/product-overview.md` — product overview (baca dulu sebelum kerja).
 - `docs/specs/architecture.md` — struktur monorepo & tech stack.
 - `docs/specs/data-model.md` — entitas domain.
+- `docs/specs/mobile-architecture.md` — struktur & konvensi `apps/mobile`.
 - `docs/specs/api-contract.md`, `docs/specs/ai-recommendation.md` — belum
   dibuat, rancang saat implementasi terkait.
 - `docs/decisions/` — ADR untuk keputusan arsitektur bernilai dokumentasi.
 
 ## Arsitektur & Konvensi
 
-- Monorepo **pnpm workspace**; distribusi: `apps/*` dan `packages/*`.
-- **TypeScript-first.** Tipe domain tinggal di `packages/types` (satu sumber
-  kebenaran) dan dipakai `apps/web` + `apps/server`.
-- Fase sekarang: **prototype statis** — data dari `packages/seed`, tanpa
-  auth/DB. Backend Hono (`apps/server`) menyajikan seed via API dan nanti
-  menggantikan data statis.
+- Monorepo **pnpm workspace**; distribusi: `apps/*` (backend, frontend, mobile)
+  dan `packages/*` (types, seed, regions).
+- **Next.js (App Router)** di `apps/frontend`, **Express 5** di `apps/backend`,
+  **Flutter** di `apps/mobile`.
+- Tipe domain bersama tetap di `packages/types`; backend punya tipe turunan
+  sendiri per entity di `apps/backend/src/types/` (hasil Zod, patch/list params).
+- Data produksi/dev kini dari **PostgreSQL + Drizzle**; `packages/seed` hanya
+  contoh data. Backend memakai envelope response seragam & JWT (`jose`).
+- Backend: `routes → controllers → services → repositories → db`. Hanya
+  `repositories` yang menyentuh DB lewat `database.getDb()`
+  (`db/DatabaseClient.ts`). Skema per entity di `db/models/`, seed di `db/seeds/`.
+  File service/repository/controller = nama class (PascalCase), tanpa fungsi
+  pembungkus di luar class; DTO/tipe tinggal di `apps/backend/src/types/`.
 - Bahasa dokumentasi: **Bahasa Indonesia**.
 
 ## Aturan Kerja untuk Agent
 
 1. Sebelum mengimplementasi fitur baru, periksa jenis entitas yang dipakai di
-   `packages/types` dan data contoh di `packages/seed`.
-2. Perubahan tipe domain dilakukan di `packages/types`, bukan copy lokal.
+   `packages/types`, data contoh di `packages/seed`, dan model DB di
+   `apps/backend/src/db/models/`.
+2. Perubahan tipe domain bersama dilakukan di `packages/types`, bukan copy
+   lokal. Tipe khusus backend (Zod, patch/list params) di
+   `apps/backend/src/types/`.
 3. Verifikasi dengan menjalankan:
-   - `pnpm typecheck` (semua paket TS)
-   - `cd apps/mobile && flutter analyze` (Flutter)
-4. UI baru untuk web dibuat sebagai route file di `apps/web/src/routes/`.
+   - `cd apps/backend && pnpm typecheck && pnpm test` (atau binary lokal
+     `./node_modules/.bin/tsc --noEmit` + `./node_modules/.bin/vitest run`)
+   - `cd apps/frontend && pnpm exec tsc --noEmit` (cek tipe web)
+   - `cd apps/mobile && flutter analyze && flutter test` (Flutter)
+4. UI web baru dibuat sebagai route di `apps/frontend/src/app/` (App Router).
 5. Update `docs/` (PRD/spec) bila ada perubahan perilaku produk yang
    signifikan.
+
+## Mobile (Flutter)
+
+- Struktur **feature-first clean architecture**; detail ada di
+  `docs/specs/mobile-architecture.md`.
+- Fitur di `lib/src/features/<fitur>/{domain,data,presentation}`. `domain`
+  bebas Flutter; hanya `data` yang menyentuh HTTP/Drift/SharedPreferences;
+  `presentation` hanya lewat controller + `domain`.
+- Kode lintas fitur: `core/` (config, error, network, database, result,
+  usecase, util) dan `shared/` (widget/ikon/tema).
+- `lib/src/app/di/app_dependencies.dart` adalah satu-satunya tempat
+  instansiasi implementasi repository; controller dibangun di `app/app.dart`.
+- State pakai `provider` + `ChangeNotifier` dengan nama kelas `*Controller`.
+- Operasi gagal mengembalikan `Result<T>`; `ApiException` berhenti di lapisan
+  data (diubah jadi `AppFailure` berpesan Bahasa Indonesia).
+- Import internal memakai `package:dolenae_mobile/src/...`.
+- Data contoh per fitur memakai `abstract final class ...SeedData`
+  (bukan satu `seed_data.dart` global).
 
 ## Desain & Figma (figma-cli)
 
@@ -87,6 +118,7 @@ wisata alam sejenis).
 
 | Command | Fungsi |
 | --- | --- |
-| `pnpm dev:web` | jalankan web TanStack Start (port 3000) |
-| `pnpm dev:server` | jalankan Hono API (tsx watch) |
-| `pnpm typecheck` / `pnpm build` | cek tipe / build semua paket |
+| `pnpm dev:web` | jalankan web Next.js (port 3000) |
+| `pnpm dev:api` | jalankan Express API (tsx watch, port 3001) |
+| `pnpm typecheck:api` | cek tipe backend |
+| `cd apps/backend && pnpm test` | unit + integration test backend (Vitest) |

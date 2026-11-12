@@ -1,24 +1,24 @@
 import { createApp } from "./app";
-import { loadEnv } from "./config/env";
-import { closeDatabase, pingDatabase } from "./db/client";
+import { AppConfig } from "./config/AppConfig";
+import { database } from "./db/DatabaseClient";
 
-const env = loadEnv();
+const config = AppConfig.load();
 const app = createApp();
 
-const server = app.listen(env.PORT, () => {
+const server = app.listen(config.port, () => {
   console.log(
-    `Dolenae API running at http://localhost:${env.PORT} (${env.NODE_ENV})`,
+    `Dolenae API running at http://localhost:${config.port} (${config.nodeEnv})`,
   );
 });
 
-void pingDatabase().then((connected) => {
+void database.ping().then((connected) => {
   console.log(connected ? "Database: connected" : "Database: NOT connected");
 });
 
 const shutdown = async (signal: string) => {
   console.log(`\n${signal} received, shutting down...`);
   server.close(async () => {
-    await closeDatabase();
+    await database.close();
     process.exit(0);
   });
 };

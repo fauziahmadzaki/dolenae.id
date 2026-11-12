@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 
-import '../../app/theme/app_colors.dart';
-import '../../app/theme/app_radius.dart';
-import '../../app/theme/app_text_styles.dart';
+import 'package:dolenae_mobile/src/app/theme/app_colors.dart';
+import 'package:dolenae_mobile/src/app/theme/app_radius.dart';
+import 'package:dolenae_mobile/src/app/theme/app_text_styles.dart';
 
 /// Jenis tag fasilitas (component `FacilityTag (Alam)`).
 enum DnFacilityTagKind { terrain, aktivitas, musim, kesulitan }

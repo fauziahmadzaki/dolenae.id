@@ -1,8 +1,11 @@
 # AGENTS.md — config/
 
-Pemuatan & validasi environment.
+Schema dan akses environment.
 
-- Satu sumber env: `env.ts` (schema **Zod**). Variabel baru → tambah di schema
-  + `.env.example`.
-- Jangan baca `process.env` langsung di luar folder ini; pakai `loadEnv()`.
+- `AppConfig.ts`: loader, cache, validasi production, dan getter env.
+- Schema Zod ada di `schemas/env.schema.ts`.
+- Variabel baru: tambah di `schemas/env.schema.ts` + `.env.example` + getter
+  `AppConfig`.
+- Jangan baca `process.env` langsung di luar folder ini; pakai
+  `AppConfig.load()`.
 - Tidak ada logika bisnis / akses HTTP di sini.

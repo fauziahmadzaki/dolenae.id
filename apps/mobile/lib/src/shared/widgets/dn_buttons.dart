@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../app/theme/app_colors.dart';
+import 'package:dolenae_mobile/src/app/theme/app_colors.dart';
 
 /// Tombol utama (isi `primary`).
 class DnPrimaryButton extends StatelessWidget {

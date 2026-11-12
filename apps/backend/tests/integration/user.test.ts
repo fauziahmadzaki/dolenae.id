@@ -2,16 +2,18 @@ import request from "supertest";
 import { describe, expect, it, vi, beforeEach, beforeAll } from "vitest";
 
 // Mock DB client to isolate HTTP & validation layer
-vi.mock("../../src/db/client", () => ({
-  pingDatabase: vi.fn().mockResolvedValue(true),
-  closeDatabase: vi.fn().mockResolvedValue(undefined),
-  getDb: vi.fn(),
-  getPool: vi.fn(),
+vi.mock("../../src/db/DatabaseClient", () => ({
+  database: {
+    getDb: vi.fn(),
+    getPool: vi.fn(),
+    ping: vi.fn().mockResolvedValue(true),
+    close: vi.fn().mockResolvedValue(undefined),
+  },
 }));
 
 import { signAccessToken } from "../../src/utils/jwt";
 import { createApp } from "../../src/app";
-import { userRepository } from "../../src/repositories/user.repository";
+import { userRepository } from "../../src/repositories/UserRepository";
 
 describe("User Management CRUD API (/api/users)", () => {
   const app = createApp();
@@ -46,7 +48,16 @@ describe("User Management CRUD API (/api/users)", () => {
       expect(Array.isArray(res.body.data)).toBe(true);
       expect(res.body.data[0].id).toBe(mockUserRow.id);
       expect(res.body.data[0].email).toBe(mockUserRow.email);
-      expect(Object.keys(res.body.data[0]).sort()).toEqual(["createdAt", "email", "id", "name", "role", "updatedAt"]);
+      expect(Object.keys(res.body.data[0]).sort()).toEqual([
+        "createdAt",
+        "email",
+        "emailVerifiedAt",
+        "id",
+        "lastLoginAt",
+        "name",
+        "role",
+        "updatedAt",
+      ]);
       expect(res.body.meta).toMatchObject({
         page: 1,
         limit: 10,

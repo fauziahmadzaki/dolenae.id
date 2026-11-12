@@ -1,16 +1,17 @@
-import 'package:dolenae_mobile/src/data/models/ai_recommendation.dart';
-import 'package:dolenae_mobile/src/data/models/facility_proposal.dart';
-import 'package:dolenae_mobile/src/data/models/travel_support.dart';
-import 'package:dolenae_mobile/src/data/seed/seed_data.dart';
-import 'package:dolenae_mobile/src/features/ai/presentation/ai_preferences_screen.dart';
-import 'package:dolenae_mobile/src/features/ai/presentation/ai_results_screen.dart';
-import 'package:dolenae_mobile/src/features/auth/presentation/change_password_screen.dart';
-import 'package:dolenae_mobile/src/features/auth/presentation/forgot_password_screen.dart';
-import 'package:dolenae_mobile/src/features/auth/presentation/otp_screen.dart';
-import 'package:dolenae_mobile/src/features/facilities/presentation/facilities_screen.dart';
-import 'package:dolenae_mobile/src/features/facilities/presentation/facility_detail_screen.dart';
-import 'package:dolenae_mobile/src/features/facilities/presentation/proposal_success_screen.dart';
-import 'package:dolenae_mobile/src/features/facilities/presentation/propose_facility_screen.dart';
+import 'package:dolenae_mobile/src/features/ai/domain/entities/ai_recommendation.dart';
+import 'package:dolenae_mobile/src/features/facilities/domain/entities/facility_proposal.dart';
+import 'package:dolenae_mobile/src/features/facilities/domain/entities/travel_support.dart';
+import 'package:dolenae_mobile/src/features/ai/data/data_sources/ai_seed_data_source.dart';
+import 'package:dolenae_mobile/src/features/facilities/data/data_sources/facility_seed_data_source.dart';
+import 'package:dolenae_mobile/src/features/ai/presentation/screens/ai_preferences_screen.dart';
+import 'package:dolenae_mobile/src/features/ai/presentation/screens/ai_results_screen.dart';
+import 'package:dolenae_mobile/src/features/auth/presentation/screens/change_password_screen.dart';
+import 'package:dolenae_mobile/src/features/auth/presentation/screens/forgot_password_screen.dart';
+import 'package:dolenae_mobile/src/features/auth/presentation/screens/otp_screen.dart';
+import 'package:dolenae_mobile/src/features/facilities/presentation/screens/facilities_screen.dart';
+import 'package:dolenae_mobile/src/features/facilities/presentation/screens/facility_detail_screen.dart';
+import 'package:dolenae_mobile/src/features/facilities/presentation/screens/proposal_success_screen.dart';
+import 'package:dolenae_mobile/src/features/facilities/presentation/screens/propose_facility_screen.dart';
 import 'package:dolenae_mobile/src/shared/widgets/dn_otp_input.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -70,31 +71,47 @@ void main() {
       await usePhone(tester);
       await tester.pumpWidget(
         wrapScreen(
-          AiPreferencesScreen(initialPreference: SeedData.demoAiPreference),
+          AiPreferencesScreen(initialPreference: AiSeedData.demoPreference),
         ),
       );
       await tester.pumpAndSettle();
       expect(find.text('Cari rekomendasi'), findsOneWidget);
     });
+
+    testWidgets('tombol kembali membuka beranda saat tab tanpa stack', (
+      tester,
+    ) async {
+      await usePhone(tester);
+      await tester.pumpWidget(wrapScreen(const AiPreferencesScreen()));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byTooltip('Kembali'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Layar lain'), findsOneWidget);
+    });
   });
 
   group('Layar Hasil AI', () {
-    testWidgets('menampilkan prompt, hasil, dan checklist terkait', (tester) async {
+    testWidgets('menampilkan prompt, ringkasan, dan kartu destinasi', (
+      tester,
+    ) async {
       await usePhone(tester);
       await tester.pumpWidget(
-        wrapScreen(AiResultsScreen(result: SeedData.demoAiResult)),
+        wrapScreen(AiResultsScreen(result: AiSeedData.demoResult)),
       );
       await tester.pumpAndSettle();
 
-      expect(find.text('Rekomendasi'), findsOneWidget);
+      expect(find.text('Hasil rekomendasi'), findsOneWidget);
       expect(find.text('PROMPTMU'), findsOneWidget);
       expect(
-        find.text(SeedData.demoAiResult.summary),
+        find.text(AiSeedData.demoResult.summary),
         findsOneWidget,
       );
+      expect(find.text('RINGKASAN AI'), findsOneWidget);
+      expect(find.text('Skor 92'), findsOneWidget);
+      expect(find.text('Lihat detail'), findsWidgets);
 
-      await scrollTo(tester, find.text('CHECKLIST TERKAIT'));
-      expect(find.text('CHECKLIST TERKAIT'), findsOneWidget);
       await scrollTo(tester, find.text('Ubah preferensi'));
       expect(find.text('Ubah preferensi'), findsOneWidget);
       expect(find.text('Tanya lagi'), findsOneWidget);
@@ -137,7 +154,7 @@ void main() {
       await tester.pumpWidget(
         wrapScreen(
           AiResultsScreen(
-            result: SeedData.demoAiResult,
+            result: AiSeedData.demoResult,
             onRetry: () => retried++,
             onChangePreference: () => changed++,
             onAskAgain: () => asked++,
@@ -166,7 +183,7 @@ void main() {
       expect(viewed, hasLength(1));
       expect(
         viewed.single,
-        SeedData.demoAiResult.items.first.destination.id,
+        AiSeedData.demoResult.items.first.destination.id,
       );
       expect(retried, 0);
     });
@@ -377,7 +394,7 @@ void main() {
       await tester.tap(find.text('Transport'));
       await tester.pumpAndSettle();
 
-      final transport = SeedData.supports
+      final transport = FacilitySeedData.supports
           .where((item) => item.category == SupportCategory.transportasi);
       expect(transport, isNotEmpty);
     });
@@ -455,14 +472,15 @@ void main() {
       expect(contacted, 1);
     });
 
-    testWidgets('id tak dikenal jatuh ke fasilitas pertama', (tester) async {
+    testWidgets('id tak dikenal tidak jatuh ke fasilitas pertama', (tester) async {
       await usePhone(tester);
       await tester.pumpWidget(
         wrapScreen(const FacilityDetailScreen(supportId: 'sup-tidak-ada')),
       );
       await tester.pumpAndSettle();
-      expect(find.text('TENTANG'), findsOneWidget);
-      expect(find.text(SeedData.supports.first.name), findsWidgets);
+      expect(find.text('TENTANG'), findsNothing);
+      expect(find.text('Fasilitas tidak tersedia.'), findsOneWidget);
+      expect(find.text(FacilitySeedData.supports.first.name), findsNothing);
     });
   });
 

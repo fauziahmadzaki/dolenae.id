@@ -14,15 +14,15 @@ publik (Modul 3).
 
 ## Backend
 
-- [ ] `POST/PATCH/DELETE /api/destinations` (admin).
-- [ ] `POST/PATCH/DELETE /api/categories` (admin).
-- [ ] Validasi Zod + guard role admin.
+- [x] `POST/PATCH/DELETE /api/destinations` (admin).
+- [x] `POST/PATCH/DELETE /api/categories` (admin).
+- [x] Validasi Zod + guard role admin.
 
 ## Frontend
 
-- [ ] `app/admin/destinations/page.tsx` — tabel + pagination + toolbar + tab kategori.
-- [ ] Form destinasi multi-langkah (`new` + `[id]/edit`).
-- [ ] Dialog/tab kategori.
+- [x] `app/admin/destinasi/page.tsx` — tabel + pagination + toolbar + tab kategori.
+- [x] Form destinasi multi-langkah (`new` + `[id]/edit`).
+- [x] Dialog/tab kategori.
 
 ## Rencana Commit
 
@@ -38,12 +38,22 @@ publik (Modul 3).
 
 ## Kriteria Selesai (DoD)
 
-- [ ] `pnpm typecheck` & `pnpm build` hijau.
+- [x] `pnpm typecheck` & `pnpm build` hijau.
 - [ ] Admin CRUD destinasi → tampil di katalog publik.
 - [ ] Form memakai `map-picker` & `image-uploader` dari Modul 5.
-- [ ] Dokumentasi modul diperbarui.
+- [x] Dokumentasi modul diperbarui.
 
 ## Catatan Integrasi
 
 - Sepakati kontrak props `map-picker` & `image-uploader` dengan Widan sebelum
   integrasi form.
+- Status implementasi: CRUD backend (`/api/categories`, `/api/destinations`),
+  halaman admin, wizard 5 langkah, dan dialog kategori sudah berjalan. Katalog
+  publik masih memakai data statis `features/landing/data.ts`, jadi integrasi
+  `GET /api/destinations` menunggu Modul 3.
+- Sampai Modul 5 tersedia, wizard memakai input koordinat manual dan URL foto
+  (belum peta pemilih titik / unggah berkas).
+- Visual mengikuti `docs/specs/ui-ux-hifi-web.md` (node Figma `157:759`,
+  `158:1010`, `160:3635`, `159:1883`–`160:2753`). Verifikasi visual langsung di
+  file Figma "UI UX Dolenae.id" belum dilakukan karena file tidak terbuka di
+  Figma Desktop saat implementasi.
