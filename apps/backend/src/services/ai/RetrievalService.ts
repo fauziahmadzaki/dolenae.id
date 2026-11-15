@@ -1,4 +1,4 @@
-import { supportRepository } from "../../repositories/SupportRepository";
+import { facilityRepository } from "../../repositories/FacilityRepository";
 import type {
   AiContext,
   AiContextDestination,
@@ -188,14 +188,6 @@ class AiRetrievalService {
       return false;
     }
     if (
-      !dropped.includes("budget") &&
-      input.budgetPerPerson != null &&
-      destination.entryFee != null &&
-      destination.entryFee > input.budgetPerPerson
-    ) {
-      return false;
-    }
-    if (
       !dropped.includes("difficulty") &&
       input.difficulty != null &&
       destination.difficulty !== input.difficulty
@@ -305,23 +297,29 @@ class AiRetrievalService {
     const routes: AiContextRoute[] = [];
 
     for (const entry of selected) {
-      const supportResult = await supportRepository.list(entry.destination.id, {
+      const facilityResult = await facilityRepository.list({
         page: 1,
         limit: 10,
         offset: 0,
         order: "asc",
+        destinationId: entry.destination.id,
+        statuses: ["published"],
+        publishedDestinationOnly: true,
       });
-      for (const support of supportResult.items) {
+      for (const facility of facilityResult.items) {
         supports.push({
-          id: support.id,
-          destinationId: support.destinationId,
-          name: support.name,
-          category: support.category,
-          priceMin: support.priceMin ?? null,
-          priceMax: support.priceMax ?? null,
-          priceLabel: support.priceLabel,
-          locationLabel: support.locationLabel,
-          verified: support.verified,
+          id: facility.id,
+          destinationId: facility.destinationId,
+          name: facility.name,
+          category: facility.category,
+          priceMin: facility.priceMin,
+          priceMax: facility.priceMax,
+          priceLabel:
+            facility.priceMin == null
+              ? null
+              : `Rp ${facility.priceMin.toLocaleString("id-ID")}`,
+          locationLabel: null,
+          verified: facility.status === "published",
         });
       }
 
@@ -353,10 +351,8 @@ class AiRetrievalService {
         regency: entry.destination.location.regency,
         difficulty: entry.destination.difficulty,
         elevationMeters: entry.destination.elevationMeters,
-        entryFee: entry.destination.entryFee,
         bestSeason: entry.destination.bestSeason,
         guideRequired: entry.destination.guideRequired,
-        facilities: entry.destination.facilities,
         description: entry.destination.description,
         categories: [
           ...entry.destination.terrain,

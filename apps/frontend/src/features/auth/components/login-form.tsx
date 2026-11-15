@@ -5,31 +5,19 @@ import Link from "next/link";
 import { Check, Eye, EyeOff, Loader2 } from "lucide-react";
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
-import { useToast } from "~/components/ui/toaster";
 import { cn } from "~/lib/cn";
 import { BrandMark } from "~/components/brand-mark";
-import { GoogleIcon } from "~/components/icons/google-icon";
 import { useLoginForm } from "../hooks/use-login-form";
 import { LoginTabs } from "./login-tabs";
 
 /** Login form (left column of the "Masuk" frame in Figma). */
 export function LoginForm() {
   const { form, onSubmit, isSubmitting } = useLoginForm();
-  const { toast } = useToast();
   const [showPassword, setShowPassword] = useState(false);
 
   const remember = form.watch("remember");
   const emailError = form.formState.errors.email?.message;
   const passwordError = form.formState.errors.password?.message;
-
-  const handleGoogle = () => {
-    // TODO(post-SCRUM-8): wire Google Identity Services → POST /api/auth/google.
-    toast({
-      title: "Masuk dengan Google",
-      description: "Fitur ini menyusul di sprint berikutnya.",
-      variant: "info",
-    });
-  };
 
   return (
     <section
@@ -52,7 +40,7 @@ export function LoginForm() {
             </p>
           </div>
 
-          <LoginTabs />
+          <LoginTabs active="login" />
 
           <form className="space-y-5" onSubmit={onSubmit} noValidate>
             <div className="space-y-2">
@@ -160,37 +148,15 @@ export function LoginForm() {
             </Button>
           </form>
 
-          <div className="space-y-5">
-            <div className="flex items-center gap-3">
-              <span className="h-px flex-1 bg-hairline" />
-              <span className="text-xs font-medium text-body">
-                atau lanjut dengan
-              </span>
-              <span className="h-px flex-1 bg-hairline" />
-            </div>
-
-            <Button
-              type="button"
-              variant="secondary"
-              size="lg"
-              className="w-full"
-              onClick={handleGoogle}
-              disabled={isSubmitting}
+          <p className="text-center text-sm text-body">
+            Belum punya akun?{" "}
+            <Link
+              href="/auth/register"
+              className="font-semibold text-primary hover:text-primary-hover"
             >
-              <GoogleIcon className="h-[18px] w-[18px]" />
-              Google
-            </Button>
-
-            <p className="pt-2 text-center text-sm text-body">
-              Belum punya akun?{" "}
-              <Link
-                href="/auth/register"
-                className="font-semibold text-primary hover:text-primary-hover"
-              >
-                Daftar sekarang
-              </Link>
-            </p>
-          </div>
+              Daftar sebagai merchant
+            </Link>
+          </p>
         </div>
       </div>
     </section>

@@ -95,8 +95,7 @@ class ItineraryService {
       (total, support) => total + (support.priceMin ?? 0),
       0,
     );
-    const total = (destination.entryFee ?? 0) + supportCost;
-    return total > 0 ? this.formatRupiah(total) : null;
+    return supportCost > 0 ? this.formatRupiah(supportCost) : null;
   }
 
   /**
@@ -138,17 +137,6 @@ class ItineraryService {
           support.category === category,
       )?.priceMin;
 
-    for (const destination of destinations) {
-      add({
-        name: `Tiket masuk ${destination.name}`,
-        category: "biaya",
-        cost: destination.entryFee,
-        note:
-          destination.entryFee == null
-            ? "Harga tiket belum tersedia; cek ulang sebelum berangkat."
-            : "Per orang",
-      });
-    }
 
     if (preference.needsTransport) {
       const prices = destinations
@@ -454,9 +442,6 @@ class ItineraryService {
       if (destination.guideRequired) {
         warnings.push(`${destination.name} mewajibkan pemandu lokal.`);
       }
-      if (destination.entryFee == null) {
-        warnings.push(`Harga tiket ${destination.name} belum tersedia.`);
-      }
 
       for (const support of this.pickSupports(context, destination.id, preference)) {
         if (usedSupports.has(support.id)) continue;
@@ -566,10 +551,6 @@ class ItineraryService {
         reasons.push(
           `${route.name}: ${route.totalDistanceKm} km, +${route.totalGainMeters} m, ±${route.estimatedDurationMinutes} menit.`,
         );
-      } else if (destination.facilities.length > 0) {
-        reasons.push(
-          `Fasilitas: ${destination.facilities.slice(0, 3).join(", ")}.`,
-        );
       }
 
       const support = supports[0];
@@ -601,7 +582,6 @@ class ItineraryService {
         province: destination.province,
         regency: destination.regency,
         elevationMeters: destination.elevationMeters,
-        entryFee: destination.entryFee,
         difficulty: destination.difficulty,
         images: destination.images,
         score: Math.max(60, scoreStart - index * 6),

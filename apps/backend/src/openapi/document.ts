@@ -1,3 +1,5 @@
+import { facilityPaths, facilitySchemas, facilityTag } from "./facility-paths";
+
 /** OpenAPI 3.1 document served at GET /api/openapi.json (UI via Scalar at /api/docs). */
 export const openApiDocument = {
   openapi: "3.1.0",
@@ -130,8 +132,6 @@ export const openApiDocument = {
               distanceKm: { type: ["number", "null"] },
             },
           },
-          facilities: { type: "array", items: { type: "string" } },
-          entryFee: { type: ["integer", "null"] },
           elevationMeters: { type: ["integer", "null"] },
           images: { type: "array", items: { type: "string" } },
           guideRequired: { type: "boolean" },
@@ -967,8 +967,6 @@ export const openApiDocument = {
                   tags: { type: "array", items: { type: "string" } },
                   location: { type: "object" },
                   access: { type: "object" },
-                  facilities: { type: "array", items: { type: "string" } },
-                  entryFee: { type: ["integer", "null"] },
                   elevationMeters: { type: ["integer", "null"] },
                   images: { type: "array", items: { type: "string" } },
                   guideRequired: { type: "boolean" },
@@ -1301,3 +1299,15 @@ export const openApiDocument = {
     },
   },
 } as const;
+
+Object.assign(
+  openApiDocument.paths as unknown as Record<string, unknown>,
+  facilityPaths,
+);
+Object.assign(
+  openApiDocument.components.schemas as unknown as Record<string, unknown>,
+  facilitySchemas,
+);
+(openApiDocument.tags as unknown as Array<{ name: string; description: string }>).push(
+  facilityTag,
+);

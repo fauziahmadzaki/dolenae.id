@@ -20,20 +20,30 @@ Akun demo (dari `db:seed`):
 | Email | Kata sandi | Role |
 | --- | --- | --- |
 | `admin@dolenae.id` | `admin12345` | admin |
-| `dimas@dolenae.id` | `wisatawan123` | wisatawan |
+| `wisatawan@dolenae.id` | `dolenae123` | wisatawan |
 
 ## 2. Halaman & rute
 
 | Rute | Isi |
 | --- | --- |
-| `/auth/login` | Form masuk admin — slicing desain Figma `Hi-Fi Web - Masuk` (`89:3328`) |
+| `/auth/login` | Form masuk (admin & merchant) — slicing desain Figma `Hi-Fi Web - Masuk` (`89:3328`) |
+| `/auth/register` | Registrasi **merchant** (nama, email, password, konfirmasi) → auto-login ke `/merchant` |
 | `/admin` | Dashboard (guard) — ringkasan kartu |
 | `/admin/destinasi` | Destinasi — tab Kategori (CRUD) + tab Destinasi (tabel/card, CRUD). Tab aktif via `?tab=kategori` |
-| `/admin/destinasi/baru` | Form tambah destinasi (5 langkah) + fasilitas |
+| `/admin/destinasi/baru` | Form tambah destinasi (4 langkah) |
 | `/admin/destinasi/[id]/edit` | Form edit destinasi |
 | `/admin/destinasi/[id]/rute` | Route builder (titik, ruas, jalur, profil elevasi) |
 | `/admin/users` | Tabel pengguna + pagination + pencarian (khusus admin) |
 | `/admin/pengaturan` | Pengaturan AI (Gemini) + koneksi |
+| `/admin/fasilitas` | Verifikasi fasilitas merchant: tab status, cari, tayangkan/tolak/arsipkan, edit, kelola produk |
+| `/merchant` | Dashboard merchant: statistik fasilitas/produk + fasilitas terbaru |
+| `/merchant/fasilitas` | Daftar fasilitas milik merchant |
+| `/merchant/fasilitas/baru` | Form 3 langkah daftar fasilitas (info → lokasi peta → harga/kontak) |
+| `/merchant/fasilitas/[id]/edit` | Edit fasilitas milik merchant |
+| `/merchant/fasilitas/[id]/produk` | Produk milik satu fasilitas |
+| `/merchant/produk` | Semua produk merchant (lintas fasilitas) + filter |
+| `/admin/fasilitas/baru` | Admin menambah fasilitas |
+| `/admin/fasilitas/[id]/edit` | Admin mengedit fasilitas merchant |
 | `/design-system` | Katalog komponen DS "Alam" (warna, Button, Input, Badge/Chip, Select, Dropdown, Card, Dialog, Toaster, Image uploader) |
 
 > **Kategori & Destinasi** di-slicing dari Figma page **`Hi-Fi Web`**:
@@ -53,22 +63,25 @@ Akun demo (dari `db:seed`):
 > Step 1-5` (`159:1883`, `160:2106`, `160:2335`, `160:2556`, `160:2753`) dan
 > `Admin Edit Destinasi` (`160:2975`, dst.). Struktur: **indikator langkah**
 > (circle 1-5 + garis penghubung, bisa diklik), **kartu form** + **side panel**
-> (kartu tips per langkah + kartu "Kelengkapan" dengan progress bar `20%×langkah`),
+> (kartu tips per langkah + kartu "Kelengkapan" dengan progress bar `25%×langkah`),
 > dan **footer** (`Kembali` · `Simpan draf` · `Lanjut`/`Publikasikan`). Langkah:
 > 1 Info Dasar (nama, slug ber-prefix `dolenae.id/destinasi/`, tagline, deskripsi
 > dengan toolbar RTE), 2 Klasifikasi (chip terrain/aktivitas, segmented kesulitan,
 > musim, guide), 3 Lokasi & Akses (**peta Leaflet** — klik untuk menaruh pin;
 > combobox **provinsi → kabupaten → kecamatan** + elevasi; **reverse geocode**
 > otomatis mengisi wilayah dari koordinat; basecamp, deskripsi akses, chip moda,
-> estimasi waktu), 4 Fasilitas (tab Penginapan/Transport/Makanan + jumlah, baris
-> fasilitas dengan status/harga/aksi, tambah inline **+ unggah foto fasilitas**,
-> hapus fasilitas sekaligus membersihkan berkas, fasilitas umum), 5 Media &
-> Publikasi (**unggah foto** ke object storage via dropzone/pilih file — fallback
-> tempel URL, thumbnail + badge `Utama`, hapus foto membersihkan berkas, tags,
-> harga tiket, radio status, ringkasan).
+> estimasi waktu), 4 Media & Publikasi (**unggah foto** ke object storage via
+> dropzone/pilih file — fallback tempel URL, thumbnail + badge `Utama`, hapus foto
+> membersihkan berkas, tags, radio status, ringkasan).
 >
-> `/auth/login` sengaja **di luar** layout guard `/admin` agar tidak ikut proses
-> proteksi.
+> Step **Fasilitas & Biaya** sudah dihapus: fasilitas sekitar destinasi dikelola
+> lewat modul Fasilitas (merchant/admin), sedangkan `entryFee` tidak lagi
+> disimpan pada destinasi.
+>
+> `/auth/login` dan `/auth/register` sengaja **di luar** layout guard `/admin`
+> agar tidak ikut proses proteksi. Registrasi web selalu membuat akun role
+> `merchant`; setelah sukses sesi langsung tersimpan dan user diarahkan ke
+> `/merchant`. Email verifikasi tetap dikirim oleh backend.
 >
 > Halaman admin memakai komponen DS dari `components/ui/` (Button, Input, Badge,
 > Select, DropdownMenu, Card, Dialog) — bukan markup ad-hoc. Konfirmasi hapus
@@ -77,7 +90,7 @@ Akun demo (dari `db:seed`):
 > Desain login mengikuti Figma: split **720/720** (form kiri bg `canvas`, panel
 > media kanan bg `primary`), header (`surface` + hairline) & footer (band
 > `primary`), tab Masuk/Daftar, input `canvas-subtle` radius 12, CTA pill
-> `primary`, divider "atau lanjut dengan", tombol Google, dan 3 poin nilai.
+> `primary`, tanpa tombol Google, dan 3 poin nilai.
 > Token tema "Alam" ada di `src/app/globals.css` (`@theme`), komponen chrome di
 > `src/components/layout/`.
 
@@ -152,7 +165,9 @@ dipindah ke server (cookie httpOnly / beforeLoad SSR). Ini menyusul.
 | Destinasi admin | `GET /api/destinations?page&limit&search` |
 | Detail destinasi | `GET /api/destinations/:id` |
 | Buat/ubah/hapus destinasi | `POST /api/destinations`, `PATCH/DELETE /api/destinations/:id` |
-| Fasilitas destinasi | `GET /api/destinations/:id/supports`, `GET /api/supports/:id` |
+| Fasilitas destinasi | `GET /api/destinations/:id/facilities`, `GET /api/facilities/:id` |
+| Fasilitas merchant | `GET /api/facilities/mine`, `POST/PATCH/DELETE /api/facilities`, `POST/PATCH/DELETE /api/facilities/:id/products` |
+| Produk lintas fasilitas | `GET /api/products/mine?page&limit&search&facilityId` (merchant/admin) |
 | Wilayah & reverse geocode | `GET /api/regions/provinces`, `/regencies?province=`, `/districts?regency=`, `/reverse?lat=&lng=` |
 | Route builder | `GET/POST /api/destinations/:id/{track-nodes,segments,routes}`, `GET /api/routes/:id/profile` |
 | Pengaturan AI | `GET/PUT /api/admin/ai/settings`, `GET /api/admin/ai/models`, `POST /api/admin/ai/test` |
@@ -171,3 +186,23 @@ Halaman detail memanggil `notFound()` bila destinasi tidak ada.
 > `categoryIds` pada form diturunkan dari chip terrain/aktivitas (dipetakan ke
 > kategori berdasarkan `slug`), sehingga destinasi baru ikut memiliki relasi
 > `destination_categories`.
+
+## 6. Modul Fasilitas (merchant & admin)
+
+- **Merchant** memakai shell yang sama dengan admin (sidebar + topbar + drawer),
+  dengan menu **Dashboard · Fasilitas · Produk**:
+  - `/merchant` — kartu statistik (total fasilitas, pending, tayang, total produk),
+    aksi cepat, dan 5 fasilitas terbaru.
+  - `/merchant/fasilitas` — daftar fasilitas; tombol daftar/edit membuka
+    **halaman form 3 langkah** (`/merchant/fasilitas/baru|[id]/edit`).
+  - `/merchant/fasilitas/[id]/produk` — kelola produk satu fasilitas.
+  - `/merchant/produk` — semua produk merchant, filter fasilitas + pencarian,
+    tambah/edit/hapus/aktif-nonaktif (tambah memilih fasilitas dulu).
+- **Admin** (`/admin/fasilitas`): tab `pending|published|rejected|draft|archived`,
+  aksi tayangkan/tolak/arsipkan, kelola produk, hapus; tambah/edit memakai
+  halaman form yang sama (`/admin/fasilitas/baru|[id]/edit`).
+- **Lokasi**: peta Leaflet interaktif — klik/geser pin. Peta menampilkan marker
+  destinasi + lingkaran radius **20 km**; badge jarak live (hijau ≤20 km, merah
+  >20 km). Simpan diblokir di client kalau melewati batas (server tetap
+  memvalidasi, error `distanceKm` ditampilkan di toast).
+- Upload banner memakai `POST /api/uploads` (merchant & admin).

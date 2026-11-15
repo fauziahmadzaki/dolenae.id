@@ -35,6 +35,6 @@ Sumber data seed `apps/backend/src/db/seeds/seed.ts` (+ `seed-networks.ts`).
 ## Catatan
 
 - Seed bersifat **upsert by slug** untuk destinasi dan **insert-if-missing**
-  untuk jaringan rute/supports.
+  untuk jaringan rute/fasilitas.
 - Destinasi tanpa gambar akan memakai placeholder di aplikasi.
 - Untuk memperbarui data: ubah seed, jalankan `pnpm db:seed`.

@@ -55,8 +55,6 @@ export interface Destination {
   activities: string[];
   location: DestinationLocation;
   access: DestinationAccess;
-  facilities: string[];
-  entryFee: number | null;
   elevationMeters: number | null;
   images: string[];
   guideRequired: boolean;

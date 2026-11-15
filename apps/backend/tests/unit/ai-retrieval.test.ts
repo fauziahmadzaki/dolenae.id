@@ -6,9 +6,9 @@ vi.mock("../../src/services/DestinationService", () => ({
   },
 }));
 
-vi.mock("../../src/repositories/SupportRepository", () => ({
-  supportRepository: {
-    list: vi.fn(async () => ({ items: [] })),
+vi.mock("../../src/repositories/FacilityRepository", () => ({
+  facilityRepository: {
+    list: vi.fn(async () => ({ items: [], total: 0 })),
   },
 }));
 
@@ -34,11 +34,9 @@ const destination = {
   terrain: ["Gunung"],
   activities: ["Hiking"],
   location: { province: "Jawa Timur", regency: "Kabupaten Uji" },
-  entryFee: 25000,
   elevationMeters: 2300,
   bestSeason: ["Juni"],
   guideRequired: false,
-  facilities: ["Toilet"],
 };
 
 describe("AI retrieval relaxation", () => {

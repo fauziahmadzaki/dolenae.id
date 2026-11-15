@@ -10,8 +10,8 @@ export const registerSchema = z.object({
   name: z.string().trim().min(2, "Nama minimal 2 karakter").max(120),
   email: z.string().trim().email("Email tidak valid").max(255),
   password: passwordSchema,
-  // Public registration can only create a `wisatawan` (never admin/merchant).
-  role: z.literal(USER_ROLES[0]).optional(),
+  // Public registration can create a `wisatawan` or `merchant` (never admin).
+  role: z.enum([USER_ROLES[0], USER_ROLES[1]]).optional(),
 });
 
 export const loginSchema = z.object({

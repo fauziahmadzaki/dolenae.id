@@ -140,8 +140,15 @@ Query: `?page=1&limit=20&sort=createdAt&order=desc&search=kata`.
 | GET | `/api/regions/regencies` | – | Kabupaten/kota (`?province=`) |
 | GET | `/api/regions/districts` | – | Kecamatan (`?regency=&province=`) |
 | GET | `/api/regions/reverse` | – | Reverse geocode (`?lat=&lng=`) → wilayah + elevasi |
-| GET | `/api/destinations/:id/supports` | – | Support milik destinasi (pagination) |
-| GET | `/api/supports/:id` | – | Detail support |
+| GET | `/api/destinations/:id/facilities` | – | Fasilitas published milik destinasi (`?category=&type=` + pagination) |
+| GET | `/api/facilities/:id` | – | Detail fasilitas + produk (draft/pending hanya owner/admin) |
+| GET | `/api/facilities/mine` | Bearer (merchant/admin) | Fasilitas milik merchant |
+| POST | `/api/facilities` | Bearer (merchant/admin) | Daftar fasilitas (geofence ≤ 20 km dari destinasi) |
+| PATCH/DELETE | `/api/facilities/:id` | Bearer (owner/admin) | Ubah/hapus fasilitas |
+| POST | `/api/facilities/:id/products` | Bearer (owner/admin) | Tambah produk |
+| PATCH/DELETE | `/api/facilities/:id/products/:productId` | Bearer (owner/admin) | Ubah/hapus produk |
+| GET | `/api/destinations/:id/supports` | – | **Alias legacy** bentuk `travel_supports` (mobile) |
+| GET | `/api/supports/:id` | – | **Alias legacy** detail support (mobile) |
 | POST/DELETE | `/api/uploads` | Bearer (admin) | Upload/hapus gambar (multipart / `?url=`) |
 | GET | `/api/ai/options` | – | Pilihan filter AI (wilayah, aktivitas, terrain) |
 | POST | `/api/ai/itineraries` | Bearer (opsional) | Rencana perjalanan AI + checklist biaya |
@@ -201,8 +208,12 @@ enum: `models/enums.ts`). Migrasi di `apps/backend/drizzle/` (Drizzle ORM).
   `district`, `latitude`, `longitude`, `access_*`), plus `difficulty`, `status`,
   `guide_required`, `elevation_meters`, `best_season`, `tags`, `images`.
 - `destination_categories` — pivot many-to-many (composite PK, cascade delete).
-- `travel_supports` — pendukung destinasi dengan enum `support_category`
-  (`accommodation|transport|food`) + kolom harga/kontak/fasilitas.
+- `facilities` — usaha sekitar destinasi: `owner_id`, `category`
+  (`facility_category`: `transport|accommodation|food`), `type` bebas, koordinat,
+  `price_min/max`, kontak/email/website/banner, `status`
+  (`draft|pending|published|rejected|archived`). Geofence 20 km dari destinasi.
+- `facility_products` — produk milik fasilitas (`name`, `description`,
+  `banner_url`, `price`, `position`, `is_active`).
 - Route builder: `track_nodes`, `route_segments`, `trail_routes`,
   `trail_route_nodes`, `trail_route_segments`, `trail_route_points`.
 - `ai_itineraries` — cache/audit hasil AI (`request_hash`, `request_json`,

@@ -7,6 +7,8 @@ const document = openApiDocument as unknown as Record<string, any>;
 const publicPaths = [
   "/api/supports/{id}",
   "/api/destinations/{id}/supports",
+  "/api/destinations/{id}/facilities",
+  "/api/facilities/{id}",
   "/api/public/destinations/{destinationId}/route-graph",
   "/api/public/routes/{id}/profile",
 ];

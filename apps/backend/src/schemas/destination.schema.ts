@@ -45,8 +45,6 @@ const destinationFields = {
   tags: textList,
   location: locationSchema.optional(),
   access: accessSchema.optional(),
-  facilities: textList,
-  entryFee: z.number().int().min(0).max(100_000_000).nullable().optional(),
   elevationMeters: z.number().int().min(-500).max(9000).nullable().optional(),
   images: z.array(z.string().trim().min(1).max(2000)).max(20).optional(),
   guideRequired: z.boolean().optional(),

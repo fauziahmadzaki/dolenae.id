@@ -21,10 +21,8 @@ const context: AiContext = {
       regency: "Kabupaten Uji",
       difficulty: "menengah",
       elevationMeters: 2300,
-      entryFee: 30000,
       bestSeason: ["Juni - Juli"],
       guideRequired: false,
-      facilities: ["Toilet", "Warung"],
       description: "Destinasi uji.",
       categories: ["Gunung", "Hiking"],
     },
@@ -120,9 +118,8 @@ describe("AI itinerary", () => {
       result.checklistItems.map((item) => item.name),
     );
     expect(
-      result.checklistItems.find((item) => item.name.includes("Tiket masuk"))
-        ?.estimatedCost,
-    ).toBe(30000);
+      result.checklistItems.some((item) => item.name.startsWith("Tiket masuk")),
+    ).toBe(false);
     expect(
       result.checklistItems.some((item) => item.category === "biaya"),
     ).toBe(true);

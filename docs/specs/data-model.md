@@ -23,8 +23,9 @@ Destinasi alam (gunung, bukit, danau, air terjun, dsb).
   untuk peta lokasi). Nama wilayah diambil dari dataset `@dolenae/regions`
   (reverse geocode; lihat ADR-0004).
 - `access`: deskripsi akses, moda transportasi, estimasi waktu, jarak
-- `facilities`: toilet, warung, mushola, parkir, homestay dekat, dll
-- ekonomi: `entryFee`, `elevationMeters`
+- ketinggian: `elevationMeters`
+- fasilitas sekitar (penginapan/transportasi/makanan) dikelola sebagai entitas
+  `Facility` terpisah — lihat bagian Fasilitas di bawah.
 - publikasi: `status` (`draft` | `published` | `archived`), `verified`
 - meta: `images`, `guideRequired`, `categoryIds[]`, `createdAt`, `updatedAt`
 
@@ -36,7 +37,7 @@ Nilai `difficulty`: `ramah-pemula` | `menengah` | `sulit`.
 > `accessDuration`, `accessDistanceKm`), sedangkan API mengeksposnya sebagai
 > objek bersarang `location` dan `access`.
 
-**Relasi:** satu destinasi memiliki banyak `TravelSupport`
+**Relasi:** satu destinasi memiliki banyak `Facility` (dan satu fasilitas punya banyak `FacilityProduct`)
 (`DestinationDetail = Destination + supports[]`) dan banyak `Category`
 lewat `categoryIds[]` (tabel pivot `destination_categories`).
 
@@ -54,41 +55,74 @@ data yang bisa dikelola admin (tambah/edit/hapus).
 > kategori langsung tercermin di API. Admin mengisi klasifikasi hanya lewat chip
 > kategori; field `tags[]` tetap bebas untuk label seperti `sunrise`.
 
-### TravelSupport (Kebutuhan Pendukung)
-Layanan pendukung di sekitar destinasi dikelompokkan lewat enum `support_category`:
-- `accommodation` — penginapan (homestay, villa, camping ground sekitar basecamp)
-- `transport` — transportasi lokal (sewa jeep, ojek gunung, shuttle, elf)
-- `food` — tempat makan atau kuliner lokal
+### Fasilitas (Merchant / Admin)
+Fasilitas adalah usaha di sekitar destinasi (penginapan, transportasi, toko/warung)
+yang didaftarkan oleh **merchant** (lewat web) atau **admin**, lalu diverifikasi
+admin sebelum tampil publik.
 
-#### Skema Tabel `travel_supports`
-- `id` (uuid, primary key, default `gen_random_uuid()`)
-- `destination_id` (uuid, not null) — foreign key ke `destinations(id)` dengan `ON DELETE CASCADE`
+Kategori memakai enum `facility_category`:
+- `transport` — transportasi lokal (sewa jeep, ojek gunung, shuttle)
+- `accommodation` — penginapan (homestay, villa, camping ground)
+- `food` — toko/warung/resto
+
+Status memakai enum `facility_status`: `draft | pending | published | rejected |
+archived`.
+
+#### Skema Tabel `facilities`
+- `id` (uuid, primary key)
+- `destination_id` (uuid, not null) — FK `destinations(id)` `ON DELETE CASCADE`
+- `owner_id` (uuid, nullable) — FK `users(id)` `ON DELETE SET NULL` (merchant/admin pendaftar)
 - `name` (varchar(120), not null)
-- `category` (`support_category` enum: `'accommodation' | 'transport' | 'food'`, not null)
-- `description` (text, opsional)
-- `location_label` (text, opsional) — label lokasi singkat (mis. "Cemoro Lawang, Ngadisari")
-- `capacity` (text, opsional) — kapasitas kamar/penumpang
-- `distance_label` (text, opsional) — jarak relatif ke basecamp/titik kumpul
-- `price_label` (text, opsional) — tampilan harga (mis. "Rp 250.000")
-- `price_unit` (text, opsional) — satuan harga (mis. "/malam", "/trip", "/porsi")
-- `contact_phone` (text, opsional)
-- `contact_whatsapp` (text, opsional)
-- `contact_instagram` (text, opsional)
-- `image_url` (text, opsional)
-- `facilities` (text[], not null, default `[]`) — fasilitas kamar/unit
-- `routes` (text[], not null, default `[]`) — rute transportasi yang dilayani
-- `cuisine` (text[], not null, default `[]`) — jenis masakan/menu
-- `includes_driver` (boolean, not null, default `false`)
-- `verified` (boolean, not null, default `false`)
-- `created_at` (timestamp with time zone, not null, default `now()`)
-- `updated_at` (timestamp with time zone, not null, default `now()`)
+- `category` (`facility_category`, not null)
+- `type` (varchar(60), not null, default `'lainnya'`) — sub-tipe bebas (jeep, ojek, homestay, warung, …)
+- `latitude`, `longitude` (numeric(10,7), not null)
+- `price_min` (integer, nullable) — harga mulai (rupiah)
+- `price_max` (integer, nullable) — harga termahal; **hanya boleh diisi jika `price_min` ada** dan tidak lebih kecil
+- `description` (text, nullable)
+- `contact` (text, not null) — kontak utama (telepon/WhatsApp)
+- `contact_email` (varchar(255), nullable)
+- `website` (text, nullable)
+- `banner_url` (text, nullable)
+- `status` (`facility_status`, not null, default `draft`)
+- `created_at`, `updated_at` (timestamptz, not null)
 
-**Index:**
-- `travel_supports_destination_idx` pada `destination_id`
+**Index:** `facilities_destination_idx`, `facilities_owner_idx`,
+`facilities_category_idx` (`destination_id`, `category`).
 
-**Public Endpoints:**
-- `GET /api/destinations/:id/supports?page=1&limit=20` — daftar kebutuhan pendukung untuk destinasi published (diurutkan berdasarkan `category`, `name`, `id`; menyertakan field `relatedDestinationName`).
-- `GET /api/supports/:id` — detail satu kebutuhan pendukung (hanya jika destinasi induk berstatus `published`; menyertakan `relatedDestinationName`).
+#### Skema Tabel `facility_products`
+- `id` (uuid, primary key)
+- `facility_id` (uuid, not null) — FK `facilities(id)` `ON DELETE CASCADE`
+- `name` (varchar(120), not null)
+- `description` (text, nullable)
+- `banner_url` (text, nullable)
+- `price` (integer, not null, rupiah)
+- `position` (integer, not null, default 0) — urutan tampil
+- `is_active` (boolean, not null, default true)
+- `created_at`, `updated_at` (timestamptz, not null)
+
+**Index:** `facility_products_facility_idx` pada `facility_id`.
+
+#### Aturan bisnis
+- **Geofence:** koordinat fasilitas maksimal **20 km** dari koordinat destinasi
+  (haversine). Lebih dari itu → `422` dengan `details.distanceKm`. Destinasi
+  tanpa koordinat → `422`.
+- Merchant hanya bisa mengubah/menghapus fasilitas dan produk miliknya; admin
+  bebas.
+- Merchant create → status `pending`; admin create → `published` (default).
+- Merchant edit fasilitas `rejected` → kembali `pending`; edit fasilitas
+  `published` langsung berlaku (status tetap `published`).
+
+#### Endpoint
+- `GET /api/destinations/:id/facilities?category=&type=&page=&limit=` — daftar
+  fasilitas `published` pada destinasi `published`.
+- `GET /api/facilities/:id` — detail + produk (draft/pending hanya owner/admin).
+- `GET /api/facilities/mine` — fasilitas milik merchant (admin: semua).
+- `POST /api/facilities` — daftar fasilitas (merchant/admin).
+- `PATCH|DELETE /api/facilities/:id` — ubah/hapus (owner/admin).
+- `POST /api/facilities/:id/products`, `PATCH|DELETE /api/facilities/:id/products/:productId`.
+- **Alias legacy mobile:** `GET /api/supports/:id` dan
+  `GET /api/destinations/:id/supports` tetap tersedia dan menyintesis bentuk
+  `travel_supports` lama dari tabel `facilities`.
 
 ### TrackNode / RouteSegment / TrailRoute (Route Builder)
 Jaringan jalur destinasi dimodelkan sebagai **graf** (lihat
@@ -96,7 +130,7 @@ Jaringan jalur destinasi dimodelkan sebagai **graf** (lihat
 
 - `TrackNode` — titik ber-nama: `type` (`basecamp|gerbang|parkir|pos|sumber-air|
   viewpoint|puncak|persimpangan|area-camp`), `coordinate`, `elevationMeters`,
-  `notes?`, `supportIds?` (tautan `TravelSupport`).
+  `notes?`, `supportIds?` (tautan `Facility`).
 - `RouteSegment` — ruas penghubung dua titik: `fromNodeId`, `toNodeId`,
   `surface` (setapak/aspal/tanah/batu/pasir), `grade` (datar…terjal),
   `traversableBy[]`, `bidirectional`, `distanceKm?`, `estimatedDurationMinutes?`,
@@ -160,7 +194,7 @@ Akses publik untuk visualisasi peta & elevasi (tanpa autentikasi, hanya untuk de
 - Tabel `ai_itineraries` menyimpan cache/audit generasi: `user_id`,
   `request_hash`, `request_json`, `result_json`, `model`, `engine`,
   `latency_ms`, `status`, `created_at`.
-- `travel_supports` menambah `price_min`/`price_max` (integer) untuk estimasi
+- `facilities` (dulu `travel_supports`) menyimpan `price_min`/`price_max` (integer) untuk estimasi
   budget itinerary.
 
 ## Relasi Ringkas
@@ -168,13 +202,13 @@ Akses publik untuk visualisasi peta & elevasi (tanpa autentikasi, hanya untuk de
 ```
 User 1───* TripPlan
 Destination *───* Category           (destination_categories)
-Destination 1───* TravelSupport
+Destination 1───* Facility 1───* FacilityProduct
 Destination 1───* TrackNode
 Destination 1───* RouteSegment        (fromNodeId/toNodeId → TrackNode)
 Destination 1───* TrailRoute          (segmentIds[] → RouteSegment)
 TrackNode 1───* RouteSegment
 Destination 1───1 PreparationChecklist 1───* PreparationItem
-TripPlan 1───* TripPlanItem (berisi Destination + TravelSupport[] + checklist progress)
+TripPlan 1───* TripPlanItem (berisi Destination + Facility[] + checklist progress)
 ```
 
 ## Konvensi

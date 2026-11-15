@@ -31,7 +31,7 @@ const upload = multer({
 
 export const uploadRouter = Router();
 
-uploadRouter.use(authRequired, requireRole("admin"));
+uploadRouter.use(authRequired, requireRole("admin", "merchant"));
 
 uploadRouter.post(
   "/",

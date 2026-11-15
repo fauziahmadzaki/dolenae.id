@@ -72,8 +72,6 @@ class DestinationService {
         duration: row.accessDuration,
         distanceKm: this.toNumber(row.accessDistanceKm),
       },
-      facilities: row.facilities,
-      entryFee: row.entryFee,
       elevationMeters: row.elevationMeters,
       images: row.images,
       guideRequired: row.guideRequired,
@@ -183,8 +181,6 @@ class DestinationService {
       accessTransport: input.access?.transport ?? [],
       accessDuration: input.access?.duration ?? null,
       accessDistanceKm: this.toNumeric(input.access?.distanceKm),
-      facilities: input.facilities ?? [],
-      entryFee: input.entryFee ?? null,
       elevationMeters: input.elevationMeters ?? null,
       images: input.images ?? [],
       guideRequired: input.guideRequired ?? false,
@@ -256,8 +252,6 @@ class DestinationService {
         patch.accessDistanceKm = this.toNumeric(input.access.distanceKm);
       }
     }
-    if (input.facilities !== undefined) patch.facilities = input.facilities;
-    if (input.entryFee !== undefined) patch.entryFee = input.entryFee;
     if (input.elevationMeters !== undefined) {
       patch.elevationMeters = input.elevationMeters;
     }

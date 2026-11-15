@@ -38,7 +38,9 @@ Monorepo berisi tiga aplikasi dan dua paket bersama:
 ### Halaman web yang sudah ada (`apps/frontend/src/app`)
 
 `/` landing · `/destinations` katalog · `/destinations/[slug]` detail ·
-`/auth/login` masuk admin · `/admin` dashboard admin (guard) ·
+`/auth/login` masuk · `/auth/register` daftar merchant (auto-login) ·
+`/merchant` dashboard merchant (fasilitas) ·
+`/admin` dashboard admin (guard) ·
 `/admin/users` pengguna · `/admin/destinasi` destinasi & kategori ·
 `/admin/destinasi/[id]/rute` route builder. Lihat `docs/specs/web-admin.md`.
 
@@ -49,7 +51,7 @@ Semua di bawah `/api` (dokumentasi interaktif: `GET /api/docs`, spec:
 
 `GET /api/health` · `POST /api/auth/{register,login,google,forgot-password,reset-password,verify-email,resend-verification}` ·
 `GET /api/auth/me` · `GET|POST|PATCH|DELETE /api/users` (admin) ·
-`/api/categories` · `/api/destinations` · `/api/supports` · `/api/regions/*` ·
+`/api/categories` · `/api/destinations` · `/api/facilities` (merchant/admin) · `/api/regions/*` ·
 `/api/uploads` · `/api/ai/{options,itineraries}` · `/api/admin/ai/{settings,models,test}` ·
 `/api/destinations/:id/{route-graph,track-nodes,segments,routes}` (route builder).
 
