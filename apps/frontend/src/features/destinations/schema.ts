@@ -102,8 +102,6 @@ export const destinationFormSchema = z.object({
   accessTransport: csvList(),
   accessDuration: z.string().trim().max(80),
   accessDistanceKm: numberField("Jarak akses", 0, 100000),
-  facilities: csvList(),
-  entryFee: numberField("Biaya masuk", 0, 100_000_000, true),
   elevationMeters: numberField("Ketinggian", -500, 9000, true),
   images: z.array(z.string().trim().min(1).max(2000)).max(20),
   guideRequired: z.boolean(),
@@ -131,8 +129,6 @@ export const emptyDestinationForm: DestinationForm = {
   accessTransport: "",
   accessDuration: "",
   accessDistanceKm: "",
-  facilities: "",
-  entryFee: "",
   elevationMeters: "",
   images: [],
   guideRequired: false,
@@ -176,8 +172,6 @@ export function toDestinationPayload(form: DestinationForm) {
       duration: toText(form.accessDuration),
       distanceKm: toNumber(form.accessDistanceKm),
     },
-    facilities: splitList(form.facilities),
-    entryFee: toNumber(form.entryFee),
     elevationMeters: toNumber(form.elevationMeters),
     images: form.images.map((image) => image.trim()).filter(Boolean),
     guideRequired: form.guideRequired,
@@ -209,8 +203,6 @@ export function toDestinationForm(detail: {
     duration: string | null;
     distanceKm: number | null;
   };
-  facilities: string[];
-  entryFee: number | null;
   elevationMeters: number | null;
   images: string[];
   guideRequired: boolean;
@@ -239,8 +231,6 @@ export function toDestinationForm(detail: {
     accessTransport: join(detail.access.transport),
     accessDuration: text(detail.access.duration),
     accessDistanceKm: num(detail.access.distanceKm),
-    facilities: join(detail.facilities),
-    entryFee: num(detail.entryFee),
     elevationMeters: num(detail.elevationMeters),
     images: detail.images,
     guideRequired: detail.guideRequired,

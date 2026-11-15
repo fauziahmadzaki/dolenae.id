@@ -35,9 +35,7 @@ export const destinations = pgTable(
     accessTransport: text("access_transport").array().notNull().default([]),
     accessDuration: varchar("access_duration", { length: 80 }),
     accessDistanceKm: numeric("access_distance_km", { precision: 8, scale: 2 }),
-    // Facilities & economy
-    facilities: text("facilities").array().notNull().default([]),
-    entryFee: integer("entry_fee"),
+    // Economy
     elevationMeters: integer("elevation_meters"),
     // Media & publishing
     images: text("images").array().notNull().default([]),

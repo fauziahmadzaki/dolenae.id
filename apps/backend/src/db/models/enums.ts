@@ -22,10 +22,18 @@ export const destinationStatusEnum = pgEnum("destination_status", [
   "archived",
 ]);
 
-export const supportCategoryEnum = pgEnum("support_category", [
-  "accommodation",
+export const facilityCategoryEnum = pgEnum("facility_category", [
   "transport",
+  "accommodation",
   "food",
+]);
+
+export const facilityStatusEnum = pgEnum("facility_status", [
+  "draft",
+  "pending",
+  "published",
+  "rejected",
+  "archived",
 ]);
 
 export const trackNodeTypeEnum = pgEnum("track_node_type", [

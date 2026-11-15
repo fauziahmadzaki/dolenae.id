@@ -13,11 +13,25 @@ interface MapPickerProps {
   onChange: (latitude: number, longitude: number) => void;
   onClear?: () => void;
   className?: string;
+  /** Optional reference point (e.g. the destination a facility belongs to). */
+  reference?: { latitude: number; longitude: number; label: string } | null;
+  /** Draw a circle around the reference point (geofence radius in km). */
+  radiusKm?: number;
+  /** Helper text below the map. */
+  hint?: string;
 }
 
 const DEFAULT_CENTER: L.LatLngTuple = [-2.5, 118];
 const DEFAULT_ZOOM = 5;
 const FOCUS_ZOOM = 13;
+
+const REFERENCE_HTML = `
+  <span style="display:flex;width:26px;height:26px;filter:drop-shadow(0 2px 3px rgba(0,0,0,.35));">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="26" height="26" fill="var(--color-accent)" stroke="#ffffff" stroke-width="1.4" stroke-linejoin="round">
+      <path d="M3 20h18L14 5l-3.5 6L8 8l-5 12Z"/>
+    </svg>
+  </span>
+`;
 
 const PIN_HTML = `
   <span style="display:flex;width:30px;height:30px;filter:drop-shadow(0 2px 3px rgba(0,0,0,.35));">
@@ -38,10 +52,15 @@ export function MapPicker({
   onChange,
   onClear,
   className,
+  reference,
+  radiusKm,
+  hint = "Klik peta atau geser pin untuk menentukan titik destinasi.",
 }: MapPickerProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<L.Map | null>(null);
   const markerRef = useRef<L.Marker | null>(null);
+  const referenceMarkerRef = useRef<L.Marker | null>(null);
+  const circleRef = useRef<L.Circle | null>(null);
   const onChangeRef = useRef(onChange);
   const [geoError, setGeoError] = useState("");
 
@@ -131,6 +150,60 @@ export function MapPicker({
     place(latitude, longitude, markerRef.current === null);
   }, [latitude, longitude, place]);
 
+  // Draw the destination marker + geofence circle.
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map) return;
+
+    if (!reference) {
+      referenceMarkerRef.current?.remove();
+      referenceMarkerRef.current = null;
+      circleRef.current?.remove();
+      circleRef.current = null;
+      return;
+    }
+
+    const point: L.LatLngTuple = [reference.latitude, reference.longitude];
+    if (!referenceMarkerRef.current) {
+      referenceMarkerRef.current = L.marker(point, {
+        interactive: false,
+        icon: L.divIcon({
+          className: "dolenae-map-reference",
+          html: REFERENCE_HTML,
+          iconSize: [26, 26],
+          iconAnchor: [13, 24],
+        }),
+      }).addTo(map);
+    } else {
+      referenceMarkerRef.current.setLatLng(point);
+    }
+
+    if (radiusKm) {
+      if (!circleRef.current) {
+        circleRef.current = L.circle(point, {
+          radius: radiusKm * 1000,
+          color: "var(--color-primary)",
+          weight: 1.5,
+          fillColor: "var(--color-primary)",
+          fillOpacity: 0.08,
+          interactive: false,
+        }).addTo(map);
+      } else {
+        circleRef.current.setLatLng(point);
+        circleRef.current.setRadius(radiusKm * 1000);
+      }
+    } else {
+      circleRef.current?.remove();
+      circleRef.current = null;
+    }
+
+    // Center on the destination when the facility pin has not been placed yet.
+    if (latitude === null || longitude === null) {
+      map.flyTo(point, radiusKm ? 11 : FOCUS_ZOOM, { duration: 0.45 });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [reference?.latitude, reference?.longitude, radiusKm]);
+
   const locate = () => {
     if (!("geolocation" in navigator)) {
       setGeoError("Perangkat tidak mendukung geolokasi.");
@@ -152,7 +225,15 @@ export function MapPicker({
   const reset = () => {
     markerRef.current?.remove();
     markerRef.current = null;
-    mapRef.current?.flyTo(DEFAULT_CENTER, DEFAULT_ZOOM, { duration: 0.45 });
+    if (reference) {
+      mapRef.current?.flyTo(
+        [reference.latitude, reference.longitude],
+        radiusKm ? 11 : FOCUS_ZOOM,
+        { duration: 0.45 },
+      );
+    } else {
+      mapRef.current?.flyTo(DEFAULT_CENTER, DEFAULT_ZOOM, { duration: 0.45 });
+    }
     onClear?.();
   };
 
@@ -188,7 +269,7 @@ export function MapPicker({
 
       <p className="flex items-center gap-1.5 text-xs text-body">
         <Crosshair aria-hidden className="h-3.5 w-3.5 shrink-0 text-primary" />
-        Klik peta atau geser pin untuk menentukan titik destinasi.
+        {hint}
       </p>
       {geoError && (
         <p role="status" className="text-xs text-danger">

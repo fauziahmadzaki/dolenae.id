@@ -16,7 +16,6 @@ import { ApiError } from "~/lib/api/types";
 import { useAuth } from "~/features/auth/hooks/use-auth";
 import { cn } from "~/lib/cn";
 import { DestinationFormStepper } from "./components/destination-form-stepper";
-import { FasilitasStep } from "./components/destination-form-steps/fasilitas-step";
 import { InfoStep } from "./components/destination-form-steps/info-step";
 import { KlasifikasiStep } from "./components/destination-form-steps/klasifikasi-step";
 import { LokasiStep } from "./components/destination-form-steps/lokasi-step";
@@ -42,7 +41,6 @@ const STEPS = [
   { key: "info", label: "Info Dasar" },
   { key: "klasifikasi", label: "Klasifikasi" },
   { key: "lokasi", label: "Lokasi & Akses" },
-  { key: "fasilitas", label: "Fasilitas & Biaya" },
   { key: "media", label: "Media & Publikasi" },
 ] as const;
 
@@ -70,7 +68,6 @@ const stepFields: Record<StepKey, (keyof DestinationFormValues)[]> = {
     "accessDuration",
     "accessDistanceKm",
   ],
-  fasilitas: ["facilities", "entryFee"],
   media: ["images", "status"],
 };
 
@@ -299,8 +296,6 @@ export function DestinationForm({ destinationId }: { destinationId?: string }) {
         );
       case "lokasi":
         return <LokasiStep {...stepProps} />;
-      case "fasilitas":
-        return <FasilitasStep {...stepProps} />;
       case "media":
         return (
           <MediaStep

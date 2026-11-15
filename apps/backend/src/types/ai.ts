@@ -42,10 +42,8 @@ export interface AiContextDestination {
   regency: string | null;
   difficulty: Difficulty;
   elevationMeters: number | null;
-  entryFee: number | null;
   bestSeason: string[];
   guideRequired: boolean;
-  facilities: string[];
   description: string | null;
   categories: string[];
 }
@@ -136,7 +134,6 @@ export interface AiRecommendationCard {
   province: string | null;
   regency: string | null;
   elevationMeters: number | null;
-  entryFee: number | null;
   difficulty: Difficulty;
   images: string[];
   score: number;

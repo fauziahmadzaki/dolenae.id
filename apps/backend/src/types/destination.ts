@@ -58,8 +58,6 @@ export interface PublicDestination {
   activities: string[];
   location: DestinationLocation;
   access: DestinationAccess;
-  facilities: string[];
-  entryFee: number | null;
   elevationMeters: number | null;
   images: string[];
   guideRequired: boolean;
@@ -84,8 +82,6 @@ export interface CreateDestinationDto {
   tags?: string[];
   location?: Partial<DestinationLocation>;
   access?: Partial<DestinationAccess>;
-  facilities?: string[];
-  entryFee?: number | null;
   elevationMeters?: number | null;
   images?: string[];
   guideRequired?: boolean;

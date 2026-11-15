@@ -18,23 +18,25 @@ import { BrandMark } from "~/components/brand-mark";
 import { cn } from "~/lib/cn";
 import { UserAvatar } from "./user-avatar";
 
-interface NavItem {
+export interface NavItem {
   label: string;
   href: string;
   icon: LucideIcon;
   /** Optional count pill (e.g. pending verifications). TODO: bind to API. */
   badge?: string;
+  /** Only highlight when the path matches exactly (e.g. dashboard roots). */
+  exact?: boolean;
 }
 
-const NAV_MAIN: NavItem[] = [
-  { label: "Dashboard", href: "/admin", icon: LayoutDashboard },
+export const ADMIN_NAV_MAIN: NavItem[] = [
+  { label: "Dashboard", href: "/admin", icon: LayoutDashboard, exact: true },
   { label: "Destinasi", href: "/admin/destinasi", icon: Mountain },
-  { label: "Verifikasi", href: "/admin/verifikasi", icon: BadgeCheck, badge: "7" },
+  { label: "Fasilitas", href: "/admin/fasilitas", icon: BadgeCheck },
   { label: "Merchant", href: "/admin/merchant", icon: Store },
   { label: "Konten", href: "/admin/konten", icon: FileText },
 ];
 
-const NAV_SYSTEM: NavItem[] = [
+export const ADMIN_NAV_SYSTEM: NavItem[] = [
   { label: "Pengguna", href: "/admin/users", icon: Users },
   { label: "Pengaturan", href: "/admin/pengaturan", icon: Settings },
 ];
@@ -42,6 +44,13 @@ const NAV_SYSTEM: NavItem[] = [
 interface SidebarProps {
   /** Close handler for the mobile drawer. */
   onClose?: () => void;
+  /** Role pill next to the brand ("Admin" / "Merchant"). */
+  roleLabel?: string;
+  mainNav?: NavItem[];
+  systemNav?: NavItem[];
+  /** Empty string to hide a group title. */
+  mainGroupLabel?: string;
+  systemGroupLabel?: string;
 }
 
 function NavList({ items, onClose }: { items: NavItem[]; onClose?: () => void }) {
@@ -51,10 +60,9 @@ function NavList({ items, onClose }: { items: NavItem[]; onClose?: () => void })
     <nav className="space-y-1">
       {items.map((item) => {
         const Icon = item.icon;
-        const isActive =
-          item.href === "/admin"
-            ? pathname === item.href
-            : pathname.startsWith(item.href);
+        const isActive = item.exact
+          ? pathname === item.href
+          : pathname.startsWith(item.href);
         return (
           <Link
             key={item.label}
@@ -86,7 +94,14 @@ function NavList({ items, onClose }: { items: NavItem[]; onClose?: () => void })
  * Admin sidebar (slice of "Hi-Fi Web Admin - Overview" in Figma).
  * Two nav groups + user card; used by the desktop shell and the mobile drawer.
  */
-export function Sidebar({ onClose }: SidebarProps) {
+export function Sidebar({
+  onClose,
+  roleLabel = "Admin",
+  mainNav = ADMIN_NAV_MAIN,
+  systemNav = ADMIN_NAV_SYSTEM,
+  mainGroupLabel = "MENU UTAMA",
+  systemGroupLabel = "SISTEM",
+}: SidebarProps) {
   const { user, logout } = useAuth();
   const router = useRouter();
 
@@ -101,22 +116,26 @@ export function Sidebar({ onClose }: SidebarProps) {
         <BrandMark size={32} />
         <span className="text-[18px] font-bold text-ink">Dolenae.id</span>
         <span className="rounded-full bg-surface-2 px-2 py-0.5 text-[11px] font-semibold text-body">
-          Admin
+          {roleLabel}
         </span>
       </div>
 
       <div className="mt-5 space-y-6">
         <div>
-          <p className="mb-1.5 text-[11px] font-semibold tracking-wide text-body">
-            MENU UTAMA
-          </p>
-          <NavList items={NAV_MAIN} onClose={onClose} />
+          {mainGroupLabel && (
+            <p className="mb-1.5 text-[11px] font-semibold tracking-wide text-body">
+              {mainGroupLabel}
+            </p>
+          )}
+          <NavList items={mainNav} onClose={onClose} />
         </div>
         <div>
-          <p className="mb-1.5 text-[11px] font-semibold tracking-wide text-body">
-            SISTEM
-          </p>
-          <NavList items={NAV_SYSTEM} onClose={onClose} />
+          {systemGroupLabel && (
+            <p className="mb-1.5 text-[11px] font-semibold tracking-wide text-body">
+              {systemGroupLabel}
+            </p>
+          )}
+          <NavList items={systemNav} onClose={onClose} />
         </div>
       </div>
 

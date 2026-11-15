@@ -9,13 +9,11 @@ import {
   categories,
   destinations,
   routeSegments,
-  supportCategoryEnum,
   trackNodes,
   trailRouteNodes,
   trailRoutePoints,
   trailRouteSegments,
   trailRoutes,
-  travelSupports,
   users,
   type CategoryType,
   type DestinationStatus,
@@ -24,7 +22,7 @@ import {
 import { destinationRepository } from "../../repositories/DestinationRepository";
 import { hashPassword } from "../../utils/password";
 import { eq } from "drizzle-orm";
-import { seedExtraSupports, seedRouteNetwork } from "./seed-networks";
+import { seedFacilities, seedRouteNetwork } from "./seed-networks";
 
 interface SeedCategory {
   name: string;
@@ -54,8 +52,6 @@ interface SeedDestination {
   accessDistanceKm: string;
   bestSeason: string[];
   tags: string[];
-  facilities: string[];
-  entryFee: number;
   guideRequired: boolean;
   categorySlugs: string[];
 }
@@ -142,8 +138,6 @@ const seedDestinations: SeedDestination[] = [
     accessDistanceKm: "140.00",
     bestSeason: ["Kering (Jul-Okt)"],
     tags: ["sunrise", "kawah", "jeep"],
-    facilities: ["Toilet", "Warung", "Parkir", "Homestay"],
-    entryFee: 29000,
     guideRequired: false,
     categorySlugs: ["gunung", "savana"],
   },
@@ -169,8 +163,6 @@ const seedDestinations: SeedDestination[] = [
     accessDistanceKm: "12.00",
     bestSeason: ["Kering (Jun-Sep)"],
     tags: ["sunrise", "camping", "lautan awan"],
-    facilities: ["Toilet", "Warung", "Parkir", "Camping ground"],
-    entryFee: 25000,
     guideRequired: false,
     categorySlugs: ["gunung", "camping-ground"],
   },
@@ -196,8 +188,6 @@ const seedDestinations: SeedDestination[] = [
     accessDistanceKm: "28.00",
     bestSeason: ["Kering (Mei-Sep)"],
     tags: ["edelweiss", "kawah", "savana"],
-    facilities: ["Toilet", "Warung", "Parkir", "Camping ground"],
-    entryFee: 30000,
     guideRequired: true,
     categorySlugs: ["gunung", "savana"],
   },
@@ -223,8 +213,6 @@ const seedDestinations: SeedDestination[] = [
     accessDistanceKm: "10.00",
     bestSeason: ["Kemarau (Mei-Sep)"],
     tags: ["city view", "sunset", "camping"],
-    facilities: ["Toilet", "Warung", "Parkir"],
-    entryFee: 15000,
     guideRequired: false,
     categorySlugs: ["bukit", "camping-ground"],
   },
@@ -250,8 +238,6 @@ const seedDestinations: SeedDestination[] = [
     accessDistanceKm: "85.00",
     bestSeason: ["Kering (Jun-Sep)"],
     tags: ["danau", "camping", "savana"],
-    facilities: ["Toilet", "Warung", "Camping ground"],
-    entryFee: 35000,
     guideRequired: true,
     categorySlugs: ["danau", "camping-ground"],
   },
@@ -277,8 +263,6 @@ const seedDestinations: SeedDestination[] = [
     accessDistanceKm: "25.00",
     bestSeason: ["Kemarau (Mei-Sep)"],
     tags: ["sunrise", "gunung api purba", "embung"],
-    facilities: ["Toilet", "Warung", "Parkir", "Homestay"],
-    entryFee: 10000,
     guideRequired: false,
     categorySlugs: ["gunung", "bukit"],
   },
@@ -304,8 +288,6 @@ const seedDestinations: SeedDestination[] = [
     accessDistanceKm: "60.00",
     bestSeason: ["April - November"],
     tags: ["danau kawah", "savana", "sunrise"],
-    facilities: ["Toilet", "Warung", "Parkir", "Homestay", "Camping ground"],
-    entryFee: 150000,
     guideRequired: true,
     categorySlugs: ["gunung", "savana", "hutan", "camping-ground"],
   },
@@ -331,8 +313,6 @@ const seedDestinations: SeedDestination[] = [
     accessDistanceKm: "90.00",
     bestSeason: ["April - Oktober"],
     tags: ["mahameru", "camping", "gunung tertinggi jawa"],
-    facilities: ["Toilet", "Warung", "Parkir", "Homestay", "Camping ground"],
-    entryFee: 25000,
     guideRequired: true,
     categorySlugs: ["gunung", "hutan", "savana", "camping-ground"],
   },
@@ -358,8 +338,6 @@ const seedDestinations: SeedDestination[] = [
     accessDistanceKm: "35.00",
     bestSeason: ["April - Oktober"],
     tags: ["savana", "sunrise", "merapi"],
-    facilities: ["Toilet", "Warung", "Parkir", "Homestay"],
-    entryFee: 25000,
     guideRequired: false,
     categorySlugs: ["gunung", "savana"],
   },
@@ -385,8 +363,6 @@ const seedDestinations: SeedDestination[] = [
     accessDistanceKm: "35.00",
     bestSeason: ["April - Oktober"],
     tags: ["blue fire", "danau kawah", "sunrise"],
-    facilities: ["Toilet", "Warung", "Parkir", "Homestay"],
-    entryFee: 100000,
     guideRequired: false,
     categorySlugs: ["gunung", "danau"],
   },
@@ -412,8 +388,6 @@ const seedDestinations: SeedDestination[] = [
     accessDistanceKm: "90.00",
     bestSeason: ["April - Oktober"],
     tags: ["savana", "hutan hujan", "air terjun"],
-    facilities: ["Toilet", "Warung", "Parkir", "Homestay"],
-    entryFee: 35000,
     guideRequired: true,
     categorySlugs: ["gunung", "hutan", "savana"],
   },
@@ -439,8 +413,6 @@ const seedDestinations: SeedDestination[] = [
     accessDistanceKm: "210.00",
     bestSeason: ["April - Oktober"],
     tags: ["gunung tertinggi sumatera", "hutan tropis"],
-    facilities: ["Toilet", "Warung", "Parkir", "Homestay"],
-    entryFee: 25000,
     guideRequired: true,
     categorySlugs: ["gunung", "hutan"],
   },
@@ -466,8 +438,6 @@ const seedDestinations: SeedDestination[] = [
     accessDistanceKm: "50.00",
     bestSeason: ["Mei - Oktober"],
     tags: ["danau", "sunrise", "warna"],
-    facilities: ["Toilet", "Warung", "Parkir", "Homestay"],
-    entryFee: 50000,
     guideRequired: false,
     categorySlugs: ["danau", "savana"],
   },
@@ -529,23 +499,47 @@ async function seed(): Promise<void> {
   }
   console.log(`Kategori siap: ${categoryIds.size}`);
 
-  const demoEmail = "wisatawan@dolenae.id";
-  const [demoUser] = await db
-    .select({ id: users.id })
-    .from(users)
-    .where(eq(users.email, demoEmail))
-    .limit(1);
-  if (!demoUser) {
-    await db.insert(users).values({
+  const seedUsers = [
+    {
+      name: "Admin Dolenae",
+      email: "admin@dolenae.id",
+      password: "admin12345",
+      role: "admin",
+    },
+    {
       name: "Dimas Pratama",
-      email: demoEmail,
-      passwordHash: await hashPassword("dolenae123"),
+      email: "wisatawan@dolenae.id",
+      password: "dolenae123",
       role: "wisatawan",
+    },
+    {
+      name: "Merchant Dolenae",
+      email: "merchant@dolenae.id",
+      password: "merchant12345",
+      role: "merchant",
+    },
+  ] as const;
+
+  for (const seedUser of seedUsers) {
+    const [existing] = await db
+      .select({ id: users.id })
+      .from(users)
+      .where(eq(users.email, seedUser.email))
+      .limit(1);
+    if (existing) {
+      console.log(`User sudah ada: ${seedUser.email} (${seedUser.role})`);
+      continue;
+    }
+    await db.insert(users).values({
+      name: seedUser.name,
+      email: seedUser.email,
+      passwordHash: await hashPassword(seedUser.password),
+      role: seedUser.role,
       provider: "local",
     });
-    console.log(`User demo siap: ${demoEmail} / dolenae123`);
-  } else {
-    console.log(`User demo sudah ada: ${demoEmail}`);
+    console.log(
+      `User siap: ${seedUser.email} / ${seedUser.password} (${seedUser.role})`,
+    );
   }
 
   for (const destination of seedDestinations) {
@@ -569,8 +563,7 @@ async function seed(): Promise<void> {
   }
 
   await seedBromoRoutes(db);
-  await seedTravelSupports(db);
-  await seedExtraSupports(db);
+  await seedFacilities(db);
   await seedOtherRoutes(db);
 
   console.log("Seed selesai.");
@@ -839,122 +832,6 @@ async function seedBromoRoutes(db: SeedDb) {
     `Jaringan rute Bromo siap: ${nodeRows.length} titik, ${segmentRows.length} ruas.`,
   );
 }
-
-async function seedTravelSupports(db: SeedDb) {
-  const [bromo] = await db
-    .select({ id: destinations.id })
-    .from(destinations)
-    .where(eq(destinations.slug, "gunung-bromo"))
-    .limit(1);
-
-  if (bromo) {
-    const [existing] = await db
-      .select({ id: travelSupports.id })
-      .from(travelSupports)
-      .where(eq(travelSupports.destinationId, bromo.id))
-      .limit(1);
-
-    if (!existing) {
-      await db.insert(travelSupports).values([
-        {
-          destinationId: bromo.id,
-          name: "Homestay Cemoro Indah",
-          category: "accommodation",
-          locationLabel: "Cemoro Lawang, Ngadisari",
-          priceLabel: "Rp 250.000",
-          priceUnit: "/malam",
-          priceMin: 250000,
-          priceMax: 250000,
-          verified: true,
-          contactPhone: "081234567890",
-        },
-        {
-          destinationId: bromo.id,
-          name: "Jeep Bromo Adventure",
-          category: "transport",
-          locationLabel: "Basecamp Cemoro Lawang",
-          priceLabel: "Rp 650.000",
-          priceUnit: "/trip",
-          priceMin: 650000,
-          priceMax: 650000,
-          includesDriver: true,
-          verified: true,
-          contactPhone: "081234567891",
-        },
-        {
-          destinationId: bromo.id,
-          name: "Warung Bromo Asri",
-          category: "food",
-          locationLabel: "Cemoro Lawang",
-          priceLabel: "Rp 25.000 - 50.000",
-          priceUnit: "/porsi",
-          priceMin: 25000,
-          priceMax: 50000,
-          verified: true,
-        },
-      ]);
-      console.log("Travel supports Bromo siap.");
-    } else {
-      console.log("Travel supports Bromo sudah ada.");
-    }
-  }
-
-  const [prau] = await db
-    .select({ id: destinations.id })
-    .from(destinations)
-    .where(eq(destinations.slug, "gunung-prau"))
-    .limit(1);
-
-  if (prau) {
-    const [existing] = await db
-      .select({ id: travelSupports.id })
-      .from(travelSupports)
-      .where(eq(travelSupports.destinationId, prau.id))
-      .limit(1);
-
-    if (!existing) {
-      await db.insert(travelSupports).values([
-        {
-          destinationId: prau.id,
-          name: "Basecamp Prau Dieng",
-          category: "accommodation",
-          locationLabel: "Dieng Kulon",
-          priceLabel: "Rp 150.000",
-          priceUnit: "/malam",
-          priceMin: 150000,
-          priceMax: 150000,
-          verified: true,
-        },
-        {
-          destinationId: prau.id,
-          name: "Ojek Dieng Pass",
-          category: "transport",
-          locationLabel: "Patakbanteng",
-          priceLabel: "Rp 30.000",
-          priceUnit: "/trip",
-          priceMin: 30000,
-          priceMax: 30000,
-          verified: true,
-        },
-        {
-          destinationId: prau.id,
-          name: "Warung Makan Bu Djono",
-          category: "food",
-          locationLabel: "Jl. Raya Dieng",
-          priceLabel: "Rp 20.000 - 45.000",
-          priceUnit: "/porsi",
-          priceMin: 20000,
-          priceMax: 45000,
-          verified: true,
-        },
-      ]);
-      console.log("Travel supports Prau siap.");
-    } else {
-      console.log("Travel supports Prau sudah ada.");
-    }
-  }
-}
-
 
 async function seedOtherRoutes(db: SeedDb): Promise<void> {
   await seedRouteNetwork(

@@ -54,8 +54,7 @@ export function DestinationsGrid({
                 : "Ketinggian belum diisi"}
             </p>
             <p className="text-xs text-body">
-              {destination.categoryIds.length} kategori ·{" "}
-              {destination.facilities.length} fasilitas
+              {destination.categoryIds.length} kategori
             </p>
             <div className="flex justify-end border-t border-hairline pt-2">
               <DestinationRowActions

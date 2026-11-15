@@ -61,7 +61,8 @@ export function useLoginForm() {
       description: `Selamat datang, ${result.data.user.name}!`,
       variant: "success",
     });
-    router.push("/admin");
+    const role = result.data.user.role;
+    router.push(role === "admin" ? "/admin" : role === "merchant" ? "/merchant" : "/");
   });
 
   return { form, onSubmit, isSubmitting: form.formState.isSubmitting };
