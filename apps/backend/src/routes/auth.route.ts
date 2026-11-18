@@ -7,6 +7,7 @@ import {
   registerSchema,
   resendVerificationSchema,
   resetPasswordSchema,
+  updateProfileSchema,
   verifyEmailSchema,
 } from "../schemas/auth.schema";
 import { authRequired } from "../middleware/auth";
@@ -46,3 +47,9 @@ authRouter.post(
   authController.resendVerification,
 );
 authRouter.get("/me", authRequired, authController.me);
+authRouter.patch(
+  "/me",
+  authRequired,
+  validate({ body: updateProfileSchema }),
+  authController.updateMe,
+);

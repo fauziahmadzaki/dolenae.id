@@ -25,8 +25,6 @@ class CachedDestinations extends Table {
   TextColumn get accessTransport => text().withDefault(const Constant('[]'))();
   TextColumn get accessDuration => text().nullable()();
   RealColumn get accessDistanceKm => real().nullable()();
-  TextColumn get facilities => text().withDefault(const Constant('[]'))();
-  IntColumn get entryFee => integer().nullable()();
   IntColumn get elevationMeters => integer().nullable()();
   TextColumn get images => text().withDefault(const Constant('[]'))();
   BoolColumn get guideRequired => boolean().nullable()();
@@ -50,13 +48,16 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.e);
 
   @override
-  int get schemaVersion => 2;
+  int get schemaVersion => 3;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
     onUpgrade: (migrator, from, to) async {
-      if (from < 2) {
+      if (from < 3) {
+        // v3 drops `facilities` and `entry_fee` (no longer sent by the API).
         await migrator.alterTable(TableMigration(cachedDestinations));
+      }
+      if (from < 2) {
         // Cache lama mengubah guide unknown menjadi false; jangan klaim fakta.
         await customStatement(
           'UPDATE cached_destinations SET guide_required = NULL WHERE guide_required = 0',

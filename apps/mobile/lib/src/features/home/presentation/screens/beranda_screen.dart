@@ -10,6 +10,7 @@ import 'package:dolenae_mobile/src/features/auth/presentation/controllers/auth_c
 import 'package:dolenae_mobile/src/features/destinations/domain/usecases/destination_usecases.dart';
 import 'package:dolenae_mobile/src/features/destinations/presentation/controllers/destinations_controller.dart';
 import 'package:dolenae_mobile/src/features/facilities/presentation/controllers/facilities_controller.dart';
+import 'package:dolenae_mobile/src/features/notifications/presentation/controllers/notifications_controller.dart';
 import 'package:dolenae_mobile/src/app/theme/app_colors.dart';
 import 'package:dolenae_mobile/src/app/theme/app_radius.dart';
 import 'package:dolenae_mobile/src/app/theme/app_spacing.dart';
@@ -20,11 +21,8 @@ import 'package:dolenae_mobile/src/shared/widgets/dn_ai_card.dart';
 import 'package:dolenae_mobile/src/shared/widgets/dn_bottom_nav.dart';
 import 'package:dolenae_mobile/src/shared/widgets/dn_buttons.dart';
 import 'package:dolenae_mobile/src/shared/widgets/dn_empty_state.dart';
-import 'package:dolenae_mobile/src/shared/widgets/dn_card.dart';
-import 'package:dolenae_mobile/src/shared/widgets/dn_chip.dart';
 import 'package:dolenae_mobile/src/shared/widgets/dn_destination_card.dart';
 import 'package:dolenae_mobile/src/shared/widgets/dn_email_verification_banner.dart';
-import 'package:dolenae_mobile/src/shared/widgets/dn_menu_row.dart';
 import 'package:dolenae_mobile/src/shared/widgets/dn_recommendation_card.dart';
 import 'package:dolenae_mobile/src/shared/widgets/dn_search_field.dart';
 import 'package:dolenae_mobile/src/shared/widgets/dn_section_header.dart';
@@ -56,18 +54,27 @@ class _BerandaScreenState extends State<BerandaScreen> {
 
   /// Kata kunci pencarian yang aktif di Beranda (bukan di Jelajah).
   String _query = '';
-  String _selectedCategoryId = '';
+  String _facilitiesSignature = '';
 
-  bool get _isSearching =>
-      _query.trim().isNotEmpty || _selectedCategoryId.isNotEmpty;
+  /// Memuat fasilitas dari destinasi pertama yang punya data agar seksi
+  /// Beranda terisi tanpa harus membuka detail destinasi lebih dulu.
+  void _ensureFacilitiesLoad(List<Destination> destinations) {
+    if (destinations.isEmpty) return;
+    final candidates = destinations.take(6).map((item) => item.id).toList();
+    final signature = candidates.join(',');
+    if (_facilitiesSignature == signature) return;
+    _facilitiesSignature = signature;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      context.read<FacilitiesController>().loadFirstAvailable(candidates);
+    });
+  }
+
+  bool get _isSearching => _query.trim().isNotEmpty;
 
   void _onQueryChanged(String value) => setState(() => _query = value);
 
   void _clearQuery() => setState(() => _query = '');
-
-  void _applyCategory(String id) {
-    setState(() => _selectedCategoryId = _selectedCategoryId == id ? '' : id);
-  }
 
   void _onTab(BuildContext context, DnTab tab) {
     switch (tab) {
@@ -89,6 +96,7 @@ class _BerandaScreenState extends State<BerandaScreen> {
     final destinationsController = context.watch<DestinationsController?>();
     final destinations = destinationsController?.items ?? const <Destination>[];
     final auth = context.watch<AuthController?>();
+    _ensureFacilitiesLoad(destinations);
 
     return Scaffold(
       body: Column(
@@ -101,6 +109,10 @@ class _BerandaScreenState extends State<BerandaScreen> {
                   if (destinationsController != null)
                     destinationsController.refresh(),
                   context.read<CategoriesController>().load(refresh: true),
+                  if (destinations.isNotEmpty)
+                    context.read<FacilitiesController>().loadFirstAvailable(
+                      destinations.take(6).map((item) => item.id),
+                    ),
                 ]);
               },
               child: SingleChildScrollView(
@@ -123,7 +135,6 @@ class _BerandaScreenState extends State<BerandaScreen> {
                       )
                     else ...[
                       _search(context),
-                      _chips(context),
                       if (_isSearching)
                         _recommendations(context, destinations)
                       else ...[
@@ -132,13 +143,13 @@ class _BerandaScreenState extends State<BerandaScreen> {
                           child: DnAiCard(
                             title: 'Siapkan perjalananmu dengan AI',
                             body: 'Ceritakan rencanamu, Dolenae menyusun checklist dan gambaran kondisi perjalanan.',
+                            ctaLabel: 'Mulai dengan AI',
                             onPressed: () => context.go('/ai/preferences'),
                           ),
                         ),
                         _popular(context, destinations, destinationsController),
                         _activities(),
                         _supports(context),
-                        _help(),
                         _ctaBand(context),
                       ],
                       const SizedBox(height: AppSpacing.s6),
@@ -243,43 +254,10 @@ class _BerandaScreenState extends State<BerandaScreen> {
     );
   }
 
-  Widget _chips(BuildContext context) {
-    final categories = context
-        .watch<CategoriesController>()
-        .items
-        .where((item) => item.type == 'terrain')
-        .toList(growable: false);
-    return Padding(
-      padding: const EdgeInsets.only(top: AppSpacing.s3),
-      child: SizedBox(
-        height: 32,
-        child: ListView.separated(
-          scrollDirection: Axis.horizontal,
-          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.s4),
-          itemCount: categories.length,
-          separatorBuilder: (_, _) => const SizedBox(width: AppSpacing.s2),
-          itemBuilder: (_, i) => DnChip(
-            label: categories[i].name,
-            active:
-                categories[i].id.isNotEmpty &&
-                _selectedCategoryId == categories[i].id,
-            onTap: categories[i].id.isEmpty
-                ? null
-                : () => _applyCategory(categories[i].id),
-          ),
-        ),
-      ),
-    );
-  }
-
   /// Hasil pencarian di Beranda: kartu rekomendasi dari katalog yang ada.
   Widget _recommendations(BuildContext context, List<Destination> items) {
     final query = _query.trim();
-    final matches = _searchRecommendations(
-      items,
-      query,
-      categoryId: _selectedCategoryId,
-    );
+    final matches = _searchRecommendations(items, query);
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(
@@ -431,7 +409,13 @@ class _BerandaScreenState extends State<BerandaScreen> {
             children: [
               for (final item in items) ...[
                 Expanded(
-                  child: DnActivityTile(icon: item.$1, label: item.$2),
+                  child: DnActivityTile(
+                    icon: item.$1,
+                    label: item.$2,
+                    onTap: () => context.go(
+                      '/explore?activity=${Uri.encodeQueryComponent(item.$2)}',
+                    ),
+                  ),
                 ),
                 if (item != items.last) const SizedBox(width: AppSpacing.s2),
               ],
@@ -443,7 +427,7 @@ class _BerandaScreenState extends State<BerandaScreen> {
   }
 
   Widget _supports(BuildContext context) {
-    final supports = context.watch<FacilitiesController>().supports;
+    final supports = context.watch<FacilitiesController>().facilities;
     return Padding(
       padding: const EdgeInsets.only(top: AppSpacing.s5),
       child: Column(
@@ -452,7 +436,7 @@ class _BerandaScreenState extends State<BerandaScreen> {
           const Padding(
             padding: EdgeInsets.symmetric(horizontal: AppSpacing.s4),
             child: DnSectionHeader(
-              title: 'Fasilitas sekitar',
+              title: 'Berbagai Fasilitas',
               actionLabel: 'Lihat semua',
             ),
           ),
@@ -468,29 +452,6 @@ class _BerandaScreenState extends State<BerandaScreen> {
             ),
           ),
         ],
-      ),
-    );
-  }
-
-  Widget _help() {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(
-        AppSpacing.s4,
-        AppSpacing.s5,
-        AppSpacing.s4,
-        0,
-      ),
-      child: DnCard(
-        padding: EdgeInsets.zero,
-        child: Column(
-          children: const [
-            DnMenuRow(icon: AppIcons.helpCircle, label: 'Bantuan & FAQ'),
-            Divider(height: 1),
-            DnMenuRow(icon: AppIcons.messageSquare, label: 'Kirim masukan'),
-            Divider(height: 1),
-            DnMenuRow(icon: AppIcons.info, label: 'Tentang Dolenae.id'),
-          ],
-        ),
       ),
     );
   }
@@ -574,35 +535,91 @@ class _Header extends StatelessWidget {
                 ),
               ),
               const Spacer(),
-              Container(
-                width: 36,
-                height: 36,
-                decoration: const BoxDecoration(
-                  color: AppColors.primaryHover,
-                  shape: BoxShape.circle,
-                ),
-                child: const Icon(
-                  AppIcons.bell,
-                  size: 18,
-                  color: AppColors.onPrimary,
-                ),
-              ),
+              const _NotificationBell(),
               const SizedBox(width: AppSpacing.s2 + 2),
-              Container(
-                width: 36,
-                height: 36,
-                alignment: Alignment.center,
-                decoration: const BoxDecoration(
-                  color: AppColors.canvas,
-                  shape: BoxShape.circle,
-                ),
-                child: Text(
-                  context.watch<AuthController?>()?.user?.initials ?? 'D',
-                  style: AppTextStyles.label.copyWith(color: AppColors.primary),
+              Semantics(
+                button: true,
+                label: 'Buka profil',
+                child: InkWell(
+                  key: const Key('home-avatar'),
+                  borderRadius: BorderRadius.circular(18),
+                  onTap: () => context.go('/profile'),
+                  child: Container(
+                    width: 36,
+                    height: 36,
+                    alignment: Alignment.center,
+                    decoration: const BoxDecoration(
+                      color: AppColors.canvas,
+                      shape: BoxShape.circle,
+                    ),
+                    child: Text(
+                      context.watch<AuthController?>()?.user?.initials ?? 'D',
+                      style: AppTextStyles.label.copyWith(
+                        color: AppColors.primary,
+                      ),
+                    ),
+                  ),
                 ),
               ),
             ],
           ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Tombol lonceng dengan badge jumlah notifikasi belum dibaca.
+class _NotificationBell extends StatelessWidget {
+  const _NotificationBell();
+
+  @override
+  Widget build(BuildContext context) {
+    final unread = context.watch<NotificationsController?>()?.unreadCount ?? 0;
+    return Semantics(
+      button: true,
+      label: unread == 0 ? 'Notifikasi' : 'Notifikasi, $unread belum dibaca',
+      child: InkWell(
+        borderRadius: BorderRadius.circular(18),
+        onTap: () => context.push('/notifications'),
+        child: Stack(
+          clipBehavior: Clip.none,
+          children: [
+            Container(
+              width: 36,
+              height: 36,
+              decoration: const BoxDecoration(
+                color: AppColors.primaryHover,
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                AppIcons.bell,
+                size: 18,
+                color: AppColors.onPrimary,
+              ),
+            ),
+            if (unread > 0)
+              Positioned(
+                right: -2,
+                top: -2,
+                child: Container(
+                  constraints: const BoxConstraints(minWidth: 16),
+                  padding: const EdgeInsets.symmetric(horizontal: 4),
+                  decoration: BoxDecoration(
+                    color: AppColors.accent,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Text(
+                    unread > 9 ? '9+' : '$unread',
+                    textAlign: TextAlign.center,
+                    style: AppTextStyles.overline.copyWith(
+                      color: AppColors.onAccent,
+                      fontSize: 9,
+                    ),
+                  ),
+                ),
+              ),
+          ],
         ),
       ),
     );

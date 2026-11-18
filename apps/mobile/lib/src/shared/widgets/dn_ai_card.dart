@@ -3,6 +3,7 @@ import 'package:dolenae_mobile/src/shared/icons/app_icons.dart';
 
 import 'package:dolenae_mobile/src/app/theme/app_colors.dart';
 import 'package:dolenae_mobile/src/app/theme/app_text_styles.dart';
+import 'package:dolenae_mobile/src/shared/widgets/dn_buttons.dart';
 
 /// Kartu ajakan AI (pine) dengan aksen `accent` — satu-satunya aksen di layar.
 class DnAiCard extends StatelessWidget {
@@ -72,6 +73,18 @@ class DnAiCard extends StatelessWidget {
                   body,
                   style: AppTextStyles.bodySm.copyWith(color: AppColors.canvas),
                 ),
+                if (onPressed != null) ...[
+                  const SizedBox(height: 14),
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: DnOutlineButton(
+                      label: ctaLabel,
+                      onPressed: onPressed,
+                      height: 40,
+                      expand: false,
+                    ),
+                  ),
+                ],
               ],
             ),
           ),

@@ -20,6 +20,9 @@ export const users = pgTable(
     provider: authProviderEnum("provider").notNull().default("local"),
     googleId: varchar("google_id", { length: 255 }),
     avatarUrl: text("avatar_url"),
+    phone: varchar("phone", { length: 30 }),
+    city: varchar("city", { length: 80 }),
+    bio: text("bio"),
     emailVerifiedAt: timestamp("email_verified_at", { withTimezone: true }),
     lastLoginAt: timestamp("last_login_at", { withTimezone: true }),
     createdAt: timestamp("created_at", { withTimezone: true })

@@ -9,8 +9,9 @@ Koneksi, skema, dan seed database (PostgreSQL + Drizzle).
   (`User.ts`, `Destination.ts`, `TrailRoute.ts`, …). Semua `pgEnum` di
   `models/enums.ts`. `models/index.ts` adalah barrel — impor tabel/tipe dari
   `db/models`, jangan dari file model langsung.
-- `seeds/`: `seed.ts` (+ `seed-networks.ts`) dijalankan lewat `pnpm db:seed`.
-  Idempoten, dicocokkan lewat `slug`.
+- `seeds/`: `seed.ts` (+ `seed-networks.ts` untuk rute, `seed-facilities.ts`
+  untuk fasilitas & produk) dijalankan lewat `pnpm db:seed`. Idempoten,
+  dicocokkan lewat `slug`/nama; produk yang belum ada ikut ditambahkan.
 - Ubah skema → edit model, `pnpm db:generate`, lalu migrasi. `drizzle.config.ts`
   menunjuk ke `src/db/models/index.ts`.
 - Hanya **repository** yang mengakses DB; jangan import `DatabaseClient` dari

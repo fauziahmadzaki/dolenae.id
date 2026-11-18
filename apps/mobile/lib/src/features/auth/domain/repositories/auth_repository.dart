@@ -23,6 +23,14 @@ abstract interface class AuthRepository {
     required String password,
   });
 
+  /// Memperbarui profil pengguna yang sedang masuk.
+  Future<Result<AuthSession>> updateProfile({
+    required String name,
+    String? phone,
+    String? city,
+    String? bio,
+  });
+
   /// Masuk memakai akun Google (menukar `idToken` ke API).
   Future<Result<AuthSession>> googleSignIn();
 

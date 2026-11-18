@@ -89,8 +89,6 @@ class DestinationDetailScreen extends StatelessWidget {
                     const SizedBox(height: AppSpacing.s4),
                     _buildLocationSection(destination),
                     const SizedBox(height: AppSpacing.s4),
-                    _buildFacilitiesSection(destination),
-                    const SizedBox(height: AppSpacing.s4),
                     _buildRoutesSection(destination),
                     const SizedBox(height: AppSpacing.s4),
                     _buildSupportsSection(destination),
@@ -399,7 +397,8 @@ class DestinationDetailScreen extends StatelessWidget {
   }
 
   Widget _buildLocationSection(Destination destination) {
-    final hasCoords = destination.latitude != null && destination.longitude != null;
+    final hasCoords =
+        destination.latitude != null && destination.longitude != null;
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: AppSpacing.s4),
@@ -432,7 +431,10 @@ class DestinationDetailScreen extends StatelessWidget {
                 ),
                 child: FlutterMap(
                   options: MapOptions(
-                    initialCenter: LatLng(destination.latitude!, destination.longitude!),
+                    initialCenter: LatLng(
+                      destination.latitude!,
+                      destination.longitude!,
+                    ),
                     initialZoom: 13.0,
                     interactionOptions: const InteractionOptions(
                       flags: InteractiveFlag.all & ~InteractiveFlag.rotate,
@@ -440,13 +442,17 @@ class DestinationDetailScreen extends StatelessWidget {
                   ),
                   children: [
                     TileLayer(
-                      urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                      urlTemplate:
+                          'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
                       userAgentPackageName: 'id.dolenae.mobile',
                     ),
                     MarkerLayer(
                       markers: [
                         Marker(
-                          point: LatLng(destination.latitude!, destination.longitude!),
+                          point: LatLng(
+                            destination.latitude!,
+                            destination.longitude!,
+                          ),
                           width: 38,
                           height: 38,
                           child: Container(
@@ -475,61 +481,6 @@ class DestinationDetailScreen extends StatelessWidget {
               ),
             ),
           ],
-        ],
-      ),
-    );
-  }
-
-  Widget _buildFacilitiesSection(Destination destination) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.s4),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text('Fasilitas', style: AppTextStyles.title),
-          const SizedBox(height: AppSpacing.s2),
-          if (destination.facilities.isEmpty)
-            Text(
-              'Informasi fasilitas belum tersedia.',
-              style: AppTextStyles.bodySm,
-            )
-          else
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: [
-                for (final facility in destination.facilities)
-                  _buildFacilityBadge(facility, true),
-              ],
-            ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildFacilityBadge(String name, bool isAvailable) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-      decoration: BoxDecoration(
-        color: AppColors.canvasSubtle,
-        borderRadius: BorderRadius.circular(AppRadius.md),
-        border: Border.all(color: AppColors.hairline),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(
-            isAvailable ? AppIcons.check : AppIcons.close,
-            size: 14,
-            color: isAvailable ? AppColors.success : AppColors.body,
-          ),
-          const SizedBox(width: 6),
-          Text(
-            name,
-            style: AppTextStyles.caption.copyWith(
-              color: isAvailable ? AppColors.ink : AppColors.body,
-            ),
-          ),
         ],
       ),
     );

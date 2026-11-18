@@ -6,6 +6,7 @@ import type {
   registerSchema,
   resendVerificationSchema,
   resetPasswordSchema,
+  updateProfileSchema,
   verifyEmailSchema,
 } from "../schemas/auth.schema";
 
@@ -32,6 +33,9 @@ export interface AuthUser {
   role: UserRole;
   provider: AuthProvider;
   avatarUrl: string | null;
+  phone: string | null;
+  city: string | null;
+  bio: string | null;
   /** ISO timestamp once the email is confirmed (null while unverified). */
   emailVerifiedAt: string | null;
   createdAt: string;
@@ -64,4 +68,5 @@ export type GoogleInput = z.infer<typeof googleSchema>;
 export type ForgotPasswordInput = z.infer<typeof forgotPasswordSchema>;
 export type ResetPasswordInput = z.infer<typeof resetPasswordSchema>;
 export type VerifyEmailInput = z.infer<typeof verifyEmailSchema>;
+export type UpdateProfileInput = z.infer<typeof updateProfileSchema>;
 export type ResendVerificationInput = z.infer<typeof resendVerificationSchema>;

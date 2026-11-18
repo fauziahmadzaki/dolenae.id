@@ -125,7 +125,10 @@ class _ProposeFacilityScreenState extends State<ProposeFacilityScreen> {
                     onChanged: (value) => setState(() => _name = value),
                   ),
                   const SizedBox(height: AppSpacing.s4),
-                  Text('Tipe', style: AppTextStyles.bodySm.copyWith(color: AppColors.ink)),
+                  Text(
+                    'Tipe',
+                    style: AppTextStyles.bodySm.copyWith(color: AppColors.ink),
+                  ),
                   const SizedBox(height: AppSpacing.s2),
                   Wrap(
                     spacing: AppSpacing.s2,
@@ -153,7 +156,8 @@ class _ProposeFacilityScreenState extends State<ProposeFacilityScreen> {
                       padding: const EdgeInsets.only(bottom: AppSpacing.s2),
                       child: DnSelectableRow(
                         label: destination.name,
-                        subtitle: '${destination.province} · ${destination.regency}',
+                        subtitle:
+                            '${destination.province} · ${destination.regency}',
                         selected: _destinationName == destination.name,
                         leading: AppIcons.mountain,
                         onTap: () =>

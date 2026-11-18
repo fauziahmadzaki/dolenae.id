@@ -6,7 +6,7 @@ import 'package:dolenae_mobile/src/app/theme/app_colors.dart';
 import 'package:dolenae_mobile/src/app/theme/app_radius.dart';
 import 'package:dolenae_mobile/src/app/theme/app_spacing.dart';
 import 'package:dolenae_mobile/src/app/theme/app_text_styles.dart';
-import 'package:dolenae_mobile/src/features/facilities/domain/entities/travel_support.dart';
+import 'package:dolenae_mobile/src/features/facilities/domain/entities/facility.dart';
 import 'package:dolenae_mobile/src/features/facilities/presentation/controllers/facilities_controller.dart';
 import 'package:dolenae_mobile/src/shared/icons/app_icons.dart';
 import 'package:dolenae_mobile/src/shared/widgets/dn_app_bar.dart';
@@ -16,18 +16,18 @@ import 'package:dolenae_mobile/src/shared/widgets/dn_toast.dart';
 
 /// Layar Detail Fasilitas (Node Figma: 69:1517 / 69:1597 / 69:1679).
 ///
-/// Satu template untuk tiga jenis fasilitas; perbedaan isi diambil dari
-/// [TravelSupport.infoRows] dan [TravelSupport.specLabels].
+/// Satu template untuk tiga jenis fasilitas; isi diambil dari
+/// [Facility.infoRows], [Facility.specLabels], dan [Facility.products].
 class FacilityDetailScreen extends StatefulWidget {
   const FacilityDetailScreen({
     super.key,
-    this.supportId = 'sup-homestay',
+    this.facilityId = 'sup-homestay',
     this.onSave,
     this.onContact,
     this.onBack,
   });
 
-  final String supportId;
+  final String facilityId;
   final VoidCallback? onSave;
   final VoidCallback? onContact;
   final VoidCallback? onBack;
@@ -35,51 +35,77 @@ class FacilityDetailScreen extends StatefulWidget {
   @override
   State<FacilityDetailScreen> createState() => _FacilityDetailScreenState();
 }
+
 class _FacilityDetailScreenState extends State<FacilityDetailScreen> {
-  String get supportId => widget.supportId;
-  VoidCallback? get onSave => widget.onSave;
-  VoidCallback? get onContact => widget.onContact;
-  VoidCallback? get onBack => widget.onBack;
+  String get facilityId => widget.facilityId;
+
   @override
-  void initState() { super.initState(); _load(); }
+  void initState() {
+    super.initState();
+    _load();
+  }
+
   @override
   void didUpdateWidget(covariant FacilityDetailScreen oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.supportId != widget.supportId) _load();
+    if (oldWidget.facilityId != widget.facilityId) _load();
   }
+
   void _load() {
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) context.read<FacilitiesController>().loadDetail(supportId);
+      if (mounted) context.read<FacilitiesController>().loadDetail(facilityId);
     });
   }
-  static IconData _iconFor(SupportCategory category) => switch (category) {
-    SupportCategory.penginapan => AppIcons.bedDouble,
-    SupportCategory.transportasi => AppIcons.car,
-    SupportCategory.makanan => AppIcons.utensils,
+
+  static IconData _iconFor(FacilityCategory category) => switch (category) {
+    FacilityCategory.penginapan => AppIcons.bedDouble,
+    FacilityCategory.transportasi => AppIcons.car,
+    FacilityCategory.makanan => AppIcons.utensils,
   };
 
   @override
   Widget build(BuildContext context) {
     final state = context.watch<FacilitiesController>();
-    final support = state.resolve(supportId);
-    if (support == null) {
+    final facility = state.resolve(facilityId);
+    if (facility == null) {
       return Scaffold(
-        appBar: DnAppBar(title: 'Fasilitas', showBack: true, onBack: onBack ?? () { if (context.canPop()) context.pop(); }),
-        body: SafeArea(child: Center(child: state.detailId != supportId || state.detailLoading
-          ? const CircularProgressIndicator()
-          : Column(mainAxisSize: MainAxisSize.min, children: [
-              Text(state.detailFailure?.message ?? 'Fasilitas tidak tersedia.'),
-              TextButton(onPressed: () => state.loadDetail(supportId), child: const Text('Coba lagi')),
-            ]))),
+        appBar: DnAppBar(
+          title: 'Fasilitas',
+          showBack: true,
+          onBack:
+              widget.onBack ??
+              () {
+                if (context.canPop()) context.pop();
+              },
+        ),
+        body: SafeArea(
+          child: Center(
+            child: state.detailId != facilityId || state.detailLoading
+                ? const CircularProgressIndicator()
+                : Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        state.detailFailure?.message ??
+                            'Fasilitas tidak tersedia.',
+                      ),
+                      TextButton(
+                        onPressed: () => state.loadDetail(facilityId),
+                        child: const Text('Coba lagi'),
+                      ),
+                    ],
+                  ),
+          ),
+        ),
       );
     }
 
     return Scaffold(
       backgroundColor: AppColors.canvas,
       appBar: DnAppBar(
-        title: support.categoryLabel,
+        title: facility.categoryLabel,
         showBack: true,
-        onBack: onBack ?? () => context.pop(),
+        onBack: widget.onBack ?? () => context.pop(),
       ),
       body: SafeArea(
         top: false,
@@ -89,10 +115,7 @@ class _FacilityDetailScreenState extends State<FacilityDetailScreen> {
               child: ListView(
                 padding: EdgeInsets.zero,
                 children: [
-                  DnMediaPlaceholder(
-                    icon: _iconFor(support.category),
-                    height: 220,
-                  ),
+                  _Banner(facility: facility),
                   Padding(
                     padding: const EdgeInsets.fromLTRB(
                       AppSpacing.s5,
@@ -108,11 +131,11 @@ class _FacilityDetailScreenState extends State<FacilityDetailScreen> {
                           children: [
                             Expanded(
                               child: Text(
-                                support.name,
+                                facility.name,
                                 style: AppTextStyles.displayMd,
                               ),
                             ),
-                            if (support.verified)
+                            if (facility.verified)
                               const Icon(
                                 AppIcons.badgeCheck,
                                 size: 20,
@@ -122,25 +145,28 @@ class _FacilityDetailScreenState extends State<FacilityDetailScreen> {
                         ),
                         const SizedBox(height: AppSpacing.s1),
                         Text(
-                          '${support.categoryLabel} · ${support.locationLabel}',
+                          [
+                            facility.categoryLabel,
+                            if (facility.type.isNotEmpty) facility.type,
+                            if (facility.destinationName.isNotEmpty)
+                              facility.destinationName,
+                          ].join(' · '),
                           style: AppTextStyles.bodySm,
                         ),
                         const SizedBox(height: AppSpacing.s2),
                         Text(
-                          support.priceUnit.isEmpty
-                              ? support.priceLabel
-                              : support.priceUnit,
+                          facility.priceLabel,
                           style: AppTextStyles.titleSm.copyWith(
                             color: AppColors.primary,
                           ),
                         ),
                         const SizedBox(height: AppSpacing.s5),
-                        _InfoGrid(rows: support.infoRows),
+                        _InfoGrid(rows: facility.infoRows),
                         const SizedBox(height: AppSpacing.s4),
                         Wrap(
                           spacing: AppSpacing.s2,
                           runSpacing: AppSpacing.s2,
-                          children: support.specLabels
+                          children: facility.specLabels
                               .map(
                                 (label) => Container(
                                   padding: const EdgeInsets.symmetric(
@@ -153,7 +179,10 @@ class _FacilityDetailScreenState extends State<FacilityDetailScreen> {
                                       AppRadius.sm,
                                     ),
                                   ),
-                                  child: Text(label, style: AppTextStyles.overline),
+                                  child: Text(
+                                    label,
+                                    style: AppTextStyles.overline,
+                                  ),
                                 ),
                               )
                               .toList(),
@@ -161,12 +190,17 @@ class _FacilityDetailScreenState extends State<FacilityDetailScreen> {
                         const SizedBox(height: AppSpacing.s4),
                         Text('TENTANG', style: AppTextStyles.overline),
                         const SizedBox(height: AppSpacing.s2),
-                        Text(support.description, style: AppTextStyles.bodySm),
-                        if (support.contactRows.isNotEmpty) ...[
+                        Text(
+                          facility.description.isEmpty
+                              ? 'Belum ada deskripsi.'
+                              : facility.description,
+                          style: AppTextStyles.bodySm,
+                        ),
+                        if (facility.contactRows.isNotEmpty) ...[
                           const SizedBox(height: AppSpacing.s5),
                           Text('KONTAK', style: AppTextStyles.overline),
                           const SizedBox(height: AppSpacing.s2),
-                          ...support.contactRows.map(
+                          ...facility.contactRows.map(
                             (row) => Padding(
                               padding: const EdgeInsets.only(
                                 bottom: AppSpacing.s2,
@@ -175,51 +209,62 @@ class _FacilityDetailScreenState extends State<FacilityDetailScreen> {
                                 children: [
                                   Expanded(
                                     child: Text(
-                                      row[0] as String,
+                                      row[0],
                                       style: AppTextStyles.bodySm,
                                     ),
                                   ),
-                                  Text(
-                                    row[1] as String,
-                                    style: AppTextStyles.titleSm,
+                                  Flexible(
+                                    child: Text(
+                                      row[1],
+                                      textAlign: TextAlign.right,
+                                      style: AppTextStyles.titleSm,
+                                    ),
                                   ),
                                 ],
                               ),
                             ),
                           ),
                         ],
-                        const SizedBox(height: AppSpacing.s5),
-                        Text('DESTINASI TERKAIT', style: AppTextStyles.overline),
-                        const SizedBox(height: AppSpacing.s2),
-                        Container(
-                          padding: const EdgeInsets.all(AppSpacing.s3),
-                          decoration: BoxDecoration(
-                            color: AppColors.canvasSubtle,
-                            borderRadius: BorderRadius.circular(AppRadius.lg),
-                            border: Border.all(color: AppColors.hairline),
+                        if (facility.products.isNotEmpty) ...[
+                          const SizedBox(height: AppSpacing.s5),
+                          Text('PRODUK', style: AppTextStyles.overline),
+                          const SizedBox(height: AppSpacing.s2),
+                          ...facility.products.map(
+                            (product) => _ProductTile(product: product),
                           ),
-                          child: Row(
-                            children: [
-                              const Icon(
-                                AppIcons.mountain,
-                                size: 20,
-                                color: AppColors.primary,
-                              ),
-                              const SizedBox(width: AppSpacing.s3),
-                              Expanded(
-                                child: Text(
-                                  support.relatedDestinationName,
-                                  style: AppTextStyles.titleSm,
+                        ],
+                        if (facility.destinationName.isNotEmpty) ...[
+                          const SizedBox(height: AppSpacing.s5),
+                          Text(
+                            'DESTINASI TERKAIT',
+                            style: AppTextStyles.overline,
+                          ),
+                          const SizedBox(height: AppSpacing.s2),
+                          Container(
+                            padding: const EdgeInsets.all(AppSpacing.s3),
+                            decoration: BoxDecoration(
+                              color: AppColors.canvasSubtle,
+                              borderRadius: BorderRadius.circular(AppRadius.lg),
+                              border: Border.all(color: AppColors.hairline),
+                            ),
+                            child: Row(
+                              children: [
+                                const Icon(
+                                  AppIcons.mountain,
+                                  size: 20,
+                                  color: AppColors.primary,
                                 ),
-                              ),
-                              const Icon(
-                                AppIcons.chevronRight,
-                                size: 18,
-                                color: AppColors.body,
-                              ),
-                            ],
+                                const SizedBox(width: AppSpacing.s3),
+                                Expanded(
+                                  child: Text(
+                                    facility.destinationName,
+                                    style: AppTextStyles.titleSm,
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
-                        ),
+                        ],
                       ],
                     ),
                   ),
@@ -243,10 +288,11 @@ class _FacilityDetailScreenState extends State<FacilityDetailScreen> {
                     child: DnOutlineButton(
                       label: 'Simpan',
                       height: 48,
-                      onPressed: onSave ??
+                      onPressed:
+                          widget.onSave ??
                           () => showDnToast(
                             context,
-                            '${support.name} disimpan',
+                            '${facility.name} disimpan',
                             type: DnToastType.sukses,
                           ),
                     ),
@@ -255,13 +301,16 @@ class _FacilityDetailScreenState extends State<FacilityDetailScreen> {
                   Expanded(
                     flex: 2,
                     child: DnPrimaryButton(
-                      label: 'Hubungi via WhatsApp',
+                      label: facility.contact.isEmpty
+                          ? 'Hubungi'
+                          : 'Hubungi via WhatsApp',
                       icon: AppIcons.messageSquare,
                       height: 48,
-                      onPressed: onContact ??
+                      onPressed:
+                          widget.onContact ??
                           () => showDnToast(
                             context,
-                            'Membuka WhatsApp ${support.name}',
+                            'Membuka WhatsApp ${facility.name}',
                           ),
                     ),
                   ),
@@ -270,6 +319,84 @@ class _FacilityDetailScreenState extends State<FacilityDetailScreen> {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class _Banner extends StatelessWidget {
+  const _Banner({required this.facility});
+
+  final Facility facility;
+
+  @override
+  Widget build(BuildContext context) {
+    if (facility.bannerUrl.isEmpty) {
+      return DnMediaPlaceholder(
+        icon: _FacilityDetailScreenState._iconFor(facility.category),
+        height: 220,
+      );
+    }
+
+    return Image.network(
+      facility.bannerUrl,
+      height: 220,
+      width: double.infinity,
+      fit: BoxFit.cover,
+      errorBuilder: (_, _, _) => DnMediaPlaceholder(
+        icon: _FacilityDetailScreenState._iconFor(facility.category),
+        height: 220,
+      ),
+    );
+  }
+}
+
+class _ProductTile extends StatelessWidget {
+  const _ProductTile({required this.product});
+
+  final FacilityProduct product;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: AppSpacing.s2),
+      padding: const EdgeInsets.all(AppSpacing.s3),
+      decoration: BoxDecoration(
+        color: AppColors.canvasSubtle,
+        borderRadius: BorderRadius.circular(AppRadius.lg),
+        border: Border.all(color: AppColors.hairline),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Flexible(
+                      child: Text(product.name, style: AppTextStyles.titleSm),
+                    ),
+                    if (!product.isActive) ...[
+                      const SizedBox(width: AppSpacing.s2),
+                      Text('Nonaktif', style: AppTextStyles.overline),
+                    ],
+                  ],
+                ),
+                if (product.description.isNotEmpty) ...[
+                  const SizedBox(height: 2),
+                  Text(product.description, style: AppTextStyles.bodySm),
+                ],
+              ],
+            ),
+          ),
+          const SizedBox(width: AppSpacing.s2),
+          Text(
+            product.priceLabel,
+            style: AppTextStyles.titleSm.copyWith(color: AppColors.primary),
+          ),
+        ],
       ),
     );
   }

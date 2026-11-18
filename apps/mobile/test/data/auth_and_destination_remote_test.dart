@@ -317,9 +317,8 @@ void main() {
       final destination = items.single.toEntity();
       expect(destination.name, 'Gunung Bromo');
       expect(destination.regency, 'Probolinggo');
-      expect(destination.priceFrom, 29000);
+      expect(destination.priceFrom, isNull);
       expect(destination.accessDistance, '140 km dari kota terdekat');
-      expect(destination.facilityToilet, isTrue);
     });
 
     test('respons bukan list dianggap gagal', () async {

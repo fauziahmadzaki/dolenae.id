@@ -22,7 +22,8 @@ import {
 import { destinationRepository } from "../../repositories/DestinationRepository";
 import { hashPassword } from "../../utils/password";
 import { eq } from "drizzle-orm";
-import { seedFacilities, seedRouteNetwork } from "./seed-networks";
+import { seedFacilities } from "./seed-facilities";
+import { seedRouteNetwork } from "./seed-networks";
 
 interface SeedCategory {
   name: string;
@@ -441,6 +442,256 @@ const seedDestinations: SeedDestination[] = [
     guideRequired: false,
     categorySlugs: ["danau", "savana"],
   },
+  {
+    name: "Pantai Kuta",
+    slug: "pantai-kuta",
+    tagline: "Sunset di pesisir Badung",
+    description:
+      "Pantai Kuta menawarkan hamparan pasir putih, ombak yang cocok untuk surfing, dan sunset ikonik di pesisir Badung.",
+    difficulty: "ramah-pemula",
+    status: "published",
+    elevationMeters: 0,
+    province: "Bali",
+    regency: "Badung",
+    district: "Kuta",
+    latitude: "-8.7185000",
+    longitude: "115.1686000",
+    accessPoint: "Pantai Kuta",
+    accessDescription:
+      "Dari Bandara Ngurah Rai sekitar 30 menit dengan mobil atau motor melalui Jalan Pantai Kuta.",
+    accessTransport: ["Mobil", "Motor"],
+    accessDuration: "≈ 30 menit dari Denpasar",
+    accessDistanceKm: "10.00",
+    bestSeason: ["Kering (Apr-Okt)"],
+    tags: ["sunset", "pantai", "surfing"],
+    guideRequired: false,
+    categorySlugs: ["pantai"],
+  },
+  {
+    name: "Pantai Parangtritis",
+    slug: "pantai-parangtritis",
+    tagline: "Ombak selatan dan gumuk pasir",
+    description:
+      "Pantai Parangtritis dikenal dengan ombak Samudra Hindia, pasir hitam, dan gumuk pasir yang menjadi ciri khas pesisir Bantul.",
+    difficulty: "ramah-pemula",
+    status: "published",
+    elevationMeters: 0,
+    province: "DI Yogyakarta",
+    regency: "Bantul",
+    district: "Kretek",
+    latitude: "-8.0254000",
+    longitude: "110.3309000",
+    accessPoint: "Pantai Parangtritis",
+    accessDescription:
+      "Dari pusat Kota Yogyakarta sekitar 1 jam dengan mobil atau bus jurusan Parangtritis.",
+    accessTransport: ["Mobil", "Motor", "Bus"],
+    accessDuration: "≈ 1 jam dari Yogyakarta",
+    accessDistanceKm: "28.00",
+    bestSeason: ["Kering (Mei-Sep)"],
+    tags: ["sunset", "pantai", "gumuk pasir"],
+    guideRequired: false,
+    categorySlugs: ["pantai"],
+  },
+  {
+    name: "Pantai Tanjung Tinggi",
+    slug: "pantai-tanjung-tinggi",
+    tagline: "Batu granit raksasa di Belitung",
+    description:
+      "Pantai Tanjung Tinggi memiliki air laut jernih dan formasi batu granit raksasa yang menjadi latar khas Pulau Belitung.",
+    difficulty: "ramah-pemula",
+    status: "published",
+    elevationMeters: 0,
+    province: "Kepulauan Bangka Belitung",
+    regency: "Belitung",
+    district: "Sijuk",
+    latitude: "-2.5390000",
+    longitude: "107.6400000",
+    accessPoint: "Pantai Tanjung Tinggi",
+    accessDescription:
+      "Dari Tanjung Pandan sekitar 40 menit dengan mobil atau motor menuju kawasan Sijuk.",
+    accessTransport: ["Mobil", "Motor"],
+    accessDuration: "≈ 40 menit dari Tanjung Pandan",
+    accessDistanceKm: "30.00",
+    bestSeason: ["Kering (Apr-Okt)"],
+    tags: ["pantai", "batu granit", "snorkeling"],
+    guideRequired: false,
+    categorySlugs: ["pantai"],
+  },
+  {
+    name: "Danau Toba",
+    slug: "danau-toba",
+    tagline: "Danau vulkanik terbesar di Indonesia",
+    description:
+      "Danau Toba adalah danau vulkanik terbesar di Indonesia dengan panorama perbukitan hijau dan budaya Batak di sekitarnya.",
+    difficulty: "ramah-pemula",
+    status: "published",
+    elevationMeters: 905,
+    province: "Sumatera Utara",
+    regency: "Samosir",
+    district: "Pangururan",
+    latitude: "2.6845000",
+    longitude: "98.8756000",
+    accessPoint: "Tuktuk Siadong",
+    accessDescription:
+      "Dari Medan sekitar 4 jam dengan mobil menuju Parapat lalu menyeberang dengan kapal ke Samosir.",
+    accessTransport: ["Mobil", "Kapal"],
+    accessDuration: "≈ 4 jam dari Medan",
+    accessDistanceKm: "176.00",
+    bestSeason: ["Kering (Mei-Sep)"],
+    tags: ["danau", "budaya", "perahu"],
+    guideRequired: false,
+    categorySlugs: ["danau", "hutan"],
+  },
+  {
+    name: "Danau Sentani",
+    slug: "danau-sentani",
+    tagline: "Danau di kaki Pegunungan Cyclops",
+    description:
+      "Danau Sentani terbentang di bawah Pegunungan Cyclops dengan pulau-pulau kecil dan budaya lokal Papua yang khas.",
+    difficulty: "ramah-pemula",
+    status: "published",
+    elevationMeters: 73,
+    province: "Papua",
+    regency: "Jayapura",
+    district: "Sentani",
+    latitude: "-2.5916000",
+    longitude: "140.5148000",
+    accessPoint: "Sentani",
+    accessDescription:
+      "Dari Kota Jayapura sekitar 40 menit dengan mobil menuju kawasan Danau Sentani.",
+    accessTransport: ["Mobil", "Perahu"],
+    accessDuration: "≈ 40 menit dari Jayapura",
+    accessDistanceKm: "30.00",
+    bestSeason: ["Kering (Jun-Sep)"],
+    tags: ["danau", "papua", "perahu"],
+    guideRequired: true,
+    categorySlugs: ["danau", "bukit"],
+  },
+  {
+    name: "Air Terjun Tumpak Sewu",
+    slug: "air-terjun-tumpak-sewu",
+    tagline: "Tirai air di kaki Semeru",
+    description:
+      "Tumpak Sewu adalah air terjun bertingkat selebar tebing yang mirip tirai, dikelilingi hutan tropis di lereng Semeru.",
+    difficulty: "menengah",
+    status: "published",
+    elevationMeters: 500,
+    province: "Jawa Timur",
+    regency: "Malang",
+    district: "Pronojiwo",
+    latitude: "-8.2228000",
+    longitude: "112.9260000",
+    accessPoint: "Pronojiwo",
+    accessDescription:
+      "Dari Malang sekitar 3 jam dengan mobil menuju Pronojiwo, lalu turun ke dasar air terjun.",
+    accessTransport: ["Mobil", "Motor"],
+    accessDuration: "≈ 3 jam dari Malang",
+    accessDistanceKm: "70.00",
+    bestSeason: ["Kering (Jun-Sep)"],
+    tags: ["air terjun", "hutan", "fotografi"],
+    guideRequired: true,
+    categorySlugs: ["air-terjun", "hutan"],
+  },
+  {
+    name: "Air Terjun Sekumpul",
+    slug: "air-terjun-sekumpul",
+    tagline: "Tujuh air terjun di hutan Bali",
+    description:
+      "Sekumpul adalah kumpulan air terjun tinggi di tengah hutan Buleleng, dikelilingi lembah hijau dan jalur tangga yang menantang.",
+    difficulty: "menengah",
+    status: "published",
+    elevationMeters: 400,
+    province: "Bali",
+    regency: "Buleleng",
+    district: "Sawan",
+    latitude: "-8.1762000",
+    longitude: "115.1692000",
+    accessPoint: "Sekumpul",
+    accessDescription:
+      "Dari Denpasar sekitar 2 jam dengan mobil menuju Desa Sekumpul, lalu berjalan turun ke lembah.",
+    accessTransport: ["Mobil", "Motor"],
+    accessDuration: "≈ 2 jam dari Denpasar",
+    accessDistanceKm: "75.00",
+    bestSeason: ["Kering (Apr-Okt)"],
+    tags: ["air terjun", "hutan", "trekking"],
+    guideRequired: true,
+    categorySlugs: ["air-terjun", "hutan"],
+  },
+  {
+    name: "Taman Nasional Baluran",
+    slug: "taman-nasional-baluran",
+    tagline: "Afrika van Java",
+    description:
+      "Baluran menyajikan savana Bekol yang luas dengan latar Gunung Baluran, serta pantai dan hutan mangrove di kawasan yang sama.",
+    difficulty: "ramah-pemula",
+    status: "published",
+    elevationMeters: 50,
+    province: "Jawa Timur",
+    regency: "Situbondo",
+    district: "Banyuputih",
+    latitude: "-7.9425000",
+    longitude: "114.3880000",
+    accessPoint: "Gerbang Bekol",
+    accessDescription:
+      "Dari Surabaya sekitar 4 jam dengan mobil melalui Situbondo menuju gerbang Taman Nasional Baluran.",
+    accessTransport: ["Mobil", "Motor"],
+    accessDuration: "≈ 4 jam dari Surabaya",
+    accessDistanceKm: "200.00",
+    bestSeason: ["Kering (Jun-Okt)"],
+    tags: ["savana", "satwa", "sunrise"],
+    guideRequired: false,
+    categorySlugs: ["savana", "hutan"],
+  },
+  {
+    name: "Pulau Padar",
+    slug: "pulau-padar",
+    tagline: "Tiga teluk dari puncak Padar",
+    description:
+      "Pulau Padar terkenal dengan panorama tiga teluk berwarna biru toska yang terlihat dari puncak bukitnya, bagian dari kawasan Komodo.",
+    difficulty: "menengah",
+    status: "published",
+    elevationMeters: 100,
+    province: "Nusa Tenggara Timur",
+    regency: "Manggarai Barat",
+    district: "Komodo",
+    latitude: "-8.6530000",
+    longitude: "119.5760000",
+    accessPoint: "Labuan Bajo",
+    accessDescription:
+      "Dari Labuan Bajo sekitar 3 jam dengan kapal menuju Pulau Padar, lalu trekking singkat ke puncak.",
+    accessTransport: ["Kapal"],
+    accessDuration: "≈ 3 jam dari Labuan Bajo",
+    accessDistanceKm: "45.00",
+    bestSeason: ["Kering (Apr-Nov)"],
+    tags: ["pantai", "trekking", "sunrise"],
+    guideRequired: true,
+    categorySlugs: ["pantai", "bukit"],
+  },
+  {
+    name: "Goa Pindul",
+    slug: "goa-pindul",
+    tagline: "Susur goa dengan tubing",
+    description:
+      "Goa Pindul menawarkan susur goa bawah tanah dengan ban pelampung menyusuri sungai bawah tanah yang jernih.",
+    difficulty: "ramah-pemula",
+    status: "published",
+    elevationMeters: 150,
+    province: "DI Yogyakarta",
+    regency: "Gunungkidul",
+    district: "Bejiharjo",
+    latitude: "-7.9360000",
+    longitude: "110.6410000",
+    accessPoint: "Bejiharjo",
+    accessDescription:
+      "Dari Yogyakarta sekitar 1 jam dengan mobil atau motor menuju Desa Bejiharjo, Gunungkidul.",
+    accessTransport: ["Mobil", "Motor"],
+    accessDuration: "≈ 1 jam dari Yogyakarta",
+    accessDistanceKm: "35.00",
+    bestSeason: ["Kering (Mei-Sep)"],
+    tags: ["goa", "tubing", "sungai"],
+    guideRequired: true,
+    categorySlugs: ["hutan"],
+  },
 ];
 
 const seedImages: Record<string, string[]> = {
@@ -474,6 +725,45 @@ const seedImages: Record<string, string[]> = {
   "gunung-nglanggeran": [
     "https://upload.wikimedia.org/wikipedia/commons/b/bb/Bukit_Nglanggeran.jpg",
   ],
+  "gunung-prau": [
+    "https://upload.wikimedia.org/wikipedia/commons/9/9e/Mount_Parahu_in_the_Dieng_Plateau.jpg",
+  ],
+  "bukit-moko": [
+    "https://upload.wikimedia.org/wikipedia/commons/thumb/2/29/Fajar_di_Bukit_Moko%2C_Bandung.jpg/1280px-Fajar_di_Bukit_Moko%2C_Bandung.jpg",
+  ],
+  "ranu-kumbolo": [
+    "https://upload.wikimedia.org/wikipedia/commons/thumb/a/aa/Ranu_Kumbolo.jpg/1280px-Ranu_Kumbolo.jpg",
+  ],
+  "pantai-kuta": [
+    "https://upload.wikimedia.org/wikipedia/commons/b/bf/Pantai_Kuta_sejuta_cinta.jpg",
+  ],
+  "pantai-parangtritis": [
+    "https://upload.wikimedia.org/wikipedia/commons/thumb/2/26/Pantai_Parangtritis.jpg/1280px-Pantai_Parangtritis.jpg",
+  ],
+  "pantai-tanjung-tinggi": [
+    "https://upload.wikimedia.org/wikipedia/commons/thumb/6/69/Pantai_Tanjung_Tinggi.jpg/1280px-Pantai_Tanjung_Tinggi.jpg",
+  ],
+  "danau-toba": [
+    "https://upload.wikimedia.org/wikipedia/commons/b/b1/Toba_zoom.jpg",
+  ],
+  "danau-sentani": [
+    "https://upload.wikimedia.org/wikipedia/commons/1/1a/Festival_Danau_Sentani_2016.jpg",
+  ],
+  "air-terjun-tumpak-sewu": [
+    "https://upload.wikimedia.org/wikipedia/commons/thumb/6/65/Air_Terjun_Tumpak_Sewu.jpg/1280px-Air_Terjun_Tumpak_Sewu.jpg",
+  ],
+  "air-terjun-sekumpul": [
+    "https://upload.wikimedia.org/wikipedia/commons/thumb/2/28/Air_Terjun_Sekumpul.jpg/1280px-Air_Terjun_Sekumpul.jpg",
+  ],
+  "taman-nasional-baluran": [
+    "https://upload.wikimedia.org/wikipedia/commons/thumb/b/b4/Golden_hour_at_bekol_savannah.jpg/1280px-Golden_hour_at_bekol_savannah.jpg",
+  ],
+  "pulau-padar": [
+    "https://upload.wikimedia.org/wikipedia/commons/thumb/a/a5/Pulau_Padar_1.jpg/1280px-Pulau_Padar_1.jpg",
+  ],
+  "goa-pindul": [
+    "https://upload.wikimedia.org/wikipedia/commons/thumb/2/22/Goa_pindul_di_jogja.jpg/1280px-Goa_pindul_di_jogja.jpg",
+  ],
 };
 
 async function seed(): Promise<void> {
@@ -505,18 +795,27 @@ async function seed(): Promise<void> {
       email: "admin@dolenae.id",
       password: "admin12345",
       role: "admin",
+      phone: "0812 0000 0001",
+      city: "Yogyakarta",
+      bio: "Mengelola katalog dan verifikasi data destinasi Dolenae.",
     },
     {
       name: "Dimas Pratama",
       email: "wisatawan@dolenae.id",
       password: "dolenae123",
       role: "wisatawan",
+      phone: "0812 1188 2233",
+      city: "Yogyakarta",
+      bio: "Suka mendaki gunung dan camping di dataran tinggi.",
     },
     {
       name: "Merchant Dolenae",
       email: "merchant@dolenae.id",
       password: "merchant12345",
       role: "merchant",
+      phone: "0813 3390 1122",
+      city: "Malang",
+      bio: "Mengelola homestay dan jeep tour di kawasan Bromo.",
     },
   ] as const;
 
@@ -527,6 +826,14 @@ async function seed(): Promise<void> {
       .where(eq(users.email, seedUser.email))
       .limit(1);
     if (existing) {
+      await db
+        .update(users)
+        .set({
+          phone: seedUser.phone,
+          city: seedUser.city,
+          bio: seedUser.bio,
+        })
+        .where(eq(users.id, existing.id));
       console.log(`User sudah ada: ${seedUser.email} (${seedUser.role})`);
       continue;
     }
@@ -536,6 +843,9 @@ async function seed(): Promise<void> {
       passwordHash: await hashPassword(seedUser.password),
       role: seedUser.role,
       provider: "local",
+      phone: seedUser.phone,
+      city: seedUser.city,
+      bio: seedUser.bio,
     });
     console.log(
       `User siap: ${seedUser.email} / ${seedUser.password} (${seedUser.role})`,

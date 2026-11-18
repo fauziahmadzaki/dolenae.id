@@ -221,7 +221,12 @@ Langkah sekali jalan:
 1. Google Cloud Console → **Credentials** → *Create credentials* → *OAuth client ID*
    → **Android** (di project yang sama dengan web client):
    - Package name: `id.dolenae.dolenae_mobile`
-   - SHA-1 debug: `55:75:50:28:59:EC:4C:95:75:24:43:2F:FD:BF:1F:6D:D4:E3:37:56`
+   - SHA-1 debug: ambil dari keystore mesin yang dipakai (beda per mesin):
+     ```bash
+     keytool -list -v -keystore ~/.android/debug.keystore        -alias androiddebugkey -storepass android -keypass android
+     ```
+     Salin baris **SHA1** ke Google Cloud Console. Kalau SHA terdaftar berbeda
+     dengan keystore build, Google membalas `DEVELOPER_ERROR`.
    - Tambahkan juga SHA-1 release bila nanti dipakai.
 2. Backend: `apps/backend/.env` → `GOOGLE_CLIENT_ID=<web client id>`
    (`AUTH_GOOGLE_ID` juga diterima sebagai alias).
@@ -235,6 +240,9 @@ Langkah sekali jalan:
 
 Tanpa Client ID, tombol Google hanya menampilkan pesan "belum dikonfigurasi";
 fitur lain tetap berjalan normal.
+
+> **Perangkat fisik Android:** `10.0.2.2` hanya alias emulator. Jalankan dengan
+> `flutter run --dart-define=API_BASE_URL=http://<IP-LAN-mesin>:3001/api`.
 
 ## Catatan
 

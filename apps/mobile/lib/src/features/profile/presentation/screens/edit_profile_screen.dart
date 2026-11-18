@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:provider/provider.dart';
 
+import 'package:dolenae_mobile/src/features/auth/presentation/controllers/auth_controller.dart';
 import 'package:dolenae_mobile/src/app/theme/app_colors.dart';
 import 'package:dolenae_mobile/src/app/theme/app_radius.dart';
 import 'package:dolenae_mobile/src/app/theme/app_spacing.dart';
@@ -18,9 +20,9 @@ class EditProfileScreen extends StatefulWidget {
     super.key,
     this.initialName = 'Dimas',
     this.initialEmail = 'dimas@dolenae.id',
-    this.initialPhone = '+62 812-3456-7890',
-    this.initialCity = 'Yogyakarta',
-    this.initialBio = 'Suka mendaki gunung dan camping di dataran tinggi.',
+    this.initialPhone = '',
+    this.initialCity = '',
+    this.initialBio = '',
     this.onSave,
     this.onBack,
   });
@@ -43,15 +45,27 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   late final TextEditingController _phoneController;
   late final TextEditingController _cityController;
   late final TextEditingController _bioController;
+  bool _saving = false;
 
   @override
   void initState() {
     super.initState();
-    _nameController = TextEditingController(text: widget.initialName);
-    _emailController = TextEditingController(text: widget.initialEmail);
-    _phoneController = TextEditingController(text: widget.initialPhone);
-    _cityController = TextEditingController(text: widget.initialCity);
-    _bioController = TextEditingController(text: widget.initialBio);
+    final user = context.read<AuthController?>()?.user;
+    _nameController = TextEditingController(
+      text: user?.name ?? widget.initialName,
+    );
+    _emailController = TextEditingController(
+      text: user?.email ?? widget.initialEmail,
+    );
+    _phoneController = TextEditingController(
+      text: user?.phone ?? widget.initialPhone,
+    );
+    _cityController = TextEditingController(
+      text: user?.city ?? widget.initialCity,
+    );
+    _bioController = TextEditingController(
+      text: user?.bio ?? widget.initialBio,
+    );
   }
 
   @override
@@ -64,8 +78,10 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     super.dispose();
   }
 
-  void _saveChanges() {
-    if (_nameController.text.trim().isEmpty) {
+  Future<void> _saveChanges() async {
+    if (_saving) return;
+    final name = _nameController.text.trim();
+    if (name.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Nama tidak boleh kosong'),
@@ -75,8 +91,38 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       return;
     }
 
-    widget.onSave?.call();
+    final auth = context.read<AuthController?>();
+    if (auth == null || !auth.isAuthenticated) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Sesi tidak ditemukan. Silakan masuk kembali.'),
+          backgroundColor: AppColors.danger,
+        ),
+      );
+      return;
+    }
 
+    setState(() => _saving = true);
+    final failure = await auth.updateProfile(
+      name: name,
+      phone: _nullable(_phoneController.text),
+      city: _nullable(_cityController.text),
+      bio: _nullable(_bioController.text),
+    );
+    if (!mounted) return;
+    setState(() => _saving = false);
+
+    if (failure != null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(failure.message),
+          backgroundColor: AppColors.danger,
+        ),
+      );
+      return;
+    }
+
+    widget.onSave?.call();
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
         content: Text('Perubahan profil berhasil disimpan!'),
@@ -89,6 +135,11 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     } else {
       context.go('/profile');
     }
+  }
+
+  String? _nullable(String value) {
+    final trimmed = value.trim();
+    return trimmed.isEmpty ? null : trimmed;
   }
 
   @override
@@ -140,6 +191,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                       controller: _emailController,
                       hint: 'email@contoh.com',
                       keyboardType: TextInputType.emailAddress,
+                      enabled: false,
                     ),
                     const SizedBox(height: 12),
                     _buildField(
@@ -158,9 +210,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                     _buildBioField(),
                     const SizedBox(height: AppSpacing.s5),
                     DnPrimaryButton(
-                      label: 'Simpan perubahan',
+                      label: _saving ? 'Menyimpan…' : 'Simpan perubahan',
                       height: 48,
-                      onPressed: _saveChanges,
+                      onPressed: _saving ? null : _saveChanges,
                     ),
                     const SizedBox(height: AppSpacing.s4),
                   ],
@@ -233,6 +285,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     required TextEditingController controller,
     required String hint,
     TextInputType keyboardType = TextInputType.text,
+    bool enabled = true,
   }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -245,13 +298,14 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         Container(
           height: 48,
           decoration: BoxDecoration(
-            color: AppColors.canvasSubtle,
+            color: enabled ? AppColors.canvasSubtle : AppColors.hairline,
             borderRadius: BorderRadius.circular(AppRadius.lg),
             border: Border.all(color: AppColors.hairline),
           ),
           child: TextField(
             controller: controller,
             keyboardType: keyboardType,
+            enabled: enabled,
             style: const TextStyle(
               fontFamily: 'Inter',
               fontSize: 14,

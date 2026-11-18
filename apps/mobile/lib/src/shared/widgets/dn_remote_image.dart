@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 
 import 'package:dolenae_mobile/src/core/config/app_config.dart';
@@ -34,15 +35,21 @@ class DnRemoteImage extends StatelessWidget {
         height: height,
         child: resolved == null
             ? placeholder
-            : Image.network(
-                resolved.toString(),
-                width: double.infinity,
-                height: height,
-                fit: fit,
-                semanticLabel: semanticLabel,
-                loadingBuilder: (_, child, progress) =>
-                    progress == null ? child : placeholder,
-                errorBuilder: (_, _, _) => placeholder,
+            : Semantics(
+                label: semanticLabel,
+                image: true,
+                child: CachedNetworkImage(
+                  imageUrl: resolved.toString(),
+                  width: double.infinity,
+                  height: height,
+                  fit: fit,
+                  fadeInDuration: Duration.zero,
+                  httpHeaders: const {
+                    'User-Agent': 'DolenaeMobile/1.0 (+https://dolenae.id)',
+                  },
+                  placeholder: (_, _) => placeholder,
+                  errorWidget: (_, _, _) => placeholder,
+                ),
               ),
       ),
     );

@@ -50,6 +50,37 @@ class RegisterUseCase implements UseCase<AuthSession, RegisterParams> {
   }
 }
 
+class UpdateProfileParams {
+  const UpdateProfileParams({
+    required this.name,
+    this.phone,
+    this.city,
+    this.bio,
+  });
+
+  final String name;
+  final String? phone;
+  final String? city;
+  final String? bio;
+}
+
+/// Memperbarui profil pengguna yang sedang masuk.
+class UpdateProfileUseCase implements UseCase<AuthSession, UpdateProfileParams> {
+  const UpdateProfileUseCase(this._repository);
+
+  final AuthRepository _repository;
+
+  @override
+  Future<Result<AuthSession>> call(UpdateProfileParams params) {
+    return _repository.updateProfile(
+      name: params.name,
+      phone: params.phone,
+      city: params.city,
+      bio: params.bio,
+    );
+  }
+}
+
 /// Removes the persisted session.
 class LogoutUseCase implements UseCase<void, NoParams> {
   const LogoutUseCase(this._repository);

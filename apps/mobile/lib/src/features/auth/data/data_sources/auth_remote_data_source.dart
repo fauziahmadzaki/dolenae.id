@@ -56,6 +56,33 @@ class AuthRemoteDataSource {
     return _userFromJson(user);
   }
 
+  /// Updates the signed-in user's profile (`PATCH /auth/me`).
+  Future<AuthUser> updateProfile({
+    required String name,
+    String? phone,
+    String? city,
+    String? bio,
+  }) async {
+    final body = await _client.patch(
+      '/auth/me',
+      body: {
+        'name': name.trim(),
+        'phone': phone,
+        'city': city,
+        'bio': bio,
+      },
+    );
+    final data = body['data'];
+    final user = (data is Map)
+        ? (data.cast<String, dynamic>()['user'] as Map?)
+              ?.cast<String, dynamic>()
+        : null;
+    if (user == null) {
+      throw const ApiException('Respons profil tidak dikenali.');
+    }
+    return _userFromJson(user);
+  }
+
   /// Starts the reset flow and returns the message to show to the user.
   Future<String> forgotPassword({required String email}) async {
     final body = await _client.post(
@@ -112,6 +139,9 @@ AuthUser _userFromJson(Map<String, dynamic> json) {
     email: json['email'] as String? ?? '',
     role: json['role'] as String? ?? 'wisatawan',
     avatarUrl: json['avatarUrl'] as String?,
+    phone: json['phone'] as String?,
+    city: json['city'] as String?,
+    bio: json['bio'] as String?,
     emailVerifiedAt: DateTime.tryParse(
       json['emailVerifiedAt'] as String? ?? '',
     ),

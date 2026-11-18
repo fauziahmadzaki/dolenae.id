@@ -223,6 +223,14 @@ class _LoginFakeAuthRepository implements AuthRepository {
   }) async => const Success('Tautan verifikasi sudah dikirim.');
 
   @override
+  Future<Result<AuthSession>> updateProfile({
+    required String name,
+    String? phone,
+    String? city,
+    String? bio,
+  }) async => const Success(_session);
+
+  @override
   Future<Result<void>> logout() async => const Success(null);
 
   @override

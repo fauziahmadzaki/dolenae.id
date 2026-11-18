@@ -22,7 +22,8 @@ class AuthController extends ChangeNotifier {
        _forgotPassword = ForgotPasswordUseCase(repository),
        _googleSignIn = GoogleSignInUseCase(repository),
        _resendVerification = ResendVerificationUseCase(repository),
-       _writeRememberedEmail = WriteRememberedEmailUseCase(repository);
+       _writeRememberedEmail = WriteRememberedEmailUseCase(repository),
+       _updateProfile = UpdateProfileUseCase(repository);
 
   final LoginUseCase _login;
   final RegisterUseCase _register;
@@ -32,6 +33,7 @@ class AuthController extends ChangeNotifier {
   final GoogleSignInUseCase _googleSignIn;
   final ResendVerificationUseCase _resendVerification;
   final WriteRememberedEmailUseCase _writeRememberedEmail;
+  final UpdateProfileUseCase _updateProfile;
 
   AuthSession? _session;
   String? _rememberedEmail;
@@ -136,6 +138,18 @@ class AuthController extends ChangeNotifier {
     }
     notifyListeners();
     return result;
+  }
+
+  Future<AppFailure?> updateProfile({
+    required String name,
+    String? phone,
+    String? city,
+    String? bio,
+  }) async {
+    final result = await _updateProfile(
+      UpdateProfileParams(name: name, phone: phone, city: city, bio: bio),
+    );
+    return _apply(result);
   }
 
   Future<AppFailure?> logout() async {

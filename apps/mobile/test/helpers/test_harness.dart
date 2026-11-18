@@ -15,17 +15,19 @@ import 'package:dolenae_mobile/src/features/auth/presentation/controllers/auth_c
 import 'package:dolenae_mobile/src/features/checklist/data/repositories/checklist_repository_impl.dart';
 import 'package:dolenae_mobile/src/features/checklist/presentation/controllers/checklist_controller.dart';
 import 'package:dolenae_mobile/src/features/destinations/data/data_sources/destination_seed_data_source.dart';
+import 'package:dolenae_mobile/src/features/destinations/domain/entities/destination.dart';
 import 'package:dolenae_mobile/src/features/destinations/domain/entities/destination_catalog.dart';
 import 'package:dolenae_mobile/src/features/destinations/domain/repositories/destination_repository.dart';
 import 'package:dolenae_mobile/src/features/destinations/presentation/controllers/destinations_controller.dart';
 import 'package:dolenae_mobile/src/features/explore/data/repositories/explore_repository_impl.dart';
 import 'package:dolenae_mobile/src/features/explore/presentation/controllers/explore_controller.dart';
 import 'package:dolenae_mobile/src/features/facilities/data/data_sources/facility_seed_data_source.dart';
-import 'package:dolenae_mobile/src/features/facilities/domain/entities/travel_support.dart';
+import 'package:dolenae_mobile/src/features/facilities/domain/entities/facility.dart';
 import 'package:dolenae_mobile/src/features/facilities/domain/repositories/facility_repository.dart';
 import 'package:dolenae_mobile/src/features/facilities/presentation/controllers/facilities_controller.dart';
 import 'package:dolenae_mobile/src/features/notifications/data/repositories/notification_repository_impl.dart';
 import 'package:dolenae_mobile/src/features/notifications/presentation/controllers/notifications_controller.dart';
+import 'package:dolenae_mobile/src/features/notifications/presentation/screens/notifications_screen.dart';
 import 'package:dolenae_mobile/src/features/plan/data/data_sources/plan_seed_data_source.dart';
 import 'package:dolenae_mobile/src/features/plan/domain/entities/trip_plan.dart';
 import 'package:dolenae_mobile/src/features/plan/domain/entities/user_location.dart';
@@ -134,6 +136,7 @@ class TestStores {
     String? rememberedEmail,
     CategoryRepository? categoryRepository,
     List<TripPlan>? plans,
+    List<Destination>? destinations,
   }) : auth = AuthController(
          repository: authRepository ?? const _TestAuthRepository(),
          initialRememberedEmail: rememberedEmail,
@@ -147,12 +150,14 @@ class TestStores {
        settings = SettingsController(SettingsRepositoryImpl()),
        search = ExploreController(ExploreRepositoryImpl()),
        destinations = DestinationsController(
-         repository: const _TestDestinationRepository(),
-         initialItems: DestinationSeedData.items,
+         repository: _TestDestinationRepository(
+           destinations ?? DestinationSeedData.items,
+         ),
+         initialItems: destinations ?? DestinationSeedData.items,
        ),
        facilities = FacilitiesController(
-         const _TestFacilityRepository(FacilitySeedData.supports),
-         initialSupports: FacilitySeedData.supports,
+         const _TestFacilityRepository(FacilitySeedData.facilities),
+         initialFacilities: FacilitySeedData.facilities,
        ),
        routes = RoutesController(const _TestRouteRepository()),
        plan = PlanController(
@@ -235,13 +240,13 @@ class _TestCategoryRepository implements CategoryRepository {
 
 /// Repository destinasi sederhana yang langsung mengembalikan data seed.
 class _TestDestinationRepository implements DestinationRepository {
-  const _TestDestinationRepository();
+  const _TestDestinationRepository([this.items = DestinationSeedData.items]);
+
+  final List<Destination> items;
 
   @override
   Stream<DestinationCatalog> watchCatalog() {
-    return Stream.value(
-      const DestinationCatalog(items: DestinationSeedData.items),
-    );
+    return Stream.value(DestinationCatalog(items: items));
   }
 
   @override
@@ -251,10 +256,10 @@ class _TestDestinationRepository implements DestinationRepository {
 /// Repository fasilitas sederhana yang langsung mengembalikan data seed.
 class _TestFacilityRepository implements FacilityRepository {
   const _TestFacilityRepository(this._items);
-  final List<TravelSupport> _items;
+  final List<Facility> _items;
 
   @override
-  Future<Result<List<TravelSupport>>> list(String destinationId) async {
+  Future<Result<List<Facility>>> list(String destinationId) async {
     if (destinationId == 'dest-bromo' || destinationId == 'bromo') {
       return Success(_items);
     }
@@ -265,7 +270,7 @@ class _TestFacilityRepository implements FacilityRepository {
   }
 
   @override
-  Future<Result<TravelSupport>> getById(String id) async {
+  Future<Result<Facility>> getById(String id) async {
     for (final item in _items) {
       if (item.id == id) return Success(item);
     }
@@ -302,7 +307,30 @@ Widget wrapScreen(Widget child, {TestStores? store}) {
         builder: (_, _) => const _StubScreen(),
       ),
       GoRoute(path: '/destination/:id', builder: (_, _) => const _StubScreen()),
+      GoRoute(path: '/profile', builder: (_, _) => const _StubScreen()),
+      GoRoute(
+        path: '/auth/change-password',
+        builder: (_, _) => const _StubScreen(),
+      ),
+      GoRoute(
+        path: '/settings/privacy',
+        builder: (_, _) => const _StubScreen(),
+      ),
+      GoRoute(
+        path: '/settings/notifications',
+        builder: (_, _) => const _StubScreen(),
+      ),
+      GoRoute(path: '/settings/theme', builder: (_, _) => const _StubScreen()),
+      GoRoute(path: '/settings/faq', builder: (_, _) => const _StubScreen()),
+      GoRoute(
+        path: '/settings/feedback',
+        builder: (_, _) => const _StubScreen(),
+      ),
       GoRoute(path: '/plan', builder: (_, _) => const TripPlanScreen()),
+      GoRoute(
+        path: '/notifications',
+        builder: (_, _) => const NotificationsScreen(),
+      ),
       GoRoute(
         path: '/plan/:id',
         builder: (_, state) =>
@@ -403,6 +431,31 @@ class _TestAuthRepository implements AuthRepository {
   @override
   Future<Result<AuthSession>> verify() async =>
       const Failure(AuthFailure('Sesi tidak ditemukan.'));
+
+  @override
+  Future<Result<AuthSession>> updateProfile({
+    required String name,
+    String? phone,
+    String? city,
+    String? bio,
+  }) async {
+    return Success(
+      AuthSession(
+        token: _session.token,
+        user: AuthUser(
+          id: _user.id,
+          name: name,
+          email: _user.email,
+          role: _user.role,
+          avatarUrl: _user.avatarUrl,
+          phone: phone,
+          city: city,
+          bio: bio,
+          emailVerifiedAt: _user.emailVerifiedAt,
+        ),
+      ),
+    );
+  }
 
   @override
   Future<Result<AuthSession>> login({

@@ -271,6 +271,14 @@ class _FakeAuthRepository implements AuthRepository {
   }
 
   @override
+  Future<Result<AuthSession>> updateProfile({
+    required String name,
+    String? phone,
+    String? city,
+    String? bio,
+  }) async => const Success(_session);
+
+  @override
   Future<Result<void>> logout() async => const Success(null);
 
   @override

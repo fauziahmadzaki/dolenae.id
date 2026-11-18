@@ -3,6 +3,9 @@ import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
 import 'package:dolenae_mobile/src/features/auth/presentation/controllers/auth_controller.dart';
+import 'package:dolenae_mobile/src/features/checklist/presentation/controllers/checklist_controller.dart';
+import 'package:dolenae_mobile/src/features/plan/presentation/controllers/plan_controller.dart';
+import 'package:dolenae_mobile/src/features/saved/presentation/controllers/saved_controller.dart';
 import 'package:dolenae_mobile/src/app/theme/app_colors.dart';
 import 'package:dolenae_mobile/src/app/theme/app_radius.dart';
 import 'package:dolenae_mobile/src/app/theme/app_shadows.dart';
@@ -25,7 +28,6 @@ class ProfileScreen extends StatelessWidget {
     this.planCount = 2,
     this.checklistCount = 12,
     this.onEditProfile,
-    this.onSettings,
     this.onLogout,
   });
 
@@ -36,7 +38,6 @@ class ProfileScreen extends StatelessWidget {
   final int planCount;
   final int checklistCount;
   final VoidCallback? onEditProfile;
-  final VoidCallback? onSettings;
   final VoidCallback? onLogout;
 
   void _onTab(BuildContext context, DnTab tab) {
@@ -60,6 +61,13 @@ class ProfileScreen extends StatelessWidget {
     final displayName = auth?.user?.name ?? userName;
     final displayEmail = auth?.user?.email ?? userEmail;
     final displayRole = auth?.user?.roleLabel ?? userRole;
+    final savedTotal =
+        context.watch<SavedController?>()?.savedDestinations.length ??
+        savedCount;
+    final planTotal =
+        context.watch<PlanController?>()?.plans.length ?? planCount;
+    final checklistTotal =
+        context.watch<ChecklistController?>()?.items.length ?? checklistCount;
 
     return Scaffold(
       backgroundColor: AppColors.canvas,
@@ -78,6 +86,9 @@ class ProfileScreen extends StatelessWidget {
                       displayName,
                       displayEmail,
                       displayRole,
+                      saved: savedTotal,
+                      plan: planTotal,
+                      checklist: checklistTotal,
                     ),
                     const SizedBox(height: AppSpacing.s4),
                     _buildGroupHeader('AKUN & KEAMANAN'),
@@ -118,20 +129,10 @@ class ProfileScreen extends StatelessWidget {
         child: SafeArea(
           bottom: false,
           child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
                 'Profil',
                 style: AppTextStyles.title.copyWith(color: AppColors.onPrimary),
-              ),
-              IconButton(
-                icon: const Icon(AppIcons.settings, color: AppColors.onPrimary),
-                tooltip: 'Pengaturan',
-                onPressed:
-                    onSettings ??
-                    () => ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Pengaturan aplikasi')),
-                    ),
               ),
             ],
           ),
@@ -144,8 +145,11 @@ class ProfileScreen extends StatelessWidget {
     BuildContext context,
     String displayName,
     String displayEmail,
-    String displayRole,
-  ) {
+    String displayRole, {
+    required int saved,
+    required int plan,
+    required int checklist,
+  }) {
     return Container(
       padding: const EdgeInsets.all(AppSpacing.s4),
       decoration: BoxDecoration(
@@ -219,18 +223,18 @@ class ProfileScreen extends StatelessWidget {
           // Stats Row
           Row(
             children: [
-              _buildStatItem(context, '$savedCount', 'Tersimpan', null),
+              _buildStatItem(context, '$saved', 'Tersimpan', null),
               const SizedBox(width: 8),
               _buildStatItem(
                 context,
-                '$planCount',
+                '$plan',
                 'Rencana',
                 () => context.go('/plan'),
               ),
               const SizedBox(width: 8),
               _buildStatItem(
                 context,
-                '$checklistCount',
+                '$checklist',
                 'Checklist',
                 () => context.push('/checklist'),
               ),
@@ -330,15 +334,12 @@ class ProfileScreen extends StatelessWidget {
       _MenuItem(
         icon: AppIcons.key,
         title: 'Ubah kata sandi',
-        onTap: () => ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text('Fitur ubah kata sandi'))),
+        onTap: () => context.push('/auth/change-password'),
       ),
       _MenuItem(
         icon: AppIcons.shield,
         title: 'Privasi & keamanan',
-        onTap: () => ScaffoldMessenger.of(context)
-            .showSnackBar(const SnackBar(content: Text('Privasi & keamanan'))),
+        onTap: () => context.push('/settings/privacy'),
       ),
     ]);
   }
@@ -348,15 +349,12 @@ class ProfileScreen extends StatelessWidget {
       _MenuItem(
         icon: AppIcons.bell,
         title: 'Setelan notifikasi',
-        onTap: () => ScaffoldMessenger.of(context)
-            .showSnackBar(const SnackBar(content: Text('Setelan notifikasi'))),
+        onTap: () => context.push('/settings/notifications'),
       ),
       _MenuItem(
         icon: AppIcons.palette,
         title: 'Tema & bahasa',
-        onTap: () =>
-            ScaffoldMessenger.of(context)
-                .showSnackBar(const SnackBar(content: Text('Tema & bahasa'))),
+        onTap: () => context.push('/settings/theme'),
       ),
     ]);
   }
@@ -366,16 +364,12 @@ class ProfileScreen extends StatelessWidget {
       _MenuItem(
         icon: AppIcons.helpCircle,
         title: 'Bantuan & FAQ',
-        onTap: () =>
-            ScaffoldMessenger.of(context)
-                .showSnackBar(const SnackBar(content: Text('Bantuan & FAQ'))),
+        onTap: () => context.push('/settings/faq'),
       ),
       _MenuItem(
         icon: AppIcons.messageSquare,
         title: 'Kirim masukan',
-        onTap: () =>
-            ScaffoldMessenger.of(context)
-                .showSnackBar(const SnackBar(content: Text('Kirim masukan'))),
+        onTap: () => context.push('/settings/feedback'),
       ),
     ]);
   }

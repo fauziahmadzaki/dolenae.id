@@ -23,6 +23,7 @@ import type {
   RegisterInput,
   ResendVerificationInput,
   ResetPasswordInput,
+  UpdateProfileInput,
   VerifyEmailInput,
 } from "../types/auth";
 
@@ -39,6 +40,9 @@ class AuthService {
       role: row.role,
       provider: row.provider,
       avatarUrl: row.avatarUrl,
+      phone: row.phone,
+      city: row.city,
+      bio: row.bio,
       emailVerifiedAt: row.emailVerifiedAt?.toISOString() ?? null,
       createdAt: row.createdAt.toISOString(),
       updatedAt: row.updatedAt.toISOString(),
@@ -261,6 +265,20 @@ class AuthService {
     }
 
     return { message };
+  }
+
+  async updateProfile(
+    userId: string,
+    input: UpdateProfileInput,
+  ): Promise<AuthUser> {
+    const row = await userRepository.update(userId, {
+      name: input.name,
+      phone: input.phone,
+      city: input.city,
+      bio: input.bio,
+    });
+    if (!row) throw new NotFoundError("Pengguna tidak ditemukan");
+    return this.toAuthUser(row);
   }
 
   async getMe(userId: string): Promise<AuthUser> {

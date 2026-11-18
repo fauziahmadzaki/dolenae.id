@@ -19,7 +19,7 @@ class DnSegmented<T> extends StatelessWidget {
     this.expand = true,
   });
 
-  /// Pasangan nilai dan label, mis. `{(SupportCategory.penginapan, 'Penginapan')}`.
+  /// Pasangan nilai dan label, mis. `{(FacilityCategory.penginapan, 'Penginapan')}`.
   final List<({T value, String label})> segments;
   final T value;
   final ValueChanged<T> onChanged;

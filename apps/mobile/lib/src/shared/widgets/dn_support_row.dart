@@ -4,26 +4,26 @@ import 'package:dolenae_mobile/src/app/theme/app_colors.dart';
 import 'package:dolenae_mobile/src/app/theme/app_radius.dart';
 import 'package:dolenae_mobile/src/app/theme/app_spacing.dart';
 import 'package:dolenae_mobile/src/app/theme/app_text_styles.dart';
-import 'package:dolenae_mobile/src/features/facilities/domain/entities/travel_support.dart';
+import 'package:dolenae_mobile/src/features/facilities/domain/entities/facility.dart';
 import 'package:dolenae_mobile/src/shared/icons/app_icons.dart';
 
 /// Baris fasilitas (component `SupportRow (Alam)`, 3 tipe).
 class DnSupportRow extends StatelessWidget {
   const DnSupportRow({
     super.key,
-    required this.support,
+    required this.facility,
     this.onTap,
     this.trailing,
   });
 
-  final TravelSupport support;
+  final Facility facility;
   final VoidCallback? onTap;
   final Widget? trailing;
 
-  IconData get _icon => switch (support.category) {
-    SupportCategory.penginapan => AppIcons.bedDouble,
-    SupportCategory.transportasi => AppIcons.car,
-    SupportCategory.makanan => AppIcons.utensils,
+  IconData get _icon => switch (facility.category) {
+    FacilityCategory.penginapan => AppIcons.bedDouble,
+    FacilityCategory.transportasi => AppIcons.car,
+    FacilityCategory.makanan => AppIcons.utensils,
   };
 
   @override
@@ -58,13 +58,13 @@ class DnSupportRow extends StatelessWidget {
                     children: [
                       Flexible(
                         child: Text(
-                          support.name,
+                          facility.name,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: AppTextStyles.titleSm,
                         ),
                       ),
-                      if (support.verified) ...[
+                      if (facility.verified) ...[
                         const SizedBox(width: AppSpacing.s1),
                         const Icon(
                           AppIcons.badgeCheck,
@@ -76,7 +76,10 @@ class DnSupportRow extends StatelessWidget {
                   ),
                   const SizedBox(height: 2),
                   Text(
-                    '${support.categoryLabel} · ${support.locationLabel}',
+                    [
+                      facility.categoryLabel,
+                      if (facility.type.isNotEmpty) facility.type,
+                    ].join(' · '),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: AppTextStyles.caption,
@@ -89,7 +92,7 @@ class DnSupportRow extends StatelessWidget {
               trailing!
             else
               Text(
-                support.priceLabel,
+                facility.priceLabel,
                 style: AppTextStyles.labelSm.copyWith(color: AppColors.primary),
               ),
           ],

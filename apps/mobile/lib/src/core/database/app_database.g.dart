@@ -227,29 +227,6 @@ class $CachedDestinationsTable extends CachedDestinations
     type: DriftSqlType.double,
     requiredDuringInsert: false,
   );
-  static const VerificationMeta _facilitiesMeta = const VerificationMeta(
-    'facilities',
-  );
-  @override
-  late final GeneratedColumn<String> facilities = GeneratedColumn<String>(
-    'facilities',
-    aliasedName,
-    false,
-    type: DriftSqlType.string,
-    requiredDuringInsert: false,
-    defaultValue: const Constant('[]'),
-  );
-  static const VerificationMeta _entryFeeMeta = const VerificationMeta(
-    'entryFee',
-  );
-  @override
-  late final GeneratedColumn<int> entryFee = GeneratedColumn<int>(
-    'entry_fee',
-    aliasedName,
-    true,
-    type: DriftSqlType.int,
-    requiredDuringInsert: false,
-  );
   static const VerificationMeta _elevationMetersMeta = const VerificationMeta(
     'elevationMeters',
   );
@@ -367,8 +344,6 @@ class $CachedDestinationsTable extends CachedDestinations
     accessTransport,
     accessDuration,
     accessDistanceKm,
-    facilities,
-    entryFee,
     elevationMeters,
     images,
     guideRequired,
@@ -533,18 +508,6 @@ class $CachedDestinationsTable extends CachedDestinations
         ),
       );
     }
-    if (data.containsKey('facilities')) {
-      context.handle(
-        _facilitiesMeta,
-        facilities.isAcceptableOrUnknown(data['facilities']!, _facilitiesMeta),
-      );
-    }
-    if (data.containsKey('entry_fee')) {
-      context.handle(
-        _entryFeeMeta,
-        entryFee.isAcceptableOrUnknown(data['entry_fee']!, _entryFeeMeta),
-      );
-    }
     if (data.containsKey('elevation_meters')) {
       context.handle(
         _elevationMetersMeta,
@@ -701,14 +664,6 @@ class $CachedDestinationsTable extends CachedDestinations
         DriftSqlType.double,
         data['${effectivePrefix}access_distance_km'],
       ),
-      facilities: attachedDatabase.typeMapping.read(
-        DriftSqlType.string,
-        data['${effectivePrefix}facilities'],
-      )!,
-      entryFee: attachedDatabase.typeMapping.read(
-        DriftSqlType.int,
-        data['${effectivePrefix}entry_fee'],
-      ),
       elevationMeters: attachedDatabase.typeMapping.read(
         DriftSqlType.int,
         data['${effectivePrefix}elevation_meters'],
@@ -772,8 +727,6 @@ class CachedDestination extends DataClass
   final String accessTransport;
   final String? accessDuration;
   final double? accessDistanceKm;
-  final String facilities;
-  final int? entryFee;
   final int? elevationMeters;
   final String images;
   final bool? guideRequired;
@@ -803,8 +756,6 @@ class CachedDestination extends DataClass
     required this.accessTransport,
     this.accessDuration,
     this.accessDistanceKm,
-    required this.facilities,
-    this.entryFee,
     this.elevationMeters,
     required this.images,
     this.guideRequired,
@@ -858,10 +809,6 @@ class CachedDestination extends DataClass
     }
     if (!nullToAbsent || accessDistanceKm != null) {
       map['access_distance_km'] = Variable<double>(accessDistanceKm);
-    }
-    map['facilities'] = Variable<String>(facilities);
-    if (!nullToAbsent || entryFee != null) {
-      map['entry_fee'] = Variable<int>(entryFee);
     }
     if (!nullToAbsent || elevationMeters != null) {
       map['elevation_meters'] = Variable<int>(elevationMeters);
@@ -924,10 +871,6 @@ class CachedDestination extends DataClass
       accessDistanceKm: accessDistanceKm == null && nullToAbsent
           ? const Value.absent()
           : Value(accessDistanceKm),
-      facilities: Value(facilities),
-      entryFee: entryFee == null && nullToAbsent
-          ? const Value.absent()
-          : Value(entryFee),
       elevationMeters: elevationMeters == null && nullToAbsent
           ? const Value.absent()
           : Value(elevationMeters),
@@ -973,8 +916,6 @@ class CachedDestination extends DataClass
       accessTransport: serializer.fromJson<String>(json['accessTransport']),
       accessDuration: serializer.fromJson<String?>(json['accessDuration']),
       accessDistanceKm: serializer.fromJson<double?>(json['accessDistanceKm']),
-      facilities: serializer.fromJson<String>(json['facilities']),
-      entryFee: serializer.fromJson<int?>(json['entryFee']),
       elevationMeters: serializer.fromJson<int?>(json['elevationMeters']),
       images: serializer.fromJson<String>(json['images']),
       guideRequired: serializer.fromJson<bool?>(json['guideRequired']),
@@ -1009,8 +950,6 @@ class CachedDestination extends DataClass
       'accessTransport': serializer.toJson<String>(accessTransport),
       'accessDuration': serializer.toJson<String?>(accessDuration),
       'accessDistanceKm': serializer.toJson<double?>(accessDistanceKm),
-      'facilities': serializer.toJson<String>(facilities),
-      'entryFee': serializer.toJson<int?>(entryFee),
       'elevationMeters': serializer.toJson<int?>(elevationMeters),
       'images': serializer.toJson<String>(images),
       'guideRequired': serializer.toJson<bool?>(guideRequired),
@@ -1043,8 +982,6 @@ class CachedDestination extends DataClass
     String? accessTransport,
     Value<String?> accessDuration = const Value.absent(),
     Value<double?> accessDistanceKm = const Value.absent(),
-    String? facilities,
-    Value<int?> entryFee = const Value.absent(),
     Value<int?> elevationMeters = const Value.absent(),
     String? images,
     Value<bool?> guideRequired = const Value.absent(),
@@ -1080,8 +1017,6 @@ class CachedDestination extends DataClass
     accessDistanceKm: accessDistanceKm.present
         ? accessDistanceKm.value
         : this.accessDistanceKm,
-    facilities: facilities ?? this.facilities,
-    entryFee: entryFee.present ? entryFee.value : this.entryFee,
     elevationMeters: elevationMeters.present
         ? elevationMeters.value
         : this.elevationMeters,
@@ -1137,10 +1072,6 @@ class CachedDestination extends DataClass
       accessDistanceKm: data.accessDistanceKm.present
           ? data.accessDistanceKm.value
           : this.accessDistanceKm,
-      facilities: data.facilities.present
-          ? data.facilities.value
-          : this.facilities,
-      entryFee: data.entryFee.present ? data.entryFee.value : this.entryFee,
       elevationMeters: data.elevationMeters.present
           ? data.elevationMeters.value
           : this.elevationMeters,
@@ -1185,8 +1116,6 @@ class CachedDestination extends DataClass
           ..write('accessTransport: $accessTransport, ')
           ..write('accessDuration: $accessDuration, ')
           ..write('accessDistanceKm: $accessDistanceKm, ')
-          ..write('facilities: $facilities, ')
-          ..write('entryFee: $entryFee, ')
           ..write('elevationMeters: $elevationMeters, ')
           ..write('images: $images, ')
           ..write('guideRequired: $guideRequired, ')
@@ -1221,8 +1150,6 @@ class CachedDestination extends DataClass
     accessTransport,
     accessDuration,
     accessDistanceKm,
-    facilities,
-    entryFee,
     elevationMeters,
     images,
     guideRequired,
@@ -1256,8 +1183,6 @@ class CachedDestination extends DataClass
           other.accessTransport == this.accessTransport &&
           other.accessDuration == this.accessDuration &&
           other.accessDistanceKm == this.accessDistanceKm &&
-          other.facilities == this.facilities &&
-          other.entryFee == this.entryFee &&
           other.elevationMeters == this.elevationMeters &&
           other.images == this.images &&
           other.guideRequired == this.guideRequired &&
@@ -1289,8 +1214,6 @@ class CachedDestinationsCompanion extends UpdateCompanion<CachedDestination> {
   final Value<String> accessTransport;
   final Value<String?> accessDuration;
   final Value<double?> accessDistanceKm;
-  final Value<String> facilities;
-  final Value<int?> entryFee;
   final Value<int?> elevationMeters;
   final Value<String> images;
   final Value<bool?> guideRequired;
@@ -1321,8 +1244,6 @@ class CachedDestinationsCompanion extends UpdateCompanion<CachedDestination> {
     this.accessTransport = const Value.absent(),
     this.accessDuration = const Value.absent(),
     this.accessDistanceKm = const Value.absent(),
-    this.facilities = const Value.absent(),
-    this.entryFee = const Value.absent(),
     this.elevationMeters = const Value.absent(),
     this.images = const Value.absent(),
     this.guideRequired = const Value.absent(),
@@ -1354,8 +1275,6 @@ class CachedDestinationsCompanion extends UpdateCompanion<CachedDestination> {
     this.accessTransport = const Value.absent(),
     this.accessDuration = const Value.absent(),
     this.accessDistanceKm = const Value.absent(),
-    this.facilities = const Value.absent(),
-    this.entryFee = const Value.absent(),
     this.elevationMeters = const Value.absent(),
     this.images = const Value.absent(),
     this.guideRequired = const Value.absent(),
@@ -1392,8 +1311,6 @@ class CachedDestinationsCompanion extends UpdateCompanion<CachedDestination> {
     Expression<String>? accessTransport,
     Expression<String>? accessDuration,
     Expression<double>? accessDistanceKm,
-    Expression<String>? facilities,
-    Expression<int>? entryFee,
     Expression<int>? elevationMeters,
     Expression<String>? images,
     Expression<bool>? guideRequired,
@@ -1425,8 +1342,6 @@ class CachedDestinationsCompanion extends UpdateCompanion<CachedDestination> {
       if (accessTransport != null) 'access_transport': accessTransport,
       if (accessDuration != null) 'access_duration': accessDuration,
       if (accessDistanceKm != null) 'access_distance_km': accessDistanceKm,
-      if (facilities != null) 'facilities': facilities,
-      if (entryFee != null) 'entry_fee': entryFee,
       if (elevationMeters != null) 'elevation_meters': elevationMeters,
       if (images != null) 'images': images,
       if (guideRequired != null) 'guide_required': guideRequired,
@@ -1460,8 +1375,6 @@ class CachedDestinationsCompanion extends UpdateCompanion<CachedDestination> {
     Value<String>? accessTransport,
     Value<String?>? accessDuration,
     Value<double?>? accessDistanceKm,
-    Value<String>? facilities,
-    Value<int?>? entryFee,
     Value<int?>? elevationMeters,
     Value<String>? images,
     Value<bool?>? guideRequired,
@@ -1493,8 +1406,6 @@ class CachedDestinationsCompanion extends UpdateCompanion<CachedDestination> {
       accessTransport: accessTransport ?? this.accessTransport,
       accessDuration: accessDuration ?? this.accessDuration,
       accessDistanceKm: accessDistanceKm ?? this.accessDistanceKm,
-      facilities: facilities ?? this.facilities,
-      entryFee: entryFee ?? this.entryFee,
       elevationMeters: elevationMeters ?? this.elevationMeters,
       images: images ?? this.images,
       guideRequired: guideRequired ?? this.guideRequired,
@@ -1570,12 +1481,6 @@ class CachedDestinationsCompanion extends UpdateCompanion<CachedDestination> {
     if (accessDistanceKm.present) {
       map['access_distance_km'] = Variable<double>(accessDistanceKm.value);
     }
-    if (facilities.present) {
-      map['facilities'] = Variable<String>(facilities.value);
-    }
-    if (entryFee.present) {
-      map['entry_fee'] = Variable<int>(entryFee.value);
-    }
     if (elevationMeters.present) {
       map['elevation_meters'] = Variable<int>(elevationMeters.value);
     }
@@ -1629,8 +1534,6 @@ class CachedDestinationsCompanion extends UpdateCompanion<CachedDestination> {
           ..write('accessTransport: $accessTransport, ')
           ..write('accessDuration: $accessDuration, ')
           ..write('accessDistanceKm: $accessDistanceKm, ')
-          ..write('facilities: $facilities, ')
-          ..write('entryFee: $entryFee, ')
           ..write('elevationMeters: $elevationMeters, ')
           ..write('images: $images, ')
           ..write('guideRequired: $guideRequired, ')
@@ -1679,8 +1582,6 @@ typedef $$CachedDestinationsTableCreateCompanionBuilder =
       Value<String> accessTransport,
       Value<String?> accessDuration,
       Value<double?> accessDistanceKm,
-      Value<String> facilities,
-      Value<int?> entryFee,
       Value<int?> elevationMeters,
       Value<String> images,
       Value<bool?> guideRequired,
@@ -1713,8 +1614,6 @@ typedef $$CachedDestinationsTableUpdateCompanionBuilder =
       Value<String> accessTransport,
       Value<String?> accessDuration,
       Value<double?> accessDistanceKm,
-      Value<String> facilities,
-      Value<int?> entryFee,
       Value<int?> elevationMeters,
       Value<String> images,
       Value<bool?> guideRequired,
@@ -1832,16 +1731,6 @@ class $$CachedDestinationsTableFilterComposer
 
   ColumnFilters<double> get accessDistanceKm => $composableBuilder(
     column: $table.accessDistanceKm,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<String> get facilities => $composableBuilder(
-    column: $table.facilities,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<int> get entryFee => $composableBuilder(
-    column: $table.entryFee,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -1995,16 +1884,6 @@ class $$CachedDestinationsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
-  ColumnOrderings<String> get facilities => $composableBuilder(
-    column: $table.facilities,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<int> get entryFee => $composableBuilder(
-    column: $table.entryFee,
-    builder: (column) => ColumnOrderings(column),
-  );
-
   ColumnOrderings<int> get elevationMeters => $composableBuilder(
     column: $table.elevationMeters,
     builder: (column) => ColumnOrderings(column),
@@ -2133,14 +2012,6 @@ class $$CachedDestinationsTableAnnotationComposer
     builder: (column) => column,
   );
 
-  GeneratedColumn<String> get facilities => $composableBuilder(
-    column: $table.facilities,
-    builder: (column) => column,
-  );
-
-  GeneratedColumn<int> get entryFee =>
-      $composableBuilder(column: $table.entryFee, builder: (column) => column);
-
   GeneratedColumn<int> get elevationMeters => $composableBuilder(
     column: $table.elevationMeters,
     builder: (column) => column,
@@ -2236,8 +2107,6 @@ class $$CachedDestinationsTableTableManager
                 Value<String> accessTransport = const Value.absent(),
                 Value<String?> accessDuration = const Value.absent(),
                 Value<double?> accessDistanceKm = const Value.absent(),
-                Value<String> facilities = const Value.absent(),
-                Value<int?> entryFee = const Value.absent(),
                 Value<int?> elevationMeters = const Value.absent(),
                 Value<String> images = const Value.absent(),
                 Value<bool?> guideRequired = const Value.absent(),
@@ -2268,8 +2137,6 @@ class $$CachedDestinationsTableTableManager
                 accessTransport: accessTransport,
                 accessDuration: accessDuration,
                 accessDistanceKm: accessDistanceKm,
-                facilities: facilities,
-                entryFee: entryFee,
                 elevationMeters: elevationMeters,
                 images: images,
                 guideRequired: guideRequired,
@@ -2302,8 +2169,6 @@ class $$CachedDestinationsTableTableManager
                 Value<String> accessTransport = const Value.absent(),
                 Value<String?> accessDuration = const Value.absent(),
                 Value<double?> accessDistanceKm = const Value.absent(),
-                Value<String> facilities = const Value.absent(),
-                Value<int?> entryFee = const Value.absent(),
                 Value<int?> elevationMeters = const Value.absent(),
                 Value<String> images = const Value.absent(),
                 Value<bool?> guideRequired = const Value.absent(),
@@ -2334,8 +2199,6 @@ class $$CachedDestinationsTableTableManager
                 accessTransport: accessTransport,
                 accessDuration: accessDuration,
                 accessDistanceKm: accessDistanceKm,
-                facilities: facilities,
-                entryFee: entryFee,
                 elevationMeters: elevationMeters,
                 images: images,
                 guideRequired: guideRequired,

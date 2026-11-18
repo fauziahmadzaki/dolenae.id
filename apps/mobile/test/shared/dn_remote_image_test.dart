@@ -1,5 +1,6 @@
 import 'package:dolenae_mobile/src/shared/widgets/dn_media_placeholder.dart';
 import 'package:dolenae_mobile/src/shared/widgets/dn_remote_image.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:dolenae_mobile/src/core/config/app_config.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -35,9 +36,11 @@ void main() {
         ),
       ),
     );
-    final image = tester.widget<Image>(find.byType(Image));
+    final image = tester.widget<CachedNetworkImage>(
+      find.byType(CachedNetworkImage),
+    );
     expect(
-      (image.image as NetworkImage).url,
+      image.imageUrl,
       '${Uri.parse(AppConfig.apiBaseUrl).origin}/uploads/photo.png',
     );
     expect(image.fit, BoxFit.cover);
@@ -46,21 +49,15 @@ void main() {
       tester.widget<ClipRRect>(find.byType(ClipRRect).first).borderRadius,
       radius,
     );
-    final context = tester.element(find.byType(Image));
-    const child = SizedBox(key: Key('loaded'));
-    expect(image.loadingBuilder!(context, child, null), same(child));
-    final loading = image.loadingBuilder!(
-      context,
-      child,
-      const ImageChunkEvent(cumulativeBytesLoaded: 1, expectedTotalBytes: 10),
-    );
-    expect(loading, isA<DnMediaPlaceholder>());
+    final context = tester.element(find.byType(CachedNetworkImage));
     expect(
-      image.errorBuilder!(context, Exception('offline'), null),
+      image.placeholder!(context, image.imageUrl),
       isA<DnMediaPlaceholder>(),
     );
-    await tester.pumpAndSettle();
-    expect(find.byType(DnMediaPlaceholder), findsOneWidget);
+    expect(
+      image.errorWidget!(context, image.imageUrl, Exception('offline')),
+      isA<DnMediaPlaceholder>(),
+    );
     expect(tester.takeException(), isNull);
   });
 }

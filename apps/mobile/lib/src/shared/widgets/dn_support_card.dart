@@ -5,20 +5,20 @@ import 'package:dolenae_mobile/src/app/theme/app_colors.dart';
 import 'package:dolenae_mobile/src/app/theme/app_radius.dart';
 import 'package:dolenae_mobile/src/app/theme/app_shadows.dart';
 import 'package:dolenae_mobile/src/app/theme/app_spacing.dart';
-import 'package:dolenae_mobile/src/features/facilities/domain/entities/travel_support.dart';
+import 'package:dolenae_mobile/src/features/facilities/domain/entities/facility.dart';
 import 'package:dolenae_mobile/src/shared/widgets/dn_icon_circle.dart';
 
 /// Kartu fasilitas pendukung (rail horizontal di Beranda).
 class DnSupportCard extends StatelessWidget {
   const DnSupportCard({super.key, required this.support, this.width = 200});
 
-  final TravelSupport support;
+  final Facility support;
   final double width;
 
   IconData get _icon => switch (support.category) {
-    SupportCategory.penginapan => AppIcons.bedDouble,
-    SupportCategory.transportasi => AppIcons.car,
-    SupportCategory.makanan => AppIcons.utensils,
+    FacilityCategory.penginapan => AppIcons.bedDouble,
+    FacilityCategory.transportasi => AppIcons.car,
+    FacilityCategory.makanan => AppIcons.utensils,
   };
 
   @override
@@ -60,7 +60,13 @@ class DnSupportCard extends StatelessWidget {
           ),
           const SizedBox(height: 2),
           Text(
-            '${support.categoryLabel} · ${support.locationLabel}',
+            [
+              support.categoryLabel,
+              if (support.type.isNotEmpty)
+                support.type
+              else
+                support.destinationName,
+            ].where((e) => e.isNotEmpty).join(' · '),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
             style: const TextStyle(fontSize: 12, color: AppColors.body),

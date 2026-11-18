@@ -37,8 +37,6 @@ abstract final class DestinationCacheMapper {
       accessTransport: Value(jsonEncode(access['transport'] ?? const [])),
       accessDuration: Value(access['duration'] as String?),
       accessDistanceKm: Value((access['distanceKm'] as num?)?.toDouble()),
-      facilities: Value(jsonEncode(json['facilities'] ?? const [])),
-      entryFee: Value((json['entryFee'] as num?)?.toInt()),
       elevationMeters: Value((json['elevationMeters'] as num?)?.toInt()),
       images: Value(jsonEncode(json['images'] ?? const [])),
       guideRequired: Value(json['guideRequired'] as bool?),
@@ -51,7 +49,6 @@ abstract final class DestinationCacheMapper {
   }
 
   static Destination toDomain(CachedDestination row) {
-    final facilities = _strings(row.facilities).map(_lower).toList();
     final distance = row.accessDistanceKm;
 
     return Destination(
@@ -62,14 +59,12 @@ abstract final class DestinationCacheMapper {
       elevationM: row.elevationMeters,
       regency: row.regency ?? '',
       province: row.province ?? '',
-      priceFrom: row.entryFee,
+      priceFrom: null,
       difficulty: _difficulty(row.difficulty),
-      entryFee: row.entryFee == null ? null : 'Rp ${_thousands(row.entryFee!)}',
       bestSeason: _joined(_strings(row.bestSeason)),
       guideRequired: row.guideRequired,
       images: _strings(row.images),
       categoryIds: _strings(row.categoryIds),
-      facilities: _strings(row.facilities),
       latitude: row.latitude,
       longitude: row.longitude,
       terrain: _strings(row.terrain),
@@ -81,15 +76,6 @@ abstract final class DestinationCacheMapper {
           ? null
           : '${_compact(distance)} km dari kota terdekat',
       accessPointName: row.accessPoint,
-      facilityToilet: _has(facilities, 'toilet'),
-      facilityWarung: _has(facilities, 'warung'),
-      facilityParking: _hasAny(facilities, const ['parkir', 'parking']),
-      facilityHomestay: _hasAny(facilities, const ['homestay', 'penginapan']),
-      facilityMushola: _hasAny(facilities, const [
-        'mushola',
-        'musala',
-        'masjid',
-      ]),
     );
   }
 
@@ -121,27 +107,9 @@ abstract final class DestinationCacheMapper {
     }
   }
 
-  static String _lower(String value) => value.toLowerCase();
-
-  static bool _has(List<String> values, String needle) =>
-      values.any((value) => value.contains(needle));
-
-  static bool _hasAny(List<String> values, List<String> needles) =>
-      needles.any((needle) => _has(values, needle));
-
   static String? _joined(List<String> values) =>
       values.isEmpty ? null : values.join(', ');
 
   static String _compact(double value) =>
       value % 1 == 0 ? value.toInt().toString() : value.toString();
-
-  static String _thousands(int value) {
-    final text = value.toString();
-    final buffer = StringBuffer();
-    for (var i = 0; i < text.length; i++) {
-      if (i > 0 && (text.length - i) % 3 == 0) buffer.write('.');
-      buffer.write(text[i]);
-    }
-    return buffer.toString();
-  }
 }

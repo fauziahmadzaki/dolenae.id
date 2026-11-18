@@ -40,3 +40,15 @@ export const resendVerificationSchema = z.object({
   email: z.string().trim().email("Email tidak valid"),
 });
 
+
+export const updateProfileSchema = z
+  .object({
+    name: z.string().trim().min(2, "Nama minimal 2 karakter").max(120).optional(),
+    phone: z.string().trim().max(30).nullable().optional(),
+    city: z.string().trim().max(80).nullable().optional(),
+    bio: z.string().trim().max(1000).nullable().optional(),
+  })
+  .refine(
+    (value) => Object.keys(value).length > 0,
+    "Setidaknya satu field harus diisi",
+  );

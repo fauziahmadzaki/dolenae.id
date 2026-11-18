@@ -61,11 +61,6 @@ class _TripPlanScreenState extends State<TripPlanScreen> {
       backgroundColor: AppColors.canvas,
       appBar: DnAppBar(
         title: 'Rencana',
-        trailing: IconButton(
-          onPressed: _createPlan,
-          icon: const Icon(AppIcons.plus, color: AppColors.onPrimary, size: 22),
-          tooltip: 'Buat rencana baru',
-        ),
       ),
       body: Column(
         children: [

@@ -34,9 +34,7 @@ class Categories implements CategoryRepository {
 
 void main() {
   setUpAll(useTestFonts);
-  testWidgets('home API chip filters by ID without changing query', (
-    tester,
-  ) async {
+  testWidgets('home tidak memakai chip kategori', (tester) async {
     await usePhone(tester);
     await tester.pumpWidget(
       wrapScreen(
@@ -45,18 +43,10 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
-    expect(find.text('Medan baru'), findsOneWidget);
+
+    expect(find.text('Medan baru'), findsNothing);
     expect(find.text('Aktivitas baru'), findsNothing);
-    await tester.tap(find.text('Medan baru'));
-    await tester.pumpAndSettle();
-    expect(
-      tester.widget<TextField>(find.byType(TextField)).controller!.text,
-      '',
-    );
-    expect(find.text('Destinasi tidak ditemukan'), findsOneWidget);
-    await tester.tap(find.text('Medan baru'));
-    await tester.pumpAndSettle();
-    expect(find.text('Destinasi populer'), findsOneWidget);
+    expect(find.byType(TextField), findsOneWidget);
   });
   testWidgets(
     'explore chip available before search and survives zero results',

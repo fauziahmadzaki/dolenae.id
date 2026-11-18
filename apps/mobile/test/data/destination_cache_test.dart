@@ -40,7 +40,6 @@ void main() {
       expect(snapshot.items, hasLength(2));
       expect(snapshot.items.first.name, 'Gunung Bromo');
       expect(snapshot.items.last.slug, 'gunung-prau');
-      expect(snapshot.items.first.entryFee, 'Rp 29.000');
       expect(snapshot.lastFetched, fetchedAt);
     },
   );

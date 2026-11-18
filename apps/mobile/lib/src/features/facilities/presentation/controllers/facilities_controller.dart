@@ -1,19 +1,22 @@
 import 'package:flutter/foundation.dart';
 import 'package:dolenae_mobile/src/core/error/app_failure.dart';
-import 'package:dolenae_mobile/src/features/facilities/domain/entities/travel_support.dart';
+import 'package:dolenae_mobile/src/features/facilities/domain/entities/facility.dart';
 import 'package:dolenae_mobile/src/features/facilities/domain/repositories/facility_repository.dart';
 
 class FacilitiesController extends ChangeNotifier {
-  FacilitiesController(this._repository, {List<TravelSupport> initialSupports = const []})
-      : _supports = initialSupports;
+  FacilitiesController(
+    this._repository, {
+    List<Facility> initialFacilities = const [],
+  }) : _facilities = initialFacilities;
   final FacilityRepository _repository;
   String? destinationId;
-  List<TravelSupport> _supports;
-  List<TravelSupport> get supports => _supports;
-  List<TravelSupport> supportsFor(String id) => destinationId == id ? _supports : const [];
+  List<Facility> _facilities;
+  List<Facility> get facilities => _facilities;
+  List<Facility> facilitiesFor(String id) =>
+      destinationId == id ? _facilities : const [];
   AppFailure? failure;
   bool loading = false;
-  TravelSupport? detail;
+  Facility? detail;
   String? detailId;
   AppFailure? detailFailure;
   bool detailLoading = false;
@@ -21,20 +24,59 @@ class FacilitiesController extends ChangeNotifier {
   int _listRequest = 0;
   int _detailRequest = 0;
 
-  TravelSupport? resolve(String id) => detailId == id ? detail : null;
+  Facility? resolve(String id) => detailId == id ? detail : null;
 
   Future<void> load(String id) async {
     if (_disposed) return;
     final request = ++_listRequest;
     destinationId = id;
-    _supports = const [];
+    _facilities = const [];
     failure = null;
     loading = true;
     notifyListeners();
     final result = await _repository.list(id);
     if (_disposed || request != _listRequest) return;
-    _supports = result.valueOrNull ?? const [];
+    _facilities = result.valueOrNull ?? const [];
     failure = result.failureOrNull;
+    loading = false;
+    notifyListeners();
+  }
+
+  /// Memuat fasilitas dari destinasi pertama yang punya data.
+  ///
+  /// Beranda memakai ini karena destinasi pertama pada katalog belum tentu
+  /// memiliki fasilitas terdaftar.
+  Future<void> loadFirstAvailable(Iterable<String> ids) async {
+    final candidates = ids.where((id) => id.isNotEmpty).take(6).toList();
+    if (_disposed || candidates.isEmpty) return;
+
+    final request = ++_listRequest;
+    failure = null;
+    loading = true;
+    notifyListeners();
+
+    for (final id in candidates) {
+      final result = await _repository.list(id);
+      if (_disposed || request != _listRequest) return;
+      final items = result.valueOrNull;
+      if (items != null && items.isNotEmpty) {
+        destinationId = id;
+        _facilities = items;
+        loading = false;
+        notifyListeners();
+        return;
+      }
+      final error = result.failureOrNull;
+      if (error != null && error.code != '404') {
+        failure = error;
+        loading = false;
+        notifyListeners();
+        return;
+      }
+    }
+
+    destinationId = candidates.first;
+    _facilities = const [];
     loading = false;
     notifyListeners();
   }
@@ -52,7 +94,9 @@ class FacilitiesController extends ChangeNotifier {
     detail = result.valueOrNull;
     detailFailure = result.failureOrNull;
     detailLoading = false;
-    if (detailFailure?.code == '404') _supports = _supports.where((item) => item.id != id).toList();
+    if (detailFailure?.code == '404') {
+      _facilities = _facilities.where((item) => item.id != id).toList();
+    }
     notifyListeners();
   }
 

@@ -24,10 +24,8 @@ class DestinationModel {
   Destination toEntity() {
     final location = (json['location'] as Map?)?.cast<String, dynamic>() ?? {};
     final access = (json['access'] as Map?)?.cast<String, dynamic>() ?? {};
-    final facilities = _stringList(json['facilities']).map(_lower).toList();
     final transports = _stringList(access['transport']);
     final distanceKm = access['distanceKm'];
-    final fee = json['entryFee'];
 
     return Destination(
       id: json['id'] as String? ?? '',
@@ -37,14 +35,12 @@ class DestinationModel {
       elevationM: (json['elevationMeters'] as num?)?.toInt(),
       regency: location['regency'] as String? ?? '',
       province: location['province'] as String? ?? '',
-      priceFrom: (fee as num?)?.toInt(),
+      priceFrom: null,
       difficulty: _difficulty(json['difficulty'] as String?),
-      entryFee: fee is num ? 'Rp ${_thousands(fee.toInt())}' : null,
       bestSeason: _join(_stringList(json['bestSeason'])),
       guideRequired: json['guideRequired'] as bool?,
       images: _stringList(json['images']),
       categoryIds: _stringList(json['categoryIds']),
-      facilities: _stringList(json['facilities']),
       latitude: (location['latitude'] as num?)?.toDouble(),
       longitude: (location['longitude'] as num?)?.toDouble(),
       terrain: _stringList(json['terrain']),
@@ -56,11 +52,6 @@ class DestinationModel {
           ? '${_compactNumber(distanceKm)} km dari kota terdekat'
           : null,
       accessPointName: location['accessPoint'] as String?,
-      facilityToilet: _has(facilities, 'toilet'),
-      facilityWarung: _has(facilities, 'warung'),
-      facilityParking: _hasAny(facilities, ['parkir', 'parking']),
-      facilityHomestay: _hasAny(facilities, ['homestay', 'penginapan']),
-      facilityMushola: _hasAny(facilities, ['mushola', 'musala', 'masjid']),
     );
   }
 }
@@ -83,26 +74,8 @@ List<String> _stringList(Object? value) {
   return value.whereType<String>().toList(growable: false);
 }
 
-String _lower(String value) => value.toLowerCase();
-
-bool _has(List<String> values, String needle) =>
-    values.any((value) => value.contains(needle));
-
-bool _hasAny(List<String> values, List<String> needles) =>
-    needles.any((needle) => _has(values, needle));
-
 String? _join(List<String> values) => values.isEmpty ? null : values.join(', ');
 
 String _compactNumber(num value) {
   return value % 1 == 0 ? value.toInt().toString() : value.toString();
-}
-
-String _thousands(int value) {
-  final text = value.toString();
-  final buffer = StringBuffer();
-  for (var i = 0; i < text.length; i++) {
-    if (i > 0 && (text.length - i) % 3 == 0) buffer.write('.');
-    buffer.write(text[i]);
-  }
-  return buffer.toString();
 }

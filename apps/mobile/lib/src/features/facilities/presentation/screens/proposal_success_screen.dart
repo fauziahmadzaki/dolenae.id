@@ -124,10 +124,7 @@ class _SummaryRow extends StatelessWidget {
     return Row(
       children: [
         Expanded(child: Text(label, style: AppTextStyles.bodySm)),
-        Text(
-          value,
-          style: AppTextStyles.titleSm.copyWith(color: valueColor),
-        ),
+        Text(value, style: AppTextStyles.titleSm.copyWith(color: valueColor)),
       ],
     );
   }

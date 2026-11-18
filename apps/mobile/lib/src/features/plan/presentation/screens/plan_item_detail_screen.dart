@@ -6,7 +6,7 @@ import 'package:dolenae_mobile/src/app/theme/app_radius.dart';
 import 'package:dolenae_mobile/src/app/theme/app_shadows.dart';
 import 'package:dolenae_mobile/src/app/theme/app_spacing.dart';
 import 'package:dolenae_mobile/src/app/theme/app_text_styles.dart';
-import 'package:dolenae_mobile/src/features/facilities/domain/entities/travel_support.dart';
+import 'package:dolenae_mobile/src/features/facilities/domain/entities/facility.dart';
 import 'package:dolenae_mobile/src/shared/icons/app_icons.dart';
 import 'package:dolenae_mobile/src/shared/widgets/dn_app_bar.dart';
 import 'package:dolenae_mobile/src/shared/widgets/dn_buttons.dart';
@@ -25,10 +25,11 @@ class PlanItemDetailScreen extends StatelessWidget {
     this.dayLabel = 'Hari 1',
     this.difficultyLabel = 'Menengah',
     this.isWarningDifficulty = true,
-    this.note = 'Berangkat dini hari untuk sunrise di Penanjakan, lanjut kawah Bromo.',
+    this.note =
+        'Berangkat dini hari untuk sunrise di Penanjakan, lanjut kawah Bromo.',
     this.facilityName = 'Homestay Cemoro Indah',
     this.facilityPrice = 'Rp250.000/malam',
-    this.facilityCategory = SupportCategory.penginapan,
+    this.facilityCategory = FacilityCategory.penginapan,
     this.onEdit,
     this.onReorder,
     this.onDelete,
@@ -43,17 +44,17 @@ class PlanItemDetailScreen extends StatelessWidget {
   final String note;
   final String facilityName;
   final String facilityPrice;
-  final SupportCategory facilityCategory;
+  final FacilityCategory facilityCategory;
   final VoidCallback? onEdit;
   final VoidCallback? onReorder;
   final VoidCallback? onDelete;
   final VoidCallback? onBack;
 
-  IconData _getCategoryIcon(SupportCategory category) {
+  IconData _getCategoryIcon(FacilityCategory category) {
     return switch (category) {
-      SupportCategory.penginapan => AppIcons.bedDouble,
-      SupportCategory.transportasi => AppIcons.car,
-      SupportCategory.makanan => AppIcons.utensils,
+      FacilityCategory.penginapan => AppIcons.bedDouble,
+      FacilityCategory.transportasi => AppIcons.car,
+      FacilityCategory.makanan => AppIcons.utensils,
     };
   }
 
@@ -64,13 +65,15 @@ class PlanItemDetailScreen extends StatelessWidget {
       appBar: DnAppBar(
         title: 'Detail item',
         showBack: true,
-        onBack: onBack ?? () {
-          if (context.canPop()) {
-            context.pop();
-          } else {
-            context.go('/plan');
-          }
-        },
+        onBack:
+            onBack ??
+            () {
+              if (context.canPop()) {
+                context.pop();
+              } else {
+                context.go('/plan');
+              }
+            },
         trailing: TextButton(
           onPressed: onEdit ?? () {},
           child: Text(
@@ -159,7 +162,10 @@ class PlanItemDetailScreen extends StatelessWidget {
           Row(
             children: [
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 4,
+                ),
                 decoration: BoxDecoration(
                   color: AppColors.canvas,
                   borderRadius: BorderRadius.circular(AppRadius.pill),
@@ -175,15 +181,22 @@ class PlanItemDetailScreen extends StatelessWidget {
               ),
               const SizedBox(width: 8),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 4,
+                ),
                 decoration: BoxDecoration(
-                  color: isWarningDifficulty ? const Color(0xFFFBEEDB) : const Color(0xFFE2F0E5),
+                  color: isWarningDifficulty
+                      ? const Color(0xFFFBEEDB)
+                      : const Color(0xFFE2F0E5),
                   borderRadius: BorderRadius.circular(AppRadius.pill),
                 ),
                 child: Text(
                   difficultyLabel,
                   style: AppTextStyles.overline.copyWith(
-                    color: isWarningDifficulty ? AppColors.warning : AppColors.success,
+                    color: isWarningDifficulty
+                        ? AppColors.warning
+                        : AppColors.success,
                     fontWeight: FontWeight.w700,
                   ),
                 ),
@@ -275,7 +288,9 @@ class PlanItemDetailScreen extends StatelessWidget {
                         const SizedBox(height: 2),
                         Text(
                           facilityPrice,
-                          style: AppTextStyles.caption.copyWith(color: AppColors.body),
+                          style: AppTextStyles.caption.copyWith(
+                            color: AppColors.body,
+                          ),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                         ),
@@ -314,11 +329,13 @@ class PlanItemDetailScreen extends StatelessWidget {
             icon: AppIcons.delete,
             height: 48,
             foreground: AppColors.danger,
-            onPressed: onDelete ?? () {
-              if (context.canPop()) {
-                context.pop();
-              }
-            },
+            onPressed:
+                onDelete ??
+                () {
+                  if (context.canPop()) {
+                    context.pop();
+                  }
+                },
           ),
         ),
       ],

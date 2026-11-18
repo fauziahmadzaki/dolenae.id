@@ -80,6 +80,36 @@ class AuthRepositoryImpl implements AuthRepository {
   }
 
   @override
+  Future<Result<AuthSession>> updateProfile({
+    required String name,
+    String? phone,
+    String? city,
+    String? bio,
+  }) async {
+    final token = _client.token;
+    if (token == null || token.isEmpty) {
+      return const Failure(AuthFailure('Sesi tidak ditemukan.'));
+    }
+    try {
+      final user = await _remote.updateProfile(
+        name: name,
+        phone: phone,
+        city: city,
+        bio: bio,
+      );
+      final session = AuthSession(token: token, user: user);
+      await _local.save(session);
+      return Success(session);
+    } on ApiException catch (error) {
+      return Failure(error.toFailure());
+    } catch (_) {
+      return const Failure(
+        UnknownFailure('Tidak dapat menyimpan profil. Coba lagi.'),
+      );
+    }
+  }
+
+  @override
   Future<Result<AuthSession>> googleSignIn() {
     return _authenticate(() async {
       final idToken = await _google.idToken();

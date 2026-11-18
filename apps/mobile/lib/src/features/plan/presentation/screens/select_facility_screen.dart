@@ -7,7 +7,7 @@ import 'package:dolenae_mobile/src/app/theme/app_radius.dart';
 import 'package:dolenae_mobile/src/app/theme/app_shadows.dart';
 import 'package:dolenae_mobile/src/app/theme/app_spacing.dart';
 import 'package:dolenae_mobile/src/app/theme/app_text_styles.dart';
-import 'package:dolenae_mobile/src/features/facilities/domain/entities/travel_support.dart';
+import 'package:dolenae_mobile/src/features/facilities/domain/entities/facility.dart';
 import 'package:dolenae_mobile/src/features/facilities/presentation/controllers/facilities_controller.dart';
 import 'package:dolenae_mobile/src/shared/icons/app_icons.dart';
 import 'package:dolenae_mobile/src/shared/widgets/dn_app_bar.dart';
@@ -22,13 +22,13 @@ class SelectFacilityScreen extends StatefulWidget {
   const SelectFacilityScreen({
     super.key,
     this.initialSelectedIds = const {'sup-homestay'},
-    this.initialCategory = SupportCategory.penginapan,
+    this.initialCategory = FacilityCategory.penginapan,
     this.onConfirm,
     this.onBack,
   });
 
   final Set<String> initialSelectedIds;
-  final SupportCategory initialCategory;
+  final FacilityCategory initialCategory;
   final ValueChanged<Set<String>>? onConfirm;
   final VoidCallback? onBack;
 
@@ -38,7 +38,7 @@ class SelectFacilityScreen extends StatefulWidget {
 
 class _SelectFacilityScreenState extends State<SelectFacilityScreen> {
   late final Set<String> _selectedIds;
-  late SupportCategory _activeCategory;
+  late FacilityCategory _activeCategory;
 
   @override
   void initState() {
@@ -69,17 +69,17 @@ class _SelectFacilityScreenState extends State<SelectFacilityScreen> {
     }
   }
 
-  IconData _getCategoryIcon(SupportCategory category) {
+  IconData _getCategoryIcon(FacilityCategory category) {
     return switch (category) {
-      SupportCategory.penginapan => AppIcons.bedDouble,
-      SupportCategory.transportasi => AppIcons.car,
-      SupportCategory.makanan => AppIcons.utensils,
+      FacilityCategory.penginapan => AppIcons.bedDouble,
+      FacilityCategory.transportasi => AppIcons.car,
+      FacilityCategory.makanan => AppIcons.utensils,
     };
   }
 
   @override
   Widget build(BuildContext context) {
-    final supports = context.watch<FacilitiesController>().supports;
+    final supports = context.watch<FacilitiesController>().facilities;
     final filtered = supports.where((s) {
       return s.category == _activeCategory;
     }).toList();
@@ -96,13 +96,15 @@ class _SelectFacilityScreenState extends State<SelectFacilityScreen> {
       appBar: DnAppBar(
         title: 'Pilih fasilitas',
         showBack: true,
-        onBack: widget.onBack ?? () {
-          if (context.canPop()) {
-            context.pop();
-          } else {
-            context.go('/plan');
-          }
-        },
+        onBack:
+            widget.onBack ??
+            () {
+              if (context.canPop()) {
+                context.pop();
+              } else {
+                context.go('/plan');
+              }
+            },
       ),
       body: SafeArea(
         child: Column(
@@ -117,7 +119,8 @@ class _SelectFacilityScreenState extends State<SelectFacilityScreen> {
                     const SizedBox(height: AppSpacing.s4),
                     for (int i = 0; i < displayItems.length; i++) ...[
                       _buildFacilityRow(displayItems[i]),
-                      if (i < displayItems.length - 1) const SizedBox(height: AppSpacing.s3),
+                      if (i < displayItems.length - 1)
+                        const SizedBox(height: AppSpacing.s3),
                     ],
                     const SizedBox(height: AppSpacing.s4),
                   ],
@@ -144,17 +147,17 @@ class _SelectFacilityScreenState extends State<SelectFacilityScreen> {
         children: [
           _buildSegmentTab(
             label: 'Penginapan',
-            category: SupportCategory.penginapan,
+            category: FacilityCategory.penginapan,
           ),
           const SizedBox(width: 4),
           _buildSegmentTab(
             label: 'Transport',
-            category: SupportCategory.transportasi,
+            category: FacilityCategory.transportasi,
           ),
           const SizedBox(width: 4),
           _buildSegmentTab(
             label: 'Makanan',
-            category: SupportCategory.makanan,
+            category: FacilityCategory.makanan,
           ),
         ],
       ),
@@ -163,7 +166,7 @@ class _SelectFacilityScreenState extends State<SelectFacilityScreen> {
 
   Widget _buildSegmentTab({
     required String label,
-    required SupportCategory category,
+    required FacilityCategory category,
   }) {
     final isActive = _activeCategory == category;
 
@@ -191,7 +194,7 @@ class _SelectFacilityScreenState extends State<SelectFacilityScreen> {
     );
   }
 
-  Widget _buildFacilityRow(TravelSupport item) {
+  Widget _buildFacilityRow(Facility item) {
     final isSelected = _selectedIds.contains(item.id);
 
     return Material(
@@ -234,8 +237,16 @@ class _SelectFacilityScreenState extends State<SelectFacilityScreen> {
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      '${item.priceLabel} · ${item.locationLabel}',
-                      style: AppTextStyles.caption.copyWith(color: AppColors.body),
+                      [
+                        item.priceLabel,
+                        if (item.type.isNotEmpty)
+                          item.type
+                        else
+                          item.destinationName,
+                      ].where((e) => e.isNotEmpty).join(' · '),
+                      style: AppTextStyles.caption.copyWith(
+                        color: AppColors.body,
+                      ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
@@ -251,7 +262,9 @@ class _SelectFacilityScreenState extends State<SelectFacilityScreen> {
                   borderRadius: BorderRadius.circular(6),
                   color: isSelected ? AppColors.primary : Colors.transparent,
                   border: Border.all(
-                    color: isSelected ? AppColors.primary : AppColors.borderStrong,
+                    color: isSelected
+                        ? AppColors.primary
+                        : AppColors.borderStrong,
                     width: 1.5,
                   ),
                 ),

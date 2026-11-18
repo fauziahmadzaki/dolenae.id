@@ -462,7 +462,7 @@ class _Tabs extends StatelessWidget {
   }
 }
 
-class _Field extends StatelessWidget {
+class _Field extends StatefulWidget {
   const _Field({
     required this.label,
     required this.controller,
@@ -482,30 +482,52 @@ class _Field extends StatelessWidget {
   final ValueChanged<String>? onChanged;
 
   @override
+  State<_Field> createState() => _FieldState();
+}
+
+class _FieldState extends State<_Field> {
+  bool _obscured = true;
+
+  @override
   Widget build(BuildContext context) {
+    final hasError = widget.error != null;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          label,
+          widget.label,
           style: AppTextStyles.caption.copyWith(color: AppColors.body),
         ),
         const SizedBox(height: 6),
         TextField(
-          controller: controller,
-          obscureText: obscure,
-          onChanged: onChanged,
+          controller: widget.controller,
+          obscureText: widget.obscure ? _obscured : false,
+          onChanged: widget.onChanged,
           style: AppTextStyles.bodySm.copyWith(color: AppColors.ink),
           decoration: InputDecoration(
             isDense: true,
-            hintText: hint,
+            hintText: widget.hint,
             hintStyle: AppTextStyles.bodySm,
             prefixIcon: Icon(
-              icon,
+              widget.icon,
               size: 18,
-              color: error != null ? AppColors.danger : AppColors.body,
+              color: hasError ? AppColors.danger : AppColors.body,
             ),
             prefixIconConstraints: const BoxConstraints(minWidth: 40),
+            suffixIcon: widget.obscure
+                ? IconButton(
+                    onPressed: () => setState(() => _obscured = !_obscured),
+                    icon: Icon(
+                      _obscured ? AppIcons.eye : AppIcons.eyeOff,
+                      size: 18,
+                      color: AppColors.body,
+                    ),
+                    tooltip: _obscured
+                        ? 'Tampilkan kata sandi'
+                        : 'Sembunyikan kata sandi',
+                  )
+                : null,
+            suffixIconConstraints: const BoxConstraints(minWidth: 40),
             filled: true,
             fillColor: AppColors.canvasSubtle,
             contentPadding: const EdgeInsets.symmetric(
@@ -515,22 +537,20 @@ class _Field extends StatelessWidget {
             enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(AppRadius.lg),
               borderSide: BorderSide(
-                color: error != null ? AppColors.danger : AppColors.hairline,
-                width: error != null ? 2 : 1,
+                color: hasError ? AppColors.danger : AppColors.hairline,
+                width: hasError ? 2 : 1,
               ),
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(AppRadius.lg),
               borderSide: BorderSide(
-                color: error != null
-                    ? AppColors.danger
-                    : AppColors.borderStrong,
+                color: hasError ? AppColors.danger : AppColors.borderStrong,
                 width: 2,
               ),
             ),
           ),
         ),
-        if (error != null) ...[
+        if (widget.error != null) ...[
           const SizedBox(height: 6),
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -543,7 +563,7 @@ class _Field extends StatelessWidget {
               const SizedBox(width: 6),
               Expanded(
                 child: Text(
-                  error!,
+                  widget.error!,
                   style: AppTextStyles.caption.copyWith(
                     color: AppColors.danger,
                     fontWeight: FontWeight.w500,

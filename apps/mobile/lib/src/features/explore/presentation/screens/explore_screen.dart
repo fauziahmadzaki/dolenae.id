@@ -29,11 +29,15 @@ import 'package:dolenae_mobile/src/shared/widgets/dn_search_field.dart';
 class ExploreScreen extends StatefulWidget {
   const ExploreScreen({
     super.key,
+    this.initialActivity,
     this.onOpenFilter,
     this.hasError = false,
     this.onRetry,
     this.onResetFilter,
   });
+
+  /// Aktivitas dari Beranda (mis. `Hiking`) yang langsung dijadikan kueri.
+  final String? initialActivity;
 
   /// Dipanggil saat tombol filter ditekan; bila null membuka bottom sheet bawaan.
   final VoidCallback? onOpenFilter;
@@ -50,7 +54,80 @@ class ExploreScreen extends StatefulWidget {
 }
 
 class _ExploreScreenState extends State<ExploreScreen> {
+  static const _pageSize = 6;
+
+  final _scrollController = ScrollController();
   String _selectedCategory = 'Semuanya';
+  int _visibleCount = _pageSize;
+  int _resultCount = 0;
+  String _filterSignature = '';
+
+  @override
+  void initState() {
+    super.initState();
+    _scrollController.addListener(_onScroll);
+    final activity = widget.initialActivity?.trim() ?? '';
+    if (activity.isNotEmpty) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        context.read<ExploreController>()
+          ..setSearchQuery(activity)
+          ..commitSearch(activity);
+        setState(() {});
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    _scrollController.removeListener(_onScroll);
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  void _onScroll() {
+    if (!_scrollController.hasClients) return;
+    // `extentAfter` diukur dari posisi layar, jadi pemicunya tetap akurat
+    // meskipun tinggi kartu berubah setelah data baru masuk.
+    if (_scrollController.position.extentAfter < 400) {
+      _loadMore();
+    }
+  }
+
+  void _loadMore() {
+    if (_visibleCount >= _resultCount) return;
+    setState(() {
+      _visibleCount = (_visibleCount + _pageSize).clamp(0, _resultCount);
+    });
+    _fillViewportIfNeeded();
+  }
+
+  /// Di layar tinggi, satu halaman bisa belum memenuhi viewport sehingga tidak
+  /// ada scroll untuk memicu halaman berikutnya. Tambah halaman sampai layar
+  /// bisa digulir atau semua hasil tampil.
+  void _fillViewportIfNeeded() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || !_scrollController.hasClients) return;
+      if (_visibleCount >= _resultCount) return;
+      if (_scrollController.position.extentAfter < 400) {
+        _loadMore();
+      }
+    });
+  }
+
+  void _resetPagination(String signature) {
+    if (signature == _filterSignature) return;
+    _filterSignature = signature;
+    _visibleCount = _pageSize;
+    // Filter/kueri baru selalu mulai dari halaman pertama.
+    if (_scrollController.hasClients && _scrollController.offset > 0) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted && _scrollController.hasClients) {
+          _scrollController.jumpTo(0);
+        }
+      });
+    }
+  }
 
   static const _filterOptions = <String>[
     'Ramah Pemula',
@@ -134,6 +211,22 @@ class _ExploreScreenState extends State<ExploreScreen> {
     final hasQuery = store.hasActiveQuery;
     final hasSelection = store.searchFilter.categoryId.isNotEmpty;
     final results = _byCategory(store.resultsFor(catalog));
+    final signature = [
+      store.searchFilter.query,
+      store.searchFilter.categoryId,
+      store.searchFilter.sort.name,
+      store.searchFilter.difficulty.name,
+      store.searchFilter.supports.join(','),
+      store.searchFilter.verifiedOnly,
+      _selectedCategory,
+    ].join('|');
+    _resetPagination(signature);
+    _resultCount = results.length;
+    final visible = results.take(_visibleCount).toList(growable: false);
+
+    if (results.isNotEmpty) {
+      _fillViewportIfNeeded();
+    }
 
     return Scaffold(
       appBar: const DnAppBar(title: 'Jelajahi'),
@@ -147,70 +240,77 @@ class _ExploreScreenState extends State<ExploreScreen> {
                   context.read<CategoriesController>().load(refresh: true),
                 ]);
               },
-              child: SingleChildScrollView(
+              child: CustomScrollView(
+                controller: _scrollController,
                 physics: const AlwaysScrollableScrollPhysics(),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Padding(
-                      padding: const EdgeInsets.fromLTRB(
-                        AppSpacing.s4,
-                        AppSpacing.s3,
-                        AppSpacing.s4,
-                        0,
-                      ),
-                      child: DnSearchField(
-                        hint: 'Mau ke mana?',
-                        value: store.searchFilter.query,
-                        focused: hasQuery,
-                        trailing: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            if (hasQuery)
-                              GestureDetector(
-                                onTap: () => _clear(store),
-                                child: const Padding(
-                                  padding: EdgeInsets.all(4),
-                                  child: Icon(
-                                    AppIcons.close,
-                                    size: 16,
-                                    color: AppColors.body,
+                slivers: [
+                  SliverToBoxAdapter(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Padding(
+                          padding: const EdgeInsets.fromLTRB(
+                            AppSpacing.s4,
+                            AppSpacing.s3,
+                            AppSpacing.s4,
+                            0,
+                          ),
+                          child: DnSearchField(
+                            hint: 'Mau ke mana?',
+                            value: store.searchFilter.query,
+                            focused: hasQuery,
+                            trailing: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                if (hasQuery)
+                                  GestureDetector(
+                                    onTap: () => _clear(store),
+                                    child: const Padding(
+                                      padding: EdgeInsets.all(4),
+                                      child: Icon(
+                                        AppIcons.close,
+                                        size: 16,
+                                        color: AppColors.body,
+                                      ),
+                                    ),
+                                  ),
+                                GestureDetector(
+                                  onTap: () => _openFilter(store),
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: AppSpacing.s2,
+                                      vertical: AppSpacing.s1,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: hasQuery
+                                          ? AppColors.primary
+                                          : AppColors.canvasSubtle,
+                                      borderRadius: BorderRadius.circular(
+                                        AppRadius.md,
+                                      ),
+                                    ),
+                                    child: Icon(
+                                      AppIcons.slidersHorizontal,
+                                      size: 16,
+                                      color: hasQuery
+                                          ? AppColors.onPrimary
+                                          : AppColors.body,
+                                    ),
                                   ),
                                 ),
-                              ),
-                            GestureDetector(
-                              onTap: () => _openFilter(store),
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: AppSpacing.s2,
-                                  vertical: AppSpacing.s1,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: hasQuery
-                                      ? AppColors.primary
-                                      : AppColors.canvasSubtle,
-                                  borderRadius: BorderRadius.circular(
-                                    AppRadius.md,
-                                  ),
-                                ),
-                                child: Icon(
-                                  AppIcons.slidersHorizontal,
-                                  size: 16,
-                                  color: hasQuery
-                                      ? AppColors.onPrimary
-                                      : AppColors.body,
-                                ),
-                              ),
+                              ],
                             ),
-                          ],
+                            onChanged: (value) => _onChanged(value, store),
+                            onSubmitted: (value) => _commit(value, store),
+                          ),
                         ),
-                        onChanged: (value) => _onChanged(value, store),
-                        onSubmitted: (value) => _commit(value, store),
-                      ),
+                        _buildCategoryFilters(store),
+                      ],
                     ),
-                    _buildCategoryFilters(store),
-                    if (widget.hasError)
-                      _LoadError(
+                  ),
+                  if (widget.hasError)
+                    SliverToBoxAdapter(
+                      child: _LoadError(
                         onRetry: widget.onRetry,
                         onResetFilter:
                             widget.onResetFilter ??
@@ -219,25 +319,31 @@ class _ExploreScreenState extends State<ExploreScreen> {
                               current.clearSearchFilters();
                               setState(() {});
                             },
-                      )
-                    else if (!hasQuery && !hasSelection)
-                      _RecommendationPanels(
+                      ),
+                    )
+                  else if (!hasQuery && !hasSelection)
+                    SliverToBoxAdapter(
+                      child: _RecommendationPanels(
                         store: store,
                         suggested: catalog.take(3).toList(),
                         onPick: (value) {
                           _onChanged(value, store);
                           _commit(value, store);
                         },
-                      )
-                    else if (results.isEmpty)
-                      _EmptyResults(
+                      ),
+                    )
+                  else if (results.isEmpty)
+                    SliverToBoxAdapter(
+                      child: _EmptyResults(
                         query: store.searchFilter.query,
                         popular: store.popularSearches,
                         onPick: (value) => _onChanged(value, store),
-                      )
-                    else ...[
-                      _buildFilters(),
-                      Padding(
+                      ),
+                    )
+                  else ...[
+                    SliverToBoxAdapter(child: _buildFilters()),
+                    SliverToBoxAdapter(
+                      child: Padding(
                         padding: const EdgeInsets.fromLTRB(
                           AppSpacing.s4,
                           AppSpacing.s3,
@@ -250,25 +356,34 @@ class _ExploreScreenState extends State<ExploreScreen> {
                           style: AppTextStyles.caption,
                         ),
                       ),
-                      const SizedBox(height: AppSpacing.s3),
-                      for (final destination in results)
-                        Padding(
+                    ),
+                    const SliverToBoxAdapter(
+                      child: SizedBox(height: AppSpacing.s3),
+                    ),
+                    SliverList(
+                      delegate: SliverChildBuilderDelegate((context, index) {
+                        final destination = visible[index];
+                        return Padding(
                           padding: const EdgeInsets.fromLTRB(
                             AppSpacing.s4,
                             0,
                             AppSpacing.s4,
                             AppSpacing.s3,
                           ),
-                          child: DnDestinationListTile(
+                          child: DnDestinationCard(
+                            key: ValueKey('explore-card-${destination.id}'),
                             destination: destination,
                             onTap: () =>
                                 context.push('/destination/${destination.id}'),
                           ),
-                        ),
-                    ],
-                    const SizedBox(height: AppSpacing.s4),
+                        );
+                      }, childCount: visible.length),
+                    ),
                   ],
-                ),
+                  const SliverToBoxAdapter(
+                    child: SizedBox(height: AppSpacing.s4),
+                  ),
+                ],
               ),
             ),
           ),
@@ -478,7 +593,7 @@ class _RecommendationPanels extends StatelessWidget {
               AppSpacing.s4,
               AppSpacing.s3,
             ),
-            child: DnDestinationListTile(
+            child: DnDestinationCard(
               destination: destination,
               onTap: () => context.push('/destination/${destination.id}'),
             ),

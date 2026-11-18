@@ -76,7 +76,7 @@ void main() {
       }).toCacheCompanion(sortOrder: 0, fetchedAt: 1),
     ], fetchedAt: 1);
     final destination = (await local.watch().first).items.single;
-    expect(destination.priceLabel, 'Gratis');
+    expect(destination.priceLabel, 'Belum tersedia');
     expect(destination.guideRequired, isFalse);
   });
 
@@ -87,7 +87,7 @@ void main() {
       'elevationMeters': 0,
       'guideRequired': false,
     }).toEntity();
-    expect(destination.priceLabel, 'Gratis');
+    expect(destination.priceLabel, 'Belum tersedia');
     expect(destination.elevationLabel, '0 mdpl');
     expect(destination.guideRequired, isFalse);
   });

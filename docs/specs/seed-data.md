@@ -1,26 +1,55 @@
 # Seed Data Destinasi
 
-Sumber data seed `apps/backend/src/db/seeds/seed.ts` (+ `seed-networks.ts`).
+Sumber data seed `apps/backend/src/db/seeds/seed.ts` (+ `seed-networks.ts` untuk rute dan `seed-facilities.ts` untuk fasilitas/produk).
 
 ## Cakupan
 
-13 destinasi seed (7 baru pada Okt 2026):
+23 destinasi seed (10 baru pada Nov 2026, mencakup pantai, danau, air terjun,
+savana, pulau, dan goa — bukan hanya gunung):
 
-| Destinasi | Provinsi | Gambar | Rute | Supports |
-| --- | --- | --- | --- | --- |
-| Gunung Bromo | Jawa Timur | Wikimedia | ✅ | ✅ |
-| Gunung Prau | Jawa Tengah | — | — | ✅ |
-| Gunung Papandayan | Jawa Barat | Wikimedia | — | — |
-| Bukit Moko | Jawa Barat | — | — | — |
-| Ranu Kumbolo | Jawa Timur | — | — | — |
-| Gunung Nglanggeran | DI Yogyakarta | Wikimedia | — | — |
-| Gunung Rinjani | NTB | Wikimedia | ✅ | ✅ |
-| Gunung Semeru | Jawa Timur | Wikimedia | ✅ | ✅ |
-| Gunung Merbabu | Jawa Tengah | Wikimedia | ✅ | ✅ |
-| Kawah Ijen | Jawa Timur | Wikimedia | ✅ | ✅ |
-| Gunung Gede Pangrango | Jawa Barat | Wikimedia | — | ✅ |
-| Gunung Kerinci | Jambi | Wikimedia | — | ✅ |
-| Danau Kelimutu | NTT | Wikimedia | — | ✅ |
+| Destinasi | Provinsi | Jenis | Gambar | Rute | Fasilitas |
+| --- | --- | --- | --- | --- | --- |
+| Gunung Bromo | Jawa Timur | Gunung | Wikimedia | ✅ | ✅ |
+| Gunung Prau | Jawa Tengah | Gunung | Wikimedia | — | ✅ |
+| Gunung Papandayan | Jawa Barat | Gunung | Wikimedia | — | — |
+| Bukit Moko | Jawa Barat | Bukit | Wikimedia | — | — |
+| Ranu Kumbolo | Jawa Timur | Danau | Wikimedia | — | — |
+| Gunung Nglanggeran | DI Yogyakarta | Gunung | Wikimedia | — | — |
+| Gunung Rinjani | NTB | Gunung | Wikimedia | ✅ | ✅ |
+| Gunung Semeru | Jawa Timur | Gunung | Wikimedia | ✅ | ✅ |
+| Gunung Merbabu | Jawa Tengah | Gunung | Wikimedia | ✅ | ✅ |
+| Kawah Ijen | Jawa Timur | Gunung | Wikimedia | ✅ | ✅ |
+| Gunung Gede Pangrango | Jawa Barat | Gunung | Wikimedia | — | ✅ |
+| Gunung Kerinci | Jambi | Gunung | Wikimedia | — | ✅ |
+| Danau Kelimutu | NTT | Danau | Wikimedia | — | ✅ |
+| Pantai Kuta | Bali | Pantai | Wikimedia | — | ✅ |
+| Pantai Parangtritis | DI Yogyakarta | Pantai | Wikimedia | — | ✅ |
+| Pantai Tanjung Tinggi | Kep. Bangka Belitung | Pantai | Wikimedia | — | ✅ |
+| Danau Toba | Sumatera Utara | Danau | Wikimedia | — | ✅ |
+| Danau Sentani | Papua | Danau | Wikimedia | — | ✅ |
+| Air Terjun Tumpak Sewu | Jawa Timur | Air terjun | Wikimedia | — | ✅ |
+| Air Terjun Sekumpul | Bali | Air terjun | Wikimedia | — | ✅ |
+| Taman Nasional Baluran | Jawa Timur | Savana | Wikimedia | — | ✅ |
+| Pulau Padar | NTT | Pulau/pantai | Wikimedia | — | ✅ |
+| Goa Pindul | DI Yogyakarta | Goa | Wikimedia | — | ✅ |
+
+## Fasilitas
+
+`seed-facilities.ts` mengisi 3 fasilitas per destinasi untuk 10 destinasi baru
+(30 fasilitas, masing-masing dengan 1–2 produk):
+
+| Destinasi | Fasilitas |
+| --- | --- |
+| Pantai Kuta | Homestay, sewa motor, warung |
+| Pantai Parangtritis | Homestay, jeep gumuk pasir, warung |
+| Pantai Tanjung Tinggi | Villa, perahu Pulau Lengkuas, resto seafood |
+| Danau Toba | Homestay Tuktuk, kapal/feri, resto Batak |
+| Danau Sentani | Homestay, perahu, warung ikan |
+| Air Terjun Tumpak Sewu | Homestay, ojek, warung kopi |
+| Air Terjun Sekumpul | Homestay, sewa motor, warung Bali |
+| Taman Nasional Baluran | Homestay, jeep savana, warung |
+| Pulau Padar | Homestay Labuan Bajo, kapal Komodo, resto seafood |
+| Goa Pindul | Homestay Bejiharjo, ojek, warung Gunungkidul |
 
 ## Sumber
 

@@ -6,6 +6,9 @@ class AuthUser {
     required this.email,
     required this.role,
     this.avatarUrl,
+    this.phone,
+    this.city,
+    this.bio,
     this.emailVerifiedAt,
   });
 
@@ -14,6 +17,9 @@ class AuthUser {
   final String email;
   final String role;
   final String? avatarUrl;
+  final String? phone;
+  final String? city;
+  final String? bio;
 
   /// Waktu email diverifikasi; `null` selama belum diverifikasi.
   final DateTime? emailVerifiedAt;

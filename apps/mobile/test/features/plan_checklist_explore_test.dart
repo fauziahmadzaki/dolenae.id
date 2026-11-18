@@ -1,9 +1,11 @@
+import 'package:dolenae_mobile/src/features/destinations/domain/entities/destination.dart';
 import 'package:dolenae_mobile/src/features/destinations/domain/entities/search_filter.dart';
 import 'package:dolenae_mobile/src/features/checklist/presentation/screens/checklist_done_screen.dart';
 import 'package:dolenae_mobile/src/features/explore/presentation/screens/explore_screen.dart';
 import 'package:dolenae_mobile/src/features/plan/presentation/screens/plan_new_screen.dart';
 import 'package:dolenae_mobile/src/features/plan/presentation/screens/plan_success_screen.dart';
 import 'package:dolenae_mobile/src/shared/icons/app_icons.dart';
+import 'package:dolenae_mobile/src/shared/widgets/dn_destination_card.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -258,6 +260,75 @@ void main() {
         findsOneWidget,
       );
       expect(find.text('Gunung Bromo'), findsWidgets);
+      expect(find.text('Tidak ada hasil'), findsNothing);
+    });
+
+    testWidgets(
+      'infinite scroll memakai kartu Beranda dan memuat halaman berikutnya',
+      (tester) async {
+        await usePhone(tester);
+        final many = <Destination>[
+          for (final index in [0, 1, 2, 3, 4, 5, 6, 7, 8, 9])
+            Destination(
+              id: 'dest-uji-$index',
+              slug: 'dest-uji-$index',
+              name: 'Destinasi Uji $index',
+              tagline: 'Tagline $index',
+              elevationM: 1200,
+              regency: 'Bandung',
+              province: 'Jawa Barat',
+              priceFrom: 25000,
+              difficulty: DifficultyLevel.pemula,
+            ),
+        ];
+        final store = TestStores(destinations: many);
+        await tester.pumpWidget(
+          wrapScreen(const ExploreScreen(), store: store),
+        );
+        await tester.pumpAndSettle();
+
+        await tester.enterText(find.byType(TextField).first, 'Destinasi Uji');
+        await tester.pumpAndSettle();
+
+        expect(find.text('10 hasil · Urutkan: Paling populer'), findsOneWidget);
+        expect(find.byType(DnDestinationCard), findsWidgets);
+        expect(find.text('Destinasi Uji 9'), findsNothing);
+
+        await tester.scrollUntilVisible(
+          find.text('Destinasi Uji 9'),
+          400,
+          scrollable: find
+              .descendant(
+                of: find.byType(CustomScrollView),
+                matching: find.byType(Scrollable),
+              )
+              .first,
+          maxScrolls: 40,
+        );
+        await tester.pumpAndSettle();
+
+        expect(find.text('Destinasi Uji 9'), findsOneWidget);
+      },
+    );
+
+    testWidgets('aktivitas dari beranda langsung menjadi kueri', (
+      tester,
+    ) async {
+      await usePhone(tester);
+      final store = newStore();
+      await tester.pumpWidget(
+        wrapScreen(
+          const ExploreScreen(initialActivity: 'Hiking'),
+          store: store,
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(store.search.searchFilter.query, 'Hiking');
+      expect(
+        find.textContaining('hasil · Urutkan: Paling populer'),
+        findsOneWidget,
+      );
       expect(find.text('Tidak ada hasil'), findsNothing);
     });
 

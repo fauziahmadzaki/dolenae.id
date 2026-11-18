@@ -125,6 +125,7 @@ Query: `?page=1&limit=20&sort=createdAt&order=desc&search=kata`.
 | POST | `/api/auth/verify-email` | – | Verifikasi email (soft) |
 | POST | `/api/auth/resend-verification` | – | Kirim ulang tautan verifikasi |
 | GET | `/api/auth/me` | Bearer | Profil dari token |
+| PATCH | `/api/auth/me` | Bearer | Perbarui profil sendiri (`name`, `phone`, `city`, `bio`) |
 | GET | `/api/users` | Bearer (admin) | Daftar user + pagination/filter |
 | POST | `/api/users` | Bearer (admin) | Buat user |
 | GET | `/api/users/:id` | Bearer (admin) | Detail user |

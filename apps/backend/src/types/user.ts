@@ -23,6 +23,9 @@ export type UserPatch = Partial<
     | "provider"
     | "googleId"
     | "avatarUrl"
+    | "phone"
+    | "city"
+    | "bio"
     | "emailVerifiedAt"
     | "lastLoginAt"
   >

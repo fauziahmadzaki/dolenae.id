@@ -60,7 +60,15 @@ class NotificationsScreen extends StatelessWidget {
       appBar: DnAppBar(
         title: 'Notifikasi',
         showBack: true,
-        onBack: onBack ?? () => context.pop(),
+        onBack:
+            onBack ??
+            () {
+              if (context.canPop()) {
+                context.pop();
+              } else {
+                context.go('/home');
+              }
+            },
         trailing: unread == 0
             ? null
             : TextButton(
@@ -82,7 +90,8 @@ class NotificationsScreen extends StatelessWidget {
                   child: DnEmptyState(
                     variant: DnEmptyVariant.belumAdaData,
                     title: 'Belum ada notifikasi',
-                    body: 'Pemberitahuan tentang rencana, checklist, dan '
+                    body:
+                        'Pemberitahuan tentang rencana, checklist, dan '
                         'rekomendasi akan muncul di sini.',
                   ),
                 ),

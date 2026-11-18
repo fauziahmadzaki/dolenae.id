@@ -17,10 +17,8 @@ class Destination {
     required this.difficulty,
     this.images = const [],
     this.categoryIds = const [],
-    this.facilities = const [],
     this.latitude,
     this.longitude,
-    this.entryFee,
     this.bestSeason,
     this.guideRequired,
     this.terrain = const [],
@@ -30,11 +28,6 @@ class Destination {
     this.accessTravelTime,
     this.accessDistance,
     this.accessPointName,
-    this.facilityToilet = false,
-    this.facilityWarung = false,
-    this.facilityParking = false,
-    this.facilityHomestay = false,
-    this.facilityMushola = false,
   });
 
   final String id;
@@ -48,10 +41,8 @@ class Destination {
   final DifficultyLevel? difficulty;
   final List<String> images;
   final List<String> categoryIds;
-  final List<String> facilities;
   final double? latitude;
   final double? longitude;
-  final String? entryFee;
   final String? bestSeason;
   final bool? guideRequired;
 
@@ -65,11 +56,6 @@ class Destination {
   final String? accessTravelTime;
   final String? accessDistance;
   final String? accessPointName;
-  final bool facilityToilet;
-  final bool facilityWarung;
-  final bool facilityParking;
-  final bool facilityHomestay;
-  final bool facilityMushola;
 
   String get locationLabel =>
       [regency, province].where((part) => part.isNotEmpty).join(', ');

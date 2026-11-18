@@ -1,6 +1,7 @@
 import 'package:dolenae_mobile/src/features/destinations/data/models/destination_model.dart';
 import 'package:dolenae_mobile/src/features/destinations/presentation/screens/destination_detail_screen.dart';
 import 'package:dolenae_mobile/src/shared/widgets/dn_destination_card.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:dolenae_mobile/src/core/config/app_config.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -39,9 +40,11 @@ void main() {
           ),
         ),
       );
-      expect(find.byType(Image), findsOneWidget);
+      expect(find.byType(CachedNetworkImage), findsOneWidget);
       expect(
-        (tester.widget<Image>(find.byType(Image)).image as NetworkImage).url,
+        tester
+            .widget<CachedNetworkImage>(find.byType(CachedNetworkImage))
+            .imageUrl,
         '${Uri.parse(AppConfig.apiBaseUrl).origin}/uploads/photo.png',
       );
       await tester.pumpAndSettle();
@@ -71,7 +74,9 @@ void main() {
     expect(media.url, destination.images.first);
     expect(media.height, 200);
     expect(
-      (tester.widget<Image>(find.byType(Image)).image as NetworkImage).url,
+      tester
+          .widget<CachedNetworkImage>(find.byType(CachedNetworkImage))
+          .imageUrl,
       '${Uri.parse(AppConfig.apiBaseUrl).origin}/uploads/photo.png',
     );
     await tester.pumpAndSettle();

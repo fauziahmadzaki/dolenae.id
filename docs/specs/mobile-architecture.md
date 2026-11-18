@@ -65,6 +65,11 @@ Fitur `destinations` menampung entity destinasi, filter pencarian, katalog,
 serta layar detail; filter pencarian berada di domain `destinations` karena
 `explore` hanya memakainya, tidak memilikinya.
 
+Fitur `facilities` bersifat **read-only** di mobile dan memakai endpoint
+`GET /api/destinations/:id/facilities` + `GET /api/facilities/:id`
+(cache `facilities.v2.*`, termasuk produk). Merchant mengelola fasilitas
+lewat web; field lama `travel_supports` hanya tersedia sebagai alias backend.
+
 ## Aturan dependensi
 
 | Lapisan | Boleh import | Tidak boleh import |

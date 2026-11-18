@@ -18,8 +18,6 @@ void main() {
   void expectMedia(Destination destination) {
     expect(destination.images, ['http://localhost:3001/uploads/photo.png']);
     expect(destination.categoryIds, ['terrain-id']);
-    expect(destination.facilities, ['Warung', 'Musholla']);
-    expect(destination.facilityWarung, isTrue);
   }
 
   test('JSON mempertahankan field F1 tanpa nilai non-string', () {
@@ -43,6 +41,5 @@ void main() {
     final destination = const DestinationModel({}).toEntity();
     expect(destination.images, isEmpty);
     expect(destination.categoryIds, isEmpty);
-    expect(destination.facilities, isEmpty);
   });
 }

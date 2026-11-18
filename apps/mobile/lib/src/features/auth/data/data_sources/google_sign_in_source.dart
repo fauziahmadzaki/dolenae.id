@@ -72,7 +72,9 @@ class GoogleSignInSource {
         case GoogleSignInExceptionCode.clientConfigurationError:
         case GoogleSignInExceptionCode.providerConfigurationError:
           throw const GoogleSignInFailure(
-            'Konfigurasi Google belum lengkap untuk perangkat ini.',
+            'Konfigurasi Google belum lengkap untuk perangkat ini. '
+            'Pastikan package + SHA-1 Android (atau client iOS) terdaftar '
+            'di Google Cloud project yang sama dengan Web client ID.',
           );
         case GoogleSignInExceptionCode.interrupted:
           throw const GoogleSignInFailure('Proses masuk terputus. Coba lagi.');

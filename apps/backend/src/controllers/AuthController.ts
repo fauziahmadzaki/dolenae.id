@@ -10,6 +10,7 @@ import type {
   RegisterInput,
   ResendVerificationInput,
   ResetPasswordInput,
+  UpdateProfileInput,
   VerifyEmailInput,
 } from "../types/auth";
 
@@ -55,6 +56,13 @@ class AuthController {
   resendVerification: RequestHandler = async (req, res) => {
     const body = getValidated<ResendVerificationInput>(req, "body");
     ok(res, await authService.resendVerification(body));
+  };
+
+  /** PATCH /api/auth/me (protected) */
+  updateMe: RequestHandler = async (req, res) => {
+    if (!req.user) throw new UnauthorizedError();
+    const body = getValidated<UpdateProfileInput>(req, "body");
+    ok(res, { user: await authService.updateProfile(req.user.id, body) });
   };
 
   /** GET /api/auth/me (protected) */
