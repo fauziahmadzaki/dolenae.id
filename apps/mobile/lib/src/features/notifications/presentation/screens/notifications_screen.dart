@@ -76,7 +76,7 @@ class NotificationsScreen extends StatelessWidget {
                 child: Text(
                   'Tandai dibaca',
                   style: AppTextStyles.labelSm.copyWith(
-                    color: AppColors.primary,
+                    color: AppColors.onPrimary,
                   ),
                 ),
               ),

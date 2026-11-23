@@ -64,9 +64,14 @@ export default async function DestinationCatalog({
   }
 
   const filterStyle = (active: boolean) => cn(
-    "rounded-full border border-hairline px-4 py-2 text-sm whitespace-nowrap",
+    "inline-flex h-[34px] items-center justify-center rounded-full border border-hairline px-4 text-xs font-medium whitespace-nowrap transition-colors",
     active ? "border-primary bg-primary text-on-primary" : "bg-canvas-subtle hover:bg-surface-2",
   );
+  const difficultyBadgeStyles: Record<string, string> = {
+    "ramah-pemula": "border border-hairline bg-canvas text-success",
+    menengah: "border border-hairline bg-canvas text-warning",
+    sulit: "border border-hairline bg-canvas text-danger",
+  };
 
   return (
     <PublicShell compactFooter>
@@ -130,12 +135,12 @@ export default async function DestinationCatalog({
             {result.data.length ? (
               <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
                 {result.data.map((destination) => (
-                  <Link key={destination.id} href={`/destinations/${destination.id}`} className="group block overflow-hidden rounded-xl border border-hairline bg-canvas-subtle hover:border-border-strong">
+                  <Link key={destination.id} href={`/destinations/${destination.id}`} className="group block overflow-hidden rounded-2xl border border-hairline bg-canvas-subtle hover:border-border-strong">
                     <CatalogMedia src={destination.images[0]} className="h-[180px] bg-canvas text-primary" />
                     <div className="space-y-2 p-5">
                       <div className="flex flex-wrap items-center justify-between gap-2">
                         <h2 className="font-sans text-lg font-bold group-hover:underline">{destination.name}</h2>
-                        <span className="rounded-full bg-canvas px-2.5 py-1 text-xs font-medium text-primary">{difficultyLabels[destination.difficulty]}</span>
+                        <span className={cn("rounded-full px-2.5 py-1 text-xs font-semibold", difficultyBadgeStyles[destination.difficulty] ?? "border border-hairline bg-canvas text-primary")}>{difficultyLabels[destination.difficulty]}</span>
                       </div>
                       <p className="text-sm">{[destination.elevationMeters == null ? undefined : `${destination.elevationMeters.toLocaleString("id-ID")} mdpl`, destination.location.regency ?? destination.location.province].filter(Boolean).join(" · ")}</p>
                       {destination.tagline && <p className="text-sm font-medium text-primary">{destination.tagline}</p>}
@@ -148,9 +153,9 @@ export default async function DestinationCatalog({
             )}
             {pages > 1 && (
               <nav aria-label="Halaman katalog" className="flex flex-wrap justify-center gap-2">
-                {page > 1 && <Link href={href({ page: Math.min(page - 1, pages) })} aria-label="Halaman sebelumnya" className={filterStyle(false)}><ChevronLeft className="size-4" /></Link>}
-                {visiblePages.map((number) => <Link key={number} href={href({ page: number })} aria-current={page === number ? "page" : undefined} className={filterStyle(page === number)}>{number}</Link>)}
-                {page < pages && <Link href={href({ page: page + 1 })} aria-label="Halaman berikutnya" className={filterStyle(false)}><ChevronRight className="size-4" /></Link>}
+                {page > 1 && <Link href={href({ page: Math.min(page - 1, pages) })} aria-label="Halaman sebelumnya" className="inline-flex size-10 items-center justify-center rounded-full border border-hairline bg-canvas-subtle text-sm hover:bg-surface-2"><ChevronLeft className="size-4" /></Link>}
+                {visiblePages.map((number) => <Link key={number} href={href({ page: number })} aria-current={page === number ? "page" : undefined} className={cn("inline-flex size-10 items-center justify-center rounded-full border border-hairline text-sm font-medium transition-colors", page === number ? "border-primary bg-primary text-on-primary" : "bg-canvas-subtle hover:bg-surface-2")}>{number}</Link>)}
+                {page < pages && <Link href={href({ page: page + 1 })} aria-label="Halaman berikutnya" className="inline-flex size-10 items-center justify-center rounded-full border border-hairline bg-canvas-subtle text-sm hover:bg-surface-2"><ChevronRight className="size-4" /></Link>}
               </nav>
             )}
           </>

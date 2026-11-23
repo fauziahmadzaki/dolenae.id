@@ -8,6 +8,7 @@ import { CatalogMedia } from "~/features/public/catalog-media";
 import { container, PublicShell } from "~/features/public/page-shell";
 import { get } from "~/lib/api/server";
 import { ApiError } from "~/lib/api/types";
+import { cn } from "~/lib/cn";
 import type { DestinationDetail } from "~/types/domain";
 
 const facilityIcons = { accommodation: Bed, transport: Car, food: Utensils };
@@ -59,7 +60,10 @@ export default async function DestinationPage({ params }: { params: Promise<{ id
           <h1 className="text-[32px] leading-10 font-extrabold">{name}</h1>
           <div className="flex flex-wrap items-center gap-3">
             <p>{[elevation, place].filter(Boolean).join(" · ")}</p>
-            <span className="rounded-full bg-canvas px-3 py-1 text-xs font-medium text-primary">{difficultyLabels[destination.difficulty]}</span>
+            <span className={cn(
+              "rounded-full border border-hairline bg-canvas px-3 py-1 text-xs font-semibold",
+              destination.difficulty === "ramah-pemula" ? "text-success" : destination.difficulty === "menengah" ? "text-warning" : "text-danger",
+            )}>{difficultyLabels[destination.difficulty]}</span>
           </div>
         </div>
       </section>
@@ -90,7 +94,10 @@ export default async function DestinationPage({ params }: { params: Promise<{ id
             <p className="flex items-center gap-2 text-sm"><MapPin aria-hidden className="size-4 shrink-0" />{location.accessPoint ? `Titik akses: ${location.accessPoint}` : place || "Lokasi belum tersedia."}</p>
           </section>
           <section className="space-y-3">
-            <h2 className="text-xl font-bold">Fasilitas sekitar</h2>
+            <div className="flex items-center justify-between gap-3">
+              <h2 className="text-xl font-bold">Fasilitas sekitar</h2>
+              <Link href="/destinations" className="text-sm font-medium text-primary hover:underline">Lihat semua</Link>
+            </div>
             {!facilities ? <p>Fasilitas belum bisa dimuat.</p> : !facilities.length ? <p>Belum ada fasilitas terdaftar.</p> : (
               <ul className="space-y-2">
                 {facilities.map((facility) => {
@@ -99,7 +106,14 @@ export default async function DestinationPage({ params }: { params: Promise<{ id
                     <li key={facility.id} className="flex items-center gap-3 rounded-xl border border-hairline bg-canvas-subtle p-4">
                       <span className="grid size-10 shrink-0 place-items-center rounded-full bg-canvas text-primary"><Icon aria-hidden className="size-5" /></span>
                       <div className="min-w-0 flex-1">
-                        <h3 className="font-sans font-semibold">{facility.name}</h3>
+                        <div className="flex flex-wrap items-center gap-2">
+                          <h3 className="font-sans font-semibold">{facility.name}</h3>
+                          {facility.status === "published" && (
+                            <span className="rounded-full border border-hairline bg-canvas px-2.5 py-0.5 text-[11px] font-semibold text-success">
+                              Terverifikasi
+                            </span>
+                          )}
+                        </div>
                         <p className="text-sm">{categoryLabels[facility.category]}{facility.priceMin != null ? ` · Rp ${numbers.format(facility.priceMin)}` : ""}</p>
                       </div>
                     </li>
@@ -110,7 +124,7 @@ export default async function DestinationPage({ params }: { params: Promise<{ id
           </section>
         </div>
         <aside className="space-y-4">
-          <section className="space-y-3 rounded-xl border border-hairline bg-canvas-subtle p-5">
+          <section className="space-y-3 rounded-2xl border border-hairline bg-canvas-subtle p-6">
             <h2 className="text-xl font-bold">Info kunjungan</h2>
             <dl className="space-y-3 border-t border-hairline pt-4 text-sm">
               {elevation && <div className="flex justify-between gap-4"><dt>Ketinggian</dt><dd className="text-right font-semibold text-ink">{elevation}</dd></div>}

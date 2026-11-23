@@ -52,7 +52,10 @@ export function AdminProfilePage() {
       }}
     >
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="font-sans text-2xl font-bold">Pengaturan</h1>
+        <div>
+          <p className="text-xs text-body">Admin / Pengaturan</p>
+          <h1 className="mt-0.5 font-sans text-2xl font-bold">Pengaturan</h1>
+        </div>
         <div className="flex flex-wrap gap-2">
           <Button type="reset" variant="secondary" disabled={save.isPending}>Batal</Button>
           <Button type="submit" disabled={save.isPending}>
@@ -61,7 +64,7 @@ export function AdminProfilePage() {
           </Button>
         </div>
       </div>
-      <section aria-labelledby="admin-profile-title" className="overflow-hidden rounded-xl border border-hairline bg-surface">
+      <section aria-labelledby="admin-profile-title" className="overflow-hidden rounded-2xl border border-hairline bg-surface">
         <div className="border-b border-hairline px-6 py-4">
           <h2 id="admin-profile-title" className="font-sans font-bold">Profil Admin</h2>
           <p className="mt-1 text-sm text-body">Informasi akun yang tampil di panel admin.</p>

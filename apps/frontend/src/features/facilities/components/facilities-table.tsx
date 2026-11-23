@@ -68,9 +68,9 @@ export function FacilitiesTable({
 
   return (
     <>
-      <div className="overflow-x-auto rounded-xl border border-hairline bg-surface">
+      <div className="overflow-x-auto rounded-2xl border border-hairline bg-surface">
         <table className="w-full min-w-[860px] text-left text-sm">
-          <thead className="bg-canvas-subtle text-xs uppercase tracking-wide text-body">
+          <thead className="border-b border-hairline bg-surface text-[11px] uppercase tracking-wide text-body">
             <tr>
               <th className="px-4 py-3 font-semibold">Fasilitas</th>
               <th className="px-4 py-3 font-semibold">Destinasi</th>

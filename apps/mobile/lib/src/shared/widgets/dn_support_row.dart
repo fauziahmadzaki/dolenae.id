@@ -56,7 +56,7 @@ class DnSupportRow extends StatelessWidget {
                 children: [
                   Row(
                     children: [
-                      Flexible(
+                      Expanded(
                         child: Text(
                           facility.name,
                           maxLines: 1,
@@ -64,14 +64,6 @@ class DnSupportRow extends StatelessWidget {
                           style: AppTextStyles.titleSm,
                         ),
                       ),
-                      if (facility.verified) ...[
-                        const SizedBox(width: AppSpacing.s1),
-                        const Icon(
-                          AppIcons.badgeCheck,
-                          size: 16,
-                          color: AppColors.success,
-                        ),
-                      ],
                     ],
                   ),
                   const SizedBox(height: 2),
@@ -84,6 +76,33 @@ class DnSupportRow extends StatelessWidget {
                     overflow: TextOverflow.ellipsis,
                     style: AppTextStyles.caption,
                   ),
+                  const SizedBox(height: 4),
+                  Row(
+                    children: [
+                      Icon(
+                        facility.verified
+                            ? AppIcons.badgeCheck
+                            : AppIcons.info,
+                        size: 13,
+                        color: facility.verified
+                            ? AppColors.success
+                            : AppColors.body,
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        facility.verified
+                            ? 'Terverifikasi'
+                            : 'Belum terverifikasi',
+                        style: AppTextStyles.caption.copyWith(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
+                          color: facility.verified
+                              ? AppColors.success
+                              : AppColors.body,
+                        ),
+                      ),
+                    ],
+                  ),
                 ],
               ),
             ),
@@ -91,13 +110,45 @@ class DnSupportRow extends StatelessWidget {
             if (trailing != null)
               trailing!
             else
-              Text(
-                facility.priceLabel,
-                style: AppTextStyles.labelSm.copyWith(color: AppColors.primary),
-              ),
+              _PriceStack(priceLabel: facility.priceLabel),
           ],
         ),
       ),
+    );
+  }
+}
+
+class _PriceStack extends StatelessWidget {
+  const _PriceStack({required this.priceLabel});
+
+  final String priceLabel;
+
+  @override
+  Widget build(BuildContext context) {
+    final slash = priceLabel.indexOf('/');
+    if (slash <= 0 || slash >= priceLabel.length - 1) {
+      return Text(
+        priceLabel,
+        textAlign: TextAlign.right,
+        style: AppTextStyles.labelSm.copyWith(color: AppColors.primary),
+      );
+    }
+
+    final amount = priceLabel.substring(0, slash).trimRight();
+    final unit = priceLabel.substring(slash).trim();
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.end,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(
+          amount,
+          style: AppTextStyles.labelSm.copyWith(color: AppColors.primary),
+        ),
+        Text(
+          unit,
+          style: AppTextStyles.caption.copyWith(fontSize: 10),
+        ),
+      ],
     );
   }
 }

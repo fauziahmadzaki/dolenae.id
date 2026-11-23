@@ -4,7 +4,7 @@ import { difficultyStyles, type Destination } from "~/features/landing/data";
 
 export function DestinationCard({ destination: d }: { destination: Destination }) {
   return (
-    <article className="overflow-hidden rounded-xl border border-hairline bg-canvas-subtle shadow-sm">
+    <article className="overflow-hidden rounded-2xl border border-hairline bg-canvas-subtle shadow-sm">
       <div className="flex h-[200px] items-center justify-center bg-canvas">
         <MountainSnow aria-hidden className="size-10 text-primary" strokeWidth={1.5} />
       </div>
@@ -22,7 +22,7 @@ export function DestinationCard({ destination: d }: { destination: Destination }
         </div>
         <p className="text-sm text-body">{d.meta}</p>
         <div className="mt-1 flex items-center justify-between">
-          <span className="text-sm font-semibold text-ink">{d.price}</span>
+          <span className="text-sm font-semibold text-primary">{d.price}</span>
           <span className="text-xs text-body">
             {d.tag}
           </span>

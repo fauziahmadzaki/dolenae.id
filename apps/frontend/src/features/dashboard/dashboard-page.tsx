@@ -91,6 +91,10 @@ export function DashboardPage() {
 
   return (
     <div className="space-y-6">
+      <div>
+        <p className="text-xs text-body">Admin / Dashboard</p>
+        <h1 className="mt-0.5 font-sans text-2xl font-bold text-ink">Ringkasan platform</h1>
+      </div>
       {stats.isError && (
         <div
           role="alert"

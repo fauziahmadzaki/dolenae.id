@@ -66,7 +66,8 @@ export function VerificationPage() {
     <div className="space-y-5">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="font-sans text-2xl font-bold">Verifikasi</h1>
+          <p className="text-xs text-body">Admin / Verifikasi</p>
+          <h1 className="mt-0.5 font-sans text-2xl font-bold">Verifikasi</h1>
           <p className="mt-1 text-sm text-body">{queue.isSuccess ? `${total} fasilitas menunggu tinjauan` : "Antrean pengajuan fasilitas"}</p>
         </div>
         <Button variant="secondary" disabled={!rows.length} onClick={() => exportFacilities(rows)} title="Ekspor halaman yang ditampilkan"><Download aria-hidden className="size-4" /> Ekspor</Button>

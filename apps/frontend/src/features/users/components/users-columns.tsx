@@ -47,7 +47,7 @@ export function userColumns({
       id: "role",
       header: "Peran",
       cell: (user) => (
-        <span className="rounded-full bg-surface-2 px-2 py-0.5 text-[11px] font-semibold text-ink">
+        <span className="rounded-full border border-hairline bg-canvas-subtle px-2.5 py-0.5 text-[11px] font-semibold text-ink">
           {roleLabels[user.role]}
         </span>
       ),

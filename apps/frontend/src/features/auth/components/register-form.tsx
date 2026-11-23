@@ -22,7 +22,7 @@ export function RegisterForm() {
   return (
     <section
       aria-label="Form daftar merchant"
-      className="flex w-full flex-col justify-center px-6 py-10 sm:px-10 lg:px-[100px] lg:py-0"
+      className="flex w-full flex-col justify-center px-6 py-10 sm:px-10 lg:items-end lg:px-[min(7vw,100px)] lg:py-20"
     >
       <div className="w-full max-w-[520px]">
         <div className="space-y-5">

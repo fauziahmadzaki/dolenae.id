@@ -44,11 +44,13 @@ class _FacilitiesScreenState extends State<FacilitiesScreen> {
   static const _economicMaxPrice = 200000;
 
   FacilityCategory? _category;
+  bool _verifiedOnly = false;
   bool _economicOnly = false;
   bool _nearbyOnly = false;
 
   List<Facility> _filter(List<Facility> items, Destination destination) {
     return items.where((facility) {
+      if (_verifiedOnly && !facility.verified) return false;
       if (_economicOnly &&
           (facility.priceMin == null ||
               facility.priceMin! > _economicMaxPrice)) {
@@ -77,7 +79,8 @@ class _FacilitiesScreenState extends State<FacilitiesScreen> {
     return _filter(categoryItems, destination);
   }
 
-  bool get _hasFilter => _economicOnly || _nearbyOnly || _category != null;
+  bool get _hasFilter =>
+      _verifiedOnly || _economicOnly || _nearbyOnly || _category != null;
 
   void _openDetail(Facility facility) {
     final onOpenDetail = widget.onOpenDetail;
@@ -159,6 +162,12 @@ class _FacilitiesScreenState extends State<FacilitiesScreen> {
                     child: Row(
                       spacing: AppSpacing.s2,
                       children: [
+                        DnChip(
+                          label: 'Terverifikasi',
+                          active: _verifiedOnly,
+                          onTap: () =>
+                              setState(() => _verifiedOnly = !_verifiedOnly),
+                        ),
                         DnChip(
                           label: 'Ekonomis',
                           active: _economicOnly,

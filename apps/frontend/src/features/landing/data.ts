@@ -139,7 +139,7 @@ export const footerColumns: { title: string; links: string[] }[] = [
 ];
 
 export const difficultyStyles: Record<Difficulty, string> = {
-  "Ramah pemula": "bg-success/10 text-success",
-  Menengah: "bg-warning/10 text-warning",
-  Sulit: "bg-danger/10 text-danger",
+  "Ramah pemula": "border border-hairline bg-canvas text-success",
+  Menengah: "border border-hairline bg-canvas text-warning",
+  Sulit: "border border-hairline bg-canvas text-danger",
 };

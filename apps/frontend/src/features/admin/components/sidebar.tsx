@@ -142,7 +142,7 @@ export function Sidebar({
 
       <div className="mt-auto" />
 
-      <div className="flex items-center gap-2.5 rounded-xl bg-surface-2 p-2.5">
+      <div className="flex items-center gap-2.5 rounded-xl border border-hairline bg-canvas-subtle p-2.5">
         <UserAvatar name={user?.name ?? "Admin Dolenae"} />
         <div className="min-w-0 flex-1">
           <p className="truncate text-sm font-semibold text-ink">

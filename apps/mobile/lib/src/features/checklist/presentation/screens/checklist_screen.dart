@@ -367,26 +367,37 @@ class _ChecklistScreenState extends State<ChecklistScreen> {
                       style: AppTextStyles.caption.copyWith(fontSize: 11),
                     ),
                   ],
+                  const SizedBox(height: 6),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 2,
+                    ),
+                    decoration: BoxDecoration(
+                      color: AppColors.canvas,
+                      borderRadius: BorderRadius.circular(AppRadius.pill),
+                      border: Border.all(color: AppColors.hairline),
+                    ),
+                    child: Text(
+                      item.isRequired ? 'Wajib' : 'Opsional',
+                      style: AppTextStyles.overline.copyWith(
+                        fontSize: 10,
+                        color: item.isRequired
+                            ? AppColors.warning
+                            : AppColors.body,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
                 ],
               ),
             ),
             const SizedBox(width: 8),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-              decoration: BoxDecoration(
-                color: item.isRequired
-                    ? const Color(0xFFFBEEDB)
-                    : AppColors.canvas,
-                borderRadius: BorderRadius.circular(AppRadius.pill),
-                border: Border.all(color: AppColors.hairline),
-              ),
-              child: Text(
-                item.isRequired ? 'Wajib' : 'Opsional',
-                style: AppTextStyles.overline.copyWith(
-                  fontSize: 10,
-                  color: item.isRequired ? AppColors.warning : AppColors.body,
-                  fontWeight: FontWeight.w600,
-                ),
+            Text(
+              item.isCompleted ? 'Selesai' : 'Belum',
+              style: AppTextStyles.labelSm.copyWith(
+                fontSize: 11,
+                color: item.isCompleted ? AppColors.success : AppColors.body,
               ),
             ),
           ],

@@ -3,9 +3,9 @@ import type { Destination } from "~/types/domain";
 import { statusLabels } from "../schema";
 
 const statusClass: Record<Destination["status"], string> = {
-  published: "bg-success/10 text-success",
-  draft: "bg-warning/10 text-warning",
-  archived: "bg-surface-2 text-body",
+  published: "border border-hairline bg-canvas-subtle text-success",
+  draft: "border border-hairline bg-canvas-subtle text-warning",
+  archived: "border border-hairline bg-canvas-subtle text-body",
 };
 
 export function DestinationStatusBadge({

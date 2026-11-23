@@ -90,7 +90,7 @@ class DnNotificationItem extends StatelessWidget {
                           height: 8,
                           margin: const EdgeInsets.only(top: 6),
                           decoration: const BoxDecoration(
-                            color: AppColors.accent,
+                            color: AppColors.primary,
                             shape: BoxShape.circle,
                           ),
                         ),

@@ -1,4 +1,4 @@
-import type { LucideIcon } from "lucide-react";
+import { MoreVertical, type LucideIcon } from "lucide-react";
 import { cn } from "~/lib/cn";
 
 interface KpiCardProps {
@@ -28,13 +28,14 @@ export function KpiCard({
       >
         <Icon aria-hidden className="size-5" />
       </span>
-      <div className="min-w-0">
+      <div className="min-w-0 flex-1">
         <p className="text-xs font-medium text-body">{label}</p>
         <p className="mt-1 font-sans text-xl leading-6 font-bold text-ink">
           {isLoading ? "—" : value.toLocaleString("id-ID")}
         </p>
         {hint && <p className="mt-1 text-xs text-body">{hint}</p>}
       </div>
+      <MoreVertical aria-hidden className="size-4 shrink-0 text-body/70" />
     </div>
   );
 }

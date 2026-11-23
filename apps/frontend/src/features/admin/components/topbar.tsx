@@ -1,7 +1,7 @@
 "use client";
 
 import { usePathname } from "next/navigation";
-import { Bell, Menu, Search } from "lucide-react";
+import { Bell, Mail, Menu, Search } from "lucide-react";
 import { useAuth } from "~/features/auth/hooks/use-auth";
 import { UserAvatar } from "./user-avatar";
 
@@ -66,6 +66,7 @@ export function Topbar({
   const { user } = useAuth();
   const { breadcrumb, title } = pageMeta(pathname, section, meta);
   const dashboard = pathname === "/admin";
+  const hideHeaderText = section === "Admin" || dashboard;
 
   return (
     <header className="flex h-[76px] shrink-0 items-center gap-4 bg-canvas px-4 md:px-6">
@@ -78,7 +79,7 @@ export function Topbar({
         >
           <Menu aria-hidden className="h-5 w-5" />
         </button>
-        <div className={dashboard ? "min-w-0 lg:sr-only" : "min-w-0"}>
+        <div className={hideHeaderText ? "sr-only min-w-0" : "min-w-0"}>
           <p className="truncate text-xs text-body">{breadcrumb}</p>
           <h1 className="truncate text-[18px] font-bold text-ink">{title}</h1>
         </div>
@@ -96,6 +97,13 @@ export function Topbar({
       </label>
 
       <div className="ml-auto flex shrink-0 items-center gap-3">
+        <button
+          type="button"
+          aria-label="Pesan"
+          className="inline-flex size-11 items-center justify-center rounded-full border border-hairline bg-surface text-ink transition-colors hover:bg-canvas-subtle"
+        >
+          <Mail aria-hidden className="h-[18px] w-[18px]" />
+        </button>
         <button
           type="button"
           aria-label="Notifikasi"

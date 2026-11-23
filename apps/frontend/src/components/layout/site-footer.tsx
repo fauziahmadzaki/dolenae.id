@@ -19,7 +19,7 @@ export function SiteFooter({ compact = false }: { compact?: boolean }) {
     return (
       <footer className="bg-primary text-on-primary">
         <div className="mx-auto flex min-h-18 max-w-[1248px] flex-wrap items-center justify-between gap-4 px-6 py-4">
-          <Link href="/" className="flex items-center font-bold">
+          <Link href="/" className="flex items-center gap-2.5 font-bold">
             <BrandMark size={28} rounded="rounded-md" className="bg-primary-hover" />
             Dolenae.id
           </Link>

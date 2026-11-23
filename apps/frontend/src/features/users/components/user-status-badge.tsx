@@ -2,9 +2,9 @@ import { cn } from "~/lib/cn";
 import { userStatusLabels, type UserStatus } from "../status";
 
 const statusClass: Record<UserStatus, string> = {
-  active: "bg-success/10 text-success",
-  unverified: "bg-warning/10 text-warning",
-  inactive: "bg-surface-2 text-body",
+  active: "border border-hairline bg-canvas-subtle text-success",
+  unverified: "border border-hairline bg-canvas-subtle text-warning",
+  inactive: "border border-hairline bg-canvas-subtle text-body",
 };
 
 export function UserStatusBadge({

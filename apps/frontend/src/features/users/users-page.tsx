@@ -131,7 +131,10 @@ export default function UsersPage({ merchantOnly = false }: { merchantOnly?: boo
     <div className="space-y-6">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <h2 className="font-display text-2xl font-bold text-ink">
+          <p className="text-xs text-body">
+            {merchantOnly ? "Admin / Merchant" : "Admin / Pengguna"}
+          </p>
+          <h2 className="mt-0.5 font-display text-2xl font-bold text-ink">
             {merchantOnly ? "Merchant" : "Kelola pengguna"}
           </h2>
           <p className="mt-1 text-sm text-body">
@@ -153,8 +156,8 @@ export default function UsersPage({ merchantOnly = false }: { merchantOnly?: boo
       </div>
       {merchantOnly && (
         <nav aria-label="Pengelolaan merchant" className="flex flex-wrap gap-2">
-          <span aria-current="page" className="rounded-lg bg-primary px-3.5 py-2 text-sm font-semibold text-on-primary">Merchant</span>
-          <Link href="/admin/fasilitas" className="rounded-lg border border-hairline bg-surface px-3.5 py-2 text-sm font-semibold text-ink hover:bg-canvas-subtle">Layanan</Link>
+          <span aria-current="page" className="rounded-xl bg-primary px-3.5 py-2 text-sm font-semibold text-on-primary">Merchant</span>
+          <Link href="/admin/fasilitas" className="rounded-xl border border-hairline bg-surface px-3.5 py-2 text-sm font-semibold text-ink hover:bg-canvas-subtle">Layanan</Link>
         </nav>
       )}
 

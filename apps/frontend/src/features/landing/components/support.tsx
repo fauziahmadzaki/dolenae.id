@@ -27,7 +27,7 @@ export function Support() {
                   <span className="grid size-10 shrink-0 place-items-center rounded-full bg-canvas text-primary">
                     <Icon aria-hidden className="size-5" />
                   </span>
-                  <span className="inline-flex items-center gap-1 rounded-full bg-canvas-subtle px-2.5 py-1 text-[11px] font-semibold text-success">
+                  <span className="inline-flex items-center gap-1 rounded-full border border-hairline bg-canvas px-2.5 py-1 text-[11px] font-semibold text-success">
                     <BadgeCheck aria-hidden className="size-3.5" />
                     Terverifikasi
                   </span>

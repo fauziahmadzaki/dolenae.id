@@ -67,7 +67,8 @@ export function AdminFacilitiesPage() {
     <div className="space-y-6">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <h1 className="font-display text-2xl font-bold text-ink">
+          <p className="text-xs text-body">Admin / Fasilitas</p>
+          <h1 className="mt-0.5 font-display text-2xl font-bold text-ink">
             Verifikasi fasilitas
           </h1>
           <p className="text-sm text-body">
@@ -84,23 +85,39 @@ export function AdminFacilitiesPage() {
       </div>
 
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex flex-wrap gap-1">
-          {TABS.map((item) => (
-            <button
-              key={item}
-              type="button"
-              onClick={() => setTab(item)}
-              className={
-                tab === item
-                  ? "rounded-full bg-primary px-3 py-1.5 text-xs font-semibold text-on-primary"
-                  : "rounded-full bg-canvas-subtle px-3 py-1.5 text-xs font-semibold text-body hover:text-ink"
-              }
-            >
-              {item === "all" ? "Semua" : statusLabels[item]}
-            </button>
-          ))}
+        <div className="flex flex-wrap gap-2">
+          {TABS.map((item) => {
+            const active = tab === item;
+            const count =
+              item === "all"
+                ? facilities.length
+                : facilities.filter((f) => f.status === item).length;
+            return (
+              <button
+                key={item}
+                type="button"
+                onClick={() => setTab(item)}
+                className={
+                  active
+                    ? "inline-flex items-center gap-2 rounded-xl border border-primary bg-primary px-3.5 py-2 text-xs font-semibold text-on-primary transition-colors"
+                    : "inline-flex items-center gap-2 rounded-xl border border-hairline bg-surface px-3.5 py-2 text-xs font-semibold text-body transition-colors hover:text-ink"
+                }
+              >
+                {item === "all" ? "Semua" : statusLabels[item]}
+                <span
+                  className={
+                    active
+                      ? "rounded-full bg-accent px-2 py-0.5 text-[11px] font-semibold text-on-accent"
+                      : "rounded-full bg-canvas-subtle px-2 py-0.5 text-[11px] font-semibold text-body"
+                  }
+                >
+                  {count}
+                </span>
+              </button>
+            );
+          })}
         </div>
-        <label className="relative flex h-10 w-full max-w-xs items-center gap-2 rounded-lg bg-surface-2 px-3">
+        <label className="relative flex h-10 w-full max-w-xs items-center gap-2 rounded-full border border-hairline bg-surface px-3.5">
           <Search className="h-4 w-4 text-body" />
           <Input
             value={search}

@@ -246,7 +246,8 @@ export default function DestinationsPage() {
     <div className="space-y-6">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <h2 className="font-display text-2xl font-bold text-ink">
+          <p className="text-xs text-body">Admin / Destinasi</p>
+          <h2 className="mt-0.5 font-display text-2xl font-bold text-ink">
             Destinasi
           </h2>
           <p className="mt-1 text-sm text-body">
@@ -316,14 +317,21 @@ export default function DestinationsPage() {
                 setNotice("");
               }}
               className={cn(
-                "flex items-center gap-2 rounded-lg border px-3 py-2 text-sm font-semibold transition-colors",
+                "flex items-center gap-2 rounded-xl border px-3.5 py-2 text-sm font-semibold transition-colors",
                 tab === item.value
                   ? "border-primary bg-primary text-on-primary"
                   : "border-hairline bg-surface text-body hover:text-ink",
               )}
             >
               {item.label}
-              <span className="rounded-full bg-surface-2 px-2 py-0.5 text-[11px] font-semibold text-body">
+              <span
+                className={cn(
+                  "rounded-full px-2 py-0.5 text-[11px] font-semibold",
+                  tab === item.value
+                    ? "bg-accent text-on-accent"
+                    : "bg-canvas-subtle text-body",
+                )}
+              >
                 {item.count}
               </span>
             </button>

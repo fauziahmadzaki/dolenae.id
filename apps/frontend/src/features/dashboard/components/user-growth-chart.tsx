@@ -53,7 +53,7 @@ export function UserGrowthChart({
   );
 
   return (
-    <section className="rounded-xl border border-hairline bg-surface">
+    <section className="rounded-[20px] border border-hairline bg-surface">
       <div className="flex flex-wrap items-start justify-between gap-3 border-b border-hairline px-4 py-3">
         <div>
           <h2 className="text-sm font-semibold text-ink">
