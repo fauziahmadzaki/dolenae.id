@@ -4,7 +4,7 @@ import { cn } from "~/lib/cn";
 interface KpiCardProps {
   label: string;
   value: number;
-  hint: string;
+  hint?: string;
   icon: LucideIcon;
   tone: string;
   isLoading?: boolean;
@@ -19,22 +19,22 @@ export function KpiCard({
   isLoading = false,
 }: KpiCardProps) {
   return (
-    <div className="rounded-xl border border-hairline bg-surface p-4">
-      <div className="flex items-start justify-between gap-3">
+    <div className="flex items-start gap-3 rounded-[20px] border border-hairline bg-surface p-4">
+      <span
+        className={cn(
+          "inline-flex size-11 shrink-0 items-center justify-center rounded-xl",
+          tone,
+        )}
+      >
+        <Icon aria-hidden className="size-5" />
+      </span>
+      <div className="min-w-0">
         <p className="text-xs font-medium text-body">{label}</p>
-        <span
-          className={cn(
-            "inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg",
-            tone,
-          )}
-        >
-          <Icon aria-hidden className="h-4 w-4" />
-        </span>
+        <p className="mt-1 font-sans text-xl leading-6 font-bold text-ink">
+          {isLoading ? "—" : value.toLocaleString("id-ID")}
+        </p>
+        {hint && <p className="mt-1 text-xs text-body">{hint}</p>}
       </div>
-      <p className="mt-3 font-display text-3xl font-bold text-ink">
-        {isLoading ? "—" : value.toLocaleString("id-ID")}
-      </p>
-      <p className="mt-1 text-xs text-body">{hint}</p>
     </div>
   );
 }

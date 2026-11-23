@@ -7,6 +7,7 @@ import {
   getTableColumns,
   ilike,
   inArray,
+  or,
   type SQL,
 } from "drizzle-orm";
 import { database } from "../db/DatabaseClient";
@@ -74,17 +75,25 @@ class FacilityRepository {
     if (params.type) {
       conditions.push(ilike(facilities.type, `%${params.type}%`));
     }
+    if (params.search) {
+      const pattern = `%${params.search}%`;
+      const search = or(ilike(facilities.name, pattern), ilike(destinations.name, pattern));
+      if (search) conditions.push(search);
+    }
     if (params.publishedDestinationOnly) {
       conditions.push(eq(destinations.status, "published"));
     }
     const where = conditions.length ? and(...conditions) : undefined;
+    const byDate = params.sort === "createdAt";
+    const order = byDate || params.sort === "name" ? params.order : "asc";
+    const direction = order === "desc" ? desc : asc;
 
     const items = await db
       .select(selection)
       .from(facilities)
       .innerJoin(destinations, eq(facilities.destinationId, destinations.id))
       .where(where)
-      .orderBy(asc(facilities.name), asc(facilities.id))
+      .orderBy(direction(byDate ? facilities.createdAt : facilities.name), asc(facilities.id))
       .limit(params.limit)
       .offset(params.offset);
 

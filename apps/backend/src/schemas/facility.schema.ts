@@ -41,6 +41,7 @@ export const productListQuerySchema = paginationSchema.extend({
 });
 
 export const facilityListQuerySchema = paginationSchema.extend({
+  status: z.enum(FACILITY_STATUSES).optional(),
   category: z.enum(FACILITY_CATEGORIES).optional(),
   type: z.string().trim().min(1).max(60).optional(),
 });

@@ -10,6 +10,9 @@ import type {
 export interface FacilityListQuery {
   page?: number;
   limit?: number;
+  search?: string;
+  sort?: string;
+  order?: "asc" | "desc";
   status?: FacilityStatus;
   category?: string;
   type?: string;
@@ -19,8 +22,10 @@ function toQueryString(query: FacilityListQuery): string {
   const params = new URLSearchParams({
     page: String(query.page ?? 1),
     limit: String(query.limit ?? 100),
-    order: "asc",
+    order: query.order ?? "asc",
   });
+  if (query.search?.trim()) params.set("search", query.search.trim());
+  if (query.sort) params.set("sort", query.sort);
   if (query.status) params.set("status", query.status);
   if (query.category) params.set("category", query.category);
   if (query.type?.trim()) params.set("type", query.type.trim());

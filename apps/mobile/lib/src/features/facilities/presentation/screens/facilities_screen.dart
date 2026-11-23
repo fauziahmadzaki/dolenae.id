@@ -108,7 +108,7 @@ class _FacilitiesScreenState extends State<FacilitiesScreen> {
       ),
       (
         category: FacilityCategory.makanan,
-        label: 'TOKO / WARUNG',
+        label: 'TEMPAT MAKAN',
         icon: AppIcons.utensils,
       ),
     ];
@@ -116,7 +116,7 @@ class _FacilitiesScreenState extends State<FacilitiesScreen> {
     return Scaffold(
       backgroundColor: AppColors.canvas,
       appBar: DnAppBar(
-        title: 'Berbagai Fasilitas',
+        title: 'Fasilitas Sekitar',
         showBack: true,
         onBack: widget.onBack ?? () => context.pop(),
       ),
@@ -127,9 +127,9 @@ class _FacilitiesScreenState extends State<FacilitiesScreen> {
             Expanded(
               child: ListView(
                 padding: const EdgeInsets.fromLTRB(
-                  AppSpacing.s5,
                   AppSpacing.s4,
-                  AppSpacing.s5,
+                  AppSpacing.s4,
+                  AppSpacing.s4,
                   AppSpacing.s5,
                 ),
                 children: [
@@ -148,7 +148,7 @@ class _FacilitiesScreenState extends State<FacilitiesScreen> {
                         value: FacilityCategory.transportasi,
                         label: 'Transport',
                       ),
-                      (value: FacilityCategory.makanan, label: 'Toko/Warung'),
+                      (value: FacilityCategory.makanan, label: 'Makanan'),
                     ],
                     value: _category,
                     onChanged: (value) => setState(() => _category = value),
@@ -157,6 +157,7 @@ class _FacilitiesScreenState extends State<FacilitiesScreen> {
                   SingleChildScrollView(
                     scrollDirection: Axis.horizontal,
                     child: Row(
+                      spacing: AppSpacing.s2,
                       children: [
                         DnChip(
                           label: 'Ekonomis',
@@ -164,7 +165,6 @@ class _FacilitiesScreenState extends State<FacilitiesScreen> {
                           onTap: () =>
                               setState(() => _economicOnly = !_economicOnly),
                         ),
-                        const SizedBox(width: AppSpacing.s2),
                         DnChip(
                           label: 'Kurang dari 2 km',
                           active: _nearbyOnly,

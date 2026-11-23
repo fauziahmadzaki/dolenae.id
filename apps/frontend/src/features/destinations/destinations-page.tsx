@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { LayoutGrid, Loader2, Plus, Rows3 } from "lucide-react";
+import { Download, LayoutGrid, Loader2, Plus, Rows3 } from "lucide-react";
 import { Button } from "~/components/ui/button";
 import {
   DataTable,
@@ -17,6 +17,7 @@ import {
 import { ApiError } from "~/lib/api/types";
 import { useAuth } from "~/features/auth/hooks/use-auth";
 import { cn } from "~/lib/cn";
+import { exportCsv } from "~/lib/export-csv";
 import type { Category, Destination } from "~/types/domain";
 import { CategoryDialog } from "./category-dialog";
 import { CategoriesGrid } from "./components/categories-grid";
@@ -28,7 +29,7 @@ import {
   useDeleteDestination,
   useDestinations,
 } from "./hooks/use-destinations";
-import { difficultyOptions, statusOptions } from "./schema";
+import { difficultyLabels, difficultyOptions, statusLabels, statusOptions } from "./schema";
 
 type Tab = "destinasi" | "kategori";
 type View = "table" | "card";
@@ -48,7 +49,7 @@ const SORT_OPTIONS: SortOption[] = [
 
 const VIEW_OPTIONS = [
   ["table", Rows3, "Tabel"],
-  ["card", LayoutGrid, "Card"],
+  ["card", LayoutGrid, "Kartu"],
 ] as const;
 
 const message = (error: unknown) =>
@@ -246,7 +247,7 @@ export default function DestinationsPage() {
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <h2 className="font-display text-2xl font-bold text-ink">
-            Destinasi & Kategori
+            Destinasi
           </h2>
           <p className="mt-1 text-sm text-body">
             Kelola katalog destinasi alam dan kategori klasifikasinya.
@@ -255,6 +256,12 @@ export default function DestinationsPage() {
         <div className="flex items-center gap-2">
           {tab === "destinasi" ? (
             <>
+              <Button variant="secondary" disabled={!list.data?.data.length} title="Ekspor halaman yang ditampilkan" onClick={() => exportCsv("destinasi.csv", [
+                ["Nama", "Provinsi", "Kesulitan", "Status", "Diperbarui"],
+                ...(list.data?.data ?? []).map((item) => [item.name, item.location.province ?? "", difficultyLabels[item.difficulty], statusLabels[item.status], item.updatedAt]),
+              ])}>
+                <Download aria-hidden className="size-4" /> Ekspor
+              </Button>
               <div
                 className="flex gap-1 rounded-lg bg-surface-2 p-1"
                 role="group"
@@ -292,9 +299,9 @@ export default function DestinationsPage() {
         </div>
       </div>
 
-      <div className="border-b border-hairline">
+      <div>
         <div
-          className="flex gap-6"
+          className="flex flex-wrap gap-2"
           role="tablist"
           aria-label="Destinasi dan kategori"
         >
@@ -309,10 +316,10 @@ export default function DestinationsPage() {
                 setNotice("");
               }}
               className={cn(
-                "-mb-px flex items-center gap-2 border-b-2 px-1 pb-3 text-sm font-semibold transition-colors",
+                "flex items-center gap-2 rounded-lg border px-3 py-2 text-sm font-semibold transition-colors",
                 tab === item.value
-                  ? "border-primary text-ink"
-                  : "border-transparent text-body hover:text-ink",
+                  ? "border-primary bg-primary text-on-primary"
+                  : "border-hairline bg-surface text-body hover:text-ink",
               )}
             >
               {item.label}

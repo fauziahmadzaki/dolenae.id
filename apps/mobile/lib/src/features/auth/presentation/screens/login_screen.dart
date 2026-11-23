@@ -149,263 +149,295 @@ class _LoginScreenState extends State<LoginScreen> {
     context.push(path);
   }
 
+  void _changeMode(bool register) {
+    if (register == _isRegister || _loading || _googleLoading) return;
+    setState(() {
+      _isRegister = register;
+      _submitted = false;
+      _errorMessage = null;
+      _confirm.clear();
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(AppSpacing.s5),
-          child: Column(
-            children: [
-              const SizedBox(height: AppSpacing.s4),
-              Container(
-                width: 56,
-                height: 56,
-                decoration: BoxDecoration(
-                  color: AppColors.primary,
-                  borderRadius: BorderRadius.circular(AppRadius.xl),
-                ),
-                child: const Icon(
-                  AppIcons.mountainSnow,
-                  size: 28,
-                  color: AppColors.onPrimary,
-                ),
+        child: CustomScrollView(
+          slivers: [
+            SliverPadding(
+              padding: const EdgeInsets.fromLTRB(
+                AppSpacing.s6,
+                AppSpacing.s8,
+                AppSpacing.s6,
+                AppSpacing.s2,
               ),
-              const SizedBox(height: AppSpacing.s3),
-              Text('Selamat datang', style: AppTextStyles.displayMd),
-              const SizedBox(height: 6),
-              Text(
-                'Masuk untuk lanjut menyiapkan perjalananmu.',
-                textAlign: TextAlign.center,
-                style: AppTextStyles.bodySm,
-              ),
-              const SizedBox(height: AppSpacing.s5),
-              if (_hasError || _errorMessage != null) ...[
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(AppSpacing.s3),
-                  decoration: BoxDecoration(
-                    color: AppColors.danger,
-                    borderRadius: BorderRadius.circular(AppRadius.lg),
-                  ),
-                  child: Row(
-                    children: [
-                      const Icon(
-                        AppIcons.alertCircle,
-                        size: 20,
-                        color: AppColors.surface,
+              sliver: SliverToBoxAdapter(
+                child: Column(
+                  children: [
+                    Container(
+                      width: 56,
+                      height: 56,
+                      decoration: BoxDecoration(
+                        color: AppColors.primary,
+                        borderRadius: BorderRadius.circular(AppRadius.xl),
                       ),
-                      const SizedBox(width: AppSpacing.s2),
-                      Expanded(
-                        child: Text(
-                          _errorMessage ??
-                              'Periksa kembali data yang kamu masukkan.',
-                          style: AppTextStyles.bodySm.copyWith(
-                            color: AppColors.surface,
+                      child: const Icon(
+                        AppIcons.mountainSnow,
+                        size: 28,
+                        color: AppColors.onPrimary,
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    Text(
+                      _isRegister ? 'Buat akun' : 'Selamat datang',
+                      style: AppTextStyles.displayMd,
+                    ),
+                    const SizedBox(height: 10),
+                    Text(
+                      _isRegister
+                          ? 'Daftar untuk mulai menyiapkan perjalananmu.'
+                          : 'Masuk untuk lanjut menyiapkan perjalananmu.',
+                      textAlign: TextAlign.center,
+                      style: AppTextStyles.bodySm,
+                    ),
+                    const SizedBox(height: AppSpacing.s6),
+                    if (_hasError || _errorMessage != null) ...[
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(AppSpacing.s3),
+                        decoration: BoxDecoration(
+                          color: AppColors.danger,
+                          borderRadius: BorderRadius.circular(AppRadius.lg),
+                        ),
+                        child: Row(
+                          children: [
+                            const Icon(
+                              AppIcons.alertCircle,
+                              size: 20,
+                              color: AppColors.surface,
+                            ),
+                            const SizedBox(width: AppSpacing.s2),
+                            Expanded(
+                              child: Text(
+                                _errorMessage ??
+                                    'Periksa kembali data yang kamu masukkan.',
+                                style: AppTextStyles.bodySm.copyWith(
+                                  color: AppColors.surface,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: AppSpacing.s4),
+                    ],
+                    _Tabs(isRegister: _isRegister, onChanged: _changeMode),
+                    const SizedBox(height: AppSpacing.s4),
+                    if (_isRegister) ...[
+                      _Field(
+                        label: 'Nama',
+                        controller: _name,
+                        hint: 'Nama lengkap',
+                        icon: AppIcons.user,
+                        error: _submitted && !_nameValid
+                            ? 'Nama minimal 2 karakter.'
+                            : null,
+                        onChanged: (_) => setState(() {}),
+                      ),
+                      const SizedBox(height: AppSpacing.s3),
+                    ],
+                    _Field(
+                      label: 'Email',
+                      controller: _email,
+                      hint: 'nama@email.com',
+                      icon: AppIcons.mail,
+                      error: _submitted && !_emailValid
+                          ? 'Masukkan email yang valid, contoh: nama@email.com'
+                          : null,
+                      onChanged: (_) => setState(() {}),
+                    ),
+                    const SizedBox(height: AppSpacing.s3),
+                    _Field(
+                      label: 'Kata sandi',
+                      controller: _password,
+                      hint: 'Minimal 8 karakter',
+                      icon: AppIcons.lock,
+                      obscure: true,
+                      error: _submitted && !_passwordValid
+                          ? 'Kata sandi minimal 8 karakter.'
+                          : null,
+                      onChanged: (_) => setState(() {}),
+                    ),
+                    if (_isRegister) ...[
+                      const SizedBox(height: AppSpacing.s3),
+                      _Field(
+                        label: 'Ulangi kata sandi',
+                        controller: _confirm,
+                        hint: 'Ketik ulang kata sandi',
+                        icon: AppIcons.lock,
+                        obscure: true,
+                        error: _submitted && !_confirmValid
+                            ? 'Konfirmasi kata sandi tidak cocok.'
+                            : null,
+                        onChanged: (_) => setState(() {}),
+                      ),
+                    ],
+                    if (!_isRegister)
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Semantics(
+                              checked: _rememberMe,
+                              label: 'Ingat saya',
+                              child: InkWell(
+                                onTap: () =>
+                                    setState(() => _rememberMe = !_rememberMe),
+                                borderRadius: BorderRadius.circular(
+                                  AppRadius.sm,
+                                ),
+                                child: ConstrainedBox(
+                                  constraints: const BoxConstraints(
+                                    minHeight: 44,
+                                  ),
+                                  child: Row(
+                                    children: [
+                                      Container(
+                                        width: 18,
+                                        height: 18,
+                                        decoration: BoxDecoration(
+                                          color: _rememberMe
+                                              ? AppColors.primary
+                                              : Colors.transparent,
+                                          borderRadius: BorderRadius.circular(
+                                            AppRadius.sm,
+                                          ),
+                                          border: Border.all(
+                                            color: _rememberMe
+                                                ? AppColors.primary
+                                                : AppColors.borderStrong,
+                                          ),
+                                        ),
+                                        child: _rememberMe
+                                            ? const Icon(
+                                                AppIcons.check,
+                                                size: 12,
+                                                color: AppColors.onPrimary,
+                                              )
+                                            : null,
+                                      ),
+                                      const SizedBox(width: AppSpacing.s2),
+                                      Flexible(
+                                        child: Text(
+                                          'Ingat saya',
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                          style: AppTextStyles.bodySm,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: AppSpacing.s2),
+                          InkWell(
+                            onTap: _openForgotPassword,
+                            borderRadius: BorderRadius.circular(AppRadius.sm),
+                            child: ConstrainedBox(
+                              constraints: const BoxConstraints(minHeight: 44),
+                              child: Center(
+                                widthFactor: 1,
+                                child: Text(
+                                  'Lupa kata sandi?',
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: AppTextStyles.label.copyWith(
+                                    color: AppColors.primary,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    const SizedBox(height: AppSpacing.s4),
+                    DnPrimaryButton(
+                      label: _loading
+                          ? (_isRegister ? 'Mendaftar…' : 'Masuk…')
+                          : (_isRegister ? 'Daftar' : 'Masuk'),
+                      onPressed: _loading ? null : _submit,
+                    ),
+                    const SizedBox(height: AppSpacing.s4),
+                    Row(
+                      children: [
+                        const Expanded(child: Divider()),
+                        Padding(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: AppSpacing.s3,
+                          ),
+                          child: Text(
+                            'atau lanjut dengan',
+                            style: AppTextStyles.caption,
+                          ),
+                        ),
+                        const Expanded(child: Divider()),
+                      ],
+                    ),
+                    const SizedBox(height: AppSpacing.s4),
+                    SizedBox(
+                      height: 48,
+                      width: double.infinity,
+                      child: OutlinedButton.icon(
+                        onPressed: _googleLoading ? null : _signInWithGoogle,
+                        style: OutlinedButton.styleFrom(
+                          backgroundColor: AppColors.surface,
+                          foregroundColor: AppColors.ink,
+                          side: const BorderSide(color: AppColors.borderStrong),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(AppRadius.lg),
+                          ),
+                        ),
+                        icon: const DnGoogleLogo(size: 20),
+                        label: Text(
+                          _googleLoading ? 'Menghubungkan…' : 'Google',
+                          style: const TextStyle(
+                            fontSize: 14,
                             fontWeight: FontWeight.w600,
                           ),
                         ),
                       ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: AppSpacing.s4),
-              ],
-              _Tabs(
-                isRegister: _isRegister,
-                onChanged: (value) => setState(() {
-                  _isRegister = value;
-                  _errorMessage = null;
-                  _confirm.clear();
-                }),
-              ),
-              const SizedBox(height: AppSpacing.s4),
-              if (_isRegister) ...[
-                _Field(
-                  label: 'Nama',
-                  controller: _name,
-                  hint: 'Nama lengkap',
-                  icon: AppIcons.user,
-                  error: _submitted && !_nameValid
-                      ? 'Nama minimal 2 karakter.'
-                      : null,
-                  onChanged: (_) => setState(() {}),
-                ),
-                const SizedBox(height: AppSpacing.s3),
-              ],
-              _Field(
-                label: 'Email',
-                controller: _email,
-                hint: 'nama@email.com',
-                icon: AppIcons.mail,
-                error: _submitted && !_emailValid
-                    ? 'Masukkan email yang valid, contoh: nama@email.com'
-                    : null,
-                onChanged: (_) => setState(() {}),
-              ),
-              const SizedBox(height: AppSpacing.s3),
-              _Field(
-                label: 'Kata sandi',
-                controller: _password,
-                hint: 'Minimal 8 karakter',
-                icon: AppIcons.lock,
-                obscure: true,
-                error: _submitted && !_passwordValid
-                    ? 'Kata sandi minimal 8 karakter.'
-                    : null,
-                onChanged: (_) => setState(() {}),
-              ),
-              if (_isRegister) ...[
-                const SizedBox(height: AppSpacing.s3),
-                _Field(
-                  label: 'Ulangi kata sandi',
-                  controller: _confirm,
-                  hint: 'Ketik ulang kata sandi',
-                  icon: AppIcons.lock,
-                  obscure: true,
-                  error: _submitted && !_confirmValid
-                      ? 'Konfirmasi kata sandi tidak cocok.'
-                      : null,
-                  onChanged: (_) => setState(() {}),
-                ),
-              ],
-              const SizedBox(height: AppSpacing.s3),
-              Row(
-                children: [
-                  Expanded(
-                    child: Semantics(
-                      checked: _rememberMe,
-                      label: 'Ingat saya',
-                      child: InkWell(
-                        onTap: () => setState(() => _rememberMe = !_rememberMe),
-                        borderRadius: BorderRadius.circular(AppRadius.sm),
-                        child: ConstrainedBox(
-                          constraints: const BoxConstraints(minHeight: 44),
-                          child: Row(
-                            children: [
-                              Container(
-                                width: 18,
-                                height: 18,
-                                decoration: BoxDecoration(
-                                  color: _rememberMe
-                                      ? AppColors.primary
-                                      : Colors.transparent,
-                                  borderRadius: BorderRadius.circular(
-                                    AppRadius.sm,
-                                  ),
-                                  border: Border.all(
-                                    color: _rememberMe
-                                        ? AppColors.primary
-                                        : AppColors.borderStrong,
-                                  ),
-                                ),
-                                child: _rememberMe
-                                    ? const Icon(
-                                        AppIcons.check,
-                                        size: 12,
-                                        color: AppColors.onPrimary,
-                                      )
-                                    : null,
-                              ),
-                              const SizedBox(width: AppSpacing.s2),
-                              Flexible(
-                                child: Text(
-                                  'Ingat saya',
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: AppTextStyles.bodySm,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
                     ),
-                  ),
-                  const SizedBox(width: AppSpacing.s2),
-                  InkWell(
-                    onTap: _openForgotPassword,
-                    borderRadius: BorderRadius.circular(AppRadius.sm),
-                    child: ConstrainedBox(
-                      constraints: const BoxConstraints(minHeight: 44),
-                      child: Center(
-                        widthFactor: 1,
-                        child: Text(
-                          'Lupa kata sandi?',
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: AppTextStyles.label.copyWith(
-                            color: AppColors.primary,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: AppSpacing.s4),
-              DnPrimaryButton(
-                label: _loading
-                    ? (_isRegister ? 'Mendaftar…' : 'Masuk…')
-                    : (_isRegister ? 'Daftar' : 'Masuk'),
-                onPressed: _loading ? null : _submit,
-              ),
-              const SizedBox(height: AppSpacing.s4),
-              Row(
-                children: [
-                  const Expanded(child: Divider()),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: AppSpacing.s3,
-                    ),
-                    child: Text(
-                      'atau lanjut dengan',
-                      style: AppTextStyles.caption,
-                    ),
-                  ),
-                  const Expanded(child: Divider()),
-                ],
-              ),
-              const SizedBox(height: AppSpacing.s4),
-              SizedBox(
-                height: 48,
-                width: double.infinity,
-                child: OutlinedButton.icon(
-                  onPressed: _googleLoading ? null : _signInWithGoogle,
-                  style: OutlinedButton.styleFrom(
-                    backgroundColor: AppColors.surface,
-                    foregroundColor: AppColors.ink,
-                    side: const BorderSide(color: AppColors.borderStrong),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(AppRadius.lg),
-                    ),
-                  ),
-                  icon: const DnGoogleLogo(size: 20),
-                  label: Text(
-                    _googleLoading ? 'Menghubungkan…' : 'Google',
-                    style: const TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
+                  ],
                 ),
               ),
-              const SizedBox(height: AppSpacing.s5),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text('Belum punya akun? ', style: AppTextStyles.bodySm),
-                  Text(
-                    'Daftar',
-                    style: AppTextStyles.label.copyWith(
-                      color: AppColors.primary,
+            ),
+            SliverFillRemaining(
+              hasScrollBody: false,
+              child: Align(
+                alignment: Alignment.bottomCenter,
+                child: Wrap(
+                  alignment: WrapAlignment.center,
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  children: [
+                    Text(
+                      _isRegister ? 'Sudah punya akun?' : 'Belum punya akun?',
+                      style: AppTextStyles.bodySm,
                     ),
-                  ),
-                ],
+                    TextButton(
+                      key: const Key('auth-switch-mode'),
+                      onPressed: _loading || _googleLoading
+                          ? null
+                          : () => _changeMode(!_isRegister),
+                      child: Text(_isRegister ? 'Masuk' : 'Daftar'),
+                    ),
+                  ],
+                ),
               ),
-              const SizedBox(height: AppSpacing.s5),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );

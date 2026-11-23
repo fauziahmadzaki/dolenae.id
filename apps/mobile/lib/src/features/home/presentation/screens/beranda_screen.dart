@@ -20,9 +20,11 @@ import 'package:dolenae_mobile/src/shared/widgets/dn_activity_tile.dart';
 import 'package:dolenae_mobile/src/shared/widgets/dn_ai_card.dart';
 import 'package:dolenae_mobile/src/shared/widgets/dn_bottom_nav.dart';
 import 'package:dolenae_mobile/src/shared/widgets/dn_buttons.dart';
+import 'package:dolenae_mobile/src/shared/widgets/dn_card.dart';
 import 'package:dolenae_mobile/src/shared/widgets/dn_empty_state.dart';
 import 'package:dolenae_mobile/src/shared/widgets/dn_destination_card.dart';
 import 'package:dolenae_mobile/src/shared/widgets/dn_email_verification_banner.dart';
+import 'package:dolenae_mobile/src/shared/widgets/dn_menu_row.dart';
 import 'package:dolenae_mobile/src/shared/widgets/dn_recommendation_card.dart';
 import 'package:dolenae_mobile/src/shared/widgets/dn_search_field.dart';
 import 'package:dolenae_mobile/src/shared/widgets/dn_section_header.dart';
@@ -139,20 +141,24 @@ class _BerandaScreenState extends State<BerandaScreen> {
                         _recommendations(context, destinations)
                       else ...[
                         Padding(
-                          padding: const EdgeInsets.all(AppSpacing.s4),
+                          padding: const EdgeInsets.fromLTRB(
+                            AppSpacing.s4,
+                            AppSpacing.s3,
+                            AppSpacing.s4,
+                            0,
+                          ),
                           child: DnAiCard(
                             title: 'Siapkan perjalananmu dengan AI',
                             body: 'Ceritakan rencanamu, Dolenae menyusun checklist dan gambaran kondisi perjalanan.',
-                            ctaLabel: 'Mulai dengan AI',
                             onPressed: () => context.go('/ai/preferences'),
                           ),
                         ),
                         _popular(context, destinations, destinationsController),
                         _activities(),
                         _supports(context),
+                        _help(context),
                         _ctaBand(context),
                       ],
-                      const SizedBox(height: AppSpacing.s6),
                     ],
                   ],
                 ),
@@ -433,25 +439,84 @@ class _BerandaScreenState extends State<BerandaScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Padding(
-            padding: EdgeInsets.symmetric(horizontal: AppSpacing.s4),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.s4),
             child: DnSectionHeader(
-              title: 'Berbagai Fasilitas',
-              actionLabel: 'Lihat semua',
+              title: 'Fasilitas sekitar',
+              actionLabel: supports.isEmpty ? null : 'Lihat semua',
+              onAction: supports.isEmpty
+                  ? null
+                  : () => context.push(
+                      '/destinations/${Uri.encodeComponent(supports.first.destinationId)}/facilities',
+                    ),
             ),
           ),
           const SizedBox(height: AppSpacing.s3),
-          SizedBox(
-            height: 176,
-            child: ListView.separated(
-              scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.s4),
-              itemCount: supports.length,
-              separatorBuilder: (_, _) => const SizedBox(width: AppSpacing.s3),
-              itemBuilder: (_, i) => DnSupportCard(support: supports[i]),
+          if (supports.isNotEmpty)
+            SizedBox(
+              height:
+                  142 +
+                  (MediaQuery.textScalerOf(context).scale(14) - 14)
+                          .clamp(0, 90)
+                          .toDouble() *
+                      3,
+              child: ListView.separated(
+                scrollDirection: Axis.horizontal,
+                padding: const EdgeInsets.symmetric(horizontal: AppSpacing.s4),
+                itemCount: supports.length,
+                separatorBuilder: (_, _) =>
+                    const SizedBox(width: AppSpacing.s3),
+                itemBuilder: (_, i) => DnSupportCard(
+                  support: supports[i],
+                  onTap: () => context.push(
+                    '/facilities/${Uri.encodeComponent(supports[i].id)}',
+                  ),
+                ),
+              ),
             ),
-          ),
         ],
+      ),
+    );
+  }
+
+  Widget _help(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(
+        AppSpacing.s4,
+        AppSpacing.s6,
+        AppSpacing.s4,
+        0,
+      ),
+      child: DnCard(
+        radius: AppRadius.xl,
+        padding: EdgeInsets.zero,
+        child: Column(
+          children: [
+            DnMenuRow(
+              icon: AppIcons.helpCircle,
+              label: 'Bantuan & FAQ',
+              onTap: () => context.push('/settings/faq'),
+            ),
+            const Divider(height: 1, color: AppColors.hairline),
+            DnMenuRow(
+              icon: AppIcons.messageSquare,
+              label: 'Kirim masukan',
+              onTap: () => context.push('/settings/feedback'),
+            ),
+            const Divider(height: 1, color: AppColors.hairline),
+            DnMenuRow(
+              icon: AppIcons.info,
+              label: 'Tentang Dolenae.id',
+              onTap: () => showAboutDialog(
+                context: context,
+                applicationName: 'Dolenae.id',
+                children: const [
+                  Text('Temukan destinasi alam dan siapkan perjalananmu.'),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -459,7 +524,7 @@ class _BerandaScreenState extends State<BerandaScreen> {
   Widget _ctaBand(BuildContext context) {
     return Container(
       width: double.infinity,
-      margin: const EdgeInsets.only(top: AppSpacing.s5),
+      margin: const EdgeInsets.only(top: AppSpacing.s3),
       padding: const EdgeInsets.all(AppSpacing.s6),
       color: AppColors.primary,
       child: Column(
@@ -514,25 +579,15 @@ class _Header extends StatelessWidget {
           height: 56,
           child: Row(
             children: [
-              Container(
-                width: 32,
-                height: 32,
-                decoration: BoxDecoration(
-                  color: AppColors.primaryHover,
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: const Icon(
-                  AppIcons.mountainSnow,
-                  size: 18,
-                  color: AppColors.onPrimary,
-                ),
+              const Icon(
+                AppIcons.mountainSnow,
+                size: 20,
+                color: AppColors.onPrimary,
               ),
               const SizedBox(width: AppSpacing.s2 + 2),
               Text(
                 'Dolenae.id',
-                style: AppTextStyles.titleSm.copyWith(
-                  color: AppColors.onPrimary,
-                ),
+                style: AppTextStyles.title.copyWith(color: AppColors.onPrimary),
               ),
               const Spacer(),
               const _NotificationBell(),

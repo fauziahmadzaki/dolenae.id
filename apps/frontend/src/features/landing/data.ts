@@ -4,7 +4,7 @@ export interface NavItem {
 }
 
 export const navItems: NavItem[] = [
-  { label: "Destinasi", href: "/#destinations" },
+  { label: "Destinasi", href: "/destinations" },
   { label: "Fasilitas Sekitar", href: "/#support" },
   { label: "Persiapan AI", href: "/#ai" },
   { label: "Jadi Mitra", href: "/mitra" },
@@ -12,14 +12,6 @@ export const navItems: NavItem[] = [
 ];
 
 export const heroChips = ["Gunung", "Bukit", "Camping", "Sunrise"];
-
-export const filters = [
-  "Semuanya",
-  "Ramah Pemula",
-  "Area Camping",
-  "Spot Sunrise",
-  "Transport Mudah",
-];
 
 export type Difficulty = "Ramah pemula" | "Menengah" | "Sulit";
 
@@ -29,7 +21,6 @@ export interface Destination {
   meta: string;
   price: string;
   tag: string;
-  seed: string;
 }
 
 export const destinations: Destination[] = [
@@ -39,7 +30,6 @@ export const destinations: Destination[] = [
     meta: "2.329 mdpl · Probolinggo",
     price: "Rp 29.000",
     tag: "Surga sunrise",
-    seed: "bromo",
   },
   {
     name: "Gunung Prau",
@@ -47,7 +37,6 @@ export const destinations: Destination[] = [
     meta: "2.565 mdpl · Wonosobo",
     price: "Rp 25.000",
     tag: "Camping Dieng",
-    seed: "prau",
   },
   {
     name: "Gunung Papandayan",
@@ -55,7 +44,6 @@ export const destinations: Destination[] = [
     meta: "2.665 mdpl · Garut",
     price: "Rp 30.000",
     tag: "Savana Tegal Alun",
-    seed: "papandayan",
   },
 ];
 

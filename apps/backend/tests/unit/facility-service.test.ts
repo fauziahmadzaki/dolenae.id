@@ -89,6 +89,19 @@ beforeEach(() => {
   vi.mocked(facilityProductRepository.listByFacility).mockResolvedValue([]);
 });
 
+describe("FacilityService verification queue", () => {
+  it("applies pending status and server-side search without scoping admin to one owner", async () => {
+    vi.mocked(facilityRepository.list).mockResolvedValue({ items: [facilityRow], total: 1 });
+    const result = await facilityService.listMine(admin, {
+      status: "pending", search: "Gunung", sort: "createdAt", order: "desc", page: 2, limit: 10,
+    });
+    expect(facilityRepository.list).toHaveBeenCalledWith(expect.objectContaining({
+      statuses: ["pending"], ownerId: undefined, search: "Gunung", sort: "createdAt", order: "desc", offset: 10,
+    }));
+    expect(result.items[0]?.status).toBe("pending");
+  });
+});
+
 describe("FacilityService geofence", () => {
   it("accepts a merchant facility within 20 km and marks it pending", async () => {
     const result = await facilityService.create(merchant, body());

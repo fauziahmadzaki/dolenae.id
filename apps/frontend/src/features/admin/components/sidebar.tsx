@@ -31,8 +31,9 @@ export interface NavItem {
 export const ADMIN_NAV_MAIN: NavItem[] = [
   { label: "Dashboard", href: "/admin", icon: LayoutDashboard, exact: true },
   { label: "Destinasi", href: "/admin/destinasi", icon: Mountain },
-  { label: "Fasilitas", href: "/admin/fasilitas", icon: BadgeCheck },
+  { label: "Verifikasi", href: "/admin/verifikasi", icon: BadgeCheck },
   { label: "Merchant", href: "/admin/merchant", icon: Store },
+  { label: "Fasilitas", href: "/admin/fasilitas", icon: BadgeCheck },
   { label: "Konten", href: "/admin/konten", icon: FileText },
 ];
 
@@ -70,9 +71,9 @@ function NavList({ items, onClose }: { items: NavItem[]; onClose?: () => void })
             onClick={onClose}
             aria-current={isActive ? "page" : undefined}
             className={cn(
-              "flex h-[33px] items-center gap-2.5 rounded-lg px-3 text-sm transition-colors",
+              "flex h-10 items-center gap-2.5 rounded-xl px-3 text-sm transition-colors",
               isActive
-                ? "bg-surface-2 font-semibold text-ink"
+                ? "bg-primary font-semibold text-on-primary"
                 : "text-body hover:bg-canvas-subtle hover:text-ink",
             )}
           >
@@ -113,11 +114,11 @@ export function Sidebar({
   return (
     <aside className="flex h-full w-64 flex-col border-r border-hairline bg-surface px-4 py-4">
       <div className="flex items-center gap-2.5">
-        <BrandMark size={32} />
-        <span className="text-[18px] font-bold text-ink">Dolenae.id</span>
-        <span className="rounded-full bg-surface-2 px-2 py-0.5 text-[11px] font-semibold text-body">
-          {roleLabel}
-        </span>
+        <BrandMark size={36} rounded="rounded-full" />
+        <div>
+          <p className="text-[17px] leading-5 font-bold text-ink">Dolenae.id</p>
+          <p className="text-[11px] text-body">Panel {roleLabel}</p>
+        </div>
       </div>
 
       <div className="mt-5 space-y-6">

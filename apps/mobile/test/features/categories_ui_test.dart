@@ -63,7 +63,7 @@ void main() {
       await tester.tap(find.text('Semuanya'));
       await tester.pumpAndSettle();
       expect(stores.search.searchFilter.categoryId, '');
-      expect(find.text('DESTINASI DISARANKAN'), findsOneWidget);
+      expect(find.text('Urutkan: Populer'), findsOneWidget);
     },
   );
 }

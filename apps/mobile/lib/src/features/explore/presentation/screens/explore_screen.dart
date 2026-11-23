@@ -23,9 +23,7 @@ import 'package:dolenae_mobile/src/shared/widgets/dn_search_field.dart';
 
 /// Jelajah dan pencarian destinasi dalam satu halaman (Node Figma: 65:389).
 ///
-/// Tidak ada layar pencarian terpisah: field cari duduk di bawah AppBar dan isi
-/// di bawahnya berganti antara tiga state, yaitu rekomendasi (belum mengetik),
-/// hasil (ada kueri yang cocok), dan kosong (tidak ada yang cocok).
+/// Katalog dan pencarian berbagi layar. Saran muncul saat kolom cari difokuskan.
 class ExploreScreen extends StatefulWidget {
   const ExploreScreen({
     super.key,
@@ -57,6 +55,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
   static const _pageSize = 6;
 
   final _scrollController = ScrollController();
+  bool _searchFocused = false;
   String _selectedCategory = 'Semuanya';
   int _visibleCount = _pageSize;
   int _resultCount = 0;
@@ -209,7 +208,11 @@ class _ExploreScreenState extends State<ExploreScreen> {
     final store = context.watch<ExploreController>();
     final catalog = context.watch<DestinationsController>().items;
     final hasQuery = store.hasActiveQuery;
-    final hasSelection = store.searchFilter.categoryId.isNotEmpty;
+    final showSuggestions =
+        _searchFocused &&
+        !hasQuery &&
+        !store.searchFilter.isFiltered &&
+        _selectedCategory == 'Semuanya';
     final results = _byCategory(store.resultsFor(catalog));
     final signature = [
       store.searchFilter.query,
@@ -255,53 +258,60 @@ class _ExploreScreenState extends State<ExploreScreen> {
                             AppSpacing.s4,
                             0,
                           ),
-                          child: DnSearchField(
-                            hint: 'Mau ke mana?',
-                            value: store.searchFilter.query,
-                            focused: hasQuery,
-                            trailing: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                if (hasQuery)
+                          child: Focus(
+                            onFocusChange: (focused) {
+                              if (mounted) {
+                                setState(() => _searchFocused = focused);
+                              }
+                            },
+                            child: DnSearchField(
+                              hint: 'Cari destinasi, gunung, atau aktivitas',
+                              value: store.searchFilter.query,
+                              focused: _searchFocused || hasQuery,
+                              trailing: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  if (hasQuery)
+                                    GestureDetector(
+                                      onTap: () => _clear(store),
+                                      child: const Padding(
+                                        padding: EdgeInsets.all(4),
+                                        child: Icon(
+                                          AppIcons.close,
+                                          size: 16,
+                                          color: AppColors.body,
+                                        ),
+                                      ),
+                                    ),
                                   GestureDetector(
-                                    onTap: () => _clear(store),
-                                    child: const Padding(
-                                      padding: EdgeInsets.all(4),
+                                    onTap: () => _openFilter(store),
+                                    child: Container(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: AppSpacing.s2,
+                                        vertical: AppSpacing.s1,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        color: hasQuery
+                                            ? AppColors.primary
+                                            : AppColors.canvasSubtle,
+                                        borderRadius: BorderRadius.circular(
+                                          AppRadius.md,
+                                        ),
+                                      ),
                                       child: Icon(
-                                        AppIcons.close,
+                                        AppIcons.slidersHorizontal,
                                         size: 16,
-                                        color: AppColors.body,
+                                        color: hasQuery
+                                            ? AppColors.onPrimary
+                                            : AppColors.body,
                                       ),
                                     ),
                                   ),
-                                GestureDetector(
-                                  onTap: () => _openFilter(store),
-                                  child: Container(
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: AppSpacing.s2,
-                                      vertical: AppSpacing.s1,
-                                    ),
-                                    decoration: BoxDecoration(
-                                      color: hasQuery
-                                          ? AppColors.primary
-                                          : AppColors.canvasSubtle,
-                                      borderRadius: BorderRadius.circular(
-                                        AppRadius.md,
-                                      ),
-                                    ),
-                                    child: Icon(
-                                      AppIcons.slidersHorizontal,
-                                      size: 16,
-                                      color: hasQuery
-                                          ? AppColors.onPrimary
-                                          : AppColors.body,
-                                    ),
-                                  ),
-                                ),
-                              ],
+                                ],
+                              ),
+                              onChanged: (value) => _onChanged(value, store),
+                              onSubmitted: (value) => _commit(value, store),
                             ),
-                            onChanged: (value) => _onChanged(value, store),
-                            onSubmitted: (value) => _commit(value, store),
                           ),
                         ),
                         _buildCategoryFilters(store),
@@ -321,7 +331,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
                             },
                       ),
                     )
-                  else if (!hasQuery && !hasSelection)
+                  else if (showSuggestions)
                     SliverToBoxAdapter(
                       child: _RecommendationPanels(
                         store: store,
@@ -341,7 +351,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
                       ),
                     )
                   else ...[
-                    SliverToBoxAdapter(child: _buildFilters()),
+                    if (hasQuery) SliverToBoxAdapter(child: _buildFilters()),
                     SliverToBoxAdapter(
                       child: Padding(
                         padding: const EdgeInsets.fromLTRB(
@@ -350,11 +360,28 @@ class _ExploreScreenState extends State<ExploreScreen> {
                           AppSpacing.s4,
                           0,
                         ),
-                        child: Text(
-                          '${results.length} hasil · '
-                          'Urutkan: ${store.searchFilter.sortLabel}',
-                          style: AppTextStyles.caption,
-                        ),
+                        child: hasQuery
+                            ? Text(
+                                '${results.length} hasil · '
+                                'Urutkan: ${store.searchFilter.sortLabel}',
+                                style: AppTextStyles.caption,
+                              )
+                            : Row(
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Text(
+                                    '${results.length} destinasi',
+                                    style: AppTextStyles.caption,
+                                  ),
+                                  TextButton(
+                                    onPressed: () => _openFilter(store),
+                                    child: Text(
+                                      'Urutkan: ${store.searchFilter.sortShortLabel}',
+                                    ),
+                                  ),
+                                ],
+                              ),
                       ),
                     ),
                     const SliverToBoxAdapter(
@@ -370,9 +397,10 @@ class _ExploreScreenState extends State<ExploreScreen> {
                             AppSpacing.s4,
                             AppSpacing.s3,
                           ),
-                          child: DnDestinationCard(
+                          child: DnDestinationListTile(
                             key: ValueKey('explore-card-${destination.id}'),
                             destination: destination,
+                            compact: hasQuery,
                             onTap: () =>
                                 context.push('/destination/${destination.id}'),
                           ),
@@ -408,12 +436,26 @@ class _ExploreScreenState extends State<ExploreScreen> {
           children: [
             DnChip(
               label: 'Semuanya',
-              active: store.searchFilter.categoryId.isEmpty,
+              active:
+                  store.searchFilter.categoryId.isEmpty &&
+                  _selectedCategory == 'Semuanya',
               onTap: () {
                 store.setCategoryId('');
                 setState(() => _selectedCategory = 'Semuanya');
               },
             ),
+            if (!store.hasActiveQuery)
+              Padding(
+                padding: const EdgeInsets.only(left: AppSpacing.s2),
+                child: DnChip(
+                  label: 'Ramah Pemula',
+                  active: _selectedCategory == 'Ramah Pemula',
+                  onTap: () {
+                    store.setCategoryId('');
+                    setState(() => _selectedCategory = 'Ramah Pemula');
+                  },
+                ),
+              ),
             for (final item in items)
               Padding(
                 padding: const EdgeInsets.only(left: AppSpacing.s2),
@@ -424,11 +466,14 @@ class _ExploreScreenState extends State<ExploreScreen> {
                       store.searchFilter.categoryId == item.id,
                   onTap: item.id.isEmpty
                       ? null
-                      : () => store.setCategoryId(
-                          store.searchFilter.categoryId == item.id
-                              ? ''
-                              : item.id,
-                        ),
+                      : () {
+                          store.setCategoryId(
+                            store.searchFilter.categoryId == item.id
+                                ? ''
+                                : item.id,
+                          );
+                          setState(() => _selectedCategory = 'Semuanya');
+                        },
                 ),
               ),
           ],

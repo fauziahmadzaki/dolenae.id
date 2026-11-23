@@ -29,6 +29,10 @@ export const ADMIN_PAGE_META: Record<string, TopbarMeta> = {
     breadcrumb: "Admin / Fasilitas",
     title: "Verifikasi fasilitas",
   },
+  "/admin/verifikasi": { breadcrumb: "Admin / Verifikasi", title: "Verifikasi" },
+  "/admin/pengaturan/integrasi": { breadcrumb: "Admin / Pengaturan", title: "Integrasi AI" },
+  "/admin/merchant": { breadcrumb: "Admin / Merchant", title: "Merchant" },
+  "/admin/users": { breadcrumb: "Admin / Pengguna", title: "Pengguna" },
 };
 
 function pageMeta(
@@ -61,9 +65,10 @@ export function Topbar({
   const pathname = usePathname();
   const { user } = useAuth();
   const { breadcrumb, title } = pageMeta(pathname, section, meta);
+  const dashboard = pathname === "/admin";
 
   return (
-    <header className="flex h-16 shrink-0 items-center justify-between border-b border-hairline bg-surface px-4 md:px-8">
+    <header className="flex h-[76px] shrink-0 items-center gap-4 bg-canvas px-4 md:px-6">
       <div className="flex min-w-0 items-center gap-3">
         <button
           type="button"
@@ -73,14 +78,13 @@ export function Topbar({
         >
           <Menu aria-hidden className="h-5 w-5" />
         </button>
-        <div className="min-w-0">
+        <div className={dashboard ? "min-w-0 lg:sr-only" : "min-w-0"}>
           <p className="truncate text-xs text-body">{breadcrumb}</p>
           <h1 className="truncate text-[18px] font-bold text-ink">{title}</h1>
         </div>
       </div>
 
-      <div className="flex shrink-0 items-center gap-3">
-        <label className="relative hidden h-9 w-60 items-center gap-2 rounded-lg bg-surface-2 px-3 md:flex">
+      <label className="hidden h-11 w-full max-w-[420px] min-w-0 items-center gap-2.5 rounded-full border border-hairline bg-surface px-4 focus-within:ring-2 focus-within:ring-primary/25 md:flex">
           <Search aria-hidden className="h-4 w-4 shrink-0 text-body" />
           <span className="sr-only">{searchPlaceholder}</span>
           {/* TODO(SCRUM+): wire global search. */}
@@ -89,17 +93,24 @@ export function Topbar({
             placeholder={searchPlaceholder}
             className="w-full bg-transparent text-[13px] text-ink placeholder:text-body focus:outline-none"
           />
-        </label>
+      </label>
 
+      <div className="ml-auto flex shrink-0 items-center gap-3">
         <button
           type="button"
           aria-label="Notifikasi"
-          className="inline-flex h-9 w-9 items-center justify-center rounded-lg bg-surface-2 text-body transition-colors hover:text-ink"
+          className="inline-flex size-11 items-center justify-center rounded-full border border-hairline bg-surface text-ink transition-colors hover:bg-canvas-subtle"
         >
           <Bell aria-hidden className="h-[18px] w-[18px]" />
         </button>
 
-        <UserAvatar name={user?.name ?? "Admin Dolenae"} />
+        <div className="flex items-center gap-2.5">
+          <UserAvatar name={user?.name ?? section} className="size-10" />
+          <div className="hidden max-w-44 lg:block">
+            <p className="truncate text-sm font-semibold text-ink">{user?.name ?? section}</p>
+            <p className="text-xs text-body">{section}</p>
+          </div>
+        </div>
       </div>
     </header>
   );

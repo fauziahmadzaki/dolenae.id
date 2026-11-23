@@ -231,11 +231,16 @@ void main() {
   });
 
   group('Pencarian di Jelajah', () {
-    testWidgets('kondisi awal menampilkan riwayat dan pencarian populer', (
+    testWidgets('katalog beralih ke saran ketika kolom pencarian difokuskan', (
       tester,
     ) async {
       await usePhone(tester);
       await tester.pumpWidget(wrapScreen(const ExploreScreen()));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(DnDestinationListTile), findsWidgets);
+      expect(find.text('RIWAYAT PENCARIAN'), findsNothing);
+      await tester.tap(find.byType(TextField));
       await tester.pumpAndSettle();
 
       expect(find.text('RIWAYAT PENCARIAN'), findsOneWidget);
@@ -264,7 +269,7 @@ void main() {
     });
 
     testWidgets(
-      'infinite scroll memakai kartu Beranda dan memuat halaman berikutnya',
+      'infinite scroll memakai kartu horizontal dan memuat halaman berikutnya',
       (tester) async {
         await usePhone(tester);
         final many = <Destination>[
@@ -291,7 +296,7 @@ void main() {
         await tester.pumpAndSettle();
 
         expect(find.text('10 hasil · Urutkan: Paling populer'), findsOneWidget);
-        expect(find.byType(DnDestinationCard), findsWidgets);
+        expect(find.byType(DnDestinationListTile), findsWidgets);
         expect(find.text('Destinasi Uji 9'), findsNothing);
 
         await tester.scrollUntilVisible(
@@ -351,6 +356,8 @@ void main() {
       await tester.pumpWidget(wrapScreen(const ExploreScreen(), store: store));
       await tester.pumpAndSettle();
 
+      await tester.tap(find.byType(TextField));
+      await tester.pumpAndSettle();
       final target = store.search.searchHistory.last;
       await tester.tap(find.text(target));
       await tester.pumpAndSettle();
@@ -365,6 +372,8 @@ void main() {
       await tester.pumpWidget(wrapScreen(const ExploreScreen(), store: store));
       await tester.pumpAndSettle();
 
+      await tester.tap(find.byType(TextField));
+      await tester.pumpAndSettle();
       await tester.tap(find.text('Hapus riwayat'));
       await tester.pumpAndSettle();
 

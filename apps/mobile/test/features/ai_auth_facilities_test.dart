@@ -359,11 +359,11 @@ void main() {
       await tester.pumpWidget(wrapScreen(const FacilitiesScreen()));
       await tester.pumpAndSettle();
 
-      expect(find.text('Berbagai Fasilitas'), findsOneWidget);
+      expect(find.text('Fasilitas Sekitar'), findsOneWidget);
       expect(find.text('Semua'), findsOneWidget);
       expect(find.text('Penginapan'), findsOneWidget);
       expect(find.text('Transport'), findsOneWidget);
-      expect(find.text('Toko/Warung'), findsOneWidget);
+      expect(find.text('Makanan'), findsOneWidget);
       expect(find.text('Usulkan fasilitas'), findsOneWidget);
     });
 

@@ -24,6 +24,7 @@ import {
 
 interface UserDialogProps {
   mode: UserMode;
+  initialRole?: UserForm["role"];
   token: string;
   onClose: () => void;
   onSaved: (message: string) => void;
@@ -52,6 +53,7 @@ const message = (error: unknown) =>
 
 export function UserDialog({
   mode,
+  initialRole,
   token,
   onClose,
   onSaved,
@@ -62,7 +64,7 @@ export function UserDialog({
     defaultValues: {
       name: user?.name ?? "",
       email: user?.email ?? "",
-      role: user?.role ?? "wisatawan",
+      role: user?.role ?? initialRole ?? "wisatawan",
       password: "",
     },
   });

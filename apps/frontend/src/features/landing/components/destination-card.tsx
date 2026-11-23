@@ -1,22 +1,16 @@
-import { MapPin } from "lucide-react";
+import { MountainSnow } from "lucide-react";
 import { cn } from "~/lib/cn";
 import { difficultyStyles, type Destination } from "~/features/landing/data";
 
 export function DestinationCard({ destination: d }: { destination: Destination }) {
   return (
     <article className="overflow-hidden rounded-xl border border-hairline bg-canvas-subtle shadow-sm">
-      <div className="h-52 w-full overflow-hidden bg-canvas-subtle">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          src={`https://picsum.photos/seed/${d.seed}/800/600`}
-          alt={d.name}
-          className="h-full w-full object-cover"
-          loading="lazy"
-        />
+      <div className="flex h-[200px] items-center justify-center bg-canvas">
+        <MountainSnow aria-hidden className="size-10 text-primary" strokeWidth={1.5} />
       </div>
       <div className="flex flex-col gap-2 p-5">
         <div className="flex items-center justify-between gap-3">
-          <h3 className="font-display text-lg font-bold text-ink">{d.name}</h3>
+          <h3 className="font-display text-xl leading-7 font-bold text-ink">{d.name}</h3>
           <span
             className={cn(
               "shrink-0 rounded-full px-3 py-1 text-xs font-semibold",
@@ -26,13 +20,10 @@ export function DestinationCard({ destination: d }: { destination: Destination }
             {d.difficulty}
           </span>
         </div>
-        <p className="flex items-center gap-1.5 text-sm text-body">
-          <MapPin className="h-4 w-4" />
-          {d.meta}
-        </p>
+        <p className="text-sm text-body">{d.meta}</p>
         <div className="mt-1 flex items-center justify-between">
           <span className="text-sm font-semibold text-ink">{d.price}</span>
-          <span className="rounded-full bg-canvas-subtle px-3 py-1 text-xs font-medium text-body">
+          <span className="text-xs text-body">
             {d.tag}
           </span>
         </div>

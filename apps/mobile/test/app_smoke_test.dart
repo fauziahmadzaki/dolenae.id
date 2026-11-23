@@ -43,10 +43,21 @@ void main() {
     expect(find.text('Dolenae.id'), findsOneWidget);
   });
 
-  testWidgets('Onboarding menampilkan CTA', (tester) async {
+  testWidgets('Onboarding menampilkan tiga langkah dan CTA terakhir', (
+    tester,
+  ) async {
     await tester.binding.setSurfaceSize(_phone);
     addTearDown(() => tester.binding.setSurfaceSize(null));
     await tester.pumpWidget(wrapScreen(const OnboardingScreen()));
+    expect(find.text('PERJALANAN ALAM'), findsOneWidget);
+    await tester.ensureVisible(find.text('Lanjut'));
+    await tester.tap(find.text('Lanjut'));
+    await tester.pumpAndSettle();
+    expect(find.text('RENCANAKAN PERJALANAN'), findsOneWidget);
+    await tester.ensureVisible(find.text('Lanjut'));
+    await tester.tap(find.text('Lanjut'));
+    await tester.pumpAndSettle();
+    expect(find.text('PERSIAPAN MATANG'), findsOneWidget);
     expect(find.text('Mulai Jelajah'), findsOneWidget);
     expect(find.text('Lewati'), findsOneWidget);
   });
@@ -77,8 +88,8 @@ void main() {
     await tester.pumpWidget(wrapScreen(const BerandaScreen()));
     await tester.pumpAndSettle();
 
-    await scrollTo(tester, find.text('Berbagai Fasilitas'));
-    expect(find.text('Berbagai Fasilitas'), findsOneWidget);
+    await scrollTo(tester, find.text('Fasilitas sekitar'));
+    expect(find.text('Fasilitas sekitar'), findsOneWidget);
     expect(find.text(FacilitySeedData.facilities.first.name), findsWidgets);
   });
 

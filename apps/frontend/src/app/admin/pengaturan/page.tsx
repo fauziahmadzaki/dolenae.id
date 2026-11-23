@@ -1,11 +1,11 @@
 import type { Metadata } from "next";
-import { SettingsPage } from "~/features/settings/settings-page";
+import { AdminProfilePage } from "~/features/settings/admin-profile-page";
 
 export const metadata: Metadata = {
   title: "Pengaturan — Admin Dolenae.id",
-  description: "Kelola integrasi layanan Dolenae, termasuk API key Gemini.",
+  description: "Kelola informasi profil akun admin Dolenae.",
 };
 
 export default function AdminSettingsPage() {
-  return <SettingsPage />;
+  return <AdminProfilePage />;
 }

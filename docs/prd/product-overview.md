@@ -42,6 +42,21 @@ Secara khusus, Dolenae bertujuan untuk:
 
 ---
 
+Pada web, wisatawan dapat membuka katalog tanpa masuk, mencari berdasarkan
+nama, memfilter berdasarkan kesulitan atau kategori, lalu melihat akses,
+lokasi, dan fasilitas sekitar. Form **Kirim Masukan** menyiapkan draf untuk
+dikirim lewat aplikasi email pengguna.
+
+Pada web admin, halaman Verifikasi menampilkan pengajuan fasilitas yang
+menunggu tinjauan. Pengaturan membuka profil admin, dan konfigurasi Gemini
+tersedia melalui menu Integrasi AI. Daftar Merchant memakai akun berperan
+merchant dari layanan pengguna.
+
+Pada mobile, onboarding memperkenalkan penemuan destinasi, perencanaan, dan
+persiapan dalam tiga langkah. Pengguna dapat melewatinya untuk langsung
+membuka Beranda. Jelajah langsung menampilkan katalog dan memperlihatkan
+saran pencarian ketika kolom pencarian difokuskan.
+
 ## 4. Sasaran Pengguna
 
 ### Primary Target

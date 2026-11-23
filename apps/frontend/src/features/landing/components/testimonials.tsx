@@ -4,9 +4,9 @@ import { testimonials } from "~/features/landing/data";
 export function Testimonials() {
   return (
     <section className="bg-canvas py-24">
-      <div className="mx-auto max-w-[1200px] px-6">
-        <div className="mx-auto mb-10 max-w-2xl text-center">
-          <h2 className="font-display text-3xl font-extrabold text-ink">
+      <div className="mx-auto max-w-[1248px] px-6">
+        <div className="mx-auto mb-6 max-w-2xl text-center">
+          <h2 className="font-display text-2xl leading-8 font-bold text-ink">
             Kata mereka
           </h2>
           <p className="mt-1 text-body">
@@ -28,7 +28,7 @@ export function Testimonials() {
                 “{t.quote}”
               </blockquote>
               <figcaption className="flex items-center gap-3">
-                <span className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 font-display font-bold text-primary">
+                <span className="flex size-10 items-center justify-center rounded-full bg-primary font-display font-bold text-on-primary">
                   {t.initial}
                 </span>
                 <span className="flex flex-col">

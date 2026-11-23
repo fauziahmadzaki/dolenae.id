@@ -1,16 +1,14 @@
 import Link from "next/link";
-import { Mountain } from "lucide-react";
+import { BrandMark } from "~/components/brand-mark";
 import { navItems } from "~/features/landing/data";
 
 export function SiteHeader() {
   return (
-    <header className="sticky top-0 z-40 border-b border-hairline bg-surface/95 backdrop-blur">
-      <div className="mx-auto flex h-18 max-w-[1200px] items-center justify-between px-6">
-        <Link href="/" className="flex items-center gap-2">
-          <span className="flex h-8 w-8 items-center justify-center rounded-md bg-primary text-on-primary">
-            <Mountain className="h-5 w-5" />
-          </span>
-          <span className="font-display text-lg font-extrabold text-ink">
+    <header className="sticky top-0 z-40 border-b border-hairline bg-surface">
+      <div className="mx-auto flex h-[71px] max-w-[1248px] items-center justify-between px-6">
+        <Link href="/" className="flex items-center gap-2.5">
+          <BrandMark />
+          <span className="font-display text-xl font-bold text-ink">
             Dolenae.id
           </span>
         </Link>
@@ -20,7 +18,7 @@ export function SiteHeader() {
             <Link
               key={item.label}
               href={item.href}
-              className="text-sm font-medium text-body transition-colors hover:text-ink"
+              className="text-sm text-body transition-colors hover:text-ink"
             >
               {item.label}
             </Link>
