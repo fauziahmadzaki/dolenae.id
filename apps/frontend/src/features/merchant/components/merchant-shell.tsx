@@ -6,6 +6,7 @@ import {
   Globe,
   LayoutDashboard,
   Package,
+  UserCircle,
 } from "lucide-react";
 import { AdminShell } from "~/features/admin/components/admin-shell";
 import type { NavItem } from "~/features/admin/components/sidebar";
@@ -15,6 +16,7 @@ const MERCHANT_NAV: NavItem[] = [
   { label: "Dashboard", href: "/merchant", icon: LayoutDashboard, exact: true },
   { label: "Fasilitas", href: "/merchant/fasilitas", icon: Building2 },
   { label: "Produk", href: "/merchant/produk", icon: Package },
+  { label: "Profil", href: "/merchant/profil", icon: UserCircle },
 ];
 
 const MERCHANT_SYSTEM: NavItem[] = [
@@ -24,6 +26,15 @@ const MERCHANT_SYSTEM: NavItem[] = [
 const MERCHANT_META: TopbarMetaSource = (pathname) => {
   if (pathname === "/merchant") {
     return { breadcrumb: "Merchant / Dashboard", title: "Dashboard merchant" };
+  }
+  if (pathname === "/merchant/onboarding") {
+    return {
+      breadcrumb: "Merchant / Onboarding",
+      title: "Mulai sebagai merchant",
+    };
+  }
+  if (pathname === "/merchant/profil") {
+    return { breadcrumb: "Merchant / Profil", title: "Profil merchant" };
   }
   if (pathname === "/merchant/fasilitas") {
     return { breadcrumb: "Merchant / Fasilitas", title: "Fasilitas saya" };

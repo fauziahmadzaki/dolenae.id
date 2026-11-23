@@ -59,10 +59,10 @@ export function useRegisterForm() {
     toast({
       title: "Akun merchant dibuat",
       description:
-        "Kami mengirim tautan verifikasi ke email Anda. Anda bisa langsung mendaftarkan fasilitas.",
+        "Kami mengirim tautan verifikasi ke email Anda. Yuk lengkapi profil usaha dan daftarkan fasilitas pertama.",
       variant: "success",
     });
-    router.replace("/merchant");
+    router.replace("/merchant/onboarding");
   });
 
   return { form, onSubmit, isSubmitting: form.formState.isSubmitting };

@@ -131,6 +131,7 @@ Query: `?page=1&limit=20&sort=createdAt&order=desc&search=kata`.
 | GET | `/api/users/:id` | Bearer (admin) | Detail user |
 | PATCH | `/api/users/:id` | Bearer (admin) | Ubah user |
 | DELETE | `/api/users/:id` | Bearer (admin) | Hapus user |
+| GET | `/api/admin/stats` | Bearer (admin) | Ringkasan dashboard: total destinasi/fasilitas/user/merchant, pertumbuhan user (`?months=`), persebaran kategori, destinasi populer |
 | GET | `/api/categories` | – | Daftar kategori (`?type=&search=` + pagination) |
 | GET | `/api/categories/:id` | – | Detail kategori |
 | POST/PATCH/DELETE | `/api/categories[/:id]` | Bearer (admin) | CRUD kategori |

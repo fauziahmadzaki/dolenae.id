@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import { Button } from "~/components/ui/button";
 import { useAuth } from "~/features/auth/hooks/use-auth";
+import { OnboardingChecklistCard } from "~/features/merchant/components/onboarding-checklist-card";
 import { cn } from "~/lib/cn";
 import { FacilityStatusBadge } from "./components/facility-status-badge";
 import { useMyFacilities, useMyProducts } from "./hooks/use-facilities";
@@ -99,6 +100,8 @@ export function MerchantDashboardPage() {
         </div>
       </div>
 
+      <OnboardingChecklistCard />
+
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         {cards.map((card) => {
           const Icon = card.icon;
@@ -141,11 +144,22 @@ export function MerchantDashboardPage() {
         </div>
 
         {recent.length === 0 ? (
-          <p className="px-4 py-8 text-center text-sm text-body">
-            {facilities.isLoading
-              ? "Memuat fasilitas…"
-              : "Belum ada fasilitas. Mulai dengan mendaftarkan usaha Anda."}
-          </p>
+          <div className="flex flex-col items-center gap-3 px-4 py-8 text-center">
+            <p className="text-sm text-body">
+              {facilities.isLoading
+                ? "Memuat fasilitas…"
+                : "Belum ada fasilitas. Mulai dengan mendaftarkan usaha Anda."}
+            </p>
+            {!facilities.isLoading && (
+              <Button
+                size="sm"
+                onClick={() => router.push("/merchant/fasilitas/baru")}
+                className="gap-1.5"
+              >
+                <Plus className="h-4 w-4" /> Daftarkan fasilitas pertama
+              </Button>
+            )}
+          </div>
         ) : (
           <div className="divide-y divide-hairline">
             {recent.map((facility) => (

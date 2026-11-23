@@ -9,6 +9,7 @@ const publicLinks: Record<string, string> = {
   "Kirim Masukan": "/kontak",
   "Privasi & Keamanan": "/privasi-keamanan",
   "Tentang Kami": "/tentang-kami",
+  "Jadi Mitra": "/mitra",
   "Kontak": "/kontak",
   "Karier": "/karier",
 };

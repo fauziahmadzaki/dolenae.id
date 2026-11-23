@@ -7,6 +7,7 @@ export const navItems: NavItem[] = [
   { label: "Destinasi", href: "/#destinations" },
   { label: "Fasilitas Sekitar", href: "/#support" },
   { label: "Persiapan AI", href: "/#ai" },
+  { label: "Jadi Mitra", href: "/mitra" },
   { label: "Tentang Kami", href: "/tentang-kami" },
 ];
 
@@ -146,7 +147,7 @@ export const testimonials: Testimonial[] = [
 export const footerColumns: { title: string; links: string[] }[] = [
   { title: "JELAJAHI", links: ["Destinasi", "Fasilitas Sekitar", "Persiapan AI", "Rencana"] },
   { title: "BANTUAN", links: ["Pusat Bantuan", "Kirim Masukan", "Privasi & Keamanan"] },
-  { title: "PERUSAHAAN", links: ["Tentang Kami", "Kontak"] },
+  { title: "PERUSAHAAN", links: ["Tentang Kami", "Jadi Mitra", "Kontak"] },
 ];
 
 export const difficultyStyles: Record<Difficulty, string> = {

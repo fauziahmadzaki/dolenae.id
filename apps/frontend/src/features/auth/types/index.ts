@@ -17,6 +17,9 @@ export interface AuthUser {
   role: UserRole;
   provider: AuthProvider;
   avatarUrl: string | null;
+  phone: string | null;
+  city: string | null;
+  bio: string | null;
   /** ISO timestamp once the email is confirmed (null while unverified). */
   emailVerifiedAt: string | null;
   createdAt: string;
