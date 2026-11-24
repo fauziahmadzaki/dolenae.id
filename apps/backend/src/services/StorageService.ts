@@ -1,8 +1,9 @@
 import { randomUUID } from "node:crypto";
-import { mkdir, unlink, writeFile } from "node:fs/promises";
-import { dirname, join, resolve } from "node:path";
+import { mkdir, stat, unlink, writeFile } from "node:fs/promises";
+import { dirname, join, resolve, sep } from "node:path";
 import {
   DeleteObjectCommand,
+  HeadObjectCommand,
   PutObjectCommand,
   S3Client,
 } from "@aws-sdk/client-s3";
@@ -10,6 +11,7 @@ import { AppConfig } from "../config/AppConfig";
 import { ValidationError } from "../utils/errors";
 import {
   IMAGE_EXTENSIONS,
+  GALLERY_KEY_PATTERN,
   keyFromPublicUrl,
   matchesImageSignature,
 } from "../utils/storage";
@@ -97,26 +99,100 @@ class StorageService {
     return { ...meta, url: `${this.s3Base()}/${key}` };
   }
 
-  /** Delete an image, but only when the URL points to our own storage. */
-  async deleteByUrl(url: string): Promise<{ key: string; deleted: true }> {
+  /** Public URL for an object key, using the configured storage driver. */
+  publicUrlFor(key: string): string {
+    const config = AppConfig.load();
+    return config.storageDriver === "local"
+      ? `${this.localBase()}/${key}`
+      : `${this.s3Base()}/${key}`;
+  }
+
+  keyForPublicUrl(url: string): string | null {
+    const config = AppConfig.load();
+    const base = config.storageDriver === "local" ? this.localBase() : this.s3Base();
+    return keyFromPublicUrl(url, base);
+  }
+
+  /** Gallery metadata comes from the stored object, not the registration request. */
+  async galleryImageInfo(key: string): Promise<{ size: number; mime: string } | null> {
+    if (!GALLERY_KEY_PATTERN.test(key) || key.includes("..")) return null;
+    const mime = Object.keys(IMAGE_EXTENSIONS).find(
+      (type) => key.endsWith(`.${IMAGE_EXTENSIONS[type]}`),
+    );
+    if (!mime) return null;
     const config = AppConfig.load();
 
     if (config.storageDriver === "local") {
-      const key = keyFromPublicUrl(url, this.localBase());
-      if (!key) {
-        throw new ValidationError("URL gambar bukan milik storage Dolenae");
+      try {
+        const info = await stat(join(this.localRoot(), key));
+        return info.isFile() ? { size: info.size, mime } : null;
+      } catch (error) {
+        if ((error as NodeJS.ErrnoException).code === "ENOENT") return null;
+        throw error;
       }
+    }
 
+    try {
+      const info = await this.s3().send(
+        new HeadObjectCommand({ Bucket: config.s3Bucket, Key: key }),
+      );
+      return info.ContentType === mime && info.ContentLength !== undefined
+        ? { size: info.ContentLength, mime }
+        : null;
+    } catch (error) {
+      const status = (error as { $metadata?: { httpStatusCode?: number } })
+        .$metadata?.httpStatusCode;
+      if (status === 404) return null;
+      throw error;
+    }
+  }
+
+  /**
+   * Delete an image by key, restricted to one module folder (`gallery/`).
+   * Traversal and absolute keys are refused before touching storage.
+   */
+  async deleteByKey(
+    key: string,
+  ): Promise<{ key: string; deleted: true }> {
+    const config = AppConfig.load();
+    const safe = key.trim();
+    if (!GALLERY_KEY_PATTERN.test(safe) || safe.includes("..")) {
+      throw new ValidationError("Kunci objek tidak valid untuk modul ini");
+    }
+
+    if (config.storageDriver === "local") {
+      const root = this.localRoot();
+      const target = resolve(root, safe);
+      if (!target.startsWith(resolve(root) + sep)) {
+        throw new ValidationError("Kunci objek di luar storage Dolenae");
+      }
+      await unlink(target).catch((error: unknown) => {
+        const code = (error as { code?: string }).code;
+        if (code !== "ENOENT") throw error;
+      });
+      return { key: safe, deleted: true };
+    }
+
+    await this.s3().send(
+      new DeleteObjectCommand({ Bucket: config.s3Bucket, Key: safe }),
+    );
+    return { key: safe, deleted: true };
+  }
+
+  /** Delete an image, but only when the URL points to our own storage. */
+  async deleteByUrl(url: string): Promise<{ key: string; deleted: true }> {
+    const config = AppConfig.load();
+    const key = this.keyForPublicUrl(url);
+    if (!key || key.startsWith("gallery/")) {
+      throw new ValidationError("URL gambar bukan milik folder unggahan ini");
+    }
+
+    if (config.storageDriver === "local") {
       await unlink(join(this.localRoot(), key)).catch((error: unknown) => {
         const code = (error as { code?: string }).code;
         if (code !== "ENOENT") throw error;
       });
       return { key, deleted: true };
-    }
-
-    const key = keyFromPublicUrl(url, config.s3PublicUrl);
-    if (!key) {
-      throw new ValidationError("URL gambar bukan milik storage Dolenae");
     }
 
     await this.s3().send(

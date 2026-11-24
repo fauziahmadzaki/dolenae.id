@@ -1,4 +1,4 @@
-import { Router } from "express";
+import { Router, type RequestHandler } from "express";
 import multer from "multer";
 import { AppConfig } from "../config/AppConfig";
 import { uploadController } from "../controllers/UploadController";
@@ -7,7 +7,8 @@ import {
   uploadQuerySchema,
 } from "../schemas/upload.schema";
 import { authRequired, requireRole } from "../middleware/auth";
-import { validate } from "../middleware/validate";
+import { getValidated, validate } from "../middleware/validate";
+import type { UploadQuery } from "../types/upload";
 import { ValidationError } from "../utils/errors";
 import { ALLOWED_IMAGE_TYPES } from "../utils/storage";
 
@@ -31,17 +32,28 @@ const upload = multer({
 
 export const uploadRouter = Router();
 
-uploadRouter.use(authRequired, requireRole("admin", "merchant"));
+uploadRouter.use(authRequired);
+
+const galleryUploadOnly: RequestHandler = (req, res, next) => {
+  if (getValidated<UploadQuery>(req, "query").folder !== "gallery") {
+    next();
+    return;
+  }
+  requireRole("admin")(req, res, next);
+};
 
 uploadRouter.post(
   "/",
+  requireRole("admin", "merchant"),
   validate({ query: uploadQuerySchema }),
+  galleryUploadOnly,
   upload.single("file"),
   uploadController.create,
 );
 
 uploadRouter.delete(
   "/",
+  requireRole("admin", "merchant"),
   validate({ query: deleteUploadQuerySchema }),
   uploadController.remove,
 );

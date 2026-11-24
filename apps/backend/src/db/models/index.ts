@@ -15,3 +15,5 @@ export * from "./TrailRouteSegment";
 export * from "./TrailRoutePoint";
 export * from "./AiItinerary";
 export * from "./AppSetting";
+export * from "./Content";
+export * from "./GalleryPhoto";

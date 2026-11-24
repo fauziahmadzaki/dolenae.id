@@ -71,6 +71,20 @@ export const routeStatusEnum = pgEnum("route_status", [
   "terverifikasi",
 ]);
 
+/** Editorial content type for the admin Konten page and the public blog. */
+export const contentKindEnum = pgEnum("content_kind", [
+  "artikel",
+  "panduan",
+  "tips",
+]);
+
+/** Publishing state of an editorial content entry. */
+export const contentStatusEnum = pgEnum("content_status", [
+  "draft",
+  "pending",
+  "published",
+]);
+
 /** Condition shown for a whole trail (segments keep `routeStatusEnum`). */
 export const trailRouteStatusEnum = pgEnum("trail_route_status", [
   "terverifikasi",

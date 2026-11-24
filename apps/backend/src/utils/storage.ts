@@ -9,6 +9,8 @@ export const IMAGE_EXTENSIONS: Record<string, string> = {
 
 export const ALLOWED_IMAGE_TYPES = Object.keys(IMAGE_EXTENSIONS);
 
+export const GALLERY_KEY_PATTERN = /^gallery\/[A-Za-z0-9][A-Za-z0-9._-]*$/;
+
 const PNG_SIGNATURE = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
 
 /** Cheap magic-byte check so a renamed .exe is not accepted as an image. */
@@ -43,6 +45,9 @@ export function keyFromPublicUrl(url: string, publicBase: string): string | null
   if (!url.startsWith(`${base}/`)) return null;
 
   const key = url.slice(base.length + 1);
-  if (!key || key.includes("..") || key.startsWith("/")) return null;
+  if (
+    !/^[A-Za-z0-9][A-Za-z0-9._-]*(?:\/[A-Za-z0-9][A-Za-z0-9._-]*)+$/.test(key) ||
+    key.includes("..")
+  ) return null;
   return key;
 }

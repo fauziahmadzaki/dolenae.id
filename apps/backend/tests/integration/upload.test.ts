@@ -14,6 +14,9 @@ vi.mock("../../src/services/StorageService", () => ({
   storageService: {
     uploadImage: vi.fn(),
     deleteByUrl: vi.fn(),
+    keyForPublicUrl: vi.fn((url: string) =>
+      keyFromPublicUrl(url, "http://localhost:9000/dolenae"),
+    ),
   },
 }));
 
@@ -126,6 +129,65 @@ describe("Uploads API (/api/uploads)", () => {
     expect(storageService.deleteByUrl).toHaveBeenCalledWith(
       "http://localhost:9000/dolenae/destinations/abc.png",
     );
+  });
+
+  it("keeps merchant uploads working in the legacy folders", async () => {
+    vi.mocked(storageService.uploadImage).mockResolvedValueOnce({
+      url: "http://localhost:9000/dolenae/destinations/merchant.png",
+      key: "destinations/merchant.png",
+      name: "merchant.png",
+      size: png.length,
+      mime: "image/png",
+    });
+    vi.mocked(storageService.deleteByUrl).mockResolvedValueOnce({
+      key: "destinations/merchant.png",
+      deleted: true,
+    });
+
+    const merchantToken = await signAccessToken({
+      sub: "99999999-9999-4999-a999-999999999999",
+      email: "merchant@dolenae.id",
+      role: "merchant",
+    });
+
+    await request(app)
+      .post("/api/uploads?folder=destinations")
+      .auth(merchantToken, { type: "bearer" })
+      .attach("file", png, { filename: "merchant.png", contentType: "image/png" })
+      .expect(201);
+
+    const url = encodeURIComponent(
+      "http://localhost:9000/dolenae/destinations/merchant.png",
+    );
+    await request(app)
+      .delete(`/api/uploads?url=${url}`)
+      .auth(merchantToken, { type: "bearer" })
+      .expect(200);
+  });
+
+  it("blocks merchants from gallery objects", async () => {
+    const merchantToken = await signAccessToken({
+      sub: "99999999-9999-4999-a999-999999999999",
+      email: "merchant@dolenae.id",
+      role: "merchant",
+    });
+
+    await request(app)
+      .post("/api/uploads?folder=gallery")
+      .auth(merchantToken, { type: "bearer" })
+      .attach("file", png, { filename: "gallery.png", contentType: "image/png" })
+      .expect(403);
+
+    const url = encodeURIComponent(
+      "http://localhost:9000/dolenae/gallery/abc.png",
+    );
+    await request(app)
+      .delete(`/api/uploads?url=${url}`)
+      .auth(merchantToken, { type: "bearer" })
+      .expect(403);
+
+    expect(storageService.uploadImage).not.toHaveBeenCalled();
+    expect(storageService.deleteByUrl).not.toHaveBeenCalled();
   });
 
   it("ignores URLs that are not served by our storage", () => {

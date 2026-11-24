@@ -21,6 +21,11 @@ export function createApp() {
   app.use(
     pinoHttp({
       level: config.logLevel,
+      redact: [
+        "req.headers.authorization",
+        "req.headers.cookie",
+        "res.headers[\"set-cookie\"]",
+      ],
       genReqId: (req) => (req as { requestId?: string }).requestId ?? "-",
     }),
   );
