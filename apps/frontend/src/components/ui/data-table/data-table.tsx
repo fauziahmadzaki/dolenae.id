@@ -82,9 +82,13 @@ export function DataTable<T>({
   const { from, to } = pageRange(page, pageSize, total);
 
   // Keep the page in range when the result set shrinks (filter/search).
+  // Skipped while a new page/filter is still loading: `total` is 0 until the
+  // new result arrives, which would clamp back to page 1 and cancel the request.
+  // Errors are skipped too so a retry stays on the page the user picked.
   useEffect(() => {
+    if (isLoading || isFetching || error) return;
     if (page > pages) onPageChange(pages);
-  }, [page, pages, onPageChange]);
+  }, [page, pages, onPageChange, isLoading, isFetching, error]);
 
   return (
     <div className="overflow-hidden rounded-2xl border border-hairline bg-surface">
