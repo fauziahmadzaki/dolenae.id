@@ -7,6 +7,7 @@ import 'package:dolenae_mobile/src/features/categories/presentation/controllers/
 
 import 'package:dolenae_mobile/src/core/error/app_failure.dart';
 import 'package:dolenae_mobile/src/core/result/result.dart';
+import 'package:dolenae_mobile/src/core/state/app_navigation_store.dart';
 import 'package:dolenae_mobile/src/features/ai/data/repositories/ai_repository_impl.dart';
 import 'package:dolenae_mobile/src/features/ai/presentation/controllers/ai_controller.dart';
 import 'package:dolenae_mobile/src/features/auth/domain/entities/auth_session.dart';
@@ -137,10 +138,12 @@ class TestStores {
     CategoryRepository? categoryRepository,
     List<TripPlan>? plans,
     List<Destination>? destinations,
+    AppNavigationStore? navigation,
   }) : auth = AuthController(
          repository: authRepository ?? const _TestAuthRepository(),
          initialRememberedEmail: rememberedEmail,
        ),
+       navigation = navigation ?? AppNavigationStore(),
        categoriesController = CategoriesController(
          categoryRepository ?? const _TestCategoryRepository(),
        )..load(),
@@ -168,6 +171,7 @@ class TestStores {
        checklist = ChecklistController(ChecklistRepositoryImpl());
 
   final AuthController auth;
+  final AppNavigationStore navigation;
   final CategoriesController categoriesController;
   final NotificationsController notifications;
   final SavedController saved;
@@ -308,22 +312,15 @@ Widget wrapScreen(Widget child, {TestStores? store}) {
       ),
       GoRoute(path: '/destination/:id', builder: (_, _) => const _StubScreen()),
       GoRoute(path: '/profile', builder: (_, _) => const _StubScreen()),
-      GoRoute(
-        path: '/auth/change-password',
-        builder: (_, _) => const _StubScreen(),
-      ),
-      GoRoute(
-        path: '/settings/privacy',
-        builder: (_, _) => const _StubScreen(),
-      ),
-      GoRoute(
-        path: '/settings/notifications',
-        builder: (_, _) => const _StubScreen(),
-      ),
-      GoRoute(path: '/settings/theme', builder: (_, _) => const _StubScreen()),
       GoRoute(path: '/settings/faq', builder: (_, _) => const _StubScreen()),
+      GoRoute(path: '/plan/new', builder: (_, _) => const _StubScreen()),
       GoRoute(
-        path: '/settings/feedback',
+        path: '/saved/destinations',
+        builder: (_, _) => const _StubScreen(),
+      ),
+      GoRoute(path: '/saved/plans', builder: (_, _) => const _StubScreen()),
+      GoRoute(
+        path: '/saved/checklists',
         builder: (_, _) => const _StubScreen(),
       ),
       GoRoute(path: '/plan', builder: (_, _) => const TripPlanScreen()),
@@ -357,6 +354,7 @@ Widget wrapScreen(Widget child, {TestStores? store}) {
   return MultiProvider(
     providers: [
       ChangeNotifierProvider.value(value: stores.auth),
+      Provider<AppNavigationStore>.value(value: stores.navigation),
       ChangeNotifierProvider.value(value: stores.categoriesController),
       ChangeNotifierProvider.value(value: stores.notifications),
       ChangeNotifierProvider.value(value: stores.saved),

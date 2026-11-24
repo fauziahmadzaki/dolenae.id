@@ -226,6 +226,70 @@ describe("Destination CRUD API (/api/destinations)", () => {
     });
   });
 
+  describe("GET /api/destinations/slug/:slug", () => {
+    const slug = mockDestination.slug;
+
+    it("returns published detail by slug to anonymous readers", async () => {
+      vi.spyOn(destinationRepository, "findBySlug").mockResolvedValue({
+        ...mockDestination,
+        status: "published",
+      });
+      vi.spyOn(destinationRepository, "findCategoryIds").mockResolvedValue([categoryId]);
+      vi.spyOn(categoryRepository, "findByIds").mockResolvedValue([mockCategory]);
+
+      const res = await request(app).get(`/api/destinations/slug/${slug}`);
+      expect(res.status).toBe(200);
+      expect(res.body.data).toMatchObject({
+        slug,
+        status: "published",
+        categoryIds: [categoryId],
+      });
+      expect(res.body.data.categories[0].id).toBe(categoryId);
+    });
+
+    it.each(["draft", "archived"] as const)(
+      "hides %s detail by slug from anonymous readers",
+      async (status) => {
+        vi.spyOn(destinationRepository, "findBySlug").mockResolvedValue({
+          ...mockDestination,
+          status,
+        });
+        vi.spyOn(destinationRepository, "findCategoryIds").mockResolvedValue([]);
+        vi.spyOn(categoryRepository, "findByIds").mockResolvedValue([]);
+
+        const res = await request(app).get(`/api/destinations/slug/${slug}`);
+        expect(res.status).toBe(404);
+        expect(res.body.error.code).toBe("NOT_FOUND");
+      },
+    );
+
+    it("allows admin to read unpublished detail by slug", async () => {
+      vi.spyOn(destinationRepository, "findBySlug").mockResolvedValue({
+        ...mockDestination,
+        status: "draft",
+      });
+      vi.spyOn(destinationRepository, "findCategoryIds").mockResolvedValue([]);
+      vi.spyOn(categoryRepository, "findByIds").mockResolvedValue([]);
+
+      const res = await request(app)
+        .get(`/api/destinations/slug/${slug}`)
+        .auth(adminToken, { type: "bearer" });
+      expect(res.status).toBe(200);
+      expect(res.body.data.status).toBe("draft");
+    });
+
+    it("returns 404 when the slug does not exist", async () => {
+      vi.spyOn(destinationRepository, "findBySlug").mockResolvedValue(undefined);
+      const res = await request(app).get("/api/destinations/slug/tidak-ada");
+      expect(res.status).toBe(404);
+    });
+
+    it("rejects an invalid slug", async () => {
+      const res = await request(app).get("/api/destinations/slug/Gunung_Bromo!");
+      expect(res.status).toBe(422);
+    });
+  });
+
   describe("read authorization", () => {
     it("rejects malformed credentials instead of treating them as anonymous or admin", async () => {
       const list = vi.spyOn(destinationRepository, "list").mockResolvedValue({ items: [], total: 0 });

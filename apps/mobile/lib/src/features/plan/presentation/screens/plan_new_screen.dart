@@ -6,6 +6,7 @@ import 'package:dolenae_mobile/src/app/theme/app_colors.dart';
 import 'package:dolenae_mobile/src/app/theme/app_radius.dart';
 import 'package:dolenae_mobile/src/app/theme/app_spacing.dart';
 import 'package:dolenae_mobile/src/app/theme/app_text_styles.dart';
+import 'package:dolenae_mobile/src/core/utils/rupiah_input_formatter.dart';
 import 'package:dolenae_mobile/src/features/destinations/presentation/controllers/destinations_controller.dart';
 import 'package:dolenae_mobile/src/features/plan/domain/entities/plan_draft.dart';
 import 'package:dolenae_mobile/src/features/plan/presentation/controllers/plan_controller.dart';
@@ -26,6 +27,7 @@ class PlanNewScreen extends StatefulWidget {
     this.initialName = '',
     this.initialNote = '',
     this.initialOriginProvince = '',
+    this.initialDestinationId,
     this.onSubmit,
     this.onBack,
   });
@@ -33,6 +35,9 @@ class PlanNewScreen extends StatefulWidget {
   final String initialName;
   final String initialNote;
   final String initialOriginProvince;
+
+  /// Destinasi yang sudah dipilih dari detail destinasi.
+  final String? initialDestinationId;
 
   /// Dipanggil dengan ringkasan rencana; bila null memakai alur navigasi.
   final ValueChanged<
@@ -59,6 +64,18 @@ class _PlanNewScreenState extends State<PlanNewScreen> {
   String? _nameError;
 
   bool get _canSubmit => _name.trim().isNotEmpty;
+
+  @override
+  void initState() {
+    super.initState();
+    final id = widget.initialDestinationId;
+    if (id != null && id.isNotEmpty && _name.trim().isEmpty) {
+      final destination = context.read<DestinationsController>().find(id);
+      if (destination != null) {
+        _name = 'Trip ${destination.name}';
+      }
+    }
+  }
 
   String get _dateRange {
     final end = _startDate.add(Duration(days: _days - 1));
@@ -135,8 +152,16 @@ class _PlanNewScreenState extends State<PlanNewScreen> {
       return;
     }
 
+    final preselect = widget.initialDestinationId;
+    final location = Uri(
+      path: '/plan/select-destination',
+      queryParameters: preselect == null || preselect.isEmpty
+          ? null
+          : {'preselect': preselect},
+    ).toString();
+
     context.push(
-      '/plan/select-destination',
+      location,
       extra: PlanDraft(
         name: payload.name,
         startDate: _startDate,
@@ -297,13 +322,13 @@ class _PlanNewScreenState extends State<PlanNewScreen> {
                   const SizedBox(height: AppSpacing.s4),
                   DnInput(
                     label: 'Estimasi budget',
-                    hint: 'Contoh: 1500000',
+                    hint: 'Contoh: 1.500.000',
                     value: _budget,
                     keyboardType: TextInputType.number,
-                    prefixIcon: AppIcons.key,
-                    onChanged: (value) => setState(
-                      () => _budget = value.replaceAll(RegExp(r'\D'), ''),
-                    ),
+                    prefixText: 'Rp ',
+                    maxLength: 15,
+                    inputFormatters: const [RupiahInputFormatter()],
+                    onChanged: (value) => setState(() => _budget = value),
                   ),
                   const SizedBox(height: AppSpacing.s4),
                   Container(

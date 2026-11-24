@@ -114,6 +114,9 @@ Bahasa Indonesia yang siap ditampilkan. Controller mengembalikan
 - Implementasi tinggal di `data/repositories/<nama>_repository_impl.dart`.
 - Sumber data dipisah: `remote` (HTTP), `local` (Drift/SharedPreferences),
   `seed` (`abstract final class ...SeedData` untuk data prototipe offline).
+- Fitur yang merepresentasikan aksi pengguna (**Tersimpan** dan **Notifikasi**)
+  tidak memakai seed: daftar mulai kosong dan hanya diisi oleh aksi pengguna
+  atau sinkronisasi API.
 - Repository menggabungkan sumber data dan menyembunyikan detailnya dari
   controller.
 - Contoh penting: `DestinationRepositoryImpl.watchCatalog()` memancarkan cache
@@ -154,6 +157,21 @@ Endpoint yang dipakai mobile:
    pengguna ke `/login`.
 4. Gangguan jaringan saat verifikasi **tidak** menghapus sesi, supaya aplikasi
    tetap bisa dibuka offline dengan data tersimpan.
+
+### Alur navigasi dan pemulihan posisi
+
+1. `AppNavigationStore` menyimpan status onboarding dan lokasi terakhir di
+   `SharedPreferences` (`app.onboardingSeen`, `app.lastLocation`).
+2. `AppRouter` memakai lokasi tersimpan sebagai `initialLocation`; splash dan
+   onboarding dilewati bila pengguna sudah pernah menyelesaikannya.
+3. `DolenaeApp` mendengarkan perubahan route dan lifecycle `paused`/`detached`
+   untuk memperbarui lokasi terakhir. Route sementara (splash, onboarding,
+   login, lupa kata sandi) tidak disimpan.
+4. Semua route dibungkus `DnExitGuard`: tombol back di halaman paling dasar
+   memunculkan dialog konfirmasi keluar, sedangkan back saat masih ada halaman
+   sebelumnya tetap memanggil `pop` seperti biasa.
+5. Transisi halaman diatur global lewat `pageTransitionsTheme` (slide + fade);
+   iOS/macOS tetap memakai transisi native agar gestur swipe-back tersedia.
 
 ### Alur katalog destinasi
 

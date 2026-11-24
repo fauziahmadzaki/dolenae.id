@@ -33,14 +33,14 @@ Flutter).
 | Onboarding | Perkenalan | — (lokal) | — | mobile |
 | Masuk dan Daftar | Register/Login | User | `POST /auth/register`, `POST /auth/login` | mobile, web |
 | Verifikasi OTP | Verifikasi akun | User, `VerificationCode` 🔜 | `POST /auth/verify-otp`, `POST /auth/resend-otp` | mobile |
-| Lupa / Ubah Kata Sandi | Reset password | User | `POST /auth/forgot-password`, `POST /auth/reset-password`, `PATCH /users/me/password` | mobile |
+| Lupa Kata Sandi | Reset password | User | `POST /auth/forgot-password`, `POST /auth/reset-password` | mobile, web |
 | Profil / Edit Profil | Lihat/ubah profil | User | `GET/PATCH /users/me`, `POST /uploads` (foto) | mobile |
-| Pengaturan | Pusat setelan | AppSettings | `GET /users/me/settings` | mobile |
-| Setelan Notifikasi | Preferensi notif | AppSettings | `PATCH /users/me/settings` | mobile |
-| Tema dan Bahasa | tema/bahasa | AppSettings | `PATCH /users/me/settings` | mobile |
-| Privasi dan Keamanan | 2FA, perangkat | PrivacySettings, ActiveDevice | `GET /users/me/devices`, `DELETE /users/me/devices/:id` | mobile |
 | Keluar Konfirmasi | Logout | — | `POST /auth/logout` (opsional) | mobile |
 | Masuk (web) | Login admin/merchant | User | `POST /auth/login`, `GET /users/me` | web |
+
+> **Opsi A (mobile):** menu Profil hanya menyisakan yang berfungsi — Edit
+> profil, Keluar, dan Bantuan & FAQ. Setelan notifikasi, tema/bahasa, privasi,
+> akun, dan kirim masukan disembunyikan sampai backend/push/dark mode siap.
 
 ### B. Discovery (mobile + web publik)
 
@@ -60,9 +60,6 @@ Flutter).
 | --- | --- | --- | --- | --- |
 | Fasilitas Sekitar | Daftar fasilitas | TravelSupport | `GET /destinations/:id/supports` | mobile |
 | Detail Fasilitas (Penginapan/Transport/Makanan) | Detail layanan | TravelSupport, RoomType, Review | `GET /supports/:id` | mobile |
-| Usulkan Fasilitas | Usul (wisatawan) | FacilityProposal | `POST /facility-proposals` | mobile |
-| Usulan Sukses | Konfirmasi | FacilityProposal | — | mobile |
-| Fasilitas Diusulkan / Kosong | Riwayat usulan | FacilityProposal | `GET /facility-proposals/mine` | mobile |
 
 ### D. Jalur & Elevasi / Route Builder (web admin + publik)
 
@@ -80,10 +77,15 @@ Flutter).
 | Tambah Item Checklist | Tambah item | PreparationItem | `POST /checklists/:destId/items` | mobile |
 | Checklist Selesai | Tandai selesai | PreparationItem | `PATCH /checklists/:destId/items/:id` | mobile |
 | Rencana Perjalanan | Rencana aktif | TripPlan, TripPlanItem | `GET /trips/:id` | mobile |
-| Buat Rencana Baru / Tambah Rencana (Pilih/Atur) | Buat rencana | TripPlan, TripPlanItem | `POST /trips`, `POST /trips/:id/items` | mobile |
-| Pilih Destinasi / Pilih Fasilitas | Isi item | Destination, TravelSupport | `GET /destinations`, `GET /supports` | mobile |
+| Buat Rencana Baru / Tambah Rencana (Pilih/Atur) | Buat rencana | TripPlan, TripPlanItem | `POST /trips`, `POST /trips/:id/items` | mobile || Pilih Destinasi / Pilih Fasilitas | Isi item | Destination, TravelSupport | `GET /destinations`, `GET /supports` | mobile |
 | Detail Item / Konfirmasi Hapus Item | Kelola item | TripPlanItem | `PATCH/DELETE /trips/:id/items/:itemId` | mobile |
 | Rencana Sukses | Konfirmasi | TripPlan | — | mobile |
+
+> **Mobile:** pembuatan rencana selalu lewat `/plan/new` (nama, tanggal,
+> durasi, budget, provinsi asal) → `/plan/select-destination` →
+> `/plan/generating`. Dari detail destinasi, "Tambah ke rencana" membuka
+> `/plan/new?destinationId=…` dan destinasi tersebut sudah tercentang di
+> langkah pemilihan. Field budget memakai format ribuan (`1.500.000`).
 
 ### F. Rekomendasi AI (mobile + web)
 
@@ -105,14 +107,12 @@ Flutter).
 | Destinasi Tersimpan / Kosong | Simpan destinasi | SavedDestination | `GET/POST/DELETE /saved/destinations` | mobile |
 | Daftar Rencana / Kosong | Simpan rencana | SavedTripPlan | `GET/PATCH /saved/plans` | mobile |
 | Checklist Tersimpan / Kosong | Simpan checklist | SavedChecklist | `GET/DELETE /saved/checklists/:id` | mobile |
-| Fasilitas Diusulkan / Kosong | Riwayat usulan | FacilityProposal | `GET /facility-proposals/mine` | mobile |
 
 ### I. Bantuan & Kontribusi (mobile + web)
 
 | Layar Figma | Fitur | Entitas | Endpoint API | Klien |
 | --- | --- | --- | --- | --- |
 | Bantuan FAQ | FAQ | FaqItem | `GET /faqs` | mobile, web |
-| Kirim Masukan | Feedback | FeedbackSubmission | `POST /feedback` | mobile, web |
 
 ### J. Admin (web)
 
@@ -155,7 +155,7 @@ Flutter).
 | Profil & setelan | `/users/me/password`, `/users/me/settings`, `/users/me/devices` |
 | Destinasi lanjutan | `/destinations/:id/reviews`, `/destinations/:id/routes`, `/destinations/:id/checklist` |
 | Route builder | `/track-nodes`, `/segments`, `/routes`, `/routes/:id/profile` |
-| Fasilitas & usul | `/destinations/:id/supports`, `/supports/:id`, `/supports/:id/room-types`, `/facility-proposals` |
+| Fasilitas | `/destinations/:id/supports`, `/supports/:id`, `/supports/:id/room-types` |
 | Perencanaan | `/trips`, `/trips/:id/items`, `/checklists/:destId/items` |
 | Saved | `/saved/destinations`, `/saved/plans`, `/saved/checklists` |
 | AI | `/recommendations` |

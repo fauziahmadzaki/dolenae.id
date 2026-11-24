@@ -1,15 +1,83 @@
 import 'package:dolenae_mobile/src/features/notifications/domain/entities/app_notification.dart';
-import 'package:dolenae_mobile/src/features/facilities/domain/entities/facility_proposal.dart';
-import 'package:dolenae_mobile/src/features/saved/data/data_sources/saved_seed_data_source.dart';
+import 'package:dolenae_mobile/src/features/destinations/data/data_sources/destination_seed_data_source.dart';
 import 'package:dolenae_mobile/src/features/notifications/presentation/screens/notifications_screen.dart';
+import 'package:dolenae_mobile/src/features/saved/domain/entities/saved_item.dart';
 import 'package:dolenae_mobile/src/features/saved/presentation/screens/saved_checklists_screen.dart';
 import 'package:dolenae_mobile/src/features/saved/presentation/screens/saved_destinations_screen.dart';
 import 'package:dolenae_mobile/src/features/saved/presentation/screens/saved_plans_screen.dart';
-import 'package:dolenae_mobile/src/features/saved/presentation/screens/saved_proposals_screen.dart';
 import 'package:dolenae_mobile/src/shared/widgets/dn_plan_card.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../helpers/test_harness.dart';
+
+final _savedDestinations = <SavedDestination>[
+  SavedDestination(
+    id: 'save-1',
+    destination: DestinationSeedData.items[0],
+    savedAt: DateTime(2026, 7, 1),
+  ),
+  SavedDestination(
+    id: 'save-2',
+    destination: DestinationSeedData.items[1],
+    savedAt: DateTime(2026, 7, 2),
+  ),
+  SavedDestination(
+    id: 'save-3',
+    destination: DestinationSeedData.items[3],
+    savedAt: DateTime(2026, 7, 3),
+  ),
+];
+
+final _savedPlans = <SavedTripPlan>[
+  SavedTripPlan(
+    id: 'saved-plan-1',
+    name: 'Trip Bromo',
+    dateRange: '12-14 Jul 2026',
+    destinationCount: 2,
+    destinationTotal: 3,
+    status: SavedPlanStatus.aktif,
+    savedAt: DateTime(2026, 7, 1),
+  ),
+  SavedTripPlan(
+    id: 'saved-plan-2',
+    name: 'Trip Dieng',
+    dateRange: '20-22 Jun 2026',
+    destinationCount: 3,
+    destinationTotal: 3,
+    status: SavedPlanStatus.arsip,
+    savedAt: DateTime(2026, 6, 1),
+  ),
+];
+
+final _savedChecklists = <SavedChecklist>[
+  SavedChecklist(
+    id: 'saved-chk-1',
+    name: 'Perangkat lengkap',
+    destinationName: 'Gunung Bromo',
+    completedCount: 5,
+    totalCount: 12,
+    finished: false,
+    savedAt: DateTime(2026, 7, 1),
+  ),
+  SavedChecklist(
+    id: 'saved-chk-2',
+    name: 'Camping dataran tinggi',
+    destinationName: 'Gunung Prau',
+    completedCount: 8,
+    totalCount: 10,
+    finished: false,
+    savedAt: DateTime(2026, 7, 2),
+  ),
+  SavedChecklist(
+    id: 'saved-chk-3',
+    name: 'Jalur savana',
+    destinationName: 'Gunung Papandayan',
+    completedCount: 10,
+    totalCount: 10,
+    finished: true,
+    savedAt: DateTime(2026, 7, 3),
+  ),
+];
 
 /// Notifikasi dengan waktu dibuat yang ditentukan eksplisit.
 ///
@@ -48,11 +116,13 @@ void main() {
       tester,
     ) async {
       await usePhone(tester);
-      await tester.pumpWidget(wrapScreen(const SavedDestinationsScreen()));
+      await tester.pumpWidget(
+        wrapScreen(SavedDestinationsScreen(items: _savedDestinations)),
+      );
       await tester.pumpAndSettle();
 
       expect(find.text('Destinasi tersimpan'), findsOneWidget);
-      for (final item in SavedSeedData.destinations) {
+      for (final item in _savedDestinations) {
         expect(find.text(item.destination.name), findsOneWidget);
       }
     });
@@ -71,6 +141,9 @@ void main() {
     testWidgets('hapus lewat ikon mengeluarkan dari store', (tester) async {
       await usePhone(tester);
       final store = newStore();
+      for (final item in _savedDestinations) {
+        store.saved.toggleSavedDestination(item.destination);
+      }
       final first = store.saved.savedDestinations.first;
       final before = store.saved.savedDestinations.length;
 
@@ -94,7 +167,7 @@ void main() {
       await tester.pumpWidget(
         wrapScreen(
           SavedDestinationsScreen(
-            items: SavedSeedData.destinations,
+            items: _savedDestinations,
             onRemove: removed.add,
           ),
         ),
@@ -127,12 +200,12 @@ void main() {
       tester,
     ) async {
       await usePhone(tester);
-      await tester.pumpWidget(wrapScreen(const SavedPlansScreen()));
+      await tester.pumpWidget(wrapScreen(SavedPlansScreen(items: _savedPlans)));
       await tester.pumpAndSettle();
 
       expect(find.text('Daftar rencana'), findsOneWidget);
       expect(find.byType(DnPlanCard), findsWidgets);
-      for (final plan in SavedSeedData.plans) {
+      for (final plan in _savedPlans) {
         expect(find.text(plan.name), findsOneWidget);
         expect(find.text(plan.dateRange), findsOneWidget);
         expect(find.text(plan.statusLabel), findsOneWidget);
@@ -143,9 +216,7 @@ void main() {
       tester,
     ) async {
       await usePhone(tester);
-      await tester.pumpWidget(
-        wrapScreen(const SavedPlansScreen(items: [])),
-      );
+      await tester.pumpWidget(wrapScreen(const SavedPlansScreen(items: [])));
       await tester.pumpAndSettle();
 
       expect(find.text('Belum ada rencana'), findsOneWidget);
@@ -154,11 +225,10 @@ void main() {
 
     testWidgets('hapus melalui dialog konfirmasi', (tester) async {
       await usePhone(tester);
-      final store = newStore();
-      final before = store.saved.savedPlans.length;
+      final removed = <String>[];
 
       await tester.pumpWidget(
-        wrapScreen(const SavedPlansScreen(), store: store),
+        wrapScreen(SavedPlansScreen(items: _savedPlans, onRemove: removed.add)),
       );
       await tester.pumpAndSettle();
 
@@ -168,18 +238,22 @@ void main() {
 
       await tester.tap(find.text('Hapus'));
       await tester.pumpAndSettle();
-      expect(store.saved.savedPlans.length, before - 1);
+      expect(removed, hasLength(1));
     });
   });
 
   group('Layar Checklist Tersimpan', () {
-    testWidgets('menampilkan rasio item siap dan badge selesai', (tester) async {
+    testWidgets('menampilkan rasio item siap dan badge selesai', (
+      tester,
+    ) async {
       await usePhone(tester);
-      await tester.pumpWidget(wrapScreen(const SavedChecklistsScreen()));
+      await tester.pumpWidget(
+        wrapScreen(SavedChecklistsScreen(items: _savedChecklists)),
+      );
       await tester.pumpAndSettle();
 
       expect(find.text('Checklist tersimpan'), findsOneWidget);
-      for (final checklist in SavedSeedData.checklists) {
+      for (final checklist in _savedChecklists) {
         expect(find.text(checklist.name), findsOneWidget);
         expect(find.text(checklist.countLabel), findsOneWidget);
       }
@@ -200,11 +274,12 @@ void main() {
 
     testWidgets('hapus checklist lewat dialog konfirmasi', (tester) async {
       await usePhone(tester);
-      final store = newStore();
-      final before = store.saved.savedChecklists.length;
+      final removed = <String>[];
 
       await tester.pumpWidget(
-        wrapScreen(const SavedChecklistsScreen(), store: store),
+        wrapScreen(
+          SavedChecklistsScreen(items: _savedChecklists, onRemove: removed.add),
+        ),
       );
       await tester.pumpAndSettle();
 
@@ -214,54 +289,21 @@ void main() {
 
       await tester.tap(find.text('Hapus'));
       await tester.pumpAndSettle();
-      expect(store.saved.savedChecklists.length, before - 1);
-    });
-  });
-
-  group('Layar Fasilitas Diusulkan', () {
-    testWidgets('menampilkan usulan dengan badge status', (tester) async {
-      await usePhone(tester);
-      await tester.pumpWidget(wrapScreen(const SavedProposalsScreen()));
-      await tester.pumpAndSettle();
-
-      expect(find.text('Fasilitas diusulkan'), findsOneWidget);
-      for (final proposal in SavedSeedData.proposals) {
-        expect(find.text(proposal.name), findsOneWidget);
-        expect(find.text(proposal.statusLabel), findsOneWidget);
-      }
-    });
-
-    testWidgets('daftar kosong memunculkan ajakan mengusulkan', (tester) async {
-      await usePhone(tester);
-      await tester.pumpWidget(
-        wrapScreen(const SavedProposalsScreen(items: [])),
-      );
-      await tester.pumpAndSettle();
-
-      expect(find.text('Belum ada usulan'), findsOneWidget);
-      expect(find.text('Usulkan fasilitas'), findsOneWidget);
-    });
-
-    testWidgets('status menunggu memakai warna peringatan', (tester) async {
-      await usePhone(tester);
-      final menunggu = SavedSeedData.proposals
-          .where((p) => p.status == ProposalStatus.menunggu)
-          .toList();
-      expect(menunggu, isNotEmpty);
-
-      await tester.pumpWidget(
-        wrapScreen(SavedProposalsScreen(items: menunggu)),
-      );
-      await tester.pumpAndSettle();
-      expect(find.text('Menunggu'), findsWidgets);
+      expect(removed, hasLength(1));
     });
   });
 
   group('Layar Notifikasi', () {
-    testWidgets('memisahkan notifikasi hari ini dan sebelumnya', (tester) async {
+    testWidgets('memisahkan notifikasi hari ini dan sebelumnya', (
+      tester,
+    ) async {
       await usePhone(tester);
       final items = [
-        _notification(id: 'n1', title: 'Pengingat rencana', createdAt: _todayMidnight),
+        _notification(
+          id: 'n1',
+          title: 'Pengingat rencana',
+          createdAt: _todayMidnight,
+        ),
         _notification(
           id: 'n2',
           title: 'Rekomendasi baru',
@@ -269,14 +311,12 @@ void main() {
         ),
         _notification(
           id: 'n3',
-          title: 'Usulan diproses',
+          title: 'Data destinasi diperbarui',
           createdAt: _todayMidnight.subtract(const Duration(days: 2)),
         ),
       ];
 
-      await tester.pumpWidget(
-        wrapScreen(NotificationsScreen(items: items)),
-      );
+      await tester.pumpWidget(wrapScreen(NotificationsScreen(items: items)));
       await tester.pumpAndSettle();
 
       expect(find.text('Notifikasi'), findsOneWidget);
@@ -284,7 +324,7 @@ void main() {
       expect(find.text('SEBELUMNYA'), findsOneWidget);
       expect(find.text('Pengingat rencana'), findsOneWidget);
       expect(find.text('Rekomendasi baru'), findsOneWidget);
-      expect(find.text('Usulan diproses'), findsOneWidget);
+      expect(find.text('Data destinasi diperbarui'), findsOneWidget);
       expect(find.text('3 belum dibaca'), findsOneWidget);
     });
 
@@ -301,9 +341,7 @@ void main() {
         ),
       ];
 
-      await tester.pumpWidget(
-        wrapScreen(NotificationsScreen(items: items)),
-      );
+      await tester.pumpWidget(wrapScreen(NotificationsScreen(items: items)));
       await tester.pumpAndSettle();
 
       expect(find.text('Tandai dibaca'), findsNothing);
@@ -335,30 +373,32 @@ void main() {
       expect(marked, 1);
     });
 
-    testWidgets('membuka notifikasi menandai terbaca di store', (tester) async {
+    testWidgets('membuka notifikasi meneruskan item ke delegate', (
+      tester,
+    ) async {
       await usePhone(tester);
-      final store = newStore();
-      final target = store.notifications.notifications.firstWhere((item) => !item.read);
+      final opened = <AppNotification>[];
+      final item = _notification(
+        id: 'n1',
+        title: 'Pengingat rencana',
+        createdAt: _todayMidnight,
+      );
 
       await tester.pumpWidget(
-        wrapScreen(NotificationsScreen(), store: store),
+        wrapScreen(NotificationsScreen(items: [item], onOpen: opened.add)),
       );
       await tester.pumpAndSettle();
 
-      await tester.tap(find.text(target.title));
-      await tester.pumpAndSettle();
+      await tester.tap(find.text(item.title));
+      await tester.pump();
 
-      final updated = store.notifications.notifications.firstWhere(
-        (item) => item.id == target.id,
-      );
-      expect(updated.read, isTrue);
+      expect(opened, hasLength(1));
+      expect(opened.single.id, item.id);
     });
 
     testWidgets('daftar kosong memunculkan empty state', (tester) async {
       await usePhone(tester);
-      await tester.pumpWidget(
-        wrapScreen(NotificationsScreen(items: const [])),
-      );
+      await tester.pumpWidget(wrapScreen(NotificationsScreen(items: const [])));
       await tester.pumpAndSettle();
 
       expect(find.text('Belum ada notifikasi'), findsOneWidget);
@@ -367,19 +407,22 @@ void main() {
 
   group('Model Tersimpan', () {
     test('progres rencana dan checklist dihitung benar', () {
-      final plan = SavedSeedData.plans.first;
+      final plan = _savedPlans.first;
       expect(
         plan.progress,
         closeTo(plan.destinationCount / plan.destinationTotal, 0.001),
       );
 
-      final checklist = SavedSeedData.checklists.first;
+      final checklist = _savedChecklists.first;
       expect(
         checklist.progress,
         closeTo(checklist.completedCount / checklist.totalCount, 0.001),
       );
-      expect(checklist.countLabel, '${checklist.completedCount}/'
-          '${checklist.totalCount} siap');
+      expect(
+        checklist.countLabel,
+        '${checklist.completedCount}/'
+        '${checklist.totalCount} siap',
+      );
     });
   });
 }

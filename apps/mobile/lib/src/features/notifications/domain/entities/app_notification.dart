@@ -1,5 +1,5 @@
 /// Kelompok notifikasi (subset `packages/types/src/notification.ts`).
-enum NotificationKind { rekomendasi, rencana, checklist, usulan, sistem }
+enum NotificationKind { rekomendasi, rencana, checklist, sistem }
 
 /// Notifikasi aplikasi untuk travelers.
 class AppNotification {
@@ -34,7 +34,6 @@ class AppNotification {
     NotificationKind.rekomendasi => 'Rekomendasi',
     NotificationKind.rencana => 'Rencana',
     NotificationKind.checklist => 'Checklist',
-    NotificationKind.usulan => 'Usulan',
     NotificationKind.sistem => 'Sistem',
   };
 

@@ -4,6 +4,7 @@ import {
   createDestinationSchema,
   destinationIdParamsSchema,
   destinationListQuerySchema,
+  destinationSlugParamsSchema,
   updateDestinationSchema,
 } from "../schemas/destination.schema";
 import { authOptional, authRequired, requireRole } from "../middleware/auth";
@@ -17,6 +18,12 @@ destinationRouter.get(
   authOptional,
   validate({ query: destinationListQuerySchema }),
   destinationController.list,
+);
+destinationRouter.get(
+  "/slug/:slug",
+  authOptional,
+  validate({ params: destinationSlugParamsSchema }),
+  destinationController.getBySlug,
 );
 destinationRouter.get(
   "/:id",

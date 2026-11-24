@@ -2,14 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
-import 'package:dolenae_mobile/src/app/theme/app_colors.dart';
-import 'package:dolenae_mobile/src/app/theme/app_radius.dart';
 import 'package:dolenae_mobile/src/app/theme/app_spacing.dart';
-import 'package:dolenae_mobile/src/app/theme/app_text_styles.dart';
 import 'package:dolenae_mobile/src/features/settings/domain/entities/faq_item.dart';
 import 'package:dolenae_mobile/src/features/settings/presentation/controllers/settings_controller.dart';
 import 'package:dolenae_mobile/src/shared/icons/app_icons.dart';
-import 'package:dolenae_mobile/src/shared/widgets/dn_buttons.dart';
 import 'package:dolenae_mobile/src/shared/widgets/dn_chip.dart';
 import 'package:dolenae_mobile/src/shared/widgets/dn_empty_state.dart';
 import 'package:dolenae_mobile/src/shared/widgets/dn_faq_accordion.dart';
@@ -83,8 +79,7 @@ class _SettingsFaqScreenState extends State<SettingsFaqScreen> {
             padding: EdgeInsets.symmetric(vertical: 48),
             child: DnEmptyState(
               variant: DnEmptyVariant.tanpaHasil,
-              body: 'Belum ada pertanyaan yang cocok. Coba kata kunci lain '
-                  'atau hubungi kami lewat Kirim masukan.',
+              body: 'Belum ada pertanyaan yang cocok. Coba kata kunci lain.',
             ),
           )
         else
@@ -98,35 +93,6 @@ class _SettingsFaqScreenState extends State<SettingsFaqScreen> {
               ),
             ),
           ),
-        const SizedBox(height: 16),
-        Container(
-          padding: const EdgeInsets.all(AppSpacing.s4),
-          decoration: BoxDecoration(
-            color: AppColors.canvasSubtle,
-            borderRadius: BorderRadius.circular(AppRadius.lg),
-            border: Border.all(color: AppColors.hairline),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Belum menemukan jawabannya?',
-                style: AppTextStyles.titleSm,
-              ),
-              const SizedBox(height: AppSpacing.s1),
-              Text(
-                'Kirim masukanmu, tim kami membalas dalam 3 hari kerja.',
-                style: AppTextStyles.bodySm,
-              ),
-              const SizedBox(height: AppSpacing.s4),
-              DnOutlineButton(
-                label: 'Kirim masukan',
-                height: 44,
-                onPressed: () => context.push('/settings/feedback'),
-              ),
-            ],
-          ),
-        ),
       ],
     );
   }

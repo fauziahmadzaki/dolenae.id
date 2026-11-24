@@ -62,8 +62,8 @@ class SavedDestinationsScreen extends StatelessWidget {
                         variant: DnEmptyVariant.belumAdaData,
                         title: 'Belum ada destinasi',
                         body:
-                            'Simpan destinasi dari Jelajah supaya mudah '
-                            'kamu temukan lagi.',
+                            'Simpan destinasi dari halaman detail destinasi '
+                            'supaya mudah kamu temukan lagi.',
                       ),
                       const SizedBox(height: AppSpacing.s5),
                       DnPrimaryButton(

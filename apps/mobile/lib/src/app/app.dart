@@ -9,6 +9,7 @@ import 'package:provider/provider.dart';
 import 'package:dolenae_mobile/src/app/di/app_dependencies.dart';
 import 'package:dolenae_mobile/src/app/router/app_router.dart';
 import 'package:dolenae_mobile/src/app/theme/app_theme.dart';
+import 'package:dolenae_mobile/src/core/state/app_navigation_store.dart';
 import 'package:dolenae_mobile/src/features/ai/presentation/controllers/ai_controller.dart';
 import 'package:dolenae_mobile/src/features/auth/domain/entities/auth_session.dart';
 import 'package:dolenae_mobile/src/features/auth/presentation/controllers/auth_controller.dart';
@@ -39,7 +40,7 @@ class DolenaeApp extends StatefulWidget {
   State<DolenaeApp> createState() => _DolenaeAppState();
 }
 
-class _DolenaeAppState extends State<DolenaeApp> {
+class _DolenaeAppState extends State<DolenaeApp> with WidgetsBindingObserver {
   late final AuthController _auth;
   late final CategoriesController _categories;
   late final DestinationsController _destinations;
@@ -57,6 +58,7 @@ class _DolenaeAppState extends State<DolenaeApp> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     final dependencies = widget.dependencies;
 
     _auth = AuthController(
@@ -87,13 +89,35 @@ class _DolenaeAppState extends State<DolenaeApp> {
     unawaited(_plan.load());
     _checklist = ChecklistController(dependencies.checklistRepository);
 
-    _router = AppRouter.create(_auth);
+    _router = AppRouter.create(_auth, navigation: dependencies.navigationStore);
+    _router.routerDelegate.addListener(_persistLocation);
     // Validate the restored token; a revoked session redirects to /login.
     unawaited(_auth.verifySession());
   }
 
+  /// Simpan posisi terakhir supaya aplikasi lanjut dari halaman yang sama
+  /// ketika dibuka kembali.
+  void _persistLocation() {
+    final location = _router.routerDelegate.currentConfiguration.uri.toString();
+    if (!AppRouter.shouldPersist(location)) return;
+    final store = widget.dependencies.navigationStore;
+    // Berada di area aplikasi berarti onboarding tidak perlu diulang lagi.
+    unawaited(store.markOnboardingSeen());
+    unawaited(store.saveLastLocation(location));
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.paused ||
+        state == AppLifecycleState.detached) {
+      _persistLocation();
+    }
+  }
+
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    _router.routerDelegate.removeListener(_persistLocation);
     _router.dispose();
     _destinations.dispose();
     _categories.dispose();
@@ -115,6 +139,9 @@ class _DolenaeAppState extends State<DolenaeApp> {
   Widget build(BuildContext context) {
     return MultiProvider(
       providers: [
+        Provider<AppNavigationStore>.value(
+          value: widget.dependencies.navigationStore,
+        ),
         ChangeNotifierProvider.value(value: _auth),
         ChangeNotifierProvider.value(value: _categories),
         ChangeNotifierProvider.value(value: _destinations),

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import 'package:dolenae_mobile/src/app/theme/app_colors.dart';
 import 'package:dolenae_mobile/src/app/theme/app_radius.dart';
@@ -29,11 +30,13 @@ class DnInput extends StatefulWidget {
     this.textInputAction,
     this.textCapitalization = TextCapitalization.sentences,
     this.prefixIcon,
+    this.prefixText,
     this.suffix,
     this.enabled = true,
     this.focusNode,
     this.onSubmitted,
     this.maxLength,
+    this.inputFormatters,
     this.obscureText = false,
   });
 
@@ -49,11 +52,13 @@ class DnInput extends StatefulWidget {
   final TextInputAction? textInputAction;
   final TextCapitalization textCapitalization;
   final IconData? prefixIcon;
+  final String? prefixText;
   final Widget? suffix;
   final bool enabled;
   final FocusNode? focusNode;
   final ValueChanged<String>? onSubmitted;
   final int? maxLength;
+  final List<TextInputFormatter>? inputFormatters;
 
   /// Menyembunyikan teks; dipakai [DnPasswordField].
   final bool obscureText;
@@ -108,6 +113,7 @@ class _DnInputState extends State<DnInput> {
           focusNode: widget.focusNode,
           onSubmitted: widget.onSubmitted,
           maxLength: widget.maxLength,
+          inputFormatters: widget.inputFormatters,
           obscureText: widget.obscureText,
           cursorColor: AppColors.primary,
           style: AppTextStyles.body.copyWith(color: AppColors.ink),
@@ -123,6 +129,8 @@ class _DnInputState extends State<DnInput> {
             prefixIcon: widget.prefixIcon == null
                 ? null
                 : Icon(widget.prefixIcon, size: 20, color: AppColors.body),
+            prefixText: widget.prefixText,
+            prefixStyle: AppTextStyles.body.copyWith(color: AppColors.body),
             suffixIcon: widget.suffix,
             filled: true,
             fillColor: widget.enabled

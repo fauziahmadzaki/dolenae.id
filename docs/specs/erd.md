@@ -46,8 +46,6 @@ erDiagram
     TRIP_PLAN_ITEMS }o--o{ TRAVEL_SUPPORTS : "selects"
     TRIP_PLAN_ITEMS }o--o{ PREPARATION_ITEMS : "checklist progress"
 
-    FACILITY_PROPOSALS }o--o| DESTINATIONS : "proposes near"
-
     USERS {
         uuid id PK
         varchar name
@@ -152,20 +150,10 @@ erDiagram
         text notes
         jsonb checklist_completed
     }
-    FACILITY_PROPOSALS {
-        uuid id PK
-        varchar name
-        enum support_type "accommodation / transport / food"
-        varchar nearest_destination_name
-        varchar address
-        text note
-        enum status "menunggu / terverifikasi / ditolak"
-        timestamptz created_at
-    }
     APP_NOTIFICATIONS {
         uuid id PK
         uuid user_id FK
-        enum kind "rekomendasi / rencana / checklist / usulan / sistem"
+        enum kind "rekomendasi / rencana / checklist / sistem"
         varchar title
         text body
         bool read
@@ -249,8 +237,7 @@ Entitas AI (`Preference`, `RuleScore`, `RecommendationResult`) **tidak dipersist
 | **PreparationItem** | 🔜 | Baris item perlengkapan (kategori + required + bobot). |
 | **TripPlan** | 🔜 | Rencana perjalanan milik user + budget. |
 | **TripPlanItem** | 🔜 | Satu destinasi dalam rencana + support terpilih + progress checklist. |
-| **FacilityProposal** | 🔜 | Usulan fasilitas dari merchant/user; status verifikasi. |
-| **AppNotification** | 🔜 | Notifikasi in-app (rekomendasi/rencana/checklist/usulan/sistem). |
+| **AppNotification** | 🔜 | Notifikasi in-app (rekomendasi/rencana/checklist/sistem). |
 | **SavedDestination / SavedTripPlan / SavedChecklist** | 🔜 | Item yang disimpan user. |
 | **AppSettings / ActiveDevice** | 🔜 | Setelan aplikasi & perangkat aktif. |
 | **FaqItem** | 🔜 | Item FAQ (kategori akun/perjalanan/fasilitas/data). |
@@ -278,8 +265,6 @@ TripPlan 1───* TripPlanItem
 TripPlanItem *───1 Destination
 TripPlanItem *───* TravelSupport      (supportsChosen)
 TripPlanItem *───* PreparationItem    (checklistCompleted)
-
-FacilityProposal *───o| Destination   (via nearest name)
 ```
 
 Konvensi: `ID` = string (uuid/nanoid); tanggal = ISO 8601 / `timestamptz`;
@@ -405,7 +390,7 @@ erDiagram
 | Entitas | Sumber (Figma) | Catatan |
 | --- | --- | --- |
 | **MerchantProfile** | Web Admin sidebar "Merchant"; Lo-Fi "Merchant Overview/Profil Bisnis" | `Merchant extends User` sudah ada di types; kini pasti punya status `verified`, statistik layanan, rating. |
-| **VerificationRequest (Pengajuan)** | Hi-Fi `Admin - Verifikasi`; Lo-Fi `Merchant - Pengajuan` | Merchant mengajukan **layanan** → admin tinjau (Menunggu/Disetujui/Ditolak/Perlu revisi). Berbeda dari `FacilityProposal` (usulan wisatawan). |
+| **VerificationRequest (Pengajuan)** | Hi-Fi `Admin - Verifikasi`; Lo-Fi `Merchant - Pengajuan` | Merchant mengajukan **layanan** → admin tinjau (Menunggu/Disetujui/Ditolak/Perlu revisi). |
 | **RoomType** | Hi-Fi `Admin Fasilitas - Penginapan` | Sub-entitas penginapan: `Kamar Deluxe - kapasitas 2 - Rp350.000`. |
 | **Review (Ulasan)** | Lo-Fi `Merchant - Ulasan` (rating 4.8 dari 32); sort "rating" di Jelajah | Ulasan untuk destinasi **dan** layanan; menyimpan agregat rating. |
 | **DataReport ("Data dilaporkan")** | Hi-Fi `Admin - Overview` KPI + log "Deteksi data kosong → Dilaporkan" | Temuan otomatis sistem atas data tidak lengkap. |

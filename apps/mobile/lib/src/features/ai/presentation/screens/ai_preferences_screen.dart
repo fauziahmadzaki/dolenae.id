@@ -9,6 +9,8 @@ import 'package:dolenae_mobile/src/app/theme/app_colors.dart';
 import 'package:dolenae_mobile/src/app/theme/app_radius.dart';
 import 'package:dolenae_mobile/src/app/theme/app_spacing.dart';
 import 'package:dolenae_mobile/src/app/theme/app_text_styles.dart';
+import 'package:dolenae_mobile/src/core/utils/formatters.dart';
+import 'package:dolenae_mobile/src/core/utils/rupiah_input_formatter.dart';
 import 'package:dolenae_mobile/src/features/ai/domain/entities/ai_options.dart';
 import 'package:dolenae_mobile/src/features/ai/domain/entities/ai_recommendation.dart';
 import 'package:dolenae_mobile/src/shared/icons/app_icons.dart';
@@ -51,7 +53,9 @@ class _AiPreferencesScreenState extends State<AiPreferencesScreen> {
 
   late String _prompt = _base.rawText;
   late String _note = _base.note ?? '';
-  late String _budget = _base.budgetPerPerson?.toString() ?? '';
+  late String _budget = _base.budgetPerPerson == null
+      ? ''
+      : formatThousands(_base.budgetPerPerson!);
   late bool _needAccommodation = _base.needsAccommodation;
   late bool _needTransport = _base.needsTransport;
 
@@ -107,7 +111,7 @@ class _AiPreferencesScreenState extends State<AiPreferencesScreen> {
 
   void _submit() {
     final ai = context.read<AiController>();
-    final budget = int.tryParse(_budget);
+    final budget = int.tryParse(_budget.replaceAll(RegExp(r'\D'), ''));
     final preference = _preference.copyWith(
       rawText: _prompt,
       note: _note,
@@ -227,13 +231,13 @@ class _AiPreferencesScreenState extends State<AiPreferencesScreen> {
                   const SizedBox(height: AppSpacing.s2),
                   DnInput(
                     label: 'Budget per orang',
-                    hint: 'Contoh: 500000',
+                    hint: 'Contoh: 500.000',
                     value: _budget,
                     keyboardType: TextInputType.number,
-                    prefixIcon: AppIcons.key,
-                    onChanged: (value) => setState(
-                      () => _budget = value.replaceAll(RegExp(r'\D'), ''),
-                    ),
+                    prefixText: 'Rp ',
+                    maxLength: 15,
+                    inputFormatters: const [RupiahInputFormatter()],
+                    onChanged: (value) => setState(() => _budget = value),
                   ),
                   const SizedBox(height: AppSpacing.s2),
                   Container(

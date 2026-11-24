@@ -1,20 +1,50 @@
+import 'dart:async';
+
 import 'package:dolenae_mobile/src/features/destinations/domain/entities/destination.dart';
-import 'package:dolenae_mobile/src/features/facilities/domain/entities/facility_proposal.dart';
-import 'package:dolenae_mobile/src/features/saved/data/data_sources/saved_seed_data_source.dart';
+import 'package:dolenae_mobile/src/features/saved/data/data_sources/saved_local_data_source.dart';
 import 'package:dolenae_mobile/src/features/saved/domain/entities/saved_item.dart';
 import 'package:dolenae_mobile/src/features/saved/domain/repositories/saved_repository.dart';
 
 class SavedRepositoryImpl implements SavedRepository {
-  SavedRepositoryImpl()
-    : _destinations = List.of(SavedSeedData.destinations),
-      _plans = List.of(SavedSeedData.plans),
-      _checklists = List.of(SavedSeedData.checklists),
-      _proposals = List.of(SavedSeedData.proposals);
+  SavedRepositoryImpl([SavedLocalDataSource? local]) : _local = local {
+    final snapshot = local?.read();
+    final destinations = snapshot?.destinations ?? const <SavedDestination>[];
+    final plans = snapshot?.plans ?? const <SavedTripPlan>[];
+    final checklists = snapshot?.checklists ?? const <SavedChecklist>[];
 
-  final List<SavedDestination> _destinations;
-  final List<SavedTripPlan> _plans;
-  final List<SavedChecklist> _checklists;
-  final List<FacilityProposal> _proposals;
+    // Buang data demo lama yang sempat tersimpan pada versi seed.
+    _destinations = destinations
+        .where((item) => !_legacySeedIds.contains(item.id))
+        .toList();
+    _plans = plans.where((item) => !_legacySeedIds.contains(item.id)).toList();
+    _checklists = checklists
+        .where((item) => !_legacySeedIds.contains(item.id))
+        .toList();
+
+    if (snapshot != null &&
+        (_destinations.length != destinations.length ||
+            _plans.length != plans.length ||
+            _checklists.length != checklists.length)) {
+      _persist();
+    }
+  }
+
+  static const _legacySeedIds = {
+    'save-1',
+    'save-2',
+    'save-3',
+    'saved-plan-1',
+    'saved-plan-2',
+    'saved-chk-1',
+    'saved-chk-2',
+    'saved-chk-3',
+  };
+
+  final SavedLocalDataSource? _local;
+
+  late final List<SavedDestination> _destinations;
+  late final List<SavedTripPlan> _plans;
+  late final List<SavedChecklist> _checklists;
 
   @override
   List<SavedDestination> get destinations => List.unmodifiable(_destinations);
@@ -24,9 +54,6 @@ class SavedRepositoryImpl implements SavedRepository {
 
   @override
   List<SavedChecklist> get checklists => List.unmodifiable(_checklists);
-
-  @override
-  List<FacilityProposal> get proposals => List.unmodifiable(_proposals);
 
   @override
   bool isDestinationSaved(String destinationId) {
@@ -40,26 +67,29 @@ class SavedRepositoryImpl implements SavedRepository {
     );
     if (index != -1) {
       _destinations.removeAt(index);
-      return;
+    } else {
+      _destinations.insert(
+        0,
+        SavedDestination(
+          id: 'save-${destination.id}',
+          destination: destination,
+          savedAt: DateTime.now(),
+        ),
+      );
     }
-    _destinations.insert(
-      0,
-      SavedDestination(
-        id: 'save-${destination.id}',
-        destination: destination,
-        savedAt: DateTime.now(),
-      ),
-    );
+    _persist();
   }
 
   @override
   void removeDestination(String destinationId) {
     _destinations.removeWhere((item) => item.destination.id == destinationId);
+    _persist();
   }
 
   @override
   void removePlan(String planId) {
     _plans.removeWhere((item) => item.id == planId);
+    _persist();
   }
 
   @override
@@ -78,15 +108,26 @@ class SavedRepositoryImpl implements SavedRepository {
           : SavedPlanStatus.aktif,
       savedAt: plan.savedAt,
     );
+    _persist();
   }
 
   @override
   void removeChecklist(String checklistId) {
     _checklists.removeWhere((item) => item.id == checklistId);
+    _persist();
   }
 
-  @override
-  void addProposal(FacilityProposal proposal) {
-    _proposals.insert(0, proposal);
+  void _persist() {
+    final local = _local;
+    if (local == null) return;
+    unawaited(
+      local.write(
+        SavedSnapshot(
+          destinations: _destinations,
+          plans: _plans,
+          checklists: _checklists,
+        ),
+      ),
+    );
   }
 }

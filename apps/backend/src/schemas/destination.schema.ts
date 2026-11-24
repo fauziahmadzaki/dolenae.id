@@ -71,3 +71,8 @@ export const destinationIdParamsSchema = z.object({
   id: z.string().uuid("ID destinasi harus berupa format UUID yang valid"),
 });
 
+/** Skema validasi parameter slug destinasi. */
+export const destinationSlugParamsSchema = z.object({
+  slug: slugSchema,
+});
+

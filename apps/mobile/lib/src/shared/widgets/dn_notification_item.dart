@@ -24,7 +24,6 @@ class DnNotificationItem extends StatelessWidget {
     NotificationKind.rekomendasi => AppIcons.sparkles,
     NotificationKind.rencana => AppIcons.route,
     NotificationKind.checklist => AppIcons.squareCheck,
-    NotificationKind.usulan => AppIcons.messageSquare,
     NotificationKind.sistem => AppIcons.info,
   };
 

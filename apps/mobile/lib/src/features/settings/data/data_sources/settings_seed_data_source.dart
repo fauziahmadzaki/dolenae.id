@@ -45,8 +45,8 @@ abstract final class SettingsSeedData {
     FaqItem(
       id: 'faq-4',
       category: FaqCategory.fasilitas,
-      question: 'Bagaimana cara mengusulkan fasilitas baru?',
-      answer: 'Buka Berbagai Fasilitas pada sebuah destinasi, lalu pilih Usulkan fasilitas. Usulan kamu masuk ke antrean tinjauan admin.',
+      question: 'Bagaimana fasilitas di Dolenae dikurasi?',
+      answer: 'Tim Dolenae meninjau dan memperbarui data fasilitas bersama mitra. Status verifikasi tiap fasilitas ditampilkan pada daftar maupun detail fasilitas.',
     ),
     FaqItem(
       id: 'faq-5',

@@ -388,8 +388,8 @@ detail destinasi, serta integrasi trip planning.
   destinasi; pemilihan jalur + grafik.
 - **Trip planning & AI:** lampirkan jalur ke `TripPlanItem`; rekomendasi
   memakai `difficulty` + `traversableBy`.
-- **Merchant:** usulan basecamp/ruas + antrean verifikasi (mengikuti pola
-  "Usulkan Fasilitas").
+- **Merchant:** pengajuan basecamp/ruas + antrean verifikasi (mengikuti pola
+  pengajuan layanan merchant).
 - **Elevasi otomatis:** ambil dari elevation API/DEM saat memilih titik di
   peta (sekarang manual).
 - **Geometri polyline:** `shapePoints` per ruas agar mengikuti jalur asli

@@ -11,7 +11,6 @@ import 'package:dolenae_mobile/src/features/facilities/domain/entities/facility.
 import 'package:dolenae_mobile/src/features/facilities/presentation/controllers/facilities_controller.dart';
 import 'package:dolenae_mobile/src/shared/icons/app_icons.dart';
 import 'package:dolenae_mobile/src/shared/widgets/dn_app_bar.dart';
-import 'package:dolenae_mobile/src/shared/widgets/dn_buttons.dart';
 import 'package:dolenae_mobile/src/shared/widgets/dn_chip.dart';
 import 'package:dolenae_mobile/src/shared/widgets/dn_empty_state.dart';
 import 'package:dolenae_mobile/src/shared/widgets/dn_segmented.dart';
@@ -26,13 +25,11 @@ class FacilitiesScreen extends StatefulWidget {
   const FacilitiesScreen({
     super.key,
     this.destinationId = 'dest-bromo',
-    this.onPropose,
     this.onBack,
     this.onOpenDetail,
   });
 
   final String destinationId;
-  final VoidCallback? onPropose;
   final VoidCallback? onBack;
   final ValueChanged<String>? onOpenDetail;
 
@@ -76,8 +73,6 @@ class _FacilitiesScreenState extends State<FacilitiesScreen> {
               .toList();
     return _filter(categoryItems, destination);
   }
-
-  bool get _hasFilter => _economicOnly || _nearbyOnly || _category != null;
 
   void _openDetail(Facility facility) {
     final onOpenDetail = widget.onOpenDetail;
@@ -219,30 +214,6 @@ class _FacilitiesScreenState extends State<FacilitiesScreen> {
                       ];
                     }),
                 ],
-              ),
-            ),
-            Container(
-              padding: const EdgeInsets.fromLTRB(
-                AppSpacing.s5,
-                AppSpacing.s4,
-                AppSpacing.s5,
-                AppSpacing.s5,
-              ),
-              decoration: BoxDecoration(
-                color: AppColors.canvas,
-                border: Border(
-                  top: BorderSide(
-                    color: _hasFilter ? AppColors.hairline : Colors.transparent,
-                  ),
-                ),
-              ),
-              child: DnOutlineButton(
-                label: 'Usulkan fasilitas',
-                icon: AppIcons.plus,
-                height: 48,
-                onPressed:
-                    widget.onPropose ??
-                    () => context.push('/facilities/propose'),
               ),
             ),
           ],

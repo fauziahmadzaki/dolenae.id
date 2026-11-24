@@ -8,6 +8,7 @@ import type {
   createDestinationSchema,
   destinationIdParamsSchema,
   destinationListQuerySchema,
+  destinationSlugParamsSchema,
   updateDestinationSchema,
 } from "../schemas/destination.schema";
 import type { Pagination } from "../utils/pagination";
@@ -17,6 +18,7 @@ export type DestinationListQuery = z.infer<typeof destinationListQuerySchema>;
 export type CreateDestinationBody = z.infer<typeof createDestinationSchema>;
 export type UpdateDestinationBody = z.infer<typeof updateDestinationSchema>;
 export type DestinationIdParams = z.infer<typeof destinationIdParamsSchema>;
+export type DestinationSlugParams = z.infer<typeof destinationSlugParamsSchema>;
 
 /** Fields a caller may update after the destination exists. */
 export type DestinationPatch = Partial<Omit<NewDestinationRow, "id">>;

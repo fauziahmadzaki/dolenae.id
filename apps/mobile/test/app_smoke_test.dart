@@ -7,7 +7,6 @@ import 'package:dolenae_mobile/src/features/checklist/presentation/screens/add_c
 import 'package:dolenae_mobile/src/features/checklist/presentation/screens/checklist_screen.dart';
 import 'package:dolenae_mobile/src/features/destinations/presentation/screens/destination_detail_screen.dart';
 import 'package:dolenae_mobile/src/features/explore/presentation/screens/explore_screen.dart';
-import 'package:dolenae_mobile/src/features/plan/presentation/screens/create_plan_screen.dart';
 import 'package:dolenae_mobile/src/features/plan/presentation/screens/plan_item_detail_screen.dart';
 import 'package:dolenae_mobile/src/features/plan/presentation/screens/select_destination_screen.dart';
 import 'package:dolenae_mobile/src/features/plan/presentation/screens/select_facility_screen.dart';
@@ -47,8 +46,26 @@ void main() {
     await tester.binding.setSurfaceSize(_phone);
     addTearDown(() => tester.binding.setSurfaceSize(null));
     await tester.pumpWidget(wrapScreen(const OnboardingScreen()));
-    expect(find.text('Mulai Jelajah'), findsOneWidget);
+    await tester.pumpAndSettle();
+    expect(find.text('Selanjutnya'), findsOneWidget);
     expect(find.text('Lewati'), findsOneWidget);
+  });
+
+  testWidgets('Onboarding bisa digeser dan selesai di slide terakhir', (
+    tester,
+  ) async {
+    await tester.binding.setSurfaceSize(_phone);
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    await tester.pumpWidget(wrapScreen(const OnboardingScreen()));
+    await tester.pumpAndSettle();
+
+    // Geser satu slide, lalu lanjut lewat tombol sampai CTA terakhir.
+    await tester.drag(find.byType(PageView), const Offset(-360, 0));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Selanjutnya'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Mulai Jelajah'), findsOneWidget);
   });
 
   testWidgets('Login menampilkan form', (tester) async {
@@ -92,8 +109,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Notifikasi'), findsOneWidget);
-    expect(find.textContaining('belum dibaca'), findsOneWidget);
-    expect(find.text('HARI INI'), findsOneWidget);
+    expect(find.text('Belum ada notifikasi'), findsOneWidget);
   });
 
   testWidgets('Avatar Beranda membuka halaman Profil', (tester) async {
@@ -133,8 +149,45 @@ void main() {
     expect(find.text('Musim terbaik'), findsOneWidget);
     expect(find.text('Akses'), findsOneWidget);
     expect(find.text('Berbagai Fasilitas'), findsOneWidget);
-    expect(find.text('Checklist'), findsOneWidget);
+    expect(find.text('Simpan'), findsOneWidget);
     expect(find.text('Tambah ke rencana'), findsOneWidget);
+  });
+
+  testWidgets('Simpan destinasi menambah ke daftar tersimpan', (tester) async {
+    await tester.binding.setSurfaceSize(_phone);
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    final store = newStore();
+    expect(store.saved.isDestinationSaved('dest-papandayan'), isFalse);
+
+    await tester.pumpWidget(
+      wrapScreen(
+        const DestinationDetailScreen(destinationId: 'dest-papandayan'),
+        store: store,
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Simpan'));
+    await tester.pumpAndSettle();
+
+    expect(store.saved.isDestinationSaved('dest-papandayan'), isTrue);
+    expect(find.text('Tersimpan'), findsOneWidget);
+  });
+
+  testWidgets('Tambah ke rencana membawa destinasi ke form rencana', (
+    tester,
+  ) async {
+    await tester.binding.setSurfaceSize(_phone);
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    await tester.pumpWidget(
+      wrapScreen(const DestinationDetailScreen(destinationId: 'dest-bromo')),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Tambah ke rencana'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Layar lain'), findsOneWidget);
   });
 
   testWidgets('Rencana menampilkan daftar dan membuka detail rencana', (
@@ -158,25 +211,6 @@ void main() {
     expect(find.text('HARI 1'), findsOneWidget);
     expect(find.text('Gunung Prau'), findsWidgets);
     expect(find.text('ESTIMASI BIAYA'), findsOneWidget);
-  });
-
-  testWidgets('Buat Rencana Baru menampilkan form dan stepper orang', (
-    tester,
-  ) async {
-    await tester.binding.setSurfaceSize(_phone);
-    addTearDown(() => tester.binding.setSurfaceSize(null));
-    await tester.pumpWidget(wrapScreen(const CreatePlanScreen()));
-    expect(find.text('Buat rencana baru'), findsOneWidget);
-    expect(find.text('Nama rencana'), findsOneWidget);
-    expect(find.text('Destinasi'), findsOneWidget);
-    expect(find.text('Tanggal'), findsOneWidget);
-    expect(find.text('Jumlah orang'), findsOneWidget);
-    expect(find.text('Buat rencana'), findsOneWidget);
-    // Cek stepper
-    expect(find.text('2'), findsOneWidget);
-    await tester.tap(find.byIcon(AppIcons.plus));
-    await tester.pump();
-    expect(find.text('3'), findsOneWidget);
   });
 
   testWidgets(
@@ -295,8 +329,12 @@ void main() {
     expect(find.text('Ubah profil'), findsOneWidget);
     expect(find.text('AKUN & KEAMANAN'), findsOneWidget);
     expect(find.text('Edit profil'), findsOneWidget);
-    expect(find.text('PREFERENSI'), findsOneWidget);
+    expect(find.text('PERJALANAN'), findsOneWidget);
+    expect(find.text('Destinasi tersimpan'), findsOneWidget);
+    expect(find.text('Rencana tersimpan'), findsOneWidget);
+    expect(find.text('Checklist tersimpan'), findsOneWidget);
     expect(find.text('BANTUAN'), findsOneWidget);
+    expect(find.text('Bantuan & FAQ'), findsOneWidget);
     expect(find.text('Keluar'), findsOneWidget);
   });
 
@@ -317,10 +355,25 @@ void main() {
       expect(find.text('Layar lain'), findsOneWidget, reason: label);
     }
 
-    await tapMenu('Ubah kata sandi');
-    await tapMenu('Privasi & keamanan');
+    await tapMenu('Destinasi tersimpan');
+    await tapMenu('Rencana tersimpan');
+    await tapMenu('Checklist tersimpan');
     await tapMenu('Bantuan & FAQ');
-    await tapMenu('Kirim masukan');
+  });
+
+  testWidgets('Menu Profil hanya menyisakan setelan yang berfungsi', (
+    tester,
+  ) async {
+    await tester.binding.setSurfaceSize(_phone);
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    await tester.pumpWidget(wrapScreen(const ProfileScreen()));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Ubah kata sandi'), findsNothing);
+    expect(find.text('Privasi & keamanan'), findsNothing);
+    expect(find.text('Setelan notifikasi'), findsNothing);
+    expect(find.text('Tema & bahasa'), findsNothing);
+    expect(find.text('Kirim masukan'), findsNothing);
   });
 
   testWidgets(

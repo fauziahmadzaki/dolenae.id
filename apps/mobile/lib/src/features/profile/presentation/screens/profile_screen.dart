@@ -13,6 +13,7 @@ import 'package:dolenae_mobile/src/app/theme/app_spacing.dart';
 import 'package:dolenae_mobile/src/app/theme/app_text_styles.dart';
 import 'package:dolenae_mobile/src/shared/icons/app_icons.dart';
 import 'package:dolenae_mobile/src/shared/widgets/dn_bottom_nav.dart';
+import 'package:dolenae_mobile/src/shared/widgets/dn_dialog.dart';
 
 /// Layar Profil Wisatawan (Node Figma: 81:257).
 ///
@@ -95,9 +96,9 @@ class ProfileScreen extends StatelessWidget {
                     const SizedBox(height: 8),
                     _buildAccountGroup(context),
                     const SizedBox(height: AppSpacing.s4),
-                    _buildGroupHeader('PREFERENSI'),
+                    _buildGroupHeader('PERJALANAN'),
                     const SizedBox(height: 8),
-                    _buildPreferencesGroup(context),
+                    _buildTripGroup(context),
                     const SizedBox(height: AppSpacing.s4),
                     _buildGroupHeader('BANTUAN'),
                     const SizedBox(height: 8),
@@ -223,7 +224,12 @@ class ProfileScreen extends StatelessWidget {
           // Stats Row
           Row(
             children: [
-              _buildStatItem(context, '$saved', 'Tersimpan', null),
+              _buildStatItem(
+                context,
+                '$saved',
+                'Tersimpan',
+                () => context.push('/saved/destinations'),
+              ),
               const SizedBox(width: 8),
               _buildStatItem(
                 context,
@@ -331,30 +337,25 @@ class ProfileScreen extends StatelessWidget {
         title: 'Edit profil',
         onTap: onEditProfile ?? () => context.push('/profile/edit'),
       ),
-      _MenuItem(
-        icon: AppIcons.key,
-        title: 'Ubah kata sandi',
-        onTap: () => context.push('/auth/change-password'),
-      ),
-      _MenuItem(
-        icon: AppIcons.shield,
-        title: 'Privasi & keamanan',
-        onTap: () => context.push('/settings/privacy'),
-      ),
     ]);
   }
 
-  Widget _buildPreferencesGroup(BuildContext context) {
+  Widget _buildTripGroup(BuildContext context) {
     return _buildMenuCard([
       _MenuItem(
-        icon: AppIcons.bell,
-        title: 'Setelan notifikasi',
-        onTap: () => context.push('/settings/notifications'),
+        icon: AppIcons.bookmarkCheck,
+        title: 'Destinasi tersimpan',
+        onTap: () => context.push('/saved/destinations'),
       ),
       _MenuItem(
-        icon: AppIcons.palette,
-        title: 'Tema & bahasa',
-        onTap: () => context.push('/settings/theme'),
+        icon: AppIcons.map,
+        title: 'Rencana tersimpan',
+        onTap: () => context.push('/saved/plans'),
+      ),
+      _MenuItem(
+        icon: AppIcons.squareCheck,
+        title: 'Checklist tersimpan',
+        onTap: () => context.push('/saved/checklists'),
       ),
     ]);
   }
@@ -365,11 +366,6 @@ class ProfileScreen extends StatelessWidget {
         icon: AppIcons.helpCircle,
         title: 'Bantuan & FAQ',
         onTap: () => context.push('/settings/faq'),
-      ),
-      _MenuItem(
-        icon: AppIcons.messageSquare,
-        title: 'Kirim masukan',
-        onTap: () => context.push('/settings/feedback'),
       ),
     ]);
   }
@@ -436,21 +432,37 @@ class ProfileScreen extends StatelessWidget {
       borderRadius: BorderRadius.circular(AppRadius.lg),
       child: InkWell(
         borderRadius: BorderRadius.circular(AppRadius.lg),
-        onTap:
-            onLogout ??
-            () async {
-              if (auth != null) {
-                await auth.logout();
-                if (context.mounted) context.go('/login');
-                return;
-              }
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Berhasil keluar'),
-                  backgroundColor: AppColors.primary,
-                ),
-              );
-            },
+        onTap: () async {
+          final confirmed = await showDnDialog(
+            context,
+            title: 'Keluar dari akun?',
+            message:
+                'Kamu perlu masuk lagi untuk membuka rencana dan checklist '
+                'yang tersimpan.',
+            type: DnDialogType.destruktif,
+            confirmLabel: 'Keluar',
+            cancelLabel: 'Batal',
+            icon: AppIcons.logOut,
+          );
+          if (confirmed != true || !context.mounted) return;
+
+          final logout = onLogout;
+          if (logout != null) {
+            logout();
+            return;
+          }
+          if (auth != null) {
+            await auth.logout();
+            if (context.mounted) context.go('/login');
+            return;
+          }
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Berhasil keluar'),
+              backgroundColor: AppColors.primary,
+            ),
+          );
+        },
         child: Container(
           height: 56,
           padding: const EdgeInsets.symmetric(horizontal: 12),

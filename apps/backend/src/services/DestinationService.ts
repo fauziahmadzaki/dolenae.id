@@ -100,12 +100,25 @@ class DestinationService {
   async getById(id: string): Promise<PublicDestinationDetail> {
     const row = await destinationRepository.findById(id);
     if (!row) throw new NotFoundError("Destinasi tidak ditemukan");
-    const categoryIds = await destinationRepository.findCategoryIds(id);
+    return this.toDetail(row);
+  }
+
+  async getBySlug(slug: string): Promise<PublicDestinationDetail> {
+    const row = await destinationRepository.findBySlug(slug);
+    if (!row) throw new NotFoundError("Destinasi tidak ditemukan");
+    return this.toDetail(row);
+  }
+
+  private async toDetail(row: DestinationRow): Promise<PublicDestinationDetail> {
+    const categoryIds = await destinationRepository.findCategoryIds(row.id);
     const lookup = await this.resolveCategories(categoryIds);
     const categories = categoryIds
       .map((categoryId) => lookup.get(categoryId))
       .filter((c): c is PublicCategory => Boolean(c));
-    return { ...this.toPublicDestination(row, categoryIds, categories), categories };
+    return {
+      ...this.toPublicDestination(row, categoryIds, categories),
+      categories,
+    };
   }
 
   async list(

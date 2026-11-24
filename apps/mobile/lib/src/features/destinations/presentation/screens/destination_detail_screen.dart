@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
 import 'package:dolenae_mobile/src/features/destinations/presentation/controllers/destinations_controller.dart';
+import 'package:dolenae_mobile/src/features/saved/presentation/controllers/saved_controller.dart';
 import 'package:dolenae_mobile/src/app/theme/app_colors.dart';
 import 'package:dolenae_mobile/src/app/theme/app_radius.dart';
 import 'package:dolenae_mobile/src/app/theme/app_spacing.dart';
@@ -12,6 +13,7 @@ import 'package:dolenae_mobile/src/shared/icons/app_icons.dart';
 import 'package:dolenae_mobile/src/shared/widgets/dn_buttons.dart';
 import 'package:dolenae_mobile/src/shared/widgets/dn_difficulty_badge.dart';
 import 'package:dolenae_mobile/src/shared/widgets/dn_remote_image.dart';
+import 'package:dolenae_mobile/src/shared/widgets/dn_toast.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:dolenae_mobile/src/features/facilities/presentation/widgets/facilities_section.dart';
@@ -20,20 +22,18 @@ import 'package:dolenae_mobile/src/features/routes/presentation/widgets/routes_s
 /// Layar Detail Destinasi (Node Figma: 65:215).
 ///
 /// Menampilkan spesifikasi, akses, peta lokasi, ketersediaan fasilitas,
-/// kebutuhan pendukung, dan aksi cepat untuk menyusun rencana / checklist.
+/// kebutuhan pendukung, dan aksi simpan / susun rencana.
 class DestinationDetailScreen extends StatelessWidget {
   const DestinationDetailScreen({
     super.key,
     this.destinationId = '',
     this.onBack,
-    this.onChecklist,
     this.onAddToPlan,
     this.onBookmark,
   });
 
   final String destinationId;
   final VoidCallback? onBack;
-  final VoidCallback? onChecklist;
   final VoidCallback? onAddToPlan;
   final VoidCallback? onBookmark;
 
@@ -66,13 +66,16 @@ class DestinationDetailScreen extends StatelessWidget {
       );
     }
 
+    final savedStore = context.watch<SavedController?>();
+    final isSaved = savedStore?.isDestinationSaved(destination.id) ?? false;
+
     return Scaffold(
       backgroundColor: AppColors.canvas,
       body: SafeArea(
         top: false,
         child: Column(
           children: [
-            _buildAppBar(context, destination),
+            _buildAppBar(context, destination, isSaved),
             Expanded(
               child: SingleChildScrollView(
                 child: Column(
@@ -97,14 +100,32 @@ class DestinationDetailScreen extends StatelessWidget {
                 ),
               ),
             ),
-            _buildBottomCta(context),
+            _buildBottomCta(context, destination, isSaved),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildAppBar(BuildContext context, Destination destination) {
+  void _toggleSaved(BuildContext context, Destination destination) {
+    final store = context.read<SavedController?>();
+    if (store == null) return;
+    store.toggleSavedDestination(destination);
+    final saved = store.isDestinationSaved(destination.id);
+    showDnToast(
+      context,
+      saved
+          ? '${destination.name} disimpan ke Tersimpan'
+          : '${destination.name} dihapus dari Tersimpan',
+      type: saved ? DnToastType.sukses : DnToastType.info,
+    );
+  }
+
+  Widget _buildAppBar(
+    BuildContext context,
+    Destination destination,
+    bool isSaved,
+  ) {
     return Container(
       color: AppColors.primary,
       padding: EdgeInsets.only(
@@ -148,19 +169,22 @@ class DestinationDetailScreen extends StatelessWidget {
               overflow: TextOverflow.ellipsis,
             ),
           ),
-          Material(
-            color: AppColors.primaryHover,
-            shape: const CircleBorder(),
-            child: InkWell(
-              customBorder: const CircleBorder(),
-              onTap: onBookmark,
-              child: const SizedBox(
-                width: 36,
-                height: 36,
-                child: Icon(
-                  AppIcons.bookmark,
-                  color: AppColors.onPrimary,
-                  size: 18,
+          Tooltip(
+            message: isSaved ? 'Hapus dari Tersimpan' : 'Simpan destinasi',
+            child: Material(
+              color: AppColors.primaryHover,
+              shape: const CircleBorder(),
+              child: InkWell(
+                customBorder: const CircleBorder(),
+                onTap: onBookmark ?? () => _toggleSaved(context, destination),
+                child: SizedBox(
+                  width: 36,
+                  height: 36,
+                  child: Icon(
+                    isSaved ? AppIcons.bookmarkCheck : AppIcons.bookmark,
+                    color: AppColors.onPrimary,
+                    size: 18,
+                  ),
                 ),
               ),
             ),
@@ -500,7 +524,11 @@ class DestinationDetailScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildBottomCta(BuildContext context) {
+  Widget _buildBottomCta(
+    BuildContext context,
+    Destination destination,
+    bool isSaved,
+  ) {
     return Container(
       padding: const EdgeInsets.all(AppSpacing.s4),
       decoration: const BoxDecoration(
@@ -512,10 +540,10 @@ class DestinationDetailScreen extends StatelessWidget {
           Expanded(
             flex: 4,
             child: DnOutlineButton(
-              label: 'Checklist',
-              icon: AppIcons.squareCheck,
+              label: isSaved ? 'Tersimpan' : 'Simpan',
+              icon: isSaved ? AppIcons.bookmarkCheck : AppIcons.bookmark,
               height: 48,
-              onPressed: onChecklist ?? () => context.push('/checklist'),
+              onPressed: onBookmark ?? () => _toggleSaved(context, destination),
             ),
           ),
           const SizedBox(width: AppSpacing.s3),
@@ -524,7 +552,10 @@ class DestinationDetailScreen extends StatelessWidget {
             child: DnPrimaryButton(
               label: 'Tambah ke rencana',
               height: 48,
-              onPressed: onAddToPlan ?? () => context.push('/plan/create'),
+              onPressed:
+                  onAddToPlan ??
+                  () =>
+                      context.push('/plan/new?destinationId=${destination.id}'),
             ),
           ),
         ],

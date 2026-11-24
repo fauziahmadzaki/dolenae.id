@@ -2,8 +2,10 @@ import 'package:dolenae_mobile/src/features/destinations/domain/entities/destina
 import 'package:dolenae_mobile/src/features/destinations/domain/entities/search_filter.dart';
 import 'package:dolenae_mobile/src/features/checklist/presentation/screens/checklist_done_screen.dart';
 import 'package:dolenae_mobile/src/features/explore/presentation/screens/explore_screen.dart';
+import 'package:dolenae_mobile/src/features/plan/domain/entities/plan_draft.dart';
 import 'package:dolenae_mobile/src/features/plan/presentation/screens/plan_new_screen.dart';
 import 'package:dolenae_mobile/src/features/plan/presentation/screens/plan_success_screen.dart';
+import 'package:dolenae_mobile/src/features/plan/presentation/screens/select_destination_screen.dart';
 import 'package:dolenae_mobile/src/shared/icons/app_icons.dart';
 import 'package:dolenae_mobile/src/shared/widgets/dn_destination_card.dart';
 import 'package:flutter/material.dart';
@@ -227,6 +229,60 @@ void main() {
       expect(find.text('Trip Bromo'), findsOneWidget);
       await scrollTo(tester, find.text('Catatan'));
       expect(find.text('Bawa tenda'), findsOneWidget);
+    });
+
+    testWidgets('destinasi dari detail mengisi nama rencana', (tester) async {
+      await usePhone(tester);
+      await tester.pumpWidget(
+        wrapScreen(const PlanNewScreen(initialDestinationId: 'dest-bromo')),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Trip Gunung Bromo'), findsOneWidget);
+    });
+
+    testWidgets('budget diformat dengan titik ribuan', (tester) async {
+      await usePhone(tester);
+      final results =
+          <
+            ({String name, String dateRange, int days, int people, int budget})
+          >[];
+      await tester.pumpWidget(wrapScreen(PlanNewScreen(onSubmit: results.add)));
+      await tester.pumpAndSettle();
+
+      await tester.enterText(find.byType(TextField).first, 'Trip Dieng');
+      await tester.enterText(inputFor('Estimasi budget'), '1500000');
+      await tester.pumpAndSettle();
+
+      expect(find.text('1.500.000'), findsOneWidget);
+
+      await tester.tap(
+        find.widgetWithText(FilledButton, 'Lanjut pilih destinasi'),
+      );
+      await tester.pumpAndSettle();
+
+      expect(results.single.budget, 1500000);
+    });
+
+    testWidgets('destinasi awal dari detail sudah tercentang', (tester) async {
+      await usePhone(tester);
+      await tester.pumpWidget(
+        wrapScreen(
+          SelectDestinationScreen(
+            draft: PlanDraft(
+              name: 'Trip Bromo',
+              startDate: DateTime(2026, 7, 12),
+              days: 2,
+              peopleCount: 2,
+              totalBudget: 0,
+            ),
+            initialSelectedIds: const {'dest-bromo'},
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Susun rencana (1)'), findsOneWidget);
     });
   });
 

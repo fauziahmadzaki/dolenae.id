@@ -5,6 +5,7 @@ import type {
   CreateDestinationBody,
   DestinationIdParams,
   DestinationListQuery,
+  DestinationSlugParams,
   UpdateDestinationBody,
 } from "../types/destination";
 import { ok } from "../utils/response";
@@ -30,6 +31,20 @@ class DestinationController {
     try {
       const params = getValidated<DestinationIdParams>(req, "params");
       const destination = await destinationService.getById(params.id);
+      if (req.user?.role !== "admin" && destination.status !== "published") {
+        throw new NotFoundError("Destinasi tidak ditemukan");
+      }
+      ok(res, destination);
+    } catch (err) {
+      next(err);
+    }
+  };
+
+  /** GET /api/destinations/slug/:slug — detail destinasi berdasarkan slug. */
+  getBySlug: RequestHandler = async (req, res, next) => {
+    try {
+      const params = getValidated<DestinationSlugParams>(req, "params");
+      const destination = await destinationService.getBySlug(params.slug);
       if (req.user?.role !== "admin" && destination.status !== "published") {
         throw new NotFoundError("Destinasi tidak ditemukan");
       }

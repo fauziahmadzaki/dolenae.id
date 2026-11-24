@@ -4,7 +4,7 @@ export interface NavItem {
 }
 
 export const navItems: NavItem[] = [
-  { label: "Destinasi", href: "/#destinations" },
+  { label: "Destinasi", href: "/destinations" },
   { label: "Fasilitas Sekitar", href: "/#support" },
   { label: "Persiapan AI", href: "/#ai" },
   { label: "Jadi Mitra", href: "/mitra" },
@@ -25,6 +25,7 @@ export type Difficulty = "Ramah pemula" | "Menengah" | "Sulit";
 
 export interface Destination {
   name: string;
+  slug: string;
   difficulty: Difficulty;
   meta: string;
   price: string;
@@ -35,6 +36,7 @@ export interface Destination {
 export const destinations: Destination[] = [
   {
     name: "Gunung Bromo",
+    slug: "gunung-bromo",
     difficulty: "Menengah",
     meta: "2.329 mdpl · Probolinggo",
     price: "Rp 29.000",
@@ -43,6 +45,7 @@ export const destinations: Destination[] = [
   },
   {
     name: "Gunung Prau",
+    slug: "gunung-prau",
     difficulty: "Ramah pemula",
     meta: "2.565 mdpl · Wonosobo",
     price: "Rp 25.000",
@@ -51,6 +54,7 @@ export const destinations: Destination[] = [
   },
   {
     name: "Gunung Papandayan",
+    slug: "gunung-papandayan",
     difficulty: "Sulit",
     meta: "2.665 mdpl · Garut",
     price: "Rp 30.000",

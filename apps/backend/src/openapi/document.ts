@@ -1031,6 +1031,20 @@ export const openApiDocument = {
         },
       },
     },
+    "/api/destinations/slug/{slug}": {
+      parameters: [
+        { name: "slug", in: "path", required: true, schema: { type: "string", example: "gunung-bromo" } },
+      ],
+      get: {
+        tags: ["Destinations"],
+        summary: "Get a destination by slug with its categories (public)",
+        responses: {
+          "200": { description: "Destination detail" },
+          "404": { description: "Not found" },
+          "422": { description: "Validation error" },
+        },
+      },
+    },
     "/api/regions/provinces": {
       get: {
         tags: ["Regions"],

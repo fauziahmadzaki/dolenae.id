@@ -6,6 +6,7 @@ import 'package:dolenae_mobile/src/features/categories/data/data_sources/categor
 
 import 'package:dolenae_mobile/src/core/database/app_database.dart';
 import 'package:dolenae_mobile/src/core/network/api_client.dart';
+import 'package:dolenae_mobile/src/core/state/app_navigation_store.dart';
 import 'package:dolenae_mobile/src/features/ai/data/data_sources/ai_remote_data_source.dart';
 import 'package:dolenae_mobile/src/features/ai/data/repositories/ai_repository_impl.dart';
 import 'package:dolenae_mobile/src/features/ai/domain/repositories/ai_repository.dart';
@@ -15,6 +16,7 @@ import 'package:dolenae_mobile/src/features/auth/data/data_sources/google_sign_i
 import 'package:dolenae_mobile/src/features/auth/data/data_sources/secure_token_store.dart';
 import 'package:dolenae_mobile/src/features/auth/data/repositories/auth_repository_impl.dart';
 import 'package:dolenae_mobile/src/features/auth/domain/repositories/auth_repository.dart';
+import 'package:dolenae_mobile/src/features/checklist/data/data_sources/checklist_local_data_source.dart';
 import 'package:dolenae_mobile/src/features/checklist/data/repositories/checklist_repository_impl.dart';
 import 'package:dolenae_mobile/src/features/checklist/domain/repositories/checklist_repository.dart';
 import 'package:dolenae_mobile/src/features/destinations/data/data_sources/destination_local_data_source.dart';
@@ -25,6 +27,7 @@ import 'package:dolenae_mobile/src/features/explore/data/repositories/explore_re
 import 'package:dolenae_mobile/src/features/explore/domain/repositories/explore_repository.dart';
 import 'package:dolenae_mobile/src/features/facilities/data/repositories/facility_repository_impl.dart';
 import 'package:dolenae_mobile/src/features/facilities/domain/repositories/facility_repository.dart';
+import 'package:dolenae_mobile/src/features/notifications/data/data_sources/notification_local_data_source.dart';
 import 'package:dolenae_mobile/src/features/notifications/data/repositories/notification_repository_impl.dart';
 import 'package:dolenae_mobile/src/features/notifications/domain/repositories/notification_repository.dart';
 import 'package:dolenae_mobile/src/features/plan/data/data_sources/plan_local_data_source.dart';
@@ -34,6 +37,7 @@ import 'package:dolenae_mobile/src/features/plan/domain/repositories/location_re
 import 'package:dolenae_mobile/src/features/plan/domain/repositories/plan_repository.dart';
 import 'package:dolenae_mobile/src/features/routes/data/repositories/route_repository_impl.dart';
 import 'package:dolenae_mobile/src/features/routes/domain/repositories/route_repository.dart';
+import 'package:dolenae_mobile/src/features/saved/data/data_sources/saved_local_data_source.dart';
 import 'package:dolenae_mobile/src/features/saved/data/repositories/saved_repository_impl.dart';
 import 'package:dolenae_mobile/src/features/saved/domain/repositories/saved_repository.dart';
 import 'package:dolenae_mobile/src/features/settings/data/data_sources/settings_local_data_source.dart';
@@ -44,6 +48,7 @@ import 'package:dolenae_mobile/src/features/settings/domain/repositories/setting
 class AppDependencies {
   AppDependencies._({
     required this.database,
+    required this.navigationStore,
     required this.categoryRepository,
     required this.apiClient,
     required this.authRepository,
@@ -70,6 +75,7 @@ class AppDependencies {
 
     return AppDependencies._(
       database: database,
+      navigationStore: AppNavigationStore(prefs),
       categoryRepository: CategoryRepositoryImpl(
         CategoryRemoteDataSource(client),
         CategoryLocalDataSource(prefs),
@@ -88,8 +94,10 @@ class AppDependencies {
       settingsRepository: SettingsRepositoryImpl(
         local: SettingsLocalDataSource(prefs),
       ),
-      notificationRepository: NotificationRepositoryImpl(),
-      savedRepository: SavedRepositoryImpl(),
+      notificationRepository: NotificationRepositoryImpl(
+        NotificationLocalDataSource(prefs),
+      ),
+      savedRepository: SavedRepositoryImpl(SavedLocalDataSource(prefs)),
       aiRepository: AiRepositoryImpl(AiRemoteDataSource(client)),
       exploreRepository: ExploreRepositoryImpl(),
       facilityRepository: FacilityRepositoryImpl(
@@ -99,11 +107,14 @@ class AppDependencies {
       routeRepository: RouteRepositoryImpl(client),
       planRepository: PlanRepositoryImpl(PlanLocalDataSource(prefs)),
       locationRepository: const LocationRepositoryImpl(),
-      checklistRepository: ChecklistRepositoryImpl(),
+      checklistRepository: ChecklistRepositoryImpl(
+        ChecklistLocalDataSource(prefs),
+      ),
     );
   }
 
   final AppDatabase database;
+  final AppNavigationStore navigationStore;
   final CategoryRepository categoryRepository;
   final ApiClient apiClient;
   final AuthRepository authRepository;

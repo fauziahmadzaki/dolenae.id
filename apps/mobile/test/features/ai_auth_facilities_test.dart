@@ -1,25 +1,18 @@
 import 'package:dolenae_mobile/src/features/ai/domain/entities/ai_recommendation.dart';
-import 'package:dolenae_mobile/src/features/facilities/domain/entities/facility_proposal.dart';
 import 'package:dolenae_mobile/src/features/facilities/domain/entities/facility.dart';
 import 'package:dolenae_mobile/src/features/ai/data/data_sources/ai_seed_data_source.dart';
 import 'package:dolenae_mobile/src/features/facilities/data/data_sources/facility_seed_data_source.dart';
 import 'package:dolenae_mobile/src/features/ai/presentation/screens/ai_preferences_screen.dart';
 import 'package:dolenae_mobile/src/features/ai/presentation/screens/ai_results_screen.dart';
-import 'package:dolenae_mobile/src/features/auth/presentation/screens/change_password_screen.dart';
 import 'package:dolenae_mobile/src/features/auth/presentation/screens/forgot_password_screen.dart';
 import 'package:dolenae_mobile/src/features/auth/presentation/screens/otp_screen.dart';
 import 'package:dolenae_mobile/src/features/facilities/presentation/screens/facilities_screen.dart';
 import 'package:dolenae_mobile/src/features/facilities/presentation/screens/facility_detail_screen.dart';
-import 'package:dolenae_mobile/src/features/facilities/presentation/screens/proposal_success_screen.dart';
-import 'package:dolenae_mobile/src/features/facilities/presentation/screens/propose_facility_screen.dart';
 import 'package:dolenae_mobile/src/shared/widgets/dn_otp_input.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../helpers/test_harness.dart';
-
-/// Tanggal tetap agarusulan contoh tidak bergantung waktu eksekusi.
-final _fixedDate = DateTime(2026, 7, 12);
 
 void main() {
   setUpAll(useTestFonts);
@@ -261,96 +254,6 @@ void main() {
     });
   });
 
-  group('Layar Ubah Kata Sandi', () {
-    testWidgets('menampilkan tiga kolom dan tombol simpan', (tester) async {
-      await usePhone(tester);
-      await tester.pumpWidget(wrapScreen(const ChangePasswordScreen()));
-      await tester.pumpAndSettle();
-
-      expect(find.text('Ubah kata sandi'), findsOneWidget);
-      expect(find.text('Kata sandi saat ini'), findsOneWidget);
-      expect(find.text('Kata sandi baru'), findsOneWidget);
-      expect(find.text('Ulangi kata sandi baru'), findsOneWidget);
-      expect(find.text('Simpan kata sandi'), findsOneWidget);
-      expect(find.byType(TextField), findsWidgets);
-    });
-
-    testWidgets('konfirmasi tidak sama mencegah pengiriman', (tester) async {
-      await usePhone(tester);
-      final sent = <(String, String, String)>[];
-      await tester.pumpWidget(
-        wrapScreen(
-          ChangePasswordScreen(
-            onSubmit: (current, next, confirm) =>
-                sent.add((current, next, confirm)),
-          ),
-        ),
-      );
-      await tester.pumpAndSettle();
-
-      await tester.enterText(find.byType(TextField).at(0), 'RahasiaKuat1');
-      await tester.enterText(find.byType(TextField).at(1), 'RahasiaKuat2');
-      await tester.enterText(find.byType(TextField).at(2), 'RahasiaKuat3');
-
-      await tester.pumpAndSettle();
-
-      await tester.tap(find.widgetWithText(FilledButton, 'Simpan kata sandi'));
-      await tester.pumpAndSettle();
-
-      expect(sent, isEmpty);
-    });
-
-    testWidgets('password terlalu pendek ditolak', (tester) async {
-      await usePhone(tester);
-      final sent = <(String, String, String)>[];
-      await tester.pumpWidget(
-        wrapScreen(
-          ChangePasswordScreen(
-            onSubmit: (current, next, confirm) =>
-                sent.add((current, next, confirm)),
-          ),
-        ),
-      );
-      await tester.pumpAndSettle();
-
-      await tester.enterText(find.byType(TextField).at(0), 'Lama1');
-      await tester.enterText(find.byType(TextField).at(1), 'abc');
-      await tester.enterText(find.byType(TextField).at(2), 'abc');
-      await tester.pumpAndSettle();
-
-      await tester.tap(find.widgetWithText(FilledButton, 'Simpan kata sandi'));
-      await tester.pumpAndSettle();
-
-      expect(sent, isEmpty);
-    });
-
-    testWidgets('password valid diteruskan ke delegate', (tester) async {
-      await usePhone(tester);
-      final sent = <(String, String, String)>[];
-      await tester.pumpWidget(
-        wrapScreen(
-          ChangePasswordScreen(
-            onSubmit: (current, next, confirm) =>
-                sent.add((current, next, confirm)),
-          ),
-        ),
-      );
-      await tester.pumpAndSettle();
-
-      await tester.enterText(find.byType(TextField).at(0), 'LamaSekali1');
-      await tester.enterText(find.byType(TextField).at(1), 'BaruSekali2');
-      await tester.enterText(find.byType(TextField).at(2), 'BaruSekali2');
-      await tester.pumpAndSettle();
-
-      await tester.tap(find.widgetWithText(FilledButton, 'Simpan kata sandi'));
-      await tester.pumpAndSettle();
-
-      expect(sent, hasLength(1));
-      expect(sent.single.$1, 'LamaSekali1');
-      expect(sent.single.$2, 'BaruSekali2');
-    });
-  });
-
   group('Layar Fasilitas Sekitar', () {
     testWidgets('menampilkan segmented kategori dan daftar fasilitas', (
       tester,
@@ -364,7 +267,6 @@ void main() {
       expect(find.text('Penginapan'), findsOneWidget);
       expect(find.text('Transport'), findsOneWidget);
       expect(find.text('Toko/Warung'), findsOneWidget);
-      expect(find.text('Usulkan fasilitas'), findsOneWidget);
     });
 
     testWidgets('memilih kategori menyaring daftar', (tester) async {
@@ -379,20 +281,6 @@ void main() {
         (item) => item.category == FacilityCategory.transportasi,
       );
       expect(transport, isNotEmpty);
-    });
-
-    testWidgets('usulkan fasilitas memakai delegate', (tester) async {
-      await usePhone(tester);
-      var proposed = 0;
-      await tester.pumpWidget(
-        wrapScreen(FacilitiesScreen(onPropose: () => proposed++)),
-      );
-      await tester.pumpAndSettle();
-
-      await scrollTo(tester, find.text('Usulkan fasilitas'));
-      await tester.tap(find.text('Usulkan fasilitas'));
-      await tester.pump();
-      expect(proposed, 1);
     });
 
     testWidgets(
@@ -469,176 +357,6 @@ void main() {
       expect(find.text('TENTANG'), findsNothing);
       expect(find.text('Fasilitas tidak tersedia.'), findsOneWidget);
       expect(find.text(FacilitySeedData.facilities.first.name), findsNothing);
-    });
-  });
-
-  group('Layar Usulkan Fasilitas', () {
-    testWidgets('menampilkan nama, tipe, alamat, foto, dan catatan', (
-      tester,
-    ) async {
-      await usePhone(tester);
-      await tester.pumpWidget(wrapScreen(const ProposeFacilityScreen()));
-      await tester.pumpAndSettle();
-
-      expect(find.text('Usulkan fasilitas'), findsOneWidget);
-      expect(find.text('Nama fasilitas'), findsOneWidget);
-      expect(find.text('Mis. Homestay Pinggir'), findsOneWidget);
-      expect(find.text('Tipe'), findsOneWidget);
-      expect(find.text('Alamat'), findsOneWidget);
-      expect(find.text('Dusun, desa, kabupaten'), findsOneWidget);
-
-      await scrollTo(tester, find.text('Catatan'));
-      expect(find.text('Tambah foto'), findsOneWidget);
-      expect(find.text('Catatan'), findsOneWidget);
-      expect(find.text('Kirim usulan'), findsOneWidget);
-    });
-
-    testWidgets('form lengkap menghasilkan usulan', (tester) async {
-      await usePhone(tester);
-      final sent = <FacilityProposal>[];
-      await tester.pumpWidget(
-        wrapScreen(ProposeFacilityScreen(onSubmit: sent.add)),
-      );
-      await tester.pumpAndSettle();
-
-      await tester.enterText(
-        inputFor('Nama fasilitas'),
-        'Warung Cemoro Lawang',
-      );
-      await tester.enterText(
-        inputFor('Alamat'),
-        'Dusun Cemoro Lawang, Kab. Probolinggo',
-      );
-      await tester.pumpAndSettle();
-      await tester.tap(find.text('Kirim usulan'));
-      await tester.pumpAndSettle();
-
-      expect(sent, hasLength(1));
-      expect(sent.single.name, 'Warung Cemoro Lawang');
-      expect(sent.single.nearestDestinationName, 'Gunung Bromo');
-      expect(sent.single.status, ProposalStatus.menunggu);
-    });
-
-    testWidgets('nama kosong mencegah pengiriman', (tester) async {
-      await usePhone(tester);
-      final sent = <FacilityProposal>[];
-      await tester.pumpWidget(
-        wrapScreen(ProposeFacilityScreen(onSubmit: sent.add)),
-      );
-      await tester.pumpAndSettle();
-
-      await tester.enterText(inputFor('Alamat'), 'Alamat tanpa nama fasilitas');
-      await tester.pumpAndSettle();
-      await tester.tap(find.text('Kirim usulan'));
-      await tester.pumpAndSettle();
-
-      expect(sent, isEmpty);
-    });
-  });
-
-  group('Layar Usulan Terkirim', () {
-    testWidgets('menampilkan ringkasan usulan dari seed', (tester) async {
-      await usePhone(tester);
-      await tester.pumpWidget(wrapScreen(const ProposalSuccessScreen()));
-      await tester.pumpAndSettle();
-
-      expect(find.text('Fasilitas'), findsOneWidget);
-      expect(find.text('Tipe'), findsOneWidget);
-      expect(find.text('Status'), findsOneWidget);
-      expect(find.text('Lihat usulan'), findsOneWidget);
-      expect(find.text('Kembali ke beranda'), findsOneWidget);
-    });
-
-    testWidgets('menampilkan usulan yang diberikan', (tester) async {
-      await usePhone(tester);
-      final proposal = FacilityProposal(
-        id: 'prop-x',
-        name: 'Homestay Sawah',
-        type: ProposalType.accommodation,
-        nearestDestinationName: 'Bukit Moko',
-        address: 'Desa Ciwidey',
-        note: 'Siap menerima tamu.',
-        status: ProposalStatus.terverifikasi,
-        createdAt: _fixedDate,
-      );
-      await tester.pumpWidget(
-        wrapScreen(ProposalSuccessScreen(proposal: proposal)),
-      );
-      await tester.pumpAndSettle();
-
-      expect(find.text('Homestay Sawah'), findsOneWidget);
-      expect(find.text('Penginapan'), findsOneWidget);
-      expect(find.text('Terverifikasi'), findsOneWidget);
-    });
-
-    testWidgets('kedua tombol memakai delegate', (tester) async {
-      await usePhone(tester);
-      var viewed = 0;
-      var homed = 0;
-      await tester.pumpWidget(
-        wrapScreen(
-          ProposalSuccessScreen(
-            onViewProposals: () => viewed++,
-            onBackHome: () => homed++,
-          ),
-        ),
-      );
-      await tester.pumpAndSettle();
-
-      await tester.tap(find.text('Lihat usulan'));
-      await tester.pump();
-      await tester.tap(find.text('Kembali ke beranda'));
-      await tester.pump();
-
-      expect(viewed, 1);
-      expect(homed, 1);
-    });
-  });
-
-  group('Model Usulan Fasilitas', () {
-    FacilityProposal build(ProposalType type, ProposalStatus status) {
-      return FacilityProposal(
-        id: 'prop-1',
-        name: 'Contoh',
-        type: type,
-        nearestDestinationName: 'Gunung Bromo',
-        address: 'Alamat contoh',
-        status: status,
-        createdAt: _fixedDate,
-      );
-    }
-
-    test('label tipe tersedia untuk setiap nilai', () {
-      expect(
-        build(ProposalType.accommodation, ProposalStatus.menunggu).typeLabel,
-        'Penginapan',
-      );
-      expect(
-        build(ProposalType.transport, ProposalStatus.menunggu).typeLabel,
-        'Transport',
-      );
-      expect(
-        build(ProposalType.food, ProposalStatus.menunggu).typeLabel,
-        'Makanan',
-      );
-    });
-
-    test('label status tersedia untuk setiap nilai', () {
-      expect(
-        build(ProposalType.accommodation, ProposalStatus.menunggu).statusLabel,
-        'Menunggu',
-      );
-      expect(
-        build(
-          ProposalType.accommodation,
-          ProposalStatus.terverifikasi,
-        ).statusLabel,
-        'Terverifikasi',
-      );
-      expect(
-        build(ProposalType.accommodation, ProposalStatus.ditolak).statusLabel,
-        'Ditolak',
-      );
     });
   });
 }

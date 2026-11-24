@@ -18,8 +18,8 @@ Legenda status: ✅ sliced · 🟡 ada tapi belum tuntas · ⬜ belum ada kodeny
 | | Jumlah |
 | --- | --- |
 | Frame desain mobile | 57 |
-| Route yang dibutuhkan | 38 |
-| Route sudah ada | **38** |
+| Route yang dibutuhkan | 27 |
+| Route sudah ada | **27** |
 | Route belum ada | **0** |
 | Sheet / dialog (bukan route) | 4 |
 | State (varian layar, bukan route) | 10 |
@@ -29,7 +29,7 @@ Legenda status: ✅ sliced · 🟡 ada tapi belum tuntas · ⬜ belum ada kodeny
 | Sebagian | 0 |
 | Belum ada | **0** |
 
-Kode saat ini: 16.487 baris Dart, 39 widget `dn_*`, 39 route terdaftar
+Kode saat ini: 16.487 baris Dart, 39 widget `dn_*`, 28 route terdaftar
 (termasuk `/` splash), 125 test widget.
 
 Semua 57 frame hi-fi sudah ada implementasinya. Yang belum ada hanya pemanggilan
@@ -43,7 +43,7 @@ jaringan sungguhan: seluruh data masih datang dari `SeedData`.
 
 ## 2. Peta halaman (57 frame)
 
-### 2.1 Onboarding & Auth (5 frame)
+### 2.1 Onboarding & Auth (4 frame aktif)
 
 | Frame | Node | Bentuk | Route | Status |
 | --- | --- | --- | --- | --- |
@@ -51,7 +51,9 @@ jaringan sungguhan: seluruh data masih datang dari `SeedData`.
 | Masuk dan Daftar (Mobile) | `80:96` | route | `/login` | ✅ |
 | Lupa Kata Sandi (Mobile) | `80:203` | route | `/auth/forgot-password` | ✅ |
 | Verifikasi OTP (Mobile) | `80:144` | route | `/auth/otp` | ✅ |
-| Ubah Kata Sandi (Mobile) | `80:169` | route | `/auth/change-password` | ✅ sudah dihubungkan dari Privasi |
+
+> **Ubah Kata Sandi** (`80:169`) dihapus dari menu karena belum ada endpoint
+> backend; akan dikembalikan setelah `PATCH /users/me/password` tersedia.
 
 ### 2.2 Beranda & Jelajah + pencarian (8 frame)
 
@@ -76,7 +78,7 @@ sheet — bukan layar penuh. Jangan dibuat 4 route terpisah.
 | --- | --- | --- | --- | --- |
 | Detail Destinasi (Mobile) | `65:215` | route | `/destination/:id` | ✅ 9 section, CTA "Fasilitas" → `/facilities` |
 
-### 2.4 Fasilitas (8 frame)
+### 2.4 Fasilitas (4 frame aktif)
 
 | Frame | Node | Bentuk | Route | Status |
 | --- | --- | --- | --- | --- |
@@ -84,10 +86,9 @@ sheet — bukan layar penuh. Jangan dibuat 4 route terpisah.
 | Detail Fasilitas - Penginapan (Mobile) | `69:1517` | route | `/facilities/:type` | ✅ |
 | Detail Fasilitas - Transport (Mobile) | `69:1597` | route | *(satu route, param tipe)* | ✅ |
 | Detail Fasilitas - Makanan (Mobile) | `69:1679` | route | *(satu route, param tipe)* | ✅ |
-| Usulkan Fasilitas (Mobile) | `86:1562` | route | `/facilities/propose` | ✅ |
-| Usulan Sukses (Mobile) | `86:1609` | route | `/facilities/propose/success` | ✅ |
-| Fasilitas Diusulkan (Mobile) | `86:2067` | route | `/saved/proposals` | ✅ |
-| Fasilitas Diusulkan Kosong (Mobile) | `86:2104` | state | empty state `/saved/proposals` | ✅ |
+
+> Frame **Usulkan Fasilitas**, **Usulan Sukses**, **Fasilitas Diusulkan**, dan
+> **Fasilitas Diusulkan Kosong** beserta route-nya dihapus dari produk.
 
 Tiga frame "Detail Fasilitas" memakai **satu template** dengan tinggi berbeda
 (1012 / 1032 / 986) → cukup 1 route + 1 parameter tipe.
@@ -103,21 +104,25 @@ Tiga frame "Detail Fasilitas" memakai **satu template** dengan tinggi berbeda
 **Hole ini sudah ditutup.** Tab `AI` dan kartu AI di Beranda, Jelajah,
 Rencana, dan Profil semuanya sudah punya tujuan.
 
-### 2.6 Rencana (11 frame)
+### 2.6 Rencana (10 frame aktif)
 
 | Frame | Node | Bentuk | Route | Status |
 | --- | --- | --- | --- | --- |
 | Rencana Perjalanan (Mobile) | `68:1182` | route | `/plan` | ✅ |
-| Buat Rencana Baru (Mobile) | `84:1177` | route | `/plan/create` | ✅ |
-| Pilih Destinasi (Mobile) | `84:1221` | route | `/plan/select-destination` | ✅ |
+| Pilih Destinasi (Mobile) | `84:1221` | route | `/plan/select-destination` | ✅ menerima `?preselect=<id>` |
 | Pilih Fasilitas (Mobile) | `84:1280` | route | `/plan/select-facility` | ✅ |
 | Detail Item Rencana (Mobile) | `84:1326` | route | `/plan/item` | ✅ |
 | Konfirmasi Hapus Item (Mobile) | `85:1373` | dialog | `DnDialog` tipe Destruktif | ✅ |
 | Rencana Sukses (Mobile) | `85:1386` | route | `/plan/success` | ✅ |
 | Tambah Rencana - Pilih (Mobile) | `85:1408` | sheet | `DnBottomSheet` tipe Menu | ✅ |
-| Tambah Rencana - Atur (Mobile) | `85:1439` | route | `/plan/new` | ✅ |
+| Tambah Rencana - Atur (Mobile) | `85:1439` | route | `/plan/new` | ✅ menerima `?destinationId=<id>` |
 | Daftar Rencana (Mobile) | `86:1962` | route | `/saved/plans` | ✅ |
 | Daftar Rencana Kosong (Mobile) | `86:1986` | state | empty state `/saved/plans` | ✅ |
+
+> Layar lama **Buat Rencana Baru** (`/plan/create`) dihapus. Semua pembuatan
+> rencana lewat `/plan/new` agar tanggal, durasi, budget, dan provinsi asal ikut
+> tersimpan. Dari detail destinasi, alurnya: `/plan/new?destinationId=…` →
+> `/plan/select-destination?preselect=…` → `/plan/generating`.
 
 ### 2.7 Checklist & Usulan (5 frame)
 
@@ -129,20 +134,18 @@ Rencana, dan Profil semuanya sudah punya tujuan.
 | Checklist Tersimpan (Mobile) | `86:2003` | route | `/saved/checklists` | ✅ |
 | Checklist Tersimpan Kosong (Mobile) | `86:2051` | state | empty state `/saved/checklists` | ✅ |
 
-### 2.8 Profil & Pengaturan (10 frame)
+### 2.8 Profil & Bantuan (4 frame aktif)
 
 | Frame | Node | Bentuk | Route | Status |
 | --- | --- | --- | --- | --- |
 | Profil (Mobile) | `81:257` | route | `/profile` | ✅ |
 | Edit Profil (Mobile) | `81:824` | route | `/profile/edit` | ✅ |
-| Pengaturan (Mobile) | `81:877` | route | `/settings` | ✅ |
-| Akun (Mobile) | `81:974` | route | `/settings/account` | ✅ |
-| Setelan Notifikasi (Mobile) | `81:555` | route | `/settings/notifications` | ✅ |
-| Tema dan Bahasa (Mobile) | `81:617` | route | `/settings/theme` | ✅ |
-| Privasi dan Keamanan (Mobile) | `81:1032` | route | `/settings/privacy` | ✅ |
 | Bantuan FAQ (Mobile) | `81:751` | route | `/settings/faq` | ✅ |
-| Kirim Masukan (Mobile) | `81:791` | route | `/settings/feedback` | ✅ |
-| Keluar Konfirmasi (Mobile) | `81:864` | dialog | `DnDialog` tipe Konfirmasi | ✅ |
+| Keluar Konfirmasi (Mobile) | `81:864` | dialog | `DnDialog` tipe Konfirmasi | ✅ di Profil |
+
+> Opsi A: layar setelan yang belum berfungsi (Pengaturan, Akun, Notifikasi,
+> Tema dan Bahasa, Privasi dan Keamanan, Kirim Masukan) beserta route-nya
+> dihapus dari menu Profil sampai backend/push/dark mode siap.
 
 Pola sub-layar ini seragam: AppBar pine "Kembali", grup berlabel `overline`,
 kartu `canvas-subtle` + `hairline` berisi baris 56px (ikon bulatan 32px +
@@ -214,14 +217,12 @@ menurut urutan berikut:
 3. **Fase 0, komponen dasar** — `Input`, `Switch`, `Segmented`, `SelectableRow`,
    `DateField`, `Stepper`, `Dialog`, `BottomSheet`, `Toast`.
 4. **Fase 1, AI** — `/ai/preferences` dan `/ai/results`, menutup hole tab `AI`.
-5. **Fase 2, Fasilitas** — `/facilities`, `/facilities/:type`, `/facilities/propose`,
-   `/facilities/propose/success`.
-6. **Fase 3, Pengaturan & Profil** — 8 route setelan.
-7. **Fase 4, Auth** — forgot password, OTP, ubah kata sandi; semua `/soon`
-   di Profil hilang.
+5. **Fase 2, Fasilitas** — `/facilities` dan `/facilities/:type`.
+6. **Fase 3, Profil & Bantuan** — edit profil + FAQ.
+7. **Fase 4, Auth** — forgot password dan OTP; semua `/soon` di Profil hilang.
 8. **Fase 5, Rencana pelengkap** — `/plan/new`, `/plan/success`, sheet Tambah
    Rencana, dialog Konfirmasi Hapus.
-9. **Fase 6, Checklist & Usulan** — `/checklist/done`, daftar usulan.
+9. **Fase 6, Checklist** — `/checklist/done`.
 10. **Fase 7, Tersimpan & Notifikasi** — 4 daftar tersimpan + `/notifications`.
 11. **Fase 8, State & galeri status** — pencarian (3 state), kosong (4 state),
     gagal memuat (3 state), `EmptyState` 5 tipe.

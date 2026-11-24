@@ -37,42 +37,56 @@ class _SplashScreenState extends State<SplashScreen> {
     return Scaffold(
       backgroundColor: AppColors.primary,
       body: Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              width: 72,
-              height: 72,
-              decoration: const BoxDecoration(
-                color: AppColors.primaryHover,
-                shape: BoxShape.circle,
+        child: TweenAnimationBuilder<double>(
+          tween: Tween(begin: 0, end: 1),
+          duration: const Duration(milliseconds: 600),
+          curve: Curves.easeOutCubic,
+          builder: (context, value, child) {
+            return Opacity(
+              opacity: value,
+              child: Transform.translate(
+                offset: Offset(0, 16 * (1 - value)),
+                child: child,
               ),
-              child: const Icon(
-                AppIcons.mountainSnow,
-                size: 36,
-                color: AppColors.onPrimary,
+            );
+          },
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 72,
+                height: 72,
+                decoration: const BoxDecoration(
+                  color: AppColors.primaryHover,
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  AppIcons.mountainSnow,
+                  size: 36,
+                  color: AppColors.onPrimary,
+                ),
               ),
-            ),
-            const SizedBox(height: 18),
-            Text(
-              'Dolenae.id',
-              style: AppTextStyles.title.copyWith(color: AppColors.onPrimary),
-            ),
-            const SizedBox(height: 6),
-            Text(
-              'Discover More, Prepare Better',
-              style: AppTextStyles.bodySm.copyWith(color: AppColors.canvas),
-            ),
-            const SizedBox(height: 32),
-            const SizedBox(
-              width: 22,
-              height: 22,
-              child: CircularProgressIndicator(
-                strokeWidth: 2,
-                color: AppColors.canvasSubtle,
+              const SizedBox(height: 18),
+              Text(
+                'Dolenae.id',
+                style: AppTextStyles.title.copyWith(color: AppColors.onPrimary),
               ),
-            ),
-          ],
+              const SizedBox(height: 6),
+              Text(
+                'Discover More, Prepare Better',
+                style: AppTextStyles.bodySm.copyWith(color: AppColors.canvas),
+              ),
+              const SizedBox(height: 32),
+              const SizedBox(
+                width: 22,
+                height: 22,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  color: AppColors.canvasSubtle,
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
