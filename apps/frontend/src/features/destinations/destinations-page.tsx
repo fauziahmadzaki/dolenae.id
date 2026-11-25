@@ -2,9 +2,17 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { Download, LayoutGrid, Loader2, Plus, Rows3 } from "lucide-react";
+import {
+  Download,
+  FolderTree,
+  LayoutGrid,
+  Loader2,
+  Mountain,
+  Plus,
+  Rows3,
+} from "lucide-react";
 import { Button } from "~/components/ui/button";
 import {
   DataTable,
@@ -16,11 +24,14 @@ import {
 } from "~/components/ui/data-table";
 import { ApiError } from "~/lib/api/types";
 import { useAuth } from "~/features/auth/hooks/use-auth";
+import { useDashboardStats } from "~/features/dashboard/hooks/use-dashboard-stats";
 import { cn } from "~/lib/cn";
+import { createDebug } from "~/lib/debug";
 import { exportCsv } from "~/lib/export-csv";
 import type { Category, Destination } from "~/types/domain";
 import { CategoryDialog } from "./category-dialog";
 import { CategoriesGrid } from "./components/categories-grid";
+import { CategoriesTable } from "./components/categories-table";
 import { DeleteDestinationDialog } from "./components/delete-destination-dialog";
 import { destinationColumns } from "./components/destination-columns";
 import { DestinationsGrid } from "./components/destinations-grid";
@@ -62,9 +73,10 @@ export default function DestinationsPage() {
   const router = useRouter();
   const cache = useQueryClient();
 
-  const table = useDataTableState();
+  const table = useDataTableState({ syncFromUrl: true });
   const [tab, setTab] = useState<Tab>("destinasi");
   const [view, setView] = useState<View>("table");
+  const [categoryView, setCategoryView] = useState<View>("table");
   const [difficulty, setDifficulty] = useState("");
   const [status, setStatus] = useState("");
   const [categoryId, setCategoryId] = useState("");
@@ -76,11 +88,28 @@ export default function DestinationsPage() {
     auth.hydrated && !!auth.token && auth.user?.role === "admin";
 
   const categories = useCategories(enabled);
+  const stats = useDashboardStats(6, auth.token, enabled);
   const list = useDestinations(
     { ...table.query, difficulty, status, categoryId },
     auth.token,
     enabled,
   );
+
+  // Dev-only: log the paging state so a stuck table can be diagnosed from the console.
+  const debug = useMemo(() => createDebug("destinasi"), []);
+  useEffect(() => {
+    debug("paging", {
+      page: table.page,
+      limit: table.pageSize,
+      query: table.query,
+      filters: { difficulty, status, categoryId },
+      status: list.status,
+      isFetching: list.isFetching,
+      error: list.error instanceof Error ? list.error.message : null,
+      total: list.data?.meta?.total ?? null,
+      firstRow: list.data?.data?.[0]?.name ?? null,
+    });
+  }, [debug, table.page, table.pageSize, table.query, difficulty, status, categoryId, list.status, list.isFetching, list.error, list.data]);
 
   const remove = useDeleteDestination({
     token: auth.token ?? undefined,
@@ -133,14 +162,29 @@ export default function DestinationsPage() {
   }
 
   const categoryList = categories.data?.data ?? [];
+  const categoryCounts = useMemo(
+    () =>
+      new Map(
+        (stats.data?.categoryDistribution ?? []).map((item) => [
+          item.id,
+          item.count,
+        ]),
+      ),
+    [stats.data?.categoryDistribution],
+  );
   const destinations = list.data?.data ?? [];
   const total = Number(list.data?.meta?.total ?? 0);
   const categoryName = (id: string) =>
     categoryList.find((category) => category.id === id)?.name ?? "—";
 
-  const tabs: { value: Tab; label: string; count: number }[] = [
-    { value: "destinasi", label: "Destinasi", count: total },
-    { value: "kategori", label: "Kategori", count: categoryList.length },
+  const tabs: { value: Tab; label: string; icon: typeof Mountain; count: number }[] = [
+    { value: "destinasi", label: "Destinasi", icon: Mountain, count: total },
+    {
+      value: "kategori",
+      label: "Kategori",
+      icon: FolderTree,
+      count: categoryList.length,
+    },
   ];
 
   const invalidate = (text: string) => {
@@ -254,7 +298,7 @@ export default function DestinationsPage() {
             Kelola katalog destinasi alam dan kategori klasifikasinya.
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           {tab === "destinasi" ? (
             <>
               <Button variant="secondary" disabled={!list.data?.data.length} title="Ekspor halaman yang ditampilkan" onClick={() => exportCsv("destinasi.csv", [
@@ -292,10 +336,54 @@ export default function DestinationsPage() {
               </Button>
             </>
           ) : (
-            <Button onClick={() => setCategoryMode({ kind: "create" })}>
-              <Plus aria-hidden className="h-4 w-4" />
-              Tambah kategori
-            </Button>
+            <>
+              <Button
+                variant="secondary"
+                disabled={!categoryList.length}
+                title="Ekspor kategori"
+                onClick={() =>
+                  exportCsv("kategori-destinasi.csv", [
+                    ["Nama", "Slug", "Tipe", "Jumlah Destinasi", "Diperbarui"],
+                    ...categoryList.map((item) => [
+                      item.name,
+                      item.slug,
+                      item.type === "terrain" ? "Terrain" : "Aktivitas",
+                      String(categoryCounts.get(item.id) ?? 0),
+                      item.updatedAt,
+                    ]),
+                  ])
+                }
+              >
+                <Download aria-hidden className="size-4" /> Ekspor
+              </Button>
+              <div
+                className="flex gap-1 rounded-lg bg-surface-2 p-1"
+                role="group"
+                aria-label="Tampilan kategori"
+              >
+                {VIEW_OPTIONS.map(([value, Icon, label]) => (
+                  <button
+                    key={value}
+                    type="button"
+                    aria-pressed={categoryView === value}
+                    onClick={() => setCategoryView(value)}
+                    className={cn(
+                      "flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-semibold",
+                      categoryView === value
+                        ? "bg-surface text-ink shadow-sm"
+                        : "text-body",
+                    )}
+                  >
+                    <Icon aria-hidden className="h-4 w-4" />
+                    {label}
+                  </button>
+                ))}
+              </div>
+              <Button onClick={() => setCategoryMode({ kind: "create" })}>
+                <Plus aria-hidden className="h-4 w-4" />
+                Tambah kategori
+              </Button>
+            </>
           )}
         </div>
       </div>
@@ -306,36 +394,40 @@ export default function DestinationsPage() {
           role="tablist"
           aria-label="Destinasi dan kategori"
         >
-          {tabs.map((item) => (
-            <button
-              key={item.value}
-              type="button"
-              role="tab"
-              aria-selected={tab === item.value}
-              onClick={() => {
-                setTab(item.value);
-                setNotice("");
-              }}
-              className={cn(
-                "flex items-center gap-2 rounded-xl border px-3.5 py-2 text-sm font-semibold transition-colors",
-                tab === item.value
-                  ? "border-primary bg-primary text-on-primary"
-                  : "border-hairline bg-surface text-body hover:text-ink",
-              )}
-            >
-              {item.label}
-              <span
+          {tabs.map((item) => {
+            const TabIcon = item.icon;
+            return (
+              <button
+                key={item.value}
+                type="button"
+                role="tab"
+                aria-selected={tab === item.value}
+                onClick={() => {
+                  setTab(item.value);
+                  setNotice("");
+                }}
                 className={cn(
-                  "rounded-full px-2 py-0.5 text-[11px] font-semibold",
+                  "flex items-center gap-2 rounded-xl border px-3.5 py-2 text-sm font-semibold transition-colors",
                   tab === item.value
-                    ? "bg-accent text-on-accent"
-                    : "bg-canvas-subtle text-body",
+                    ? "border-primary bg-primary text-on-primary"
+                    : "border-hairline bg-surface text-body hover:text-ink",
                 )}
               >
-                {item.count}
-              </span>
-            </button>
-          ))}
+                <TabIcon aria-hidden className="h-4 w-4" />
+                {item.label}
+                <span
+                  className={cn(
+                    "rounded-full px-2 py-0.5 text-[11px] font-semibold",
+                    tab === item.value
+                      ? "bg-accent text-on-accent"
+                      : "bg-canvas-subtle text-body",
+                  )}
+                >
+                  {item.count}
+                </span>
+              </button>
+            );
+          })}
         </div>
       </div>
 
@@ -347,12 +439,23 @@ export default function DestinationsPage() {
 
       {tab === "kategori" ? (
         <section aria-label="Daftar kategori" className="space-y-4">
-          {categories.isPending ? (
+          {categories.isError ? (
+            errorBox(categories.error, () => categories.refetch())
+          ) : categoryView === "table" ? (
+            <CategoriesTable
+              categories={categoryList}
+              counts={categoryCounts}
+              isLoading={categories.isPending}
+              onCreate={() => setCategoryMode({ kind: "create" })}
+              onEdit={(category) => setCategoryMode({ kind: "edit", category })}
+              onDelete={(category) =>
+                setCategoryMode({ kind: "delete", category })
+              }
+            />
+          ) : categories.isPending ? (
             <p role="status" className="text-sm text-body">
               Memuat kategori…
             </p>
-          ) : categories.isError ? (
-            errorBox(categories.error, () => categories.refetch())
           ) : (
             <CategoriesGrid
               categories={categoryList}

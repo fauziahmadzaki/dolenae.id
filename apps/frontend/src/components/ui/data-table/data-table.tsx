@@ -1,9 +1,10 @@
 "use client";
 
 import { ArrowDown, ArrowUp, ChevronsUpDown } from "lucide-react";
-import { useEffect, type ReactNode } from "react";
+import { useEffect, useMemo, type ReactNode } from "react";
 import { Button } from "~/components/ui/button";
 import { cn } from "~/lib/cn";
+import { createDebug } from "~/lib/debug";
 import { pageCount, pageRange } from "~/lib/pagination";
 import { DataTablePagination } from "./data-table-pagination";
 import { DataTableToolbar } from "./data-table-toolbar";
@@ -80,6 +81,23 @@ export function DataTable<T>({
 }: DataTableProps<T>) {
   const pages = pageCount(total, pageSize);
   const { from, to } = pageRange(page, pageSize, total);
+
+  // One logger instance per table, so a stuck "loading" state is traceable.
+  const debug = useMemo(() => createDebug("data-table"), []);
+
+  useEffect(() => {
+    debug("state", {
+      page,
+      pages,
+      pageSize,
+      total,
+      rows: data.length,
+      isLoading,
+      isFetching,
+      error: error ? errorMessage(error) : null,
+      range: `${from}-${to}`,
+    });
+  }, [debug, page, pages, pageSize, total, data.length, isLoading, isFetching, error, from, to]);
 
   // Keep the page in range when the result set shrinks (filter/search).
   // Skipped while a new page/filter is still loading: `total` is 0 until the

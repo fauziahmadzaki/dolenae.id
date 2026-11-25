@@ -13,6 +13,7 @@ vi.mock("../../src/db/DatabaseClient", () => ({
 import { createApp } from "../../src/app";
 import { categoryRepository } from "../../src/repositories/CategoryRepository";
 import { destinationRepository } from "../../src/repositories/DestinationRepository";
+import { facilityRepository } from "../../src/repositories/FacilityRepository";
 import { signAccessToken } from "../../src/utils/jwt";
 
 describe("Destination CRUD API (/api/destinations)", () => {
@@ -21,6 +22,8 @@ describe("Destination CRUD API (/api/destinations)", () => {
   let userToken: string;
 
   beforeAll(async () => {
+    // Detail reads the published-facility counts; DB is mocked in this suite.
+    vi.spyOn(facilityRepository, "countPublishedTypes").mockResolvedValue([]);
     adminToken = await signAccessToken({
       sub: "87654321-4321-4321-a321-1234567890ab",
       email: "admin@dolenae.id",
@@ -35,6 +38,8 @@ describe("Destination CRUD API (/api/destinations)", () => {
 
   beforeEach(() => {
     vi.restoreAllMocks();
+    // Restored by the line above; re-apply for detail reads (DB is mocked).
+    vi.spyOn(facilityRepository, "countPublishedTypes").mockResolvedValue([]);
   });
 
   const categoryId = "11111111-1111-4111-a111-111111111111";

@@ -55,6 +55,26 @@ class FacilityRepository {
     return row;
   }
 
+  /**
+   * Published facilities of one destination, grouped by `type`.
+   * Used to build the destination detail amenity summary.
+   */
+  async countPublishedTypes(
+    destinationId: string,
+  ): Promise<{ type: string; total: number }[]> {
+    const rows = await this.db
+      .select({ type: facilities.type, value: count() })
+      .from(facilities)
+      .where(
+        and(
+          eq(facilities.destinationId, destinationId),
+          eq(facilities.status, "published"),
+        ),
+      )
+      .groupBy(facilities.type);
+    return rows.map((row) => ({ type: row.type, total: Number(row.value) }));
+  }
+
   async list(
     params: FacilityListParams,
   ): Promise<{ items: JoinedFacility[]; total: number }> {

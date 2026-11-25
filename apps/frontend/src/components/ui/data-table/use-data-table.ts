@@ -9,6 +9,8 @@ interface DataTableStateOptions {
   initialSort?: SortState;
   /** Delay before the search value is sent to the API. */
   searchDebounceMs?: number;
+  /** Hydrate initial search term from `?search=` query param on mount. */
+  syncFromUrl?: boolean;
 }
 
 /**
@@ -19,12 +21,22 @@ export function useDataTableState({
   initialPageSize = DEFAULT_PAGE_SIZE,
   initialSort = { sort: "createdAt", order: "desc" },
   searchDebounceMs = 300,
+  syncFromUrl = false,
 }: DataTableStateOptions = {}) {
   const [page, setPage] = useState(1);
   const [pageSize, setPageSizeValue] = useState(initialPageSize);
   const [search, setSearchValue] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [sort, setSortValue] = useState<SortState>(initialSort);
+
+  useEffect(() => {
+    if (!syncFromUrl || typeof window === "undefined") return;
+    const urlSearch = new URLSearchParams(window.location.search).get("search")?.trim() ?? "";
+    if (urlSearch) {
+      setSearchValue(urlSearch);
+      setDebouncedSearch(urlSearch);
+    }
+  }, [syncFromUrl]);
 
   useEffect(() => {
     const timer = setTimeout(

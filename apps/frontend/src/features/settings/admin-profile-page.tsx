@@ -29,11 +29,30 @@ export function AdminProfilePage() {
         logout();
         router.replace("/auth/login");
       }
-      toast({ title: error instanceof Error ? error.message : "Profil gagal disimpan", variant: "danger" });
+      toast({
+        title: error instanceof Error ? error.message : "Profil gagal disimpan",
+        variant: "danger",
+      });
     },
   });
 
   if (!user || user.role !== "admin") return null;
+
+  const actions = (
+    <div className="flex flex-wrap gap-2">
+      <Button type="reset" variant="secondary" disabled={save.isPending}>
+        Batal
+      </Button>
+      <Button type="submit" disabled={save.isPending}>
+        {save.isPending ? (
+          <Loader2 aria-hidden className="size-4 animate-spin" />
+        ) : (
+          <Check aria-hidden className="size-4" />
+        )}
+        Simpan Perubahan
+      </Button>
+    </div>
+  );
 
   return (
     <form
@@ -48,41 +67,86 @@ export function AdminProfilePage() {
           toast({ title: "Nama minimal 2 karakter", variant: "danger" });
           return;
         }
-        save.mutate({ name, phone: String(fields.get("phone") ?? "").trim() || null });
+        save.mutate({
+          name,
+          phone: String(fields.get("phone") ?? "").trim() || null,
+        });
       }}
     >
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <p className="text-xs text-body">Admin / Pengaturan</p>
-          <h1 className="mt-0.5 font-sans text-2xl font-bold">Pengaturan</h1>
+          <h1 className="mt-0.5 font-display text-2xl font-bold text-ink">
+            Pengaturan
+          </h1>
         </div>
-        <div className="flex flex-wrap gap-2">
-          <Button type="reset" variant="secondary" disabled={save.isPending}>Batal</Button>
-          <Button type="submit" disabled={save.isPending}>
-            {save.isPending ? <Loader2 aria-hidden className="size-4 animate-spin" /> : <Check aria-hidden className="size-4" />}
-            Simpan Perubahan
-          </Button>
-        </div>
+        {actions}
       </div>
-      <section aria-labelledby="admin-profile-title" className="overflow-hidden rounded-2xl border border-hairline bg-surface">
+
+      <section
+        aria-labelledby="admin-profile-title"
+        className="overflow-hidden rounded-2xl border border-hairline bg-surface"
+      >
         <div className="border-b border-hairline px-6 py-4">
-          <h2 id="admin-profile-title" className="font-sans font-bold">Profil Admin</h2>
-          <p className="mt-1 text-sm text-body">Informasi akun yang tampil di panel admin.</p>
+          <h2 id="admin-profile-title" className="font-display font-bold text-ink">
+            Profil Admin
+          </h2>
+          <p className="mt-1 text-sm text-body">
+            Informasi akun yang tampil di panel admin.
+          </p>
         </div>
         <div className="flex items-center gap-4 border-b border-hairline px-6 py-5">
           <UserAvatar name={user.name} className="size-16" textClassName="text-xl" />
           <div>
-            <p className="text-sm font-semibold text-ink">Profil akun</p>
-            <p className="text-xs text-body">{user.email}</p>
+            <p className="text-sm font-semibold text-ink">Foto profil</p>
+            <p className="text-xs text-body">
+              {user.email} · Menggunakan inisial nama akun
+            </p>
           </div>
         </div>
         <div className="grid gap-4 px-6 py-5 sm:grid-cols-2">
-          <label className="space-y-1.5 text-sm font-medium text-ink"><span>Nama lengkap</span><Input name="name" autoComplete="name" defaultValue={user.name} minLength={2} maxLength={120} required /></label>
-          <label className="space-y-1.5 text-sm font-medium text-ink"><span>Email</span><Input type="email" value={user.email} readOnly /></label>
-          <label className="space-y-1.5 text-sm font-medium text-ink"><span>Peran</span><Input value="Admin" readOnly /></label>
-          <label className="space-y-1.5 text-sm font-medium text-ink"><span>Telepon</span><Input name="phone" type="tel" autoComplete="tel" defaultValue={user.phone ?? ""} maxLength={30} /></label>
+          <label className="space-y-1.5 text-sm font-medium text-ink">
+            <span>Nama Lengkap</span>
+            <Input
+              name="name"
+              autoComplete="name"
+              defaultValue={user.name}
+              minLength={2}
+              maxLength={120}
+              required
+            />
+          </label>
+          <label className="space-y-1.5 text-sm font-medium text-ink">
+            <span>Email</span>
+            <Input
+              type="email"
+              value={user.email}
+              readOnly
+              className="cursor-default bg-canvas-subtle text-body"
+            />
+          </label>
+          <label className="space-y-1.5 text-sm font-medium text-ink">
+            <span>Peran</span>
+            <Input
+              value="Admin"
+              readOnly
+              className="cursor-default bg-canvas-subtle text-body"
+            />
+          </label>
+          <label className="space-y-1.5 text-sm font-medium text-ink">
+            <span>Telepon</span>
+            <Input
+              name="phone"
+              type="tel"
+              autoComplete="tel"
+              defaultValue={user.phone ?? ""}
+              maxLength={30}
+            />
+          </label>
         </div>
       </section>
+
+      <div className="flex justify-end">{actions}</div>
     </form>
   );
 }

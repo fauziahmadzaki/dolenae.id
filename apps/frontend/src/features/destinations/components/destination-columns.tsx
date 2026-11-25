@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Mountain } from "lucide-react";
 import type { DataTableColumn } from "~/components/ui/data-table";
 import { cn } from "~/lib/cn";
+import { formatRelativeId } from "~/lib/format-date";
 import type { Destination } from "~/types/domain";
 import { difficultyLabels } from "../schema";
 import { DestinationRowActions } from "./destination-row-actions";
@@ -12,7 +13,7 @@ interface DestinationColumnOptions {
   onDelete: (destination: Destination) => void;
 }
 
-/** Column definitions for the admin destinations table. */
+/** Column definitions for the admin destinations table (aligned with Figma #292:3369). */
 export function destinationColumns({
   categoryName,
   onDelete,
@@ -22,39 +23,41 @@ export function destinationColumns({
       id: "name",
       header: "Destinasi",
       sortKey: "name",
-      cell: (destination) => (
-        <div className="flex items-center gap-3">
-          <span className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-canvas-subtle text-primary">
-            {destination.images[0] ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={destination.images[0]}
-                alt=""
-                className="h-full w-full object-cover"
-              />
-            ) : (
-              <Mountain aria-hidden className="h-5 w-5" />
-            )}
-          </span>
-          <div className="min-w-0">
-            <Link
-              href={`/admin/destinasi/${destination.id}/edit`}
-              className="block truncate font-semibold text-ink hover:underline"
-            >
-              {destination.name}
-            </Link>
-            <span className="block truncate text-xs text-body">
-              /{destination.slug}
+      cell: (destination) => {
+        const locationText = [
+          destination.location.regency,
+          destination.location.province,
+        ]
+          .filter(Boolean)
+          .join(", ");
+        return (
+          <div className="flex items-center gap-3">
+            <span className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-canvas-subtle text-primary">
+              {destination.images[0] ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={destination.images[0]}
+                  alt=""
+                  className="h-full w-full object-cover"
+                />
+              ) : (
+                <Mountain aria-hidden className="h-5 w-5" />
+              )}
             </span>
+            <div className="min-w-0">
+              <Link
+                href={`/admin/destinasi/${destination.id}/edit`}
+                className="block truncate font-semibold text-ink hover:underline"
+              >
+                {destination.name}
+              </Link>
+              <span className="block truncate text-xs text-body">
+                {locationText || `/${destination.slug}`}
+              </span>
+            </div>
           </div>
-        </div>
-      ),
-    },
-    {
-      id: "province",
-      header: "Provinsi",
-      className: "text-body",
-      cell: (destination) => destination.location.province ?? "—",
+        );
+      },
     },
     {
       id: "categories",
@@ -102,6 +105,13 @@ export function destinationColumns({
       cell: (destination) => (
         <DestinationStatusBadge status={destination.status} />
       ),
+    },
+    {
+      id: "updatedAt",
+      header: "Diperbarui",
+      sortKey: "updatedAt",
+      className: "whitespace-nowrap text-xs text-body",
+      cell: (destination) => formatRelativeId(destination.updatedAt),
     },
     {
       id: "actions",
