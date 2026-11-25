@@ -14,24 +14,59 @@ class RefreshDestinationsUseCase implements UseCase<void, NoParams> {
   Future<Result<void>> call(NoParams params) => _repository.refresh();
 }
 
-/// Filters a catalog snapshot by the active search query.
+/// Menyaring katalog Jelajah berdasarkan teks dan kategori yang aktif.
 class SearchDestinationsUseCase {
   const SearchDestinationsUseCase();
 
   List<Destination> call(List<Destination> source, SearchFilter filter) {
-    final query = filter.query.trim().toLowerCase();
-    if (query.isEmpty && filter.categoryId.isEmpty) return source;
+    final tokens = _tokens(filter.query);
+    final categoryTokens = _tokens(filter.categoryLabel);
+    if (tokens.isEmpty && filter.categoryId.isEmpty && categoryTokens.isEmpty) {
+      return source;
+    }
 
     return source
-        .where(
-          (destination) =>
-              (filter.categoryId.isEmpty ||
-                  destination.categoryIds.contains(filter.categoryId)) &&
-              _haystack(destination).contains(query),
-        )
+        .where((destination) {
+          if (!_matchesCategory(destination, filter, categoryTokens)) {
+            return false;
+          }
+          if (tokens.isEmpty) return true;
+          final haystack = _normalize(_haystack(destination));
+          return tokens.every(haystack.contains);
+        })
         .toList(growable: false);
   }
 }
+
+bool _matchesCategory(
+  Destination destination,
+  SearchFilter filter,
+  List<String> categoryTokens,
+) {
+  if (filter.categoryId.isEmpty) return true;
+  if (destination.categoryIds.contains(filter.categoryId)) return true;
+  if (categoryTokens.isEmpty) return false;
+
+  // Fallback untuk seed/cache lama yang belum punya categoryIds, serta
+  // kategori yang hanya tercantum di medan, aktivitas, atau tag destinasi.
+  final categoryHaystack = _normalize(
+    [
+      ...destination.terrain,
+      ...destination.activities,
+      ...destination.tags,
+    ].join(' '),
+  );
+  return categoryTokens.any(categoryHaystack.contains);
+}
+
+List<String> _tokens(String value) =>
+    _normalize(value)
+        .split(RegExp(r'\s+'))
+        .where((part) => part.isNotEmpty)
+        .toList(growable: false);
+
+String _normalize(String value) =>
+    value.toLowerCase().replaceAll(RegExp(r'[-_]'), ' ');
 
 /// Satu hasil pencarian Beranda: destinasi, skor, dan alasannya.
 class DestinationMatch {
@@ -129,11 +164,19 @@ class SearchRecommendationsUseCase {
 
 String _haystack(Destination destination) => [
   destination.name,
+  destination.slug,
   destination.tagline,
   destination.province,
   destination.regency,
+  destination.bestSeason ?? '',
+  destination.accessDescription ?? '',
+  destination.accessTravelTime ?? '',
+  destination.accessDistance ?? '',
+  destination.accessPointName ?? '',
+  ...destination.accessTransportModes,
   ...destination.terrain,
   ...destination.activities,
+  ...destination.tags,
 ].join(' ').toLowerCase();
 
 List<String> _matched(List<String> values, String needle) => values

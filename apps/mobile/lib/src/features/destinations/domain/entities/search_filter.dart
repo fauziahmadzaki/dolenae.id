@@ -29,6 +29,7 @@ class SearchFilter {
   const SearchFilter({
     this.query = '',
     this.categoryId = '',
+    this.categoryLabel = '',
     this.sort = SortOption.populer,
     this.difficulty = DifficultyFilter.semua,
     this.supports = const [],
@@ -37,6 +38,9 @@ class SearchFilter {
 
   final String query;
   final String categoryId;
+
+  /// Nama kategori dari chip; dipakai bila destinasi belum punya `categoryIds`.
+  final String categoryLabel;
   final SortOption sort;
   final DifficultyFilter difficulty;
   final List<String> supports;
@@ -52,6 +56,7 @@ class SearchFilter {
   SearchFilter copyWith({
     String? query,
     String? categoryId,
+    String? categoryLabel,
     SortOption? sort,
     DifficultyFilter? difficulty,
     List<String>? supports,
@@ -60,6 +65,7 @@ class SearchFilter {
     return SearchFilter(
       query: query ?? this.query,
       categoryId: categoryId ?? this.categoryId,
+      categoryLabel: categoryLabel ?? this.categoryLabel,
       sort: sort ?? this.sort,
       difficulty: difficulty ?? this.difficulty,
       supports: supports ?? this.supports,

@@ -388,6 +388,24 @@ void main() {
       expect(find.text('Tidak ada hasil'), findsNothing);
     });
 
+    testWidgets('aktivitas beranda menghapus filter lama', (tester) async {
+      await usePhone(tester);
+      final store = newStore();
+      store.search.setCategoryId('kategori-lama', label: 'Kategori lama');
+      await tester.pumpWidget(
+        wrapScreen(
+          const ExploreScreen(initialActivity: 'Gunung'),
+          store: store,
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(store.search.searchFilter.query, 'Gunung');
+      expect(store.search.searchFilter.categoryId, '');
+      expect(store.search.searchFilter.categoryLabel, '');
+      expect(find.text('Tidak ada hasil'), findsNothing);
+    });
+
     testWidgets('kueri tanpa cocok memunculkan empty state', (tester) async {
       await usePhone(tester);
       await tester.pumpWidget(wrapScreen(const ExploreScreen()));

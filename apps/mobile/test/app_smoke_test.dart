@@ -324,40 +324,76 @@ void main() {
     expect(find.text('dimas@dolenae.id'), findsOneWidget);
     expect(find.text('Wisatawan'), findsOneWidget);
     expect(find.text('Tersimpan'), findsOneWidget);
-    expect(find.text('Rencana'), findsWidgets);
-    expect(find.text('Checklist'), findsOneWidget);
+    // Stat, BottomNav, dan menu memakai label "Rencana".
+    expect(find.text('Rencana'), findsNWidgets(3));
+    expect(find.text('Checklist'), findsNWidgets(2));
     expect(find.text('Ubah profil'), findsOneWidget);
-    expect(find.text('AKUN & KEAMANAN'), findsOneWidget);
-    expect(find.text('Edit profil'), findsOneWidget);
+    expect(find.text('AKUN & KEAMANAN'), findsNothing);
+    expect(find.text('Edit profil'), findsNothing);
     expect(find.text('PERJALANAN'), findsOneWidget);
     expect(find.text('Destinasi tersimpan'), findsOneWidget);
-    expect(find.text('Rencana tersimpan'), findsOneWidget);
-    expect(find.text('Checklist tersimpan'), findsOneWidget);
     expect(find.text('BANTUAN'), findsOneWidget);
     expect(find.text('Bantuan & FAQ'), findsOneWidget);
     expect(find.text('Keluar'), findsOneWidget);
+  });
+
+  testWidgets('angka Profil mengikuti data tersimpan, rencana, checklist', (
+    tester,
+  ) async {
+    await tester.binding.setSurfaceSize(_phone);
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    final stores = TestStores();
+    await stores.plan.load();
+    stores.saved.toggleSavedDestination(stores.destinations.items.first);
+
+    await tester.pumpWidget(wrapScreen(const ProfileScreen(), store: stores));
+    await tester.pumpAndSettle();
+
+    expect(find.text('1'), findsOneWidget);
+    expect(find.text('3'), findsOneWidget);
+    expect(find.text('7'), findsOneWidget);
+  });
+
+  testWidgets('Profil memuat rencana saat halaman dibuka langsung', (
+    tester,
+  ) async {
+    await tester.binding.setSurfaceSize(_phone);
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    final stores = TestStores();
+    expect(stores.plan.plans, isEmpty);
+
+    await tester.pumpWidget(wrapScreen(const ProfileScreen(), store: stores));
+    await tester.pumpAndSettle();
+
+    expect(stores.plan.plans, hasLength(3));
+    expect(find.text('3'), findsOneWidget);
   });
 
   testWidgets('Baris menu Profil membuka halaman terkait', (tester) async {
     await tester.binding.setSurfaceSize(_phone);
     addTearDown(() => tester.binding.setSurfaceSize(null));
 
-    Future<void> tapMenu(String label) async {
+    Future<void> tapMenu(String label, {Finder? expected}) async {
       await tester.pumpWidget(wrapScreen(const ProfileScreen()));
       await tester.pumpAndSettle();
+      final finder = find.text(label).last;
       await tester.scrollUntilVisible(
-        find.text(label),
+        finder,
         120,
         scrollable: find.byType(Scrollable).first,
       );
-      await tester.tap(find.text(label));
+      await tester.tap(finder);
       await tester.pumpAndSettle();
-      expect(find.text('Layar lain'), findsOneWidget, reason: label);
+      expect(
+        expected ?? find.text('Layar lain'),
+        findsOneWidget,
+        reason: label,
+      );
     }
 
     await tapMenu('Destinasi tersimpan');
-    await tapMenu('Rencana tersimpan');
-    await tapMenu('Checklist tersimpan');
+    await tapMenu('Rencana', expected: find.byType(TripPlanScreen));
+    await tapMenu('Checklist');
     await tapMenu('Bantuan & FAQ');
   });
 
@@ -369,6 +405,8 @@ void main() {
     await tester.pumpWidget(wrapScreen(const ProfileScreen()));
     await tester.pumpAndSettle();
 
+    expect(find.text('AKUN & KEAMANAN'), findsNothing);
+    expect(find.text('Edit profil'), findsNothing);
     expect(find.text('Ubah kata sandi'), findsNothing);
     expect(find.text('Privasi & keamanan'), findsNothing);
     expect(find.text('Setelan notifikasi'), findsNothing);

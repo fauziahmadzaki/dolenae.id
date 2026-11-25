@@ -45,6 +45,7 @@ class DestinationModel {
       longitude: (location['longitude'] as num?)?.toDouble(),
       terrain: _stringList(json['terrain']),
       activities: _stringList(json['activities']),
+      tags: _stringList(json['tags']),
       accessDescription: access['description'] as String?,
       accessTransportModes: transports,
       accessTravelTime: access['duration'] as String?,

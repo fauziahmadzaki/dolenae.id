@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
@@ -19,15 +21,15 @@ import 'package:dolenae_mobile/src/shared/widgets/dn_dialog.dart';
 ///
 /// Menampilkan identitas wisatawan, statistik perjalanan,
 /// pengaturan akun, keamanan, preferensi, dan bantuan.
-class ProfileScreen extends StatelessWidget {
+class ProfileScreen extends StatefulWidget {
   const ProfileScreen({
     super.key,
     this.userName = 'Dimas',
     this.userEmail = 'dimas@dolenae.id',
     this.userRole = 'Wisatawan',
-    this.savedCount = 4,
-    this.planCount = 2,
-    this.checklistCount = 12,
+    this.savedCount = 0,
+    this.planCount = 0,
+    this.checklistCount = 0,
     this.onEditProfile,
     this.onLogout,
   });
@@ -40,6 +42,26 @@ class ProfileScreen extends StatelessWidget {
   final int checklistCount;
   final VoidCallback? onEditProfile;
   final VoidCallback? onLogout;
+
+  @override
+  State<ProfileScreen> createState() => _ProfileScreenState();
+}
+
+class _ProfileScreenState extends State<ProfileScreen> {
+  @override
+  void initState() {
+    super.initState();
+    // Rencana dimuat async di root. Bila Profil menjadi halaman awal, minta
+    // muat ulang supaya angka tidak tertahan di nol. load() memberi notifikasi
+    // sinkron, jadi dipanggil setelah frame selesai dibangun.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final plan = context.read<PlanController?>();
+      if (plan != null && plan.plans.isEmpty) {
+        unawaited(plan.load());
+      }
+    });
+  }
 
   void _onTab(BuildContext context, DnTab tab) {
     switch (tab) {
@@ -59,16 +81,17 @@ class ProfileScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final auth = context.watch<AuthController?>();
-    final displayName = auth?.user?.name ?? userName;
-    final displayEmail = auth?.user?.email ?? userEmail;
-    final displayRole = auth?.user?.roleLabel ?? userRole;
+    final displayName = auth?.user?.name ?? widget.userName;
+    final displayEmail = auth?.user?.email ?? widget.userEmail;
+    final displayRole = auth?.user?.roleLabel ?? widget.userRole;
     final savedTotal =
         context.watch<SavedController?>()?.savedDestinations.length ??
-        savedCount;
+        widget.savedCount;
     final planTotal =
-        context.watch<PlanController?>()?.plans.length ?? planCount;
+        context.watch<PlanController?>()?.plans.length ?? widget.planCount;
     final checklistTotal =
-        context.watch<ChecklistController?>()?.items.length ?? checklistCount;
+        context.watch<ChecklistController?>()?.items.length ??
+        widget.checklistCount;
 
     return Scaffold(
       backgroundColor: AppColors.canvas,
@@ -91,10 +114,6 @@ class ProfileScreen extends StatelessWidget {
                       plan: planTotal,
                       checklist: checklistTotal,
                     ),
-                    const SizedBox(height: AppSpacing.s4),
-                    _buildGroupHeader('AKUN & KEAMANAN'),
-                    const SizedBox(height: 8),
-                    _buildAccountGroup(context),
                     const SizedBox(height: AppSpacing.s4),
                     _buildGroupHeader('PERJALANAN'),
                     const SizedBox(height: 8),
@@ -253,7 +272,8 @@ class ProfileScreen extends StatelessWidget {
             borderRadius: BorderRadius.circular(AppRadius.pill),
             child: InkWell(
               borderRadius: BorderRadius.circular(AppRadius.pill),
-              onTap: onEditProfile ?? () => context.push('/profile/edit'),
+              onTap:
+                  widget.onEditProfile ?? () => context.push('/profile/edit'),
               child: Container(
                 height: 44,
                 alignment: Alignment.center,
@@ -330,16 +350,6 @@ class ProfileScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildAccountGroup(BuildContext context) {
-    return _buildMenuCard([
-      _MenuItem(
-        icon: AppIcons.user,
-        title: 'Edit profil',
-        onTap: onEditProfile ?? () => context.push('/profile/edit'),
-      ),
-    ]);
-  }
-
   Widget _buildTripGroup(BuildContext context) {
     return _buildMenuCard([
       _MenuItem(
@@ -349,13 +359,13 @@ class ProfileScreen extends StatelessWidget {
       ),
       _MenuItem(
         icon: AppIcons.map,
-        title: 'Rencana tersimpan',
-        onTap: () => context.push('/saved/plans'),
+        title: 'Rencana',
+        onTap: () => context.go('/plan'),
       ),
       _MenuItem(
         icon: AppIcons.squareCheck,
-        title: 'Checklist tersimpan',
-        onTap: () => context.push('/saved/checklists'),
+        title: 'Checklist',
+        onTap: () => context.go('/checklist'),
       ),
     ]);
   }
@@ -446,7 +456,7 @@ class ProfileScreen extends StatelessWidget {
           );
           if (confirmed != true || !context.mounted) return;
 
-          final logout = onLogout;
+          final logout = widget.onLogout;
           if (logout != null) {
             logout();
             return;

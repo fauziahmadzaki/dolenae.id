@@ -324,6 +324,7 @@ Widget wrapScreen(Widget child, {TestStores? store}) {
         builder: (_, _) => const _StubScreen(),
       ),
       GoRoute(path: '/plan', builder: (_, _) => const TripPlanScreen()),
+      GoRoute(path: '/checklist', builder: (_, _) => const _StubScreen()),
       GoRoute(
         path: '/notifications',
         builder: (_, _) => const NotificationsScreen(),

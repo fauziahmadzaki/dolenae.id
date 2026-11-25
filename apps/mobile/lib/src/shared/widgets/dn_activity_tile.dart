@@ -42,9 +42,10 @@ class DnActivityTile extends StatelessWidget {
             const SizedBox(height: 8),
             Text(
               label,
-              maxLines: 1,
+              textAlign: TextAlign.center,
+              maxLines: 2,
               overflow: TextOverflow.ellipsis,
-              style: const TextStyle(fontSize: 12, color: AppColors.ink),
+              style: const TextStyle(fontSize: 11, color: AppColors.ink),
             ),
           ],
         ),

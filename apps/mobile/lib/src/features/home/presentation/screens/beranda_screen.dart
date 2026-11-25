@@ -387,11 +387,13 @@ class _BerandaScreenState extends State<BerandaScreen> {
   }
 
   Widget _activities() {
+    // Label memakai nilai yang memang ada di data destinasi agar kueri yang
+    // dikirim ke Jelajah selalu punya hasil yang cocok.
     const items = <(IconData, String)>[
-      (AppIcons.mountain, 'Hiking'),
-      (AppIcons.tent, 'Camping'),
+      (AppIcons.mountain, 'Gunung'),
+      (AppIcons.tent, 'Camping Ground'),
       (AppIcons.sunrise, 'Sunrise'),
-      (AppIcons.camera, 'Foto'),
+      (AppIcons.camera, 'Savana'),
     ];
     return Padding(
       padding: const EdgeInsets.fromLTRB(

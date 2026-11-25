@@ -1,4 +1,5 @@
 import 'package:dolenae_mobile/src/features/home/presentation/screens/beranda_screen.dart';
+import 'package:dolenae_mobile/src/shared/widgets/dn_chip.dart';
 import 'package:dolenae_mobile/src/shared/widgets/dn_recommendation_card.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -43,8 +44,8 @@ void main() {
     await tester.pumpWidget(wrapScreen(const BerandaScreen()));
     await tester.pumpAndSettle();
 
-    expect(find.text('Gunung'), findsNothing);
-    expect(find.text('Bukit'), findsNothing);
+    // "Gunung" kini adalah label tile aktivitas, bukan chip kategori.
+    expect(find.byType(DnChip), findsNothing);
     expect(find.text('Destinasi populer'), findsOneWidget);
     expect(find.byType(TextField), findsOneWidget);
   });

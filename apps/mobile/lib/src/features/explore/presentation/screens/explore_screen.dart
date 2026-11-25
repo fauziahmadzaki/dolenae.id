@@ -71,6 +71,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (!mounted) return;
         context.read<ExploreController>()
+          ..clearSearchFilters()
           ..setSearchQuery(activity)
           ..commitSearch(activity);
         setState(() {});
@@ -197,6 +198,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
         filter: store.searchFilter,
         onReset: () {
           store.clearSearchFilters();
+          _selectedCategory = 'Semuanya';
           Navigator.of(sheetContext).pop();
           setState(() {});
         },
@@ -209,7 +211,9 @@ class _ExploreScreenState extends State<ExploreScreen> {
     final store = context.watch<ExploreController>();
     final catalog = context.watch<DestinationsController>().items;
     final hasQuery = store.hasActiveQuery;
-    final hasSelection = store.searchFilter.categoryId.isNotEmpty;
+    final hasSelection =
+        store.searchFilter.categoryId.isNotEmpty ||
+        _selectedCategory != 'Semuanya';
     final results = _byCategory(store.resultsFor(catalog));
     final signature = [
       store.searchFilter.query,
@@ -317,6 +321,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
                             () {
                               final current = context.read<ExploreController>();
                               current.clearSearchFilters();
+                              _selectedCategory = 'Semuanya';
                               setState(() {});
                             },
                       ),
@@ -428,6 +433,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
                           store.searchFilter.categoryId == item.id
                               ? ''
                               : item.id,
+                          label: item.name,
                         ),
                 ),
               ),
