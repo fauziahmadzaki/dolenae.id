@@ -135,53 +135,62 @@ class _FacilityDetailScreenState extends State<FacilityDetailScreen> {
                                 children: [
                                   Text(
                                     facility.name,
-                                    style: AppTextStyles.displayMd,
+                                    style: AppTextStyles.title,
                                   ),
-                                  const SizedBox(height: AppSpacing.s1),
-                                  Text(
-                                    [
-                                      facility.categoryLabel,
-                                      if (facility.type.isNotEmpty)
-                                        facility.type,
-                                      if (facility.destinationName.isNotEmpty)
-                                        facility.destinationName,
-                                    ].join(' · '),
-                                    style: AppTextStyles.bodySm,
-                                  ),
-                                  if (facility.verified) ...[
-                                    const SizedBox(height: AppSpacing.s2),
-                                    Container(
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: AppSpacing.s3,
-                                        vertical: 4,
+                                  const SizedBox(height: AppSpacing.s2),
+                                  Wrap(
+                                    spacing: AppSpacing.s2,
+                                    runSpacing: AppSpacing.s1,
+                                    crossAxisAlignment:
+                                        WrapCrossAlignment.center,
+                                    children: [
+                                      Text(
+                                        [
+                                          facility.categoryLabel,
+                                          if (facility.type.isNotEmpty)
+                                            facility.type,
+                                          if (facility
+                                              .destinationName
+                                              .isNotEmpty)
+                                            facility.destinationName,
+                                        ].join(' · '),
+                                        style: AppTextStyles.bodySm,
                                       ),
-                                      decoration: BoxDecoration(
-                                        color: AppColors.success,
-                                        borderRadius: BorderRadius.circular(
-                                          AppRadius.pill,
+                                      if (facility.verified)
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(
+                                            horizontal: AppSpacing.s2,
+                                            vertical: 3,
+                                          ),
+                                          decoration: BoxDecoration(
+                                            color: AppColors.success,
+                                            borderRadius: BorderRadius.circular(
+                                              AppRadius.pill,
+                                            ),
+                                          ),
+                                          child: Row(
+                                            mainAxisSize: MainAxisSize.min,
+                                            children: [
+                                              const Icon(
+                                                AppIcons.badgeCheck,
+                                                size: 12,
+                                                color: AppColors.onPrimary,
+                                              ),
+                                              const SizedBox(width: 4),
+                                              Text(
+                                                'Terverifikasi',
+                                                style: AppTextStyles.labelSm
+                                                    .copyWith(
+                                                      fontSize: 11,
+                                                      color:
+                                                          AppColors.onPrimary,
+                                                    ),
+                                              ),
+                                            ],
+                                          ),
                                         ),
-                                      ),
-                                      child: Row(
-                                        mainAxisSize: MainAxisSize.min,
-                                        children: [
-                                          const Icon(
-                                            AppIcons.badgeCheck,
-                                            size: 13,
-                                            color: AppColors.onPrimary,
-                                          ),
-                                          const SizedBox(width: 4),
-                                          Text(
-                                            'Terverifikasi',
-                                            style: AppTextStyles.labelSm
-                                                .copyWith(
-                                                  fontSize: 11,
-                                                  color: AppColors.onPrimary,
-                                                ),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                  ],
+                                    ],
+                                  ),
                                 ],
                               ),
                             ),
@@ -199,18 +208,21 @@ class _FacilityDetailScreenState extends State<FacilityDetailScreen> {
                               .map(
                                 (label) => Container(
                                   padding: const EdgeInsets.symmetric(
-                                    horizontal: AppSpacing.s2,
+                                    horizontal: AppSpacing.s3,
                                     vertical: 4,
                                   ),
                                   decoration: BoxDecoration(
-                                    color: AppColors.canvasSubtle,
+                                    color: AppColors.canvas,
                                     borderRadius: BorderRadius.circular(
-                                      AppRadius.sm,
+                                      AppRadius.pill,
+                                    ),
+                                    border: Border.all(
+                                      color: AppColors.hairline,
                                     ),
                                   ),
                                   child: Text(
                                     label,
-                                    style: AppTextStyles.overline,
+                                    style: AppTextStyles.caption,
                                   ),
                                 ),
                               )

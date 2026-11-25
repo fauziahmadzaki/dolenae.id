@@ -367,6 +367,7 @@ class _FakeAuthLocal implements AuthLocalDataSource {
 
   AuthSession? session;
   String? rememberedEmail;
+  final Map<String, AvatarOverride> avatarOverrides = {};
 
   @override
   Future<AuthSession?> read() async => session;
@@ -383,4 +384,25 @@ class _FakeAuthLocal implements AuthLocalDataSource {
   @override
   Future<void> writeRememberedEmail(String? email) async =>
       rememberedEmail = email;
+
+  @override
+  Future<AvatarOverride> readAvatarOverride(String userId) async =>
+      avatarOverrides[userId] ?? const AvatarOverride.followServer();
+
+  @override
+  Future<void> writeAvatarOverride(
+    String userId,
+    AvatarOverride override,
+  ) async {
+    if (override.mode == AvatarOverrideMode.followServer) {
+      avatarOverrides.remove(userId);
+      return;
+    }
+    avatarOverrides[userId] = override;
+  }
+
+  @override
+  Future<void> clearAvatarOverride(String userId) async {
+    avatarOverrides.remove(userId);
+  }
 }

@@ -40,6 +40,8 @@ class AuthController extends ChangeNotifier {
   bool _isResendingVerification = false;
   bool _verificationEmailSent = false;
 
+  AuthSession? get session => _session;
+
   AuthUser? get user => _session?.user;
 
   bool get isAuthenticated => _session != null;
@@ -98,11 +100,21 @@ class AuthController extends ChangeNotifier {
   /// Only an auth failure (expired/revoked token) signs the user out. Network
   /// errors are ignored so an offline launch keeps the cached session.
   Future<void> verifySession() async {
-    if (_session == null) return;
+    final current = _session;
+    if (current == null) return;
+    final expectedToken = current.token;
+    final expectedUserId = current.user.id;
 
     final result = await _verify(const NoParams());
+    if (_session?.token != expectedToken ||
+        _session?.user.id != expectedUserId) {
+      return;
+    }
     switch (result) {
       case Success(:final value):
+        if (value.token != expectedToken || value.user.id != expectedUserId) {
+          return;
+        }
         _session = value;
         notifyListeners();
       case Failure(:final failure):
@@ -145,9 +157,18 @@ class AuthController extends ChangeNotifier {
     String? phone,
     String? city,
     String? bio,
+    String? avatarUrl,
+    bool clearAvatar = false,
   }) async {
     final result = await _updateProfile(
-      UpdateProfileParams(name: name, phone: phone, city: city, bio: bio),
+      UpdateProfileParams(
+        name: name,
+        phone: phone,
+        city: city,
+        bio: bio,
+        avatarUrl: avatarUrl,
+        clearAvatar: clearAvatar,
+      ),
     );
     return _apply(result);
   }

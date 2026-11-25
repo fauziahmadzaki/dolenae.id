@@ -4,5 +4,7 @@ abstract final class AppRadius {
   static const double md = 8;
   static const double lg = 12;
   static const double xl = 16;
+  /// Radius sudut atas bottom sheet pada frame Figma.
+  static const double sheet = 24;
   static const double pill = 9999;
 }

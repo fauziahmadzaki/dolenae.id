@@ -29,6 +29,7 @@ class _LoginScreenState extends State<LoginScreen> {
   bool _loading = false;
   bool _googleLoading = false;
   bool _rememberMe = true;
+  bool _agreeTerms = true;
   String? _errorMessage;
 
   bool get _emailValid =>
@@ -45,7 +46,7 @@ class _LoginScreenState extends State<LoginScreen> {
       _submitted &&
       (!_emailValid ||
           !_passwordValid ||
-          (_isRegister && (!_nameValid || !_confirmValid)));
+          (_isRegister && (!_nameValid || !_confirmValid || !_agreeTerms)));
 
   @override
   void initState() {
@@ -74,7 +75,7 @@ class _LoginScreenState extends State<LoginScreen> {
     final localValid =
         _emailValid &&
         _passwordValid &&
-        (!_isRegister || (_nameValid && _confirmValid));
+        (!_isRegister || (_nameValid && _confirmValid && _agreeTerms));
     if (!localValid || _loading) return;
 
     final auth = context.read<AuthController>();
@@ -283,6 +284,68 @@ class _LoginScreenState extends State<LoginScreen> {
                             : null,
                         onChanged: (_) => setState(() {}),
                       ),
+                      const SizedBox(height: AppSpacing.s1),
+                      Semantics(
+                        checked: _agreeTerms,
+                        label: 'Saya setuju dengan Syarat & Ketentuan',
+                        child: InkWell(
+                          onTap: () =>
+                              setState(() => _agreeTerms = !_agreeTerms),
+                          borderRadius: BorderRadius.circular(AppRadius.sm),
+                          child: ConstrainedBox(
+                            constraints: const BoxConstraints(minHeight: 44),
+                            child: Row(
+                              children: [
+                                Container(
+                                  width: 18,
+                                  height: 18,
+                                  decoration: BoxDecoration(
+                                    color: _agreeTerms
+                                        ? AppColors.primary
+                                        : Colors.transparent,
+                                    borderRadius: BorderRadius.circular(
+                                      AppRadius.sm,
+                                    ),
+                                    border: Border.all(
+                                      color: _submitted && !_agreeTerms
+                                          ? AppColors.danger
+                                          : _agreeTerms
+                                          ? AppColors.primary
+                                          : AppColors.borderStrong,
+                                    ),
+                                  ),
+                                  alignment: Alignment.center,
+                                  child: _agreeTerms
+                                      ? const Icon(
+                                          AppIcons.check,
+                                          size: 12,
+                                          color: AppColors.onPrimary,
+                                        )
+                                      : null,
+                                ),
+                                const SizedBox(width: AppSpacing.s2),
+                                Expanded(
+                                  child: Text(
+                                    'Saya setuju dengan Syarat & Ketentuan',
+                                    style: AppTextStyles.bodySm,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                      if (_submitted && !_agreeTerms) ...[
+                        Padding(
+                          padding: const EdgeInsets.only(bottom: AppSpacing.s2),
+                          child: Text(
+                            'Setujui Syarat & Ketentuan terlebih dahulu.',
+                            style: AppTextStyles.caption.copyWith(
+                              color: AppColors.danger,
+                            ),
+                          ),
+                        ),
+                      ],
                     ],
                     if (!_isRegister)
                       Row(
@@ -557,6 +620,12 @@ class _FieldState extends State<_Field> {
                     tooltip: _obscured
                         ? 'Tampilkan kata sandi'
                         : 'Sembunyikan kata sandi',
+                  )
+                : hasError
+                ? const Icon(
+                    AppIcons.alertCircle,
+                    size: 18,
+                    color: AppColors.danger,
                   )
                 : null,
             suffixIconConstraints: const BoxConstraints(minWidth: 40),

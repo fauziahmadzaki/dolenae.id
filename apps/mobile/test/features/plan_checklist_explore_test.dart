@@ -398,7 +398,7 @@ void main() {
   group('Model Filter Pencarian', () {
     test('label opsi urutkan dan kesulitan tersedia', () {
       expect(SortOption.populer.label, 'Paling populer');
-      expect(SortOption.terdekat.label, 'Paling dekat');
+      expect(SortOption.ketinggian.label, 'Ketinggian tertinggi');
       expect(DifficultyFilter.semua.label, 'Semua tingkat');
       expect(DifficultyFilter.sulit.label, 'Sulit');
     });

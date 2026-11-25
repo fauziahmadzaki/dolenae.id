@@ -52,6 +52,8 @@ class DestinationModel {
           ? '${_compactNumber(distanceKm)} km dari kota terdekat'
           : null,
       accessPointName: location['accessPoint'] as String?,
+      facilities: _countMap(json['facilities']),
+      rating: (json['rating'] as num?)?.toDouble(),
     );
   }
 }
@@ -67,6 +69,15 @@ DifficultyLevel? _difficulty(String? value) {
     default:
       return null;
   }
+}
+
+Map<String, int> _countMap(Object? value) {
+  if (value is! Map) return const {};
+  return {
+    for (final entry in value.entries)
+      if (entry.key is String && entry.value is num)
+        entry.key as String: (entry.value as num).toInt(),
+  };
 }
 
 List<String> _stringList(Object? value) {

@@ -249,6 +249,8 @@ class _FacilitiesScreenState extends State<FacilitiesScreen> {
                 label: 'Usulkan fasilitas',
                 icon: AppIcons.plus,
                 height: 48,
+                backgroundColor: AppColors.canvasSubtle,
+                borderColor: AppColors.hairline,
                 onPressed:
                     widget.onPropose ??
                     () => context.push('/facilities/propose'),

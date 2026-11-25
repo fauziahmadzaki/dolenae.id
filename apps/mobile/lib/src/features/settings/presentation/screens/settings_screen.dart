@@ -2,13 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
+import 'package:dolenae_mobile/src/features/auth/presentation/widgets/logout_confirmation.dart';
 import 'package:dolenae_mobile/src/features/settings/presentation/controllers/settings_controller.dart';
 import 'package:dolenae_mobile/src/app/theme/app_colors.dart';
 import 'package:dolenae_mobile/src/app/theme/app_spacing.dart';
 import 'package:dolenae_mobile/src/app/theme/app_text_styles.dart';
 import 'package:dolenae_mobile/src/features/settings/domain/entities/app_settings.dart';
 import 'package:dolenae_mobile/src/shared/icons/app_icons.dart';
-import 'package:dolenae_mobile/src/shared/widgets/dn_dialog.dart';
 import 'package:dolenae_mobile/src/shared/widgets/dn_switch.dart';
 import 'package:dolenae_mobile/src/features/settings/presentation/widgets/settings_widgets.dart';
 
@@ -81,13 +81,17 @@ class SettingsScreen extends StatelessWidget {
                   label: 'Akun',
                   icon: AppIcons.user,
                   value: settings.accountName,
-                  onTap: () => _open(context, onOpenAccount, '/settings/account'),
+                  onTap: () =>
+                      _open(context, onOpenAccount, '/settings/account'),
                 ),
                 SettingsRowTile(
                   label: 'Notifikasi',
                   icon: AppIcons.bell,
-                  onTap: () =>
-                      _open(context, onOpenNotifications, '/settings/notifications'),
+                  onTap: () => _open(
+                    context,
+                    onOpenNotifications,
+                    '/settings/notifications',
+                  ),
                 ),
               ],
             ),
@@ -129,7 +133,8 @@ class SettingsScreen extends StatelessWidget {
             const SizedBox(height: AppSpacing.s5),
             SettingsGroup(
               label: 'PREFERENSI',
-              footer: 'Mode hemat data membuat gambar dimuat pada resolusi '
+              footer:
+                  'Mode hemat data membuat gambar dimuat pada resolusi '
                   'lebih kecil untuk menghemat kuota.',
               children: [
                 Padding(
@@ -154,34 +159,12 @@ class SettingsScreen extends StatelessWidget {
                   label: 'Keluar',
                   icon: AppIcons.logOut,
                   foreground: AppColors.danger,
-                  onTap: () async {
-                    final confirmed = await showDnDialog(
-                      context,
-                      title: 'Keluar dari akun?',
-                      message:
-                          'Kamu perlu masuk lagi untuk membuka rencana dan '
-                          'checklist yang tersimpan.',
-                      type: DnDialogType.destruktif,
-                      confirmLabel: 'Keluar',
-                      cancelLabel: 'Batal',
-                      icon: AppIcons.logOut,
-                    );
-                    if (confirmed != true || !context.mounted) return;
-                    final logout = onLogout;
-                    if (logout != null) {
-                      logout();
-                    } else {
-                      context.go('/login');
-                    }
-                  },
+                  onTap: () => confirmLogout(context, onLogout: onLogout),
                 ),
               ],
             ),
             const SizedBox(height: AppSpacing.s5),
-            Text(
-              'Dolenae.id · versi 1.0.0',
-              style: AppTextStyles.caption,
-            ),
+            Text('Dolenae.id · versi 1.0.0', style: AppTextStyles.caption),
           ],
         ),
       ),

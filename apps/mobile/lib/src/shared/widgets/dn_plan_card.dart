@@ -68,12 +68,21 @@ class DnPlanCard extends StatelessWidget {
                       vertical: 3,
                     ),
                     decoration: BoxDecoration(
-                      color: statusColor.withValues(alpha: 0.12),
+                      color: statusColor == AppColors.body
+                          ? AppColors.canvas
+                          : statusColor,
                       borderRadius: BorderRadius.circular(AppRadius.pill),
+                      border: statusColor == AppColors.body
+                          ? Border.all(color: AppColors.hairline)
+                          : null,
                     ),
                     child: Text(
                       statusLabel!,
-                      style: AppTextStyles.overline.copyWith(color: statusColor),
+                      style: AppTextStyles.overline.copyWith(
+                        color: statusColor == AppColors.body
+                            ? AppColors.body
+                            : AppColors.onPrimary,
+                      ),
                     ),
                   ),
                 ],

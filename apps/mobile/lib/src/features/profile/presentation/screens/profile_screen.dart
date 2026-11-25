@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
 import 'package:dolenae_mobile/src/features/auth/presentation/controllers/auth_controller.dart';
+import 'package:dolenae_mobile/src/features/auth/presentation/widgets/logout_confirmation.dart';
 import 'package:dolenae_mobile/src/features/checklist/presentation/controllers/checklist_controller.dart';
 import 'package:dolenae_mobile/src/features/plan/presentation/controllers/plan_controller.dart';
 import 'package:dolenae_mobile/src/features/saved/presentation/controllers/saved_controller.dart';
@@ -12,6 +13,7 @@ import 'package:dolenae_mobile/src/app/theme/app_shadows.dart';
 import 'package:dolenae_mobile/src/app/theme/app_spacing.dart';
 import 'package:dolenae_mobile/src/app/theme/app_text_styles.dart';
 import 'package:dolenae_mobile/src/shared/icons/app_icons.dart';
+import 'package:dolenae_mobile/src/shared/widgets/dn_avatar.dart';
 import 'package:dolenae_mobile/src/shared/widgets/dn_bottom_nav.dart';
 
 /// Layar Profil Wisatawan (Node Figma: 81:257).
@@ -61,6 +63,7 @@ class ProfileScreen extends StatelessWidget {
     final displayName = auth?.user?.name ?? userName;
     final displayEmail = auth?.user?.email ?? userEmail;
     final displayRole = auth?.user?.roleLabel ?? userRole;
+    final avatarUrl = auth?.user?.avatarUrl;
     final savedTotal =
         context.watch<SavedController?>()?.savedDestinations.length ??
         savedCount;
@@ -86,6 +89,7 @@ class ProfileScreen extends StatelessWidget {
                       displayName,
                       displayEmail,
                       displayRole,
+                      avatarUrl: avatarUrl,
                       saved: savedTotal,
                       plan: planTotal,
                       checklist: checklistTotal,
@@ -103,7 +107,7 @@ class ProfileScreen extends StatelessWidget {
                     const SizedBox(height: 8),
                     _buildHelpGroup(context),
                     const SizedBox(height: AppSpacing.s4),
-                    _buildLogoutCard(context, auth),
+                    _buildLogoutCard(context),
                     const SizedBox(height: AppSpacing.s6),
                   ],
                 ),
@@ -134,6 +138,12 @@ class ProfileScreen extends StatelessWidget {
                 'Profil',
                 style: AppTextStyles.title.copyWith(color: AppColors.onPrimary),
               ),
+              const Spacer(),
+              IconButton(
+                onPressed: () => context.push('/settings'),
+                icon: const Icon(AppIcons.settings, color: AppColors.onPrimary),
+                tooltip: 'Pengaturan',
+              ),
             ],
           ),
         ),
@@ -146,6 +156,7 @@ class ProfileScreen extends StatelessWidget {
     String displayName,
     String displayEmail,
     String displayRole, {
+    String? avatarUrl,
     required int saved,
     required int plan,
     required int checklist,
@@ -162,20 +173,17 @@ class ProfileScreen extends StatelessWidget {
         children: [
           Row(
             children: [
-              // Avatar lingkaran 64x64 dengan inisial
-              Container(
-                width: 64,
-                height: 64,
-                decoration: const BoxDecoration(
-                  color: AppColors.primary,
-                  shape: BoxShape.circle,
-                ),
-                alignment: Alignment.center,
-                child: Text(
-                  displayName.isNotEmpty ? displayName[0].toUpperCase() : 'U',
-                  style: AppTextStyles.displayMd.copyWith(
-                    color: AppColors.onPrimary,
-                  ),
+              // Avatar lingkaran 64x64 dengan foto profil atau inisial
+              DnAvatar(
+                imagePath: avatarUrl,
+                initials: displayName.isNotEmpty
+                    ? displayName[0].toUpperCase()
+                    : 'U',
+                size: 64,
+                backgroundColor: AppColors.primary,
+                foregroundColor: AppColors.onPrimary,
+                textStyle: AppTextStyles.displayMd.copyWith(
+                  color: AppColors.onPrimary,
                 ),
               ),
               const SizedBox(width: AppSpacing.s3),
@@ -223,7 +231,12 @@ class ProfileScreen extends StatelessWidget {
           // Stats Row
           Row(
             children: [
-              _buildStatItem(context, '$saved', 'Tersimpan', null),
+              _buildStatItem(
+                context,
+                '$saved',
+                'Tersimpan',
+                () => context.push('/saved/destinations'),
+              ),
               const SizedBox(width: 8),
               _buildStatItem(
                 context,
@@ -430,27 +443,13 @@ class ProfileScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildLogoutCard(BuildContext context, AuthController? auth) {
+  Widget _buildLogoutCard(BuildContext context) {
     return Material(
       color: AppColors.canvasSubtle,
       borderRadius: BorderRadius.circular(AppRadius.lg),
       child: InkWell(
         borderRadius: BorderRadius.circular(AppRadius.lg),
-        onTap:
-            onLogout ??
-            () async {
-              if (auth != null) {
-                await auth.logout();
-                if (context.mounted) context.go('/login');
-                return;
-              }
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Berhasil keluar'),
-                  backgroundColor: AppColors.primary,
-                ),
-              );
-            },
+        onTap: () => confirmLogout(context, onLogout: onLogout),
         child: Container(
           height: 56,
           padding: const EdgeInsets.symmetric(horizontal: 12),

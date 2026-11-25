@@ -23,8 +23,7 @@ void main() {
   }
 
   test('F3 schema v1 cache migrates without losing API rows', () async {
-    final directory = Directory(Platform.environment['TMPDIR']!)
-        .createTempSync('f3-cache-');
+    final directory = Directory.systemTemp.createTempSync('f3-cache-');
     addTearDown(() => directory.deleteSync(recursive: true));
     final file = File('${directory.path}/cache.sqlite');
     final seed = AppDatabase.forTesting(NativeDatabase(file));

@@ -228,6 +228,8 @@ class _LoginFakeAuthRepository implements AuthRepository {
     String? phone,
     String? city,
     String? bio,
+    String? avatarUrl,
+    bool clearAvatar = false,
   }) async => const Success(_session);
 
   @override

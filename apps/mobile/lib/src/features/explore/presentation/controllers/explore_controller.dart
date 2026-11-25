@@ -39,6 +39,12 @@ class ExploreController extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Filter medan dari chip Beranda (mis. `Gunung`); string kosong = semua.
+  void setTerrain(String terrain) {
+    _filter = _filter.copyWith(terrain: terrain);
+    notifyListeners();
+  }
+
   void setSortOption(SortOption sort) {
     _filter = _filter.copyWith(sort: sort);
     notifyListeners();

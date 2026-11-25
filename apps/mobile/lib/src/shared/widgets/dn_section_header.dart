@@ -32,12 +32,15 @@ class DnSectionHeader extends StatelessWidget {
               children: [
                 Text(
                   actionLabel!,
-                  style: AppTextStyles.label.copyWith(color: AppColors.primary),
+                  style: AppTextStyles.label.copyWith(
+                    color: AppColors.body,
+                    fontWeight: FontWeight.w500,
+                  ),
                 ),
                 const Icon(
                   AppIcons.chevronRight,
                   size: 16,
-                  color: AppColors.primary,
+                  color: AppColors.body,
                 ),
               ],
             ),

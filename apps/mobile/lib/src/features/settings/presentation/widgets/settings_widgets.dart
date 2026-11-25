@@ -97,10 +97,7 @@ class SettingsRowTile extends StatelessWidget {
     );
 
     if (onTap == null) return content;
-    return InkWell(
-      onTap: onTap,
-      child: content,
-    );
+    return InkWell(onTap: onTap, child: content);
   }
 }
 
@@ -161,10 +158,7 @@ class SettingsSummaryCard extends StatelessWidget {
                 Expanded(
                   child: Text(rows[i].label, style: AppTextStyles.bodySm),
                 ),
-                Text(
-                  rows[i].value,
-                  style: AppTextStyles.titleSm,
-                ),
+                Text(rows[i].value, style: AppTextStyles.titleSm),
               ],
             ),
           ],
@@ -204,7 +198,10 @@ class SettingsOptionTile extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(label, style: AppTextStyles.body.copyWith(color: AppColors.ink)),
+                  Text(
+                    label,
+                    style: AppTextStyles.body.copyWith(color: AppColors.ink),
+                  ),
                   if (description != null) ...[
                     const SizedBox(height: 2),
                     Text(description!, style: AppTextStyles.caption),
@@ -213,11 +210,7 @@ class SettingsOptionTile extends StatelessWidget {
               ),
             ),
             if (selected)
-              const Icon(
-                AppIcons.check,
-                size: 20,
-                color: AppColors.primary,
-              ),
+              const Icon(AppIcons.check, size: 20, color: AppColors.primary),
           ],
         ),
       ),
@@ -296,17 +289,24 @@ class SettingsAppBar extends StatelessWidget implements PreferredSizeWidget {
   @override
   Widget build(BuildContext context) {
     return AppBar(
-      title: Text(title, style: AppTextStyles.titleSm),
-      backgroundColor: AppColors.canvas,
+      title: Text(
+        title,
+        style: AppTextStyles.title.copyWith(color: AppColors.onPrimary),
+      ),
+      titleSpacing: 0,
+      leadingWidth: 48,
+      backgroundColor: AppColors.primary,
       surfaceTintColor: Colors.transparent,
       elevation: 0,
       scrolledUnderElevation: 0,
       leading: IconButton(
-        icon: const Icon(Icons.arrow_back, size: 20, color: AppColors.primary),
+        icon: const Icon(
+          AppIcons.arrowLeft,
+          size: 20,
+          color: AppColors.onPrimary,
+        ),
         onPressed: onBack ?? () => Navigator.of(context).maybePop(),
-      ),
-      shape: const Border(
-        bottom: BorderSide(color: AppColors.hairline),
+        tooltip: 'Kembali',
       ),
     );
   }

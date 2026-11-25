@@ -22,7 +22,7 @@ class DnChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final fg = active ? AppColors.onPrimary : AppColors.ink;
+    final fg = active ? AppColors.onPrimary : AppColors.body;
     return Material(
       color: active ? AppColors.primary : AppColors.canvasSubtle,
       borderRadius: BorderRadius.circular(AppRadius.pill),

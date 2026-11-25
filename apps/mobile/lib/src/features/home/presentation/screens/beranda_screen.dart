@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:dolenae_mobile/src/features/categories/domain/entities/category.dart';
 import 'package:dolenae_mobile/src/features/categories/presentation/controllers/categories_controller.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
@@ -18,9 +19,11 @@ import 'package:dolenae_mobile/src/app/theme/app_text_styles.dart';
 import 'package:dolenae_mobile/src/features/destinations/domain/entities/destination.dart';
 import 'package:dolenae_mobile/src/shared/widgets/dn_activity_tile.dart';
 import 'package:dolenae_mobile/src/shared/widgets/dn_ai_card.dart';
+import 'package:dolenae_mobile/src/shared/widgets/dn_avatar.dart';
 import 'package:dolenae_mobile/src/shared/widgets/dn_bottom_nav.dart';
 import 'package:dolenae_mobile/src/shared/widgets/dn_buttons.dart';
 import 'package:dolenae_mobile/src/shared/widgets/dn_card.dart';
+import 'package:dolenae_mobile/src/shared/widgets/dn_chip.dart';
 import 'package:dolenae_mobile/src/shared/widgets/dn_empty_state.dart';
 import 'package:dolenae_mobile/src/shared/widgets/dn_destination_card.dart';
 import 'package:dolenae_mobile/src/shared/widgets/dn_email_verification_banner.dart';
@@ -69,6 +72,17 @@ class _BerandaScreenState extends State<BerandaScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       context.read<FacilitiesController>().loadFirstAvailable(candidates);
+    });
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    // Muat katalog kategori untuk baris chip saat Beranda dibuka langsung,
+    // bukan hanya lewat refresh tarik-turun.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      context.read<CategoriesController>().load();
     });
   }
 
@@ -137,6 +151,9 @@ class _BerandaScreenState extends State<BerandaScreen> {
                       )
                     else ...[
                       _search(context),
+                      // ponytail: chip kategori dari CategoriesController; kosong
+                      // berarti katalog belum termuat, jadi barisnya disembunyikan.
+                      if (!_isSearching) _categoryChips(context),
                       if (_isSearching)
                         _recommendations(context, destinations)
                       else ...[
@@ -256,6 +273,58 @@ class _BerandaScreenState extends State<BerandaScreen> {
                   ),
           ),
         ],
+      ),
+    );
+  }
+
+  /// Baris chip kategori terrain (`Chips` pada frame Beranda `56:10021`).
+  ///
+  /// Menekan chip membuka Jelajah dengan kata kunci kategori tersebut.
+  Widget _categoryChips(BuildContext context) {
+    final controller = context.watch<CategoriesController?>();
+    // Frame hanya memuat chip terrain; kategori aktivitas tetap di Jelajah.
+    final terrains = [
+      for (final category in controller?.items ?? const <Category>[])
+        if (category.type == 'terrain') category,
+    ];
+    if (terrains.isEmpty) {
+      // ponytail: katalog kategori belum termuat (offline/loading) -> chip
+      // nama dari frame dipakai sebagai label saja, tanpa penyaringan.
+      if (controller == null) return const SizedBox.shrink();
+      return _chipRow([for (final name in _fallbackTerrains) DnChip(label: name)]);
+    }
+
+    return _chipRow([
+      for (final category in terrains)
+        DnChip(
+          label: category.name,
+          onTap: () => context.go(
+            '/explore?q=${Uri.encodeQueryComponent(category.name)}',
+          ),
+        ),
+    ]);
+  }
+
+  /// Label terrain dari frame, dipakai saat katalog kategori belum termuat.
+  static const _fallbackTerrains = [
+    'Gunung',
+    'Bukit',
+    'Danau',
+    'Air terjun',
+    'Camping',
+  ];
+
+  Widget _chipRow(List<Widget> chips) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(
+        AppSpacing.s4,
+        AppSpacing.s3,
+        AppSpacing.s4,
+        0,
+      ),
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: Row(spacing: AppSpacing.s2, children: chips),
       ),
     );
   }
@@ -570,6 +639,7 @@ class _Header extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final user = context.watch<AuthController?>()?.user;
     return Container(
       color: AppColors.primary,
       padding: const EdgeInsets.symmetric(horizontal: AppSpacing.s4),
@@ -599,19 +669,14 @@ class _Header extends StatelessWidget {
                   key: const Key('home-avatar'),
                   borderRadius: BorderRadius.circular(18),
                   onTap: () => context.go('/profile'),
-                  child: Container(
-                    width: 36,
-                    height: 36,
-                    alignment: Alignment.center,
-                    decoration: const BoxDecoration(
-                      color: AppColors.canvas,
-                      shape: BoxShape.circle,
-                    ),
-                    child: Text(
-                      context.watch<AuthController?>()?.user?.initials ?? 'D',
-                      style: AppTextStyles.label.copyWith(
-                        color: AppColors.primary,
-                      ),
+                  child: DnAvatar(
+                    imagePath: user?.avatarUrl,
+                    initials: user?.initials ?? 'D',
+                    size: 36,
+                    backgroundColor: AppColors.canvas,
+                    foregroundColor: AppColors.primary,
+                    textStyle: AppTextStyles.label.copyWith(
+                      color: AppColors.primary,
                     ),
                   ),
                 ),

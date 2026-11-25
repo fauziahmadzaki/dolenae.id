@@ -203,6 +203,12 @@ class _TestPlanRepository implements PlanRepository {
     : _plans = [...(plans ?? PlanSeedData.plans)];
 
   List<TripPlan> _plans;
+  String? userId;
+
+  @override
+  void setUserId(String? userId) {
+    this.userId = userId;
+  }
 
   @override
   Future<Result<List<TripPlan>>> load() async => Success(_plans);
@@ -301,6 +307,7 @@ Widget wrapScreen(Widget child, {TestStores? store}) {
     routes: [
       GoRoute(path: '/', builder: (_, _) => child),
       GoRoute(path: '/home', builder: (_, _) => const _StubScreen()),
+      GoRoute(path: '/login', builder: (_, _) => const _StubScreen()),
       GoRoute(path: '/susun/:lain', builder: (_, _) => const _StubScreen()),
       GoRoute(
         path: '/auth/forgot-password',
@@ -308,6 +315,11 @@ Widget wrapScreen(Widget child, {TestStores? store}) {
       ),
       GoRoute(path: '/destination/:id', builder: (_, _) => const _StubScreen()),
       GoRoute(path: '/profile', builder: (_, _) => const _StubScreen()),
+      GoRoute(path: '/settings', builder: (_, _) => const _StubScreen()),
+      GoRoute(
+        path: '/saved/destinations',
+        builder: (_, _) => const _StubScreen(),
+      ),
       GoRoute(
         path: '/auth/change-password',
         builder: (_, _) => const _StubScreen(),
@@ -438,7 +450,10 @@ class _TestAuthRepository implements AuthRepository {
     String? phone,
     String? city,
     String? bio,
+    String? avatarUrl,
+    bool clearAvatar = false,
   }) async {
+    final nextAvatar = clearAvatar ? null : (avatarUrl ?? _user.avatarUrl);
     return Success(
       AuthSession(
         token: _session.token,
@@ -447,7 +462,7 @@ class _TestAuthRepository implements AuthRepository {
           name: name,
           email: _user.email,
           role: _user.role,
-          avatarUrl: _user.avatarUrl,
+          avatarUrl: nextAvatar,
           phone: phone,
           city: city,
           bio: bio,

@@ -82,7 +82,7 @@ class DnSupportRow extends StatelessWidget {
                       Icon(
                         facility.verified
                             ? AppIcons.badgeCheck
-                            : AppIcons.info,
+                            : AppIcons.clock,
                         size: 13,
                         color: facility.verified
                             ? AppColors.success

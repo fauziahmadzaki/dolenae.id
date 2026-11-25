@@ -44,6 +44,11 @@ class DnDialog extends StatelessWidget {
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(AppRadius.xl),
       ),
+      insetPadding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.s6,
+        vertical: AppSpacing.s6,
+      ),
+      scrollable: true,
       contentPadding: const EdgeInsets.all(AppSpacing.s5),
       titlePadding: const EdgeInsets.fromLTRB(
         AppSpacing.s5,
@@ -58,22 +63,21 @@ class DnDialog extends StatelessWidget {
           Row(
             children: [
               Container(
-                width: 36,
-                height: 36,
-                decoration: BoxDecoration(
-                  color: accent.withValues(alpha: 0.12),
+                width: 44,
+                height: 44,
+                decoration: const BoxDecoration(
+                  color: AppColors.canvasSubtle,
                   shape: BoxShape.circle,
                 ),
                 child: Icon(
-                  icon ?? (isDestructive ? AppIcons.alertTriangle : AppIcons.info),
+                  icon ??
+                      (isDestructive ? AppIcons.alertTriangle : AppIcons.info),
                   size: 20,
                   color: accent,
                 ),
               ),
               const SizedBox(width: AppSpacing.s3),
-              Expanded(
-                child: Text(title, style: AppTextStyles.title),
-              ),
+              Expanded(child: Text(title, style: AppTextStyles.title)),
             ],
           ),
           const SizedBox(height: AppSpacing.s3),
@@ -84,21 +88,22 @@ class DnDialog extends StatelessWidget {
         Padding(
           padding: const EdgeInsets.fromLTRB(
             AppSpacing.s5,
-            AppSpacing.s3,
+            0,
             AppSpacing.s5,
-            AppSpacing.s2,
+            AppSpacing.s5,
           ),
           child: Row(
             children: [
               Expanded(
-                child: OutlinedButton(
+                child: FilledButton(
                   onPressed: () => Navigator.of(context).pop(false),
-                  style: OutlinedButton.styleFrom(
+                  style: FilledButton.styleFrom(
                     minimumSize: const Size.fromHeight(48),
-                    foregroundColor: AppColors.primary,
-                    side: const BorderSide(color: AppColors.borderStrong),
+                    backgroundColor: AppColors.canvasSubtle,
+                    foregroundColor: AppColors.ink,
+                    side: const BorderSide(color: AppColors.hairline),
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(AppRadius.md),
+                      borderRadius: BorderRadius.circular(AppRadius.pill),
                     ),
                   ),
                   child: Text(cancelLabel, style: AppTextStyles.label),
@@ -112,12 +117,14 @@ class DnDialog extends StatelessWidget {
                     minimumSize: const Size.fromHeight(48),
                     backgroundColor: accent,
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(AppRadius.md),
+                      borderRadius: BorderRadius.circular(AppRadius.pill),
                     ),
                   ),
                   child: Text(
                     confirmLabel,
-                    style: AppTextStyles.label.copyWith(color: AppColors.onPrimary),
+                    style: AppTextStyles.label.copyWith(
+                      color: AppColors.onPrimary,
+                    ),
                   ),
                 ),
               ),

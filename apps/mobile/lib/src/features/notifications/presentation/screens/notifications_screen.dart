@@ -60,6 +60,7 @@ class NotificationsScreen extends StatelessWidget {
       appBar: DnAppBar(
         title: 'Notifikasi',
         showBack: true,
+        plainBack: true,
         onBack:
             onBack ??
             () {
@@ -71,12 +72,15 @@ class NotificationsScreen extends StatelessWidget {
             },
         trailing: unread == 0
             ? null
-            : TextButton(
-                onPressed: markAll,
-                child: Text(
-                  'Tandai dibaca',
-                  style: AppTextStyles.labelSm.copyWith(
-                    color: AppColors.onPrimary,
+            : Tooltip(
+                message: '$unread belum dibaca',
+                child: TextButton(
+                  onPressed: markAll,
+                  child: Text(
+                    'Tandai dibaca',
+                    style: AppTextStyles.label.copyWith(
+                      color: AppColors.onPrimary,
+                    ),
                   ),
                 ),
               ),
@@ -98,33 +102,28 @@ class NotificationsScreen extends StatelessWidget {
               )
             : ListView(
                 padding: const EdgeInsets.fromLTRB(
-                  AppSpacing.s5,
                   AppSpacing.s4,
-                  AppSpacing.s5,
+                  AppSpacing.s4,
+                  AppSpacing.s4,
                   AppSpacing.s5,
                 ),
                 children: [
-                  if (unread > 0) ...[
-                    Text('$unread belum dibaca', style: AppTextStyles.caption),
-                    const SizedBox(height: AppSpacing.s3),
-                  ],
                   if (today.isNotEmpty) ...[
                     Text('HARI INI', style: AppTextStyles.overline),
-                    const SizedBox(height: AppSpacing.s2),
+                    const SizedBox(height: AppSpacing.s3),
                     ...today.map(
                       (item) => Padding(
-                        padding: const EdgeInsets.only(bottom: AppSpacing.s2),
+                        padding: const EdgeInsets.only(bottom: AppSpacing.s3),
                         child: DnNotificationItem(
                           notification: item,
                           onTap: () => open(item),
                         ),
                       ),
                     ),
-                    const SizedBox(height: AppSpacing.s4),
                   ],
                   if (earlier.isNotEmpty) ...[
                     Text('SEBELUMNYA', style: AppTextStyles.overline),
-                    const SizedBox(height: AppSpacing.s2),
+                    const SizedBox(height: AppSpacing.s3),
                     ...earlier.map(
                       (item) => Padding(
                         padding: const EdgeInsets.only(bottom: AppSpacing.s2),

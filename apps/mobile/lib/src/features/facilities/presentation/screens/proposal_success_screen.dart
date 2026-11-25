@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:path/path.dart' as p;
 
 import 'package:dolenae_mobile/src/app/theme/app_colors.dart';
 import 'package:dolenae_mobile/src/app/theme/app_radius.dart';
@@ -8,10 +9,11 @@ import 'package:dolenae_mobile/src/app/theme/app_text_styles.dart';
 import 'package:dolenae_mobile/src/features/facilities/domain/entities/facility_proposal.dart';
 import 'package:dolenae_mobile/src/shared/icons/app_icons.dart';
 import 'package:dolenae_mobile/src/shared/widgets/dn_buttons.dart';
+import 'package:dolenae_mobile/src/shared/widgets/dn_local_image.dart';
 
 /// Layar Usulan Sukses (Node Figma: 86:1609).
 ///
-/// Konfirmasi usulan terkirim lengkap dengan ringkasan dan badge status.
+/// Konfirmasi penyimpanan usulan di aplikasi.
 class ProposalSuccessScreen extends StatelessWidget {
   const ProposalSuccessScreen({
     super.key,
@@ -63,8 +65,14 @@ class ProposalSuccessScreen extends StatelessWidget {
               ),
               const SizedBox(height: AppSpacing.s5),
               Text(
-                'Usulan terkirim',
+                'Usulan disimpan',
                 style: AppTextStyles.displayMd,
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: AppSpacing.s2),
+              Text(
+                'Usulan disimpan sementara di aplikasi dan belum dikirim ke admin.',
+                style: AppTextStyles.bodySm,
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: AppSpacing.s6),
@@ -83,9 +91,61 @@ class ProposalSuccessScreen extends StatelessWidget {
                     const SizedBox(height: AppSpacing.s3),
                     _SummaryRow(
                       label: 'Status',
-                      value: data.statusLabel,
+                      value: data.status == ProposalStatus.menunggu
+                          ? 'Disimpan sementara'
+                          : data.statusLabel,
                       valueColor: AppColors.warning,
                     ),
+                    if (data.photoPath != null &&
+                        data.photoPath!.trim().isNotEmpty) ...[
+                      const SizedBox(height: AppSpacing.s3),
+                      Row(
+                        children: [
+                          DnLocalImage(
+                            path: data.photoPath,
+                            width: 40,
+                            height: 40,
+                            borderRadius: BorderRadius.circular(AppRadius.md),
+                            semanticLabel: 'Foto lampiran usulan',
+                            fallback: Container(
+                              width: 40,
+                              height: 40,
+                              decoration: BoxDecoration(
+                                color: AppColors.canvas,
+                                borderRadius: BorderRadius.circular(
+                                  AppRadius.md,
+                                ),
+                                border: Border.all(color: AppColors.hairline),
+                              ),
+                              alignment: Alignment.center,
+                              child: const Icon(
+                                AppIcons.image,
+                                size: 18,
+                                color: AppColors.primary,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: AppSpacing.s3),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Foto lampiran',
+                                  style: AppTextStyles.caption,
+                                ),
+                                Text(
+                                  p.basename(data.photoPath!),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: AppTextStyles.titleSm,
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
                   ],
                 ),
               ),
@@ -124,7 +184,14 @@ class _SummaryRow extends StatelessWidget {
     return Row(
       children: [
         Expanded(child: Text(label, style: AppTextStyles.bodySm)),
-        Text(value, style: AppTextStyles.titleSm.copyWith(color: valueColor)),
+        Expanded(
+          flex: 2,
+          child: Text(
+            value,
+            style: AppTextStyles.titleSm.copyWith(color: valueColor),
+            textAlign: TextAlign.end,
+          ),
+        ),
       ],
     );
   }

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:path/path.dart' as p;
 import 'package:provider/provider.dart';
 
 import 'package:dolenae_mobile/src/features/saved/presentation/controllers/saved_controller.dart';
@@ -12,6 +13,8 @@ import 'package:dolenae_mobile/src/shared/icons/app_icons.dart';
 import 'package:dolenae_mobile/src/shared/widgets/dn_app_bar.dart';
 import 'package:dolenae_mobile/src/shared/widgets/dn_buttons.dart';
 import 'package:dolenae_mobile/src/shared/widgets/dn_empty_state.dart';
+import 'package:dolenae_mobile/src/shared/widgets/dn_icon_circle.dart';
+import 'package:dolenae_mobile/src/shared/widgets/dn_local_image.dart';
 
 /// Layar Fasilitas Diusulkan (Node Figma: 86:2067 dan 86:2104).
 ///
@@ -39,6 +42,12 @@ class SavedProposalsScreen extends StatelessWidget {
     ProposalStatus.menunggu => AppIcons.hourglass,
     ProposalStatus.terverifikasi => AppIcons.badgeCheck,
     ProposalStatus.ditolak => AppIcons.ban,
+  };
+
+  static IconData _typeIcon(ProposalType type) => switch (type) {
+    ProposalType.accommodation => AppIcons.bedDouble,
+    ProposalType.transport => AppIcons.car,
+    ProposalType.food => AppIcons.utensils,
   };
 
   @override
@@ -105,6 +114,12 @@ class SavedProposalsScreen extends StatelessWidget {
                         Row(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
+                            DnIconCircle(
+                              icon: _typeIcon(proposal.type),
+                              size: 40,
+                              iconSize: 18,
+                            ),
+                            const SizedBox(width: AppSpacing.s3),
                             Expanded(
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -131,10 +146,11 @@ class SavedProposalsScreen extends StatelessWidget {
                                 vertical: 3,
                               ),
                               decoration: BoxDecoration(
-                                color: accent.withValues(alpha: 0.12),
+                                color: AppColors.canvas,
                                 borderRadius: BorderRadius.circular(
                                   AppRadius.pill,
                                 ),
+                                border: Border.all(color: AppColors.hairline),
                               ),
                               child: Row(
                                 mainAxisSize: MainAxisSize.min,
@@ -163,6 +179,58 @@ class SavedProposalsScreen extends StatelessWidget {
                           overflow: TextOverflow.ellipsis,
                           style: AppTextStyles.caption,
                         ),
+                        if (proposal.photoPath != null &&
+                            proposal.photoPath!.trim().isNotEmpty) ...[
+                          const SizedBox(height: AppSpacing.s3),
+                          Container(
+                            padding: const EdgeInsets.all(AppSpacing.s2),
+                            decoration: BoxDecoration(
+                              color: AppColors.canvas,
+                              borderRadius: BorderRadius.circular(AppRadius.md),
+                              border: Border.all(color: AppColors.hairline),
+                            ),
+                            child: Row(
+                              children: [
+                                DnLocalImage(
+                                  path: proposal.photoPath,
+                                  width: 36,
+                                  height: 36,
+                                  borderRadius: BorderRadius.circular(
+                                    AppRadius.sm,
+                                  ),
+                                  semanticLabel: 'Foto lampiran usulan',
+                                  fallback: Container(
+                                    width: 36,
+                                    height: 36,
+                                    decoration: BoxDecoration(
+                                      color: AppColors.canvasSubtle,
+                                      borderRadius: BorderRadius.circular(
+                                        AppRadius.sm,
+                                      ),
+                                    ),
+                                    alignment: Alignment.center,
+                                    child: const Icon(
+                                      AppIcons.image,
+                                      size: 16,
+                                      color: AppColors.primary,
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(width: AppSpacing.s2),
+                                Expanded(
+                                  child: Text(
+                                    'Foto: ${p.basename(proposal.photoPath!)}',
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: AppTextStyles.caption.copyWith(
+                                      color: AppColors.ink,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
                       ],
                     ),
                   );

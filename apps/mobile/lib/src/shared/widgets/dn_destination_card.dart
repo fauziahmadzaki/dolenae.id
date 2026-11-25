@@ -80,7 +80,6 @@ class DnDestinationCard extends StatelessWidget {
                         Expanded(
                           child: Text(
                             '${destination.elevationLabel} · ${destination.regency}',
-                            textAlign: TextAlign.center,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             style: AppTextStyles.caption,
@@ -190,7 +189,10 @@ class DnDestinationListTile extends StatelessWidget {
                         style: AppTextStyles.caption,
                       ),
                       if (compact)
-                        DnDifficultyBadge(level: destination.difficulty),
+                        DnDifficultyBadge(
+                          level: destination.difficulty,
+                          solid: false,
+                        ),
                     ],
                   ),
                 ),

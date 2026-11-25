@@ -15,6 +15,7 @@ class FacilityProposal {
     required this.status,
     required this.createdAt,
     this.note,
+    this.photoPath,
   });
 
   final String id;
@@ -23,6 +24,7 @@ class FacilityProposal {
   final String nearestDestinationName;
   final String address;
   final String? note;
+  final String? photoPath;
   final ProposalStatus status;
   final DateTime createdAt;
 

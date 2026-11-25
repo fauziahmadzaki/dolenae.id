@@ -103,7 +103,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Notifikasi'), findsOneWidget);
-    expect(find.textContaining('belum dibaca'), findsOneWidget);
+    expect(find.byTooltip(RegExp(r'^\d+ belum dibaca$')), findsOneWidget);
     expect(find.text('HARI INI'), findsOneWidget);
   });
 

@@ -56,12 +56,16 @@ class UpdateProfileParams {
     this.phone,
     this.city,
     this.bio,
+    this.avatarUrl,
+    this.clearAvatar = false,
   });
 
   final String name;
   final String? phone;
   final String? city;
   final String? bio;
+  final String? avatarUrl;
+  final bool clearAvatar;
 }
 
 /// Memperbarui profil pengguna yang sedang masuk.
@@ -77,6 +81,8 @@ class UpdateProfileUseCase implements UseCase<AuthSession, UpdateProfileParams> 
       phone: params.phone,
       city: params.city,
       bio: params.bio,
+      avatarUrl: params.avatarUrl,
+      clearAvatar: params.clearAvatar,
     );
   }
 }

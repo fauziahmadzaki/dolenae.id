@@ -9,7 +9,6 @@ import 'package:dolenae_mobile/src/app/theme/app_text_styles.dart';
 import 'package:dolenae_mobile/src/shared/widgets/dn_app_bar.dart';
 import 'package:dolenae_mobile/src/shared/widgets/dn_buttons.dart';
 import 'package:dolenae_mobile/src/shared/widgets/dn_otp_input.dart';
-import 'package:dolenae_mobile/src/shared/widgets/dn_toast.dart';
 
 /// Layar Verifikasi OTP (Node Figma: 80:144).
 ///
@@ -46,7 +45,7 @@ class _OtpScreenState extends State<OtpScreen> {
   @override
   void initState() {
     super.initState();
-    if (_secondsLeft > 0) _startTimer();
+    if (widget.onResend != null && _secondsLeft > 0) _startTimer();
   }
 
   void _startTimer() {
@@ -73,39 +72,37 @@ class _OtpScreenState extends State<OtpScreen> {
     }
     setState(() => _errorText = null);
 
-    final onVerify = widget.onVerify;
-    if (onVerify != null) {
-      onVerify(_code);
-      return;
-    }
-    showDnToast(
-      context,
-      'Kode OTP terverifikasi',
-      type: DnToastType.sukses,
-    );
+    widget.onVerify?.call(_code);
   }
 
   void _resend() {
-    if (_secondsLeft > 0) return;
-    setState(() => _secondsLeft = widget.resendSeconds);
-    _startTimer();
-
     final onResend = widget.onResend;
-    if (onResend != null) {
-      onResend();
-      return;
+    if (_secondsLeft > 0 || onResend == null) return;
+    if (widget.resendSeconds > 0) {
+      setState(() => _secondsLeft = widget.resendSeconds);
+      _startTimer();
     }
-    showDnToast(context, 'Kode baru dikirim ke ${widget.email}');
+    onResend();
   }
 
   @override
   Widget build(BuildContext context) {
+    final canResend = widget.onResend != null && _secondsLeft <= 0;
     return Scaffold(
       backgroundColor: AppColors.canvas,
       appBar: DnAppBar(
         title: 'Verifikasi',
         showBack: true,
-        onBack: widget.onBack ?? () => context.pop(),
+        plainBack: true,
+        onBack:
+            widget.onBack ??
+            () {
+              if (context.canPop()) {
+                context.pop();
+              } else {
+                context.go('/login');
+              }
+            },
       ),
       body: SafeArea(
         top: false,
@@ -120,15 +117,23 @@ class _OtpScreenState extends State<OtpScreen> {
                   AppSpacing.s5,
                 ),
                 children: [
-                  Text('Masukkan kode', style: AppTextStyles.displayMd),
+                  Text(
+                    widget.onVerify == null
+                        ? 'Verifikasi lewat email'
+                        : 'Masukkan kode',
+                    style: AppTextStyles.displayMd,
+                  ),
                   const SizedBox(height: AppSpacing.s2),
                   Text(
-                    'Kami mengirim 6 digit kode ke ${widget.email}.',
+                    widget.onVerify == null
+                        ? 'Buka tautan verifikasi yang dikirim ke emailmu.'
+                        : 'Kami mengirim ${widget.length} digit kode ke ${widget.email}.',
                     style: AppTextStyles.bodySm,
                   ),
                   const SizedBox(height: AppSpacing.s6),
                   Center(
                     child: DnOtpInput(
+                      enabled: widget.onVerify != null,
                       length: widget.length,
                       boxWidth: 48,
                       value: _code,
@@ -149,15 +154,15 @@ class _OtpScreenState extends State<OtpScreen> {
                     children: [
                       Text('Tidak menerima kode?', style: AppTextStyles.bodySm),
                       TextButton(
-                        onPressed: _secondsLeft > 0 ? null : _resend,
+                        onPressed: canResend ? _resend : null,
                         child: Text(
-                          _secondsLeft > 0
+                          widget.onResend != null && _secondsLeft > 0
                               ? 'Kirim ulang (0:${_secondsLeft.toString().padLeft(2, '0')})'
                               : 'Kirim ulang',
                           style: AppTextStyles.labelSm.copyWith(
-                            color: _secondsLeft > 0
-                                ? AppColors.borderStrong
-                                : AppColors.primary,
+                            color: canResend
+                                ? AppColors.primary
+                                : AppColors.borderStrong,
                           ),
                         ),
                       ),
@@ -179,7 +184,9 @@ class _OtpScreenState extends State<OtpScreen> {
               ),
               child: DnPrimaryButton(
                 label: 'Verifikasi',
-                onPressed: _canVerify ? _verify : null,
+                onPressed: _canVerify && widget.onVerify != null
+                    ? _verify
+                    : null,
               ),
             ),
           ],

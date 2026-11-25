@@ -1,12 +1,17 @@
 /// Opsi urutkan di bottom sheet Filter & urutkan.
-enum SortOption { populer, rating, terdekat, termurah }
+///
+/// `populer` adalah urutan bawaan katalog. `rating` memakai
+/// `Destination.rating` bila ada; tanpa rating semua destinasi berbagi skor
+/// dasar yang sama, jadi urutannya menjadi `ketinggian` (nilai tertinggi
+/// dulu) agar pilihan ini tetap mengubah hasil, sesuai frame Figma `86:2485`.
+enum SortOption { populer, rating, ketinggian, termurah }
 
 /// Label opsi urutkan untuk chip di bottom sheet filter.
 extension SortOptionLabel on SortOption {
   String get label => switch (this) {
     SortOption.populer => 'Paling populer',
     SortOption.rating => 'Rating tertinggi',
-    SortOption.terdekat => 'Paling dekat',
+    SortOption.ketinggian => 'Ketinggian tertinggi',
     SortOption.termurah => 'Harga terendah',
   };
 }
@@ -29,6 +34,7 @@ class SearchFilter {
   const SearchFilter({
     this.query = '',
     this.categoryId = '',
+    this.terrain = '',
     this.sort = SortOption.populer,
     this.difficulty = DifficultyFilter.semua,
     this.supports = const [],
@@ -37,6 +43,11 @@ class SearchFilter {
 
   final String query;
   final String categoryId;
+
+  /// Nama medan terpilih (mis. `Gunung`), dicocokkan ke `destination.terrain`.
+  ///
+  /// Dipakai chip Beranda yang hanya membawa nama kategori, bukan ID.
+  final String terrain;
   final SortOption sort;
   final DifficultyFilter difficulty;
   final List<String> supports;
@@ -44,6 +55,7 @@ class SearchFilter {
 
   bool get isFiltered =>
       categoryId.isNotEmpty ||
+      terrain.isNotEmpty ||
       sort != SortOption.populer ||
       difficulty != DifficultyFilter.semua ||
       supports.isNotEmpty ||
@@ -52,6 +64,7 @@ class SearchFilter {
   SearchFilter copyWith({
     String? query,
     String? categoryId,
+    String? terrain,
     SortOption? sort,
     DifficultyFilter? difficulty,
     List<String>? supports,
@@ -60,6 +73,7 @@ class SearchFilter {
     return SearchFilter(
       query: query ?? this.query,
       categoryId: categoryId ?? this.categoryId,
+      terrain: terrain ?? this.terrain,
       sort: sort ?? this.sort,
       difficulty: difficulty ?? this.difficulty,
       supports: supports ?? this.supports,
@@ -76,7 +90,7 @@ class SearchFilter {
   String get sortShortLabel => switch (sort) {
     SortOption.populer => 'Populer',
     SortOption.rating => 'Rating',
-    SortOption.terdekat => 'Terdekat',
+    SortOption.ketinggian => 'Ketinggian',
     SortOption.termurah => 'Termurah',
   };
 

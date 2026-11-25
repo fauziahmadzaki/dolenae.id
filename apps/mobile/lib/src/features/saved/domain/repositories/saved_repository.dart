@@ -4,6 +4,9 @@ import 'package:dolenae_mobile/src/features/saved/domain/entities/saved_item.dar
 
 /// Saved destinations, trip plans, checklists, and facility proposals.
 abstract interface class SavedRepository {
+  /// Set active user scope for per-account isolation.
+  void setUserId(String? userId);
+
   List<SavedDestination> get destinations;
 
   List<SavedTripPlan> get plans;

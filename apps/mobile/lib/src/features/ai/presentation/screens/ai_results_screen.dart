@@ -201,8 +201,9 @@ class _AiResultsBody extends StatelessWidget {
                       vertical: AppSpacing.s2,
                     ),
                     decoration: BoxDecoration(
-                      color: AppColors.canvas,
+                      color: AppColors.canvasSubtle,
                       borderRadius: BorderRadius.circular(AppRadius.pill),
+                      border: Border.all(color: AppColors.hairline),
                     ),
                     child: Text(chip, style: AppTextStyles.caption),
                   ),
@@ -236,7 +237,12 @@ class _AiResultsBody extends StatelessWidget {
                     color: AppColors.accent,
                   ),
                   const SizedBox(width: AppSpacing.s2),
-                  Text('RINGKASAN AI', style: AppTextStyles.overline),
+                  Text(
+                    'RINGKASAN AI',
+                    style: AppTextStyles.overline.copyWith(
+                      color: AppColors.accent,
+                    ),
+                  ),
                 ],
               ),
               const SizedBox(height: AppSpacing.s2),

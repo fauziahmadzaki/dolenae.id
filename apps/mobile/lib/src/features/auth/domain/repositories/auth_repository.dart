@@ -29,6 +29,8 @@ abstract interface class AuthRepository {
     String? phone,
     String? city,
     String? bio,
+    String? avatarUrl,
+    bool clearAvatar = false,
   });
 
   /// Masuk memakai akun Google (menukar `idToken` ke API).
