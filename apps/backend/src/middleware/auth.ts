@@ -6,8 +6,9 @@ import { verifyAccessToken } from "../utils/jwt";
 /** Require a valid `Authorization: Bearer <token>` header; attaches `req.user`. */
 export const authRequired: RequestHandler = async (req, _res, next) => {
   try {
-    const [scheme, token] = (req.header("authorization") ?? "").split(" ");
-    if (!token || scheme?.toLowerCase() !== "bearer") {
+    const match = /^Bearer +([^\s]+)$/i.exec(req.header("authorization") ?? "");
+    const token = match?.[1];
+    if (!token) {
       throw new UnauthorizedError("Header Authorization tidak ditemukan");
     }
 
@@ -17,6 +18,15 @@ export const authRequired: RequestHandler = async (req, _res, next) => {
   } catch (err) {
     next(err);
   }
+};
+
+/** Authenticate supplied credentials; only an absent header is anonymous. */
+export const authOptional: RequestHandler = (req, res, next) => {
+  if (req.header("authorization") === undefined) {
+    next();
+    return;
+  }
+  return authRequired(req, res, next);
 };
 
 /** Require the authenticated user to hold one of the given roles. */

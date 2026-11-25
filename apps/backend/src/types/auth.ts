@@ -1,3 +1,15 @@
+import type { z } from "zod";
+import type {
+  forgotPasswordSchema,
+  googleSchema,
+  loginSchema,
+  registerSchema,
+  resendVerificationSchema,
+  resetPasswordSchema,
+  updateProfileSchema,
+  verifyEmailSchema,
+} from "../schemas/auth.schema";
+
 /** Domain types for authentication (kept in sync with the web/mobile clients). */
 
 export const USER_ROLES = ["wisatawan", "merchant", "admin"] as const;
@@ -5,6 +17,13 @@ export type UserRole = (typeof USER_ROLES)[number];
 
 export const AUTH_PROVIDERS = ["local", "google"] as const;
 export type AuthProvider = (typeof AUTH_PROVIDERS)[number];
+
+/** Derived account status for the admin user table (no extra column needed). */
+export const USER_STATUS_FILTERS = ["active", "unverified", "inactive"] as const;
+export type UserStatusFilter = (typeof USER_STATUS_FILTERS)[number];
+
+/** A verified account with no login for this long counts as inactive. */
+export const INACTIVE_AFTER_DAYS = 90;
 
 /** Public user shape returned by the API (never includes the password hash). */
 export interface AuthUser {
@@ -14,6 +33,11 @@ export interface AuthUser {
   role: UserRole;
   provider: AuthProvider;
   avatarUrl: string | null;
+  phone: string | null;
+  city: string | null;
+  bio: string | null;
+  /** ISO timestamp once the email is confirmed (null while unverified). */
+  emailVerifiedAt: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -37,3 +61,12 @@ export interface AuthPrincipal {
   email: string;
   role: UserRole;
 }
+
+export type RegisterInput = z.infer<typeof registerSchema>;
+export type LoginInput = z.infer<typeof loginSchema>;
+export type GoogleInput = z.infer<typeof googleSchema>;
+export type ForgotPasswordInput = z.infer<typeof forgotPasswordSchema>;
+export type ResetPasswordInput = z.infer<typeof resetPasswordSchema>;
+export type VerifyEmailInput = z.infer<typeof verifyEmailSchema>;
+export type UpdateProfileInput = z.infer<typeof updateProfileSchema>;
+export type ResendVerificationInput = z.infer<typeof resendVerificationSchema>;

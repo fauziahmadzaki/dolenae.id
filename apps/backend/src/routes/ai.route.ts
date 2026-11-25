@@ -1,0 +1,15 @@
+import { Router } from "express";
+import { aiController } from "../controllers/AiController";
+import { aiItinerarySchema } from "../schemas/ai.schema";
+import { authRequired } from "../middleware/auth";
+import { validate } from "../middleware/validate";
+
+export const aiRouter = Router();
+
+aiRouter.get("/options", authRequired, aiController.options);
+aiRouter.post(
+  "/itineraries",
+  authRequired,
+  validate({ body: aiItinerarySchema }),
+  aiController.generate,
+);

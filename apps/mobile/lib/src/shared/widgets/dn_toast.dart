@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 
-import '../../app/theme/app_colors.dart';
-import '../../app/theme/app_radius.dart';
-import '../../app/theme/app_spacing.dart';
-import '../../app/theme/app_text_styles.dart';
-import '../icons/app_icons.dart';
+import 'package:dolenae_mobile/src/app/theme/app_colors.dart';
+import 'package:dolenae_mobile/src/app/theme/app_radius.dart';
+import 'package:dolenae_mobile/src/app/theme/app_spacing.dart';
+import 'package:dolenae_mobile/src/app/theme/app_text_styles.dart';
+import 'package:dolenae_mobile/src/shared/icons/app_icons.dart';
 
 /// Tipe toast (component `Toast (Alam)`).
 enum DnToastType { sukses, info, gagal }
@@ -26,14 +26,25 @@ class DnToast extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final (fg, bg, fallbackIcon) = switch (type) {
+    final (fg, bg, fgIcon, fallbackIcon) = switch (type) {
       DnToastType.sukses => (
+        AppColors.onPrimary,
         AppColors.success,
-        AppColors.surface,
+        AppColors.onPrimary,
         AppIcons.badgeCheck,
       ),
-      DnToastType.info => (AppColors.primary, AppColors.surface, AppIcons.info),
-      DnToastType.gagal => (AppColors.danger, AppColors.surface, AppIcons.alertCircle),
+      DnToastType.info => (
+        AppColors.onPrimary,
+        AppColors.primary,
+        AppColors.onPrimary,
+        AppIcons.info,
+      ),
+      DnToastType.gagal => (
+        AppColors.onPrimary,
+        AppColors.danger,
+        AppColors.onPrimary,
+        AppIcons.alertCircle,
+      ),
     };
 
     return InkWell(
@@ -47,16 +58,15 @@ class DnToast extends StatelessWidget {
         decoration: BoxDecoration(
           color: bg,
           borderRadius: BorderRadius.circular(AppRadius.lg),
-          border: Border.all(color: fg.withValues(alpha: 0.35)),
         ),
         child: Row(
           children: [
-            Icon(icon ?? fallbackIcon, size: 20, color: fg),
+            Icon(icon ?? fallbackIcon, size: 20, color: fgIcon),
             const SizedBox(width: AppSpacing.s3),
             Expanded(
               child: Text(
                 message,
-                style: AppTextStyles.bodySm.copyWith(color: AppColors.ink),
+                style: AppTextStyles.bodySm.copyWith(color: fg),
               ),
             ),
           ],

@@ -1,9 +1,11 @@
-import 'package:dolenae_mobile/src/data/models/search_filter.dart';
-import 'package:dolenae_mobile/src/features/checklist/presentation/checklist_done_screen.dart';
-import 'package:dolenae_mobile/src/features/explore/presentation/explore_screen.dart';
-import 'package:dolenae_mobile/src/features/plan/presentation/plan_new_screen.dart';
-import 'package:dolenae_mobile/src/features/plan/presentation/plan_success_screen.dart';
+import 'package:dolenae_mobile/src/features/destinations/domain/entities/destination.dart';
+import 'package:dolenae_mobile/src/features/destinations/domain/entities/search_filter.dart';
+import 'package:dolenae_mobile/src/features/checklist/presentation/screens/checklist_done_screen.dart';
+import 'package:dolenae_mobile/src/features/explore/presentation/screens/explore_screen.dart';
+import 'package:dolenae_mobile/src/features/plan/presentation/screens/plan_new_screen.dart';
+import 'package:dolenae_mobile/src/features/plan/presentation/screens/plan_success_screen.dart';
 import 'package:dolenae_mobile/src/shared/icons/app_icons.dart';
+import 'package:dolenae_mobile/src/shared/widgets/dn_destination_card.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -52,7 +54,10 @@ void main() {
       var homed = 0;
       await tester.pumpWidget(
         wrapScreen(
-          PlanSuccessScreen(onViewPlan: () => viewed++, onBackHome: () => homed++),
+          PlanSuccessScreen(
+            onViewPlan: () => viewed++,
+            onBackHome: () => homed++,
+          ),
         ),
       );
       await tester.pumpAndSettle();
@@ -86,10 +91,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('Checklist lengkap!'), findsOneWidget);
-      expect(
-        find.text('Paket Bromo · Gunung Bromo'),
-        findsOneWidget,
-      );
+      expect(find.text('Paket Bromo · Gunung Bromo'), findsOneWidget);
       expect(find.text('12 dari 12 item sudah siap'), findsOneWidget);
       expect(find.text('Kembali ke rencana'), findsOneWidget);
       expect(find.text('Kembali ke beranda'), findsOneWidget);
@@ -110,9 +112,7 @@ void main() {
 
     testWidgets('menampilkan toast sukses saat dibuka', (tester) async {
       await usePhone(tester);
-      await tester.pumpWidget(
-        wrapScreen(const ChecklistDoneScreen()),
-      );
+      await tester.pumpWidget(wrapScreen(const ChecklistDoneScreen()));
       await tester.pumpAndSettle();
       expect(find.text('Checklist tersimpan'), findsOneWidget);
     });
@@ -156,6 +156,7 @@ void main() {
       expect(find.text('Jumlah hari'), findsOneWidget);
       expect(find.text('Jumlah orang'), findsWidgets);
       expect(find.text('Estimasi budget'), findsOneWidget);
+      await scrollTo(tester, find.text('Catatan'));
       expect(find.text('Catatan'), findsOneWidget);
       expect(find.text('Ringkasan'), findsOneWidget);
     });
@@ -165,7 +166,7 @@ void main() {
       await tester.pumpWidget(wrapScreen(const PlanNewScreen()));
       await tester.pumpAndSettle();
 
-      final cta = find.widgetWithText(FilledButton, 'Simpan rencana');
+      final cta = find.widgetWithText(FilledButton, 'Lanjut pilih destinasi');
       expect(tester.widget<FilledButton>(cta).onPressed, isNull);
 
       await tester.enterText(find.byType(TextField).first, 'Trip Dieng');
@@ -173,18 +174,23 @@ void main() {
       expect(tester.widget<FilledButton>(cta).onPressed, isNotNull);
     });
 
-    testWidgets('form terisi mengirim ringkasan dengan periode', (tester) async {
+    testWidgets('form terisi mengirim ringkasan dengan periode', (
+      tester,
+    ) async {
       await usePhone(tester);
-      final results = <({String name, String dateRange, int days, int people, int budget})>[];
-      await tester.pumpWidget(
-        wrapScreen(PlanNewScreen(onSubmit: results.add)),
-      );
+      final results =
+          <
+            ({String name, String dateRange, int days, int people, int budget})
+          >[];
+      await tester.pumpWidget(wrapScreen(PlanNewScreen(onSubmit: results.add)));
       await tester.pumpAndSettle();
 
       await tester.enterText(find.byType(TextField).first, 'Trip Dieng');
-      await tester.enterText(find.byType(TextField).at(1), '750000');
+      await tester.enterText(inputFor('Estimasi budget'), '750000');
       await tester.pumpAndSettle();
-      await tester.tap(find.widgetWithText(FilledButton, 'Simpan rencana'));
+      await tester.tap(
+        find.widgetWithText(FilledButton, 'Lanjut pilih destinasi'),
+      );
       await tester.pumpAndSettle();
 
       expect(results, hasLength(1));
@@ -195,26 +201,46 @@ void main() {
       expect(results.single.dateRange, contains(' - '));
     });
 
+    testWidgets('deteksi lokasi mengisi provinsi asal', (tester) async {
+      await usePhone(tester);
+      await tester.pumpWidget(wrapScreen(const PlanNewScreen()));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Gunakan lokasi saat ini'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('DKI Jakarta'), findsOneWidget);
+    });
+
     testWidgets('nilai awal dipakai untuk mengisi kolom', (tester) async {
       await usePhone(tester);
       await tester.pumpWidget(
         wrapScreen(
-          const PlanNewScreen(initialName: 'Trip Bromo', initialNote: 'Bawa tenda'),
+          const PlanNewScreen(
+            initialName: 'Trip Bromo',
+            initialNote: 'Bawa tenda',
+          ),
         ),
       );
       await tester.pumpAndSettle();
 
       expect(find.text('Trip Bromo'), findsOneWidget);
+      await scrollTo(tester, find.text('Catatan'));
       expect(find.text('Bawa tenda'), findsOneWidget);
     });
   });
 
   group('Pencarian di Jelajah', () {
-    testWidgets('kondisi awal menampilkan riwayat dan pencarian populer', (
+    testWidgets('katalog beralih ke saran ketika kolom pencarian difokuskan', (
       tester,
     ) async {
       await usePhone(tester);
       await tester.pumpWidget(wrapScreen(const ExploreScreen()));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(DnDestinationListTile), findsWidgets);
+      expect(find.text('RIWAYAT PENCARIAN'), findsNothing);
+      await tester.tap(find.byType(TextField));
       await tester.pumpAndSettle();
 
       expect(find.text('RIWAYAT PENCARIAN'), findsOneWidget);
@@ -234,8 +260,80 @@ void main() {
       await tester.enterText(find.byType(TextField).first, 'bromo');
       await tester.pumpAndSettle();
 
-      expect(find.textContaining('hasil · Urutkan: Paling populer'), findsOneWidget);
+      expect(
+        find.textContaining('hasil · Urutkan: Paling populer'),
+        findsOneWidget,
+      );
       expect(find.text('Gunung Bromo'), findsWidgets);
+      expect(find.text('Tidak ada hasil'), findsNothing);
+    });
+
+    testWidgets(
+      'infinite scroll memakai kartu horizontal dan memuat halaman berikutnya',
+      (tester) async {
+        await usePhone(tester);
+        final many = <Destination>[
+          for (final index in [0, 1, 2, 3, 4, 5, 6, 7, 8, 9])
+            Destination(
+              id: 'dest-uji-$index',
+              slug: 'dest-uji-$index',
+              name: 'Destinasi Uji $index',
+              tagline: 'Tagline $index',
+              elevationM: 1200,
+              regency: 'Bandung',
+              province: 'Jawa Barat',
+              priceFrom: 25000,
+              difficulty: DifficultyLevel.pemula,
+            ),
+        ];
+        final store = TestStores(destinations: many);
+        await tester.pumpWidget(
+          wrapScreen(const ExploreScreen(), store: store),
+        );
+        await tester.pumpAndSettle();
+
+        await tester.enterText(find.byType(TextField).first, 'Destinasi Uji');
+        await tester.pumpAndSettle();
+
+        expect(find.text('10 hasil · Urutkan: Paling populer'), findsOneWidget);
+        expect(find.byType(DnDestinationListTile), findsWidgets);
+        expect(find.text('Destinasi Uji 9'), findsNothing);
+
+        await tester.scrollUntilVisible(
+          find.text('Destinasi Uji 9'),
+          400,
+          scrollable: find
+              .descendant(
+                of: find.byType(CustomScrollView),
+                matching: find.byType(Scrollable),
+              )
+              .first,
+          maxScrolls: 40,
+        );
+        await tester.pumpAndSettle();
+
+        expect(find.text('Destinasi Uji 9'), findsOneWidget);
+      },
+    );
+
+    testWidgets('aktivitas dari beranda langsung menjadi kueri', (
+      tester,
+    ) async {
+      await usePhone(tester);
+      final store = newStore();
+      await tester.pumpWidget(
+        wrapScreen(
+          const ExploreScreen(initialActivity: 'Hiking'),
+          store: store,
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(store.search.searchFilter.query, 'Hiking');
+      expect(
+        find.textContaining('hasil · Urutkan: Paling populer'),
+        findsOneWidget,
+      );
       expect(find.text('Tidak ada hasil'), findsNothing);
     });
 
@@ -255,11 +353,11 @@ void main() {
     ) async {
       await usePhone(tester);
       final store = newStore();
-      await tester.pumpWidget(
-        wrapScreen(const ExploreScreen(), store: store),
-      );
+      await tester.pumpWidget(wrapScreen(const ExploreScreen(), store: store));
       await tester.pumpAndSettle();
 
+      await tester.tap(find.byType(TextField));
+      await tester.pumpAndSettle();
       final target = store.search.searchHistory.last;
       await tester.tap(find.text(target));
       await tester.pumpAndSettle();
@@ -271,11 +369,11 @@ void main() {
     testWidgets('hapus riwayat mengosongkan daftar riwayat', (tester) async {
       await usePhone(tester);
       final store = newStore();
-      await tester.pumpWidget(
-        wrapScreen(const ExploreScreen(), store: store),
-      );
+      await tester.pumpWidget(wrapScreen(const ExploreScreen(), store: store));
       await tester.pumpAndSettle();
 
+      await tester.tap(find.byType(TextField));
+      await tester.pumpAndSettle();
       await tester.tap(find.text('Hapus riwayat'));
       await tester.pumpAndSettle();
 
@@ -300,7 +398,7 @@ void main() {
   group('Model Filter Pencarian', () {
     test('label opsi urutkan dan kesulitan tersedia', () {
       expect(SortOption.populer.label, 'Paling populer');
-      expect(SortOption.terdekat.label, 'Paling dekat');
+      expect(SortOption.ketinggian.label, 'Ketinggian tertinggi');
       expect(DifficultyFilter.semua.label, 'Semua tingkat');
       expect(DifficultyFilter.sulit.label, 'Sulit');
     });

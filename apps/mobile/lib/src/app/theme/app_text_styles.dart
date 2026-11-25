@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
-import 'app_colors.dart';
+import 'package:dolenae_mobile/src/app/theme/app_colors.dart';
 
 /// Skala tipografi — sumber: `DESIGN.md` §3.
 ///

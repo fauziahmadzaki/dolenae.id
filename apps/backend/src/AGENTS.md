@@ -9,7 +9,7 @@ masing-masing (lihat daftar di bawah). Baca juga `apps/backend/AGENTS.md`.
 routes → controllers → services → repositories → db
                          ↗ utils (errors, response, pagination)
 middleware (validate, request-id, error-handler)
-config/env (env)   types/ (api, express.d.ts)
+schemas/env.schema (env)   types/ (api, express.d.ts)
 ```
 
 - Hanya **repositories** yang menyentuh DB; controller/route tidak pernah.
@@ -22,22 +22,24 @@ config/env (env)   types/ (api, express.d.ts)
 - **Error:** `throw` `AppError`; ditangkap global error handler.
 - **Validasi:** `validate({ body?, query?, params? })`; baca via `getValidated()`.
 - **Pagination:** `paginationSchema` + `buildMeta()` (limit maks 100).
-- **Env:** hanya lewat `config/env.ts` (`loadEnv()`).
+- **Env:** hanya lewat `config/AppConfig.ts` (`AppConfig.load()`); schema Zod
+  ada di `schemas/env.schema.ts`.
 - **Komentar kode: bahasa Inggris, secukupnya.**
 
 ## Peta folder
 
 | Folder | Aturan |
 | --- | --- |
-| `config/` | env (Zod, `loadEnv`) |
+| `config/` | env (schema Zod + `AppConfig`) |
 | `routes/` | definisi endpoint (tipis) |
-| `controllers/` | handler request/response (tipis) |
-| `services/` | logika bisnis (tanpa req/res) |
-| `repositories/` | satu-satunya akses DB |
-| `db/` | Pool + Drizzle, schema |
+| `controllers/` | handler request/response (tipis); file = nama class (`UserController.ts`) |
+| `schemas/` | schema validasi Zod; tanpa export type |
+| `services/` | logika bisnis (tanpa req/res); file = nama class (`DestinationService.ts`) |
+| `repositories/` | satu-satunya akses DB; file = nama class (`UserRepository.ts`) |
+| `db/` | `DatabaseClient.ts` + `models/` per entity + `seeds/` |
 | `middleware/` | request-id, validate, error-handler |
 | `utils/` | response, errors, pagination |
-| `types/` | api.ts, express.d.ts |
+| `types/` | tipe domain + `z.infer` + tipe repository per entity, api.ts, express.d.ts |
 | `openapi/` | spec OpenAPI + Scalar |
 
 ## Verifikasi

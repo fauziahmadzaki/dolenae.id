@@ -6,9 +6,9 @@ const icons: LucideIcon[] = [Bed, Car, Utensils];
 export function Support() {
   return (
     <section id="support" className="bg-canvas-subtle py-24">
-      <div className="mx-auto max-w-[1200px] px-6">
-        <div className="mb-8">
-          <h2 className="font-display text-3xl font-extrabold text-ink">
+      <div className="mx-auto max-w-[1248px] px-6">
+        <div className="mb-6">
+          <h2 className="font-display text-2xl leading-8 font-bold text-ink">
             Ekosistem pendukung
           </h2>
           <p className="mt-1 text-body">
@@ -21,17 +21,19 @@ export function Support() {
             return (
               <article
                 key={support.name}
-                className="relative flex gap-4 rounded-xl border border-hairline bg-surface p-5"
+                className="flex flex-col gap-3.5 rounded-xl border border-hairline bg-surface p-5"
               >
-                <span className="absolute right-4 top-4 inline-flex items-center gap-1 rounded-full bg-canvas-subtle px-2.5 py-1 text-[11px] font-semibold text-success">
-                  <BadgeCheck className="h-3.5 w-3.5" />
-                  Terverifikasi
-                </span>
-                <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-canvas-subtle text-primary">
-                  <Icon className="h-5 w-5" />
-                </span>
-                <div className="flex flex-col gap-1 pt-1">
-                  <h3 className="pr-24 font-display text-base font-bold text-ink">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="grid size-10 shrink-0 place-items-center rounded-full bg-canvas text-primary">
+                    <Icon aria-hidden className="size-5" />
+                  </span>
+                  <span className="inline-flex items-center gap-1 rounded-full border border-hairline bg-canvas px-2.5 py-1 text-[11px] font-semibold text-success">
+                    <BadgeCheck aria-hidden className="size-3.5" />
+                    Terverifikasi
+                  </span>
+                </div>
+                <div className="flex flex-col gap-1">
+                  <h3 className="font-sans text-base font-semibold text-ink">
                     {support.name}
                   </h3>
                   <p className="text-sm text-body">{support.type}</p>

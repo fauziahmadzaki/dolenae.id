@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 
-import '../../app/theme/app_colors.dart';
-import '../../app/theme/app_radius.dart';
-import '../../app/theme/app_spacing.dart';
-import '../../app/theme/app_text_styles.dart';
+import 'package:dolenae_mobile/src/app/theme/app_colors.dart';
+import 'package:dolenae_mobile/src/app/theme/app_radius.dart';
+import 'package:dolenae_mobile/src/app/theme/app_spacing.dart';
+import 'package:dolenae_mobile/src/app/theme/app_text_styles.dart';
 
 /// Kolom kode OTP (component `OtpInput (Alam)`, state Kosong/Terisi/Error).
 ///
@@ -66,15 +66,21 @@ class _DnOtpInputState extends State<DnOtpInput> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: List.generate(widget.length, (index) {
                 final char = index < text.length ? text[index] : '';
+                final active = widget.enabled && index == text.length;
                 return Container(
                   width: widget.boxWidth,
-                  height: 64,
+                  height: 56,
                   alignment: Alignment.center,
                   decoration: BoxDecoration(
-                    color: AppColors.canvasSubtle,
-                    borderRadius: BorderRadius.circular(AppRadius.md),
+                    color: hasError ? AppColors.canvas : AppColors.canvasSubtle,
+                    borderRadius: BorderRadius.circular(AppRadius.lg),
                     border: Border.all(
-                      color: hasError ? AppColors.danger : AppColors.hairline,
+                      color: hasError
+                          ? AppColors.danger
+                          : active
+                          ? AppColors.borderStrong
+                          : AppColors.hairline,
+                      width: (hasError || active) ? 2 : 1,
                     ),
                   ),
                   child: Text(

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../app/theme/app_colors.dart';
+import 'package:dolenae_mobile/src/app/theme/app_colors.dart';
 
 /// Tombol utama (isi `primary`).
 class DnPrimaryButton extends StatelessWidget {
@@ -68,6 +68,8 @@ class DnOutlineButton extends StatelessWidget {
     this.height = 44,
     this.expand = true,
     this.foreground = AppColors.primary,
+    this.borderColor,
+    this.backgroundColor,
     this.padding,
   });
 
@@ -77,6 +79,8 @@ class DnOutlineButton extends StatelessWidget {
   final double height;
   final bool expand;
   final Color foreground;
+  final Color? borderColor;
+  final Color? backgroundColor;
   final EdgeInsetsGeometry? padding;
 
   @override
@@ -88,8 +92,8 @@ class DnOutlineButton extends StatelessWidget {
         onPressed: onPressed,
         style: OutlinedButton.styleFrom(
           foregroundColor: foreground,
-          backgroundColor: AppColors.canvas,
-          side: const BorderSide(color: AppColors.borderStrong),
+          backgroundColor: backgroundColor ?? AppColors.canvas,
+          side: BorderSide(color: borderColor ?? AppColors.borderStrong),
           padding: padding ?? const EdgeInsets.symmetric(horizontal: 16),
           shape: const StadiumBorder(),
           textStyle: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),

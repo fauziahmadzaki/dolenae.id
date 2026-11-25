@@ -2,7 +2,7 @@
 
 import * as Popover from "@radix-ui/react-popover";
 import { Command } from "cmdk";
-import { Check, ChevronsUpDown } from "lucide-react";
+import { Check, ChevronDown } from "lucide-react";
 import { useMemo, useState } from "react";
 import { cn } from "~/lib/cn";
 
@@ -18,10 +18,19 @@ interface SelectProps {
   placeholder?: string;
   searchPlaceholder?: string;
   emptyText?: string;
+  /** `md` mengikuti `Input (Alam)` (48px); `sm` untuk toolbar (40px). */
+  size?: "sm" | "md";
+  disabled?: boolean;
+  id?: string;
+  ariaLabel?: string;
   className?: string;
 }
 
-/** Combobox. Kotak pencarian muncul bila opsi lebih dari 7. */
+/**
+ * Select/combobox sesuai komponen `Input (Alam)` di design system:
+ * radius 12, border hairline 1px (border-strong saat fokus), fill canvas-subtle.
+ * Kotak pencarian muncul bila opsi lebih dari 7.
+ */
 export function Select({
   options,
   value,
@@ -29,37 +38,57 @@ export function Select({
   placeholder = "Pilih...",
   searchPlaceholder = "Cari...",
   emptyText = "Tidak ada hasil.",
+  size = "md",
+  disabled = false,
+  id,
+  ariaLabel,
   className,
 }: SelectProps) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
 
-  const selected = options.find((o) => o.value === value);
+  const selected = options.find((option) => option.value === value);
   const showSearch = options.length > 7;
 
   const filtered = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    if (!q) return options;
-    return options.filter((o) => o.label.toLowerCase().includes(q));
+    const needle = query.trim().toLowerCase();
+    if (!needle) return options;
+    return options.filter((option) =>
+      option.label.toLowerCase().includes(needle),
+    );
   }, [options, query]);
 
   return (
-    <Popover.Root open={open} onOpenChange={setOpen}>
-      <Popover.Trigger asChild>
+    <Popover.Root
+      open={open && !disabled}
+      onOpenChange={(next) => {
+        if (disabled) return;
+        setOpen(next);
+        if (!next) setQuery("");
+      }}
+    >
+      <Popover.Trigger asChild disabled={disabled}>
         <button
+          id={id}
           type="button"
           role="combobox"
           aria-expanded={open}
+          aria-label={ariaLabel}
+          disabled={disabled}
           className={cn(
-            "flex h-12 w-full items-center justify-between gap-2 rounded-lg border border-hairline bg-canvas-subtle px-3.5 text-sm",
+            "flex w-full items-center justify-between gap-2 rounded-lg border border-hairline bg-canvas-subtle text-left text-sm",
             "focus-visible:border-border-strong focus-visible:outline-none",
+            "disabled:cursor-not-allowed disabled:opacity-50",
+            size === "md" ? "h-12 px-3.5" : "h-10 px-3",
             className,
           )}
         >
-          <span className={cn("truncate", selected ? "text-ink" : "text-body")}>
+          <span
+            className={cn("truncate", selected ? "text-ink" : "text-body")}
+          >
             {selected?.label ?? placeholder}
           </span>
-          <ChevronsUpDown className="h-4 w-4 shrink-0 text-body" />
+          <ChevronDown aria-hidden className="h-4 w-4 shrink-0 text-body" />
         </button>
       </Popover.Trigger>
       <Popover.Portal>

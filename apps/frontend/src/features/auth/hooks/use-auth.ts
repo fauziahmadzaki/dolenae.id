@@ -10,6 +10,7 @@ export interface UseAuth {
   isAuthenticated: boolean;
   hydrated: boolean;
   login: (response: AuthTokenResponse, remember?: boolean) => void;
+  updateUser: (user: AuthUser) => void;
   logout: () => void;
 }
 
@@ -23,6 +24,7 @@ export function useAuth(): UseAuth {
   const hydrated = useAuthStore((s) => s.hydrated);
   const hydrate = useAuthStore((s) => s.hydrate);
   const setSession = useAuthStore((s) => s.setSession);
+  const updateUser = useAuthStore((s) => s.updateUser);
   const clearSession = useAuthStore((s) => s.clearSession);
 
   useEffect(() => {
@@ -35,6 +37,7 @@ export function useAuth(): UseAuth {
     isAuthenticated: hydrated && token !== null,
     hydrated,
     login: setSession,
+    updateUser,
     logout: clearSession,
   };
 }

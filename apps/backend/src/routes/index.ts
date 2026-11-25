@@ -1,6 +1,18 @@
 import { Router } from "express";
+import { aiAdminRouter } from "./ai-admin.route";
+import { aiRouter } from "./ai.route";
 import { authRouter } from "./auth.route";
+import { categoryRouter } from "./category.route";
+import { adminContentRouter, contentRouter } from "./content.route";
+import { destinationRouter } from "./destination.route";
+import { facilityRouter } from "./facility.route";
+import { adminGalleryRouter } from "./gallery.route";
 import { healthRouter } from "./health.route";
+import { regionRouter } from "./region.route";
+import { routeBuilderRouter } from "./route.route";
+import { statsRouter } from "./stats.route";
+import { supportRouter } from "./support.route";
+import { uploadRouter } from "./upload.route";
 import { userRouter } from "./user.route";
 
 /** Main API router, mounted at `/api`. Add domain routes here. */
@@ -9,3 +21,16 @@ export const apiRouter = Router();
 apiRouter.use("/health", healthRouter);
 apiRouter.use("/auth", authRouter);
 apiRouter.use("/users", userRouter);
+apiRouter.use("/categories", categoryRouter);
+apiRouter.use("/destinations", destinationRouter);
+apiRouter.use("/regions", regionRouter);
+apiRouter.use("/uploads", uploadRouter);
+apiRouter.use("/ai", aiRouter);
+apiRouter.use("/admin/ai", aiAdminRouter);
+apiRouter.use("/admin/stats", statsRouter);
+apiRouter.use("/admin/contents", adminContentRouter);
+apiRouter.use("/admin/gallery", adminGalleryRouter);
+apiRouter.use("/contents", contentRouter);
+apiRouter.use("/", routeBuilderRouter);
+apiRouter.use("/", facilityRouter);
+apiRouter.use("/", supportRouter);

@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 
-import '../../app/theme/app_colors.dart';
-import '../../app/theme/app_radius.dart';
-import '../../app/theme/app_spacing.dart';
-import '../../app/theme/app_text_styles.dart';
-import '../../data/models/app_notification.dart';
-import '../icons/app_icons.dart';
+import 'package:dolenae_mobile/src/app/theme/app_colors.dart';
+import 'package:dolenae_mobile/src/app/theme/app_radius.dart';
+import 'package:dolenae_mobile/src/app/theme/app_spacing.dart';
+import 'package:dolenae_mobile/src/app/theme/app_text_styles.dart';
+import 'package:dolenae_mobile/src/features/notifications/domain/entities/app_notification.dart';
+import 'package:dolenae_mobile/src/shared/icons/app_icons.dart';
 
 /// Baris notifikasi (component `NotificationItem (Alam)`).
 class DnNotificationItem extends StatelessWidget {
@@ -30,7 +30,15 @@ class DnNotificationItem extends StatelessWidget {
 
   /// Label waktu ringkas, mis. "2 jam lalu".
   String get _timeLabel {
-    final delta = DateTime.now().difference(notification.createdAt);
+    final now = DateTime.now();
+    final createdAt = notification.createdAt.toLocal();
+    if (DateUtils.isSameDay(
+      createdAt,
+      DateTime(now.year, now.month, now.day - 1),
+    )) {
+      return 'Kemarin';
+    }
+    final delta = now.difference(createdAt);
     if (delta.inMinutes < 60) {
       return '${delta.inMinutes.clamp(1, 59)} menit lalu';
     }
@@ -47,7 +55,7 @@ class DnNotificationItem extends StatelessWidget {
       onTap: onTap,
       borderRadius: BorderRadius.circular(AppRadius.lg),
       child: Container(
-        padding: const EdgeInsets.all(AppSpacing.s4),
+        padding: const EdgeInsets.all(AppSpacing.s3),
         decoration: BoxDecoration(
           color: unread ? AppColors.canvasSubtle : Colors.transparent,
           borderRadius: BorderRadius.circular(AppRadius.lg),
@@ -62,10 +70,14 @@ class DnNotificationItem extends StatelessWidget {
               width: 36,
               height: 36,
               decoration: BoxDecoration(
-                color: AppColors.canvas,
-                borderRadius: BorderRadius.circular(AppRadius.md),
+                color: unread ? AppColors.canvas : AppColors.canvasSubtle,
+                shape: BoxShape.circle,
               ),
-              child: Icon(_icon, size: 18, color: AppColors.primary),
+              child: Icon(
+                _icon,
+                size: 18,
+                color: unread ? AppColors.primary : AppColors.body,
+              ),
             ),
             const SizedBox(width: AppSpacing.s3),
             Expanded(
@@ -78,9 +90,9 @@ class DnNotificationItem extends StatelessWidget {
                       Expanded(
                         child: Text(
                           notification.title,
-                          style: AppTextStyles.titleSm.copyWith(
-                            color: unread ? AppColors.ink : AppColors.body,
-                          ),
+                          style: unread
+                              ? AppTextStyles.label
+                              : AppTextStyles.bodySm,
                         ),
                       ),
                       if (unread) ...[
@@ -90,19 +102,18 @@ class DnNotificationItem extends StatelessWidget {
                           height: 8,
                           margin: const EdgeInsets.only(top: 6),
                           decoration: const BoxDecoration(
-                            color: AppColors.accent,
+                            color: AppColors.primary,
                             shape: BoxShape.circle,
                           ),
                         ),
                       ],
                     ],
                   ),
+                  Text(notification.body, style: AppTextStyles.caption),
                   const SizedBox(height: AppSpacing.s1),
-                  Text(notification.body, style: AppTextStyles.bodySm),
-                  const SizedBox(height: AppSpacing.s2),
                   Text(
                     showDate ? notification.kindLabel : _timeLabel,
-                    style: AppTextStyles.overline,
+                    style: AppTextStyles.caption,
                   ),
                 ],
               ),

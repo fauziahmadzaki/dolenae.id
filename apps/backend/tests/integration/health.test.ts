@@ -1,11 +1,13 @@
 import request from "supertest";
 import { describe, expect, it, vi } from "vitest";
 
-vi.mock("../../src/db/client", () => ({
-  pingDatabase: vi.fn().mockResolvedValue(true),
-  closeDatabase: vi.fn().mockResolvedValue(undefined),
-  getDb: vi.fn(),
-  getPool: vi.fn(),
+vi.mock("../../src/db/DatabaseClient", () => ({
+  database: {
+    getDb: vi.fn(),
+    getPool: vi.fn(),
+    ping: vi.fn().mockResolvedValue(true),
+    close: vi.fn().mockResolvedValue(undefined),
+  },
 }));
 
 import { createApp } from "../../src/app";

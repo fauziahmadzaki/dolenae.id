@@ -28,6 +28,7 @@ abstract final class AppIcons {
   static const IconData close = Icons.close;
   static const IconData cloudOff = Icons.cloud_off_outlined;
   static const IconData compass = Icons.explore_outlined;
+  static const IconData database = Icons.storage_outlined;
   static const IconData delete = Icons.delete_outline;
   static const IconData edit = Icons.edit_outlined;
   static const IconData eye = Icons.visibility_outlined;
@@ -36,6 +37,7 @@ abstract final class AppIcons {
   static const IconData helpCircle = Icons.help_outline;
   static const IconData home = Icons.home_outlined;
   static const IconData hourglass = Icons.hourglass_empty;
+  static const IconData image = Icons.photo_library_outlined;
   static const IconData info = Icons.info_outline;
   static const IconData key = Icons.vpn_key_outlined;
   static const IconData laptop = Icons.laptop_outlined;

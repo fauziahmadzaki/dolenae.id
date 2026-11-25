@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:dolenae_mobile/src/shared/icons/app_icons.dart';
 
-import '../../app/theme/app_colors.dart';
+import 'package:dolenae_mobile/src/app/theme/app_colors.dart';
 
 /// Tab utama aplikasi.
 enum DnTab { beranda, jelajah, ai, rencana, profil }

@@ -7,7 +7,7 @@
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>
-	<string>Dolenae Mobile</string>
+	<string>Dolenae</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
@@ -15,7 +15,7 @@
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
 	<key>CFBundleName</key>
-	<string>dolenae_mobile</string>
+	<string>Dolenae</string>
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>
@@ -26,6 +26,12 @@
 	<string>$(FLUTTER_BUILD_NUMBER)</string>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>Dolenae memakai lokasi untuk memperkirakan transportasi antarprovinsi.</string>
+	<key>NSCameraUsageDescription</key>
+	<string>Dolenae memerlukan izin kamera untuk mengambil foto profil atau foto fasilitas yang diusulkan.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Dolenae memerlukan izin galeri foto untuk memilih gambar profil atau foto fasilitas yang diusulkan.</string>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>

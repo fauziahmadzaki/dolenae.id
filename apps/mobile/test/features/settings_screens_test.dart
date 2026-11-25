@@ -1,23 +1,83 @@
-import 'package:dolenae_mobile/src/data/models/app_settings.dart';
-import 'package:dolenae_mobile/src/data/models/faq_item.dart';
-import 'package:dolenae_mobile/src/data/models/feedback.dart';
-import 'package:dolenae_mobile/src/data/seed/seed_data.dart';
-import 'package:dolenae_mobile/src/features/settings/presentation/settings_account_screen.dart';
-import 'package:dolenae_mobile/src/features/settings/presentation/settings_faq_screen.dart';
-import 'package:dolenae_mobile/src/features/settings/presentation/settings_feedback_screen.dart';
-import 'package:dolenae_mobile/src/features/settings/presentation/settings_notifications_screen.dart';
-import 'package:dolenae_mobile/src/features/settings/presentation/settings_privacy_screen.dart';
-import 'package:dolenae_mobile/src/features/settings/presentation/settings_screen.dart';
-import 'package:dolenae_mobile/src/features/settings/presentation/settings_theme_screen.dart';
+import 'package:dolenae_mobile/src/features/profile/presentation/screens/profile_screen.dart';
+import 'package:dolenae_mobile/src/features/settings/domain/entities/app_settings.dart';
+import 'package:dolenae_mobile/src/features/settings/domain/entities/faq_item.dart';
+import 'package:dolenae_mobile/src/features/settings/domain/entities/feedback.dart';
+import 'package:dolenae_mobile/src/features/settings/data/data_sources/settings_seed_data_source.dart';
+import 'package:dolenae_mobile/src/features/settings/presentation/screens/settings_account_screen.dart';
+import 'package:dolenae_mobile/src/features/settings/presentation/screens/settings_faq_screen.dart';
+import 'package:dolenae_mobile/src/features/settings/presentation/screens/settings_feedback_screen.dart';
+import 'package:dolenae_mobile/src/features/settings/presentation/screens/settings_notifications_screen.dart';
+import 'package:dolenae_mobile/src/features/settings/presentation/screens/settings_privacy_screen.dart';
+import 'package:dolenae_mobile/src/features/settings/presentation/screens/settings_screen.dart';
+import 'package:dolenae_mobile/src/features/settings/presentation/screens/settings_theme_screen.dart';
 import 'package:dolenae_mobile/src/shared/icons/app_icons.dart';
+import 'package:dolenae_mobile/src/shared/widgets/dn_dialog.dart';
 import 'package:dolenae_mobile/src/shared/widgets/dn_faq_accordion.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:go_router/go_router.dart';
 
 import '../helpers/test_harness.dart';
 
 void main() {
   setUpAll(useTestFonts);
+
+  for (final screen in [const ProfileScreen(), const SettingsScreen()]) {
+    testWidgets(
+      '${screen.runtimeType}: Keluar mengakhiri sesi setelah konfirmasi',
+      (tester) async {
+        await usePhone(tester);
+        final store = newStore();
+        await store.auth.login(
+          email: 'user@example.test',
+          password: 'uji-login',
+        );
+        expect(store.auth.isAuthenticated, isTrue);
+
+        await tester.pumpWidget(wrapScreen(screen, store: store));
+        final logout = find.text('Keluar');
+        await scrollTo(tester, logout);
+        await tester.tap(logout);
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('Batal'));
+        await tester.pumpAndSettle();
+        expect(store.auth.isAuthenticated, isTrue);
+
+        await tester.tap(logout);
+        await tester.pumpAndSettle();
+        final confirm = find.descendant(
+          of: find.byType(DnDialog),
+          matching: logout,
+        );
+        await tester.tap(confirm);
+        await tester.pumpAndSettle();
+
+        expect(store.auth.isAuthenticated, isFalse);
+        expect(store.auth.token, isNull);
+        final screenContext = tester.element(find.text('Layar lain'));
+        expect(GoRouterState.of(screenContext).uri.path, '/login');
+      },
+    );
+  }
+
+  testWidgets('Profil membuka Pengaturan dan destinasi Tersimpan', (
+    tester,
+  ) async {
+    await usePhone(tester);
+    await tester.pumpWidget(wrapScreen(const ProfileScreen()));
+
+    await tester.tap(find.byTooltip('Pengaturan'));
+    await tester.pumpAndSettle();
+    final settingsContext = tester.element(find.text('Layar lain'));
+    expect(GoRouterState.of(settingsContext).uri.path, '/settings');
+
+    settingsContext.pop();
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Tersimpan'));
+    await tester.pumpAndSettle();
+    final savedContext = tester.element(find.text('Layar lain'));
+    expect(GoRouterState.of(savedContext).uri.path, '/saved/destinations');
+  });
 
   group('Layar Pengaturan', () {
     testWidgets('menampilkan lima grup dan seluruh baris', (tester) async {
@@ -130,7 +190,7 @@ void main() {
       await tester.pumpWidget(wrapScreen(const SettingsAccountScreen()));
       await tester.pumpAndSettle();
 
-      final devices = SeedData.settings.activeDevices;
+      final devices = SettingsSeedData.settings.activeDevices;
       expect(devices, isNotEmpty);
 
       await scrollTo(tester, find.text('PERANGKAT AKTIF'));
@@ -319,16 +379,16 @@ void main() {
       expect(find.byType(DnFaqAccordion), findsWidgets);
     });
 
-    testWidgets('memilih kategori tanpa isi memunculkan empty state', (tester) async {
+    testWidgets('memilih kategori tanpa isi memunculkan empty state', (
+      tester,
+    ) async {
       await usePhone(tester);
-      final akunOnly = SeedData.faqs
+      final akunOnly = SettingsSeedData.faqs
           .where((item) => item.category == FaqCategory.akun)
           .toList();
       expect(akunOnly, isNotEmpty);
 
-      await tester.pumpWidget(
-        wrapScreen(SettingsFaqScreen(items: akunOnly)),
-      );
+      await tester.pumpWidget(wrapScreen(SettingsFaqScreen(items: akunOnly)));
       await tester.pumpAndSettle();
       expect(find.byType(DnFaqAccordion), findsWidgets);
 
@@ -370,7 +430,7 @@ void main() {
 
     testWidgets('akordeon terbuka menampilkan jawaban', (tester) async {
       await usePhone(tester);
-      final item = SeedData.faqs.first;
+      final item = SettingsSeedData.faqs.first;
       await tester.pumpWidget(wrapScreen(SettingsFaqScreen(items: [item])));
       await tester.pumpAndSettle();
 
@@ -433,15 +493,10 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(drafts, isEmpty);
-      expect(
-        find.text('Tuliskan detail minimal 10 karakter.'),
-        findsOneWidget,
-      );
+      expect(find.text('Tuliskan detail minimal 10 karakter.'), findsOneWidget);
     });
 
-    testWidgets('subjek kosong membuat tombol tetap nonaktif', (
-      tester,
-    ) async {
+    testWidgets('subjek kosong membuat tombol tetap nonaktif', (tester) async {
       await usePhone(tester);
       final drafts = <FeedbackDraft>[];
       await tester.pumpWidget(

@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 
-import '../../app/theme/app_colors.dart';
-import '../../app/theme/app_radius.dart';
-import '../../app/theme/app_spacing.dart';
-import '../../app/theme/app_text_styles.dart';
+import 'package:dolenae_mobile/src/app/theme/app_colors.dart';
+import 'package:dolenae_mobile/src/app/theme/app_radius.dart';
+import 'package:dolenae_mobile/src/app/theme/app_spacing.dart';
+import 'package:dolenae_mobile/src/app/theme/app_text_styles.dart';
 
 /// Kontrol tersegmentasi (component `Segmented (Alam)`).
 ///
@@ -19,7 +19,7 @@ class DnSegmented<T> extends StatelessWidget {
     this.expand = true,
   });
 
-  /// Pasangan nilai dan label, mis. `{(SupportCategory.penginapan, 'Penginapan')}`.
+  /// Pasangan nilai dan label, mis. `{(FacilityCategory.penginapan, 'Penginapan')}`.
   final List<({T value, String label})> segments;
   final T value;
   final ValueChanged<T> onChanged;
@@ -40,18 +40,20 @@ class DnSegmented<T> extends StatelessWidget {
             height: height - 8,
             alignment: Alignment.center,
             padding: EdgeInsets.symmetric(
-              horizontal: expand ? AppSpacing.s2 : AppSpacing.s4,
+              horizontal: expand ? 6 : AppSpacing.s4,
             ),
             decoration: BoxDecoration(
               color: active ? AppColors.primary : Colors.transparent,
-              borderRadius: BorderRadius.circular(AppRadius.md),
+              borderRadius: BorderRadius.circular(AppRadius.pill),
             ),
-            child: Text(
-              segment.label,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: AppTextStyles.labelSm.copyWith(
-                color: active ? AppColors.onPrimary : AppColors.body,
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Text(
+                segment.label,
+                maxLines: 1,
+                style: AppTextStyles.labelSm.copyWith(
+                  color: active ? AppColors.onPrimary : AppColors.body,
+                ),
               ),
             ),
           ),
@@ -64,7 +66,7 @@ class DnSegmented<T> extends StatelessWidget {
       padding: const EdgeInsets.all(4),
       decoration: BoxDecoration(
         color: AppColors.canvasSubtle,
-        borderRadius: BorderRadius.circular(AppRadius.lg),
+        borderRadius: BorderRadius.circular(AppRadius.pill),
         border: Border.all(color: AppColors.hairline),
       ),
       child: Row(mainAxisSize: MainAxisSize.min, children: items),

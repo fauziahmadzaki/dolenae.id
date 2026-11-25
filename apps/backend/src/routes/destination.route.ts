@@ -1,0 +1,49 @@
+import { Router } from "express";
+import { destinationController } from "../controllers/DestinationController";
+import {
+  createDestinationSchema,
+  destinationIdParamsSchema,
+  destinationListQuerySchema,
+  updateDestinationSchema,
+} from "../schemas/destination.schema";
+import { authOptional, authRequired, requireRole } from "../middleware/auth";
+import { validate } from "../middleware/validate";
+
+export const destinationRouter = Router();
+
+// Published catalog reads; authenticated admins may read unpublished entries.
+destinationRouter.get(
+  "/",
+  authOptional,
+  validate({ query: destinationListQuerySchema }),
+  destinationController.list,
+);
+destinationRouter.get(
+  "/:id",
+  authOptional,
+  validate({ params: destinationIdParamsSchema }),
+  destinationController.getById,
+);
+
+// Admin mutations.
+destinationRouter.post(
+  "/",
+  authRequired,
+  requireRole("admin"),
+  validate({ body: createDestinationSchema }),
+  destinationController.create,
+);
+destinationRouter.patch(
+  "/:id",
+  authRequired,
+  requireRole("admin"),
+  validate({ params: destinationIdParamsSchema, body: updateDestinationSchema }),
+  destinationController.update,
+);
+destinationRouter.delete(
+  "/:id",
+  authRequired,
+  requireRole("admin"),
+  validate({ params: destinationIdParamsSchema }),
+  destinationController.delete,
+);

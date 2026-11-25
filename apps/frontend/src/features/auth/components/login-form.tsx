@@ -2,10 +2,9 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { Check, Eye, EyeOff, Globe, Loader2 } from "lucide-react";
+import { Check, Eye, EyeOff, Loader2 } from "lucide-react";
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
-import { useToast } from "~/components/ui/toaster";
 import { cn } from "~/lib/cn";
 import { BrandMark } from "~/components/brand-mark";
 import { useLoginForm } from "../hooks/use-login-form";
@@ -14,26 +13,16 @@ import { LoginTabs } from "./login-tabs";
 /** Login form (left column of the "Masuk" frame in Figma). */
 export function LoginForm() {
   const { form, onSubmit, isSubmitting } = useLoginForm();
-  const { toast } = useToast();
   const [showPassword, setShowPassword] = useState(false);
 
   const remember = form.watch("remember");
   const emailError = form.formState.errors.email?.message;
   const passwordError = form.formState.errors.password?.message;
 
-  const handleGoogle = () => {
-    // TODO(post-SCRUM-8): wire Google Identity Services → POST /api/auth/google.
-    toast({
-      title: "Masuk dengan Google",
-      description: "Fitur ini menyusul di sprint berikutnya.",
-      variant: "info",
-    });
-  };
-
   return (
     <section
       aria-label="Form masuk"
-      className="flex w-full flex-col justify-center px-6 py-10 sm:px-10 lg:px-[100px] lg:py-0"
+      className="flex w-full flex-col justify-center px-6 py-10 sm:px-10 lg:items-end lg:px-[min(7vw,100px)] lg:py-20"
     >
       <div className="w-full max-w-[520px]">
         <div className="space-y-5">
@@ -43,7 +32,7 @@ export function LoginForm() {
           </div>
 
           <div className="space-y-2">
-            <h1 className="font-display text-[32px] font-extrabold leading-tight tracking-tight text-ink">
+            <h1 className="font-display text-[32px] leading-10 font-extrabold text-ink">
               Masuk ke akunmu
             </h1>
             <p className="text-[15px] text-body">
@@ -51,9 +40,9 @@ export function LoginForm() {
             </p>
           </div>
 
-          <LoginTabs />
+          <LoginTabs active="login" />
 
-          <div className="space-y-5">
+          <form className="space-y-5" onSubmit={onSubmit} noValidate>
             <div className="space-y-2">
               <label
                 htmlFor="email"
@@ -137,7 +126,6 @@ export function LoginForm() {
                 Ingat saya
               </label>
 
-              {/* TODO: forgot-password page */}
               <Link
                 href="/auth/forgot-password"
                 className="text-sm font-semibold text-primary hover:text-primary-hover"
@@ -152,44 +140,23 @@ export function LoginForm() {
               size="lg"
               className="w-full"
               disabled={isSubmitting}
-              onClick={onSubmit}
             >
               {isSubmitting && (
                 <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
               )}
               Masuk
             </Button>
+          </form>
 
-            <div className="flex items-center gap-3">
-              <span className="h-px flex-1 bg-hairline" />
-              <span className="text-xs font-medium text-body">
-                atau lanjut dengan
-              </span>
-              <span className="h-px flex-1 bg-hairline" />
-            </div>
-
-            <Button
-              type="button"
-              variant="secondary"
-              size="lg"
-              className="w-full"
-              onClick={handleGoogle}
-              disabled={isSubmitting}
+          <p className="text-center text-sm text-body">
+            Belum punya akun?{" "}
+            <Link
+              href="/auth/register"
+              className="font-semibold text-primary hover:text-primary-hover"
             >
-              <Globe className="h-[18px] w-[18px]" aria-hidden />
-              Google
-            </Button>
-
-            <p className="pt-2 text-center text-sm text-body">
-              Belum punya akun?{" "}
-              <Link
-                href="/auth/register"
-                className="font-semibold text-primary hover:text-primary-hover"
-              >
-                Daftar sekarang
-              </Link>
-            </p>
-          </div>
+              Daftar sebagai merchant
+            </Link>
+          </p>
         </div>
       </div>
     </section>

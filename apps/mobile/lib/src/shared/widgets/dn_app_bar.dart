@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:dolenae_mobile/src/shared/icons/app_icons.dart';
 
-import '../../app/theme/app_colors.dart';
-import '../../app/theme/app_text_styles.dart';
+import 'package:dolenae_mobile/src/app/theme/app_colors.dart';
+import 'package:dolenae_mobile/src/app/theme/app_text_styles.dart';
 
 /// App bar pine dengan tombol kembali opsional dan aksi kanan.
 class DnAppBar extends StatelessWidget implements PreferredSizeWidget {
@@ -10,12 +10,14 @@ class DnAppBar extends StatelessWidget implements PreferredSizeWidget {
     super.key,
     required this.title,
     this.showBack = false,
+    this.plainBack = false,
     this.onBack,
     this.trailing,
   });
 
   final String title;
   final bool showBack;
+  final bool plainBack;
   final VoidCallback? onBack;
   final Widget? trailing;
 
@@ -36,8 +38,16 @@ class DnAppBar extends StatelessWidget implements PreferredSizeWidget {
               if (showBack)
                 IconButton(
                   onPressed: onBack ?? () => Navigator.of(context).maybePop(),
-                  icon: const Icon(
-                    AppIcons.arrowLeft,
+                  style: plainBack
+                      ? null
+                      : IconButton.styleFrom(
+                          backgroundColor: AppColors.primaryHover,
+                          shape: const CircleBorder(),
+                          minimumSize: const Size.square(36),
+                          padding: EdgeInsets.zero,
+                        ),
+                  icon: Icon(
+                    plainBack ? AppIcons.arrowLeft : AppIcons.chevronLeft,
                     size: 22,
                     color: AppColors.onPrimary,
                   ),
@@ -48,7 +58,9 @@ class DnAppBar extends StatelessWidget implements PreferredSizeWidget {
               Expanded(
                 child: Text(
                   title,
-                  style: AppTextStyles.title.copyWith(color: AppColors.onPrimary),
+                  style: AppTextStyles.title.copyWith(
+                    color: AppColors.onPrimary,
+                  ),
                   overflow: TextOverflow.ellipsis,
                 ),
               ),

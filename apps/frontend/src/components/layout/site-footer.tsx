@@ -1,28 +1,45 @@
 import Link from "next/link";
-import { Mountain } from "lucide-react";
+import { BrandMark } from "~/components/brand-mark";
+import { footerColumns } from "~/features/landing/data";
 
 const publicLinks: Record<string, string> = {
-  "Destinasi": "/#destinations",
+  "Destinasi": "/destinations",
   "Fasilitas Sekitar": "/#support",
   "Persiapan AI": "/#ai",
   "Pusat Bantuan": "/bantuan",
-  "Kirim Masukan": "/kontak",
+  "Kirim Masukan": "/masukan",
   "Privasi & Keamanan": "/privasi-keamanan",
   "Tentang Kami": "/tentang-kami",
+  "Jadi Mitra": "/mitra",
   "Kontak": "/kontak",
   "Karier": "/karier",
 };
-import { footerColumns } from "~/features/landing/data";
+export function SiteFooter({ compact = false }: { compact?: boolean }) {
+  if (compact) {
+    return (
+      <footer className="bg-primary text-on-primary">
+        <div className="mx-auto flex min-h-18 max-w-[1248px] flex-wrap items-center justify-between gap-4 px-6 py-4">
+          <Link href="/" className="flex items-center gap-2.5 font-bold">
+            <BrandMark size={28} rounded="rounded-md" className="bg-primary-hover" />
+            Dolenae.id
+          </Link>
+          <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-[13px] text-canvas">
+            <Link href="/destinations" className="hover:underline">Destinasi</Link>
+            <Link href="/bantuan" className="hover:underline">Bantuan</Link>
+            <Link href="/privasi-keamanan" className="hover:underline">Privasi</Link>
+            <span className="text-xs font-medium text-canvas-subtle">© 2026 Dolenae.id</span>
+          </div>
+        </div>
+      </footer>
+    );
+  }
 
-export function SiteFooter() {
   return (
     <footer className="bg-primary text-on-primary">
-      <div className="mx-auto grid max-w-[1200px] gap-10 px-6 py-14 lg:grid-cols-[1.5fr_1fr_1fr_1fr]">
+      <div className="mx-auto grid max-w-[1248px] gap-10 px-6 py-14 lg:grid-cols-[1.5fr_1fr_1fr_1fr]">
         <div className="flex flex-col gap-3">
           <div className="flex items-center gap-2">
-            <span className="flex h-8 w-8 items-center justify-center rounded-md bg-on-primary text-primary">
-              <Mountain className="h-5 w-5" />
-            </span>
+            <BrandMark size={32} rounded="rounded-md" className="bg-primary-hover" />
             <span className="font-display text-lg font-extrabold text-on-primary">
               Dolenae.id
             </span>
@@ -50,7 +67,7 @@ export function SiteFooter() {
       </div>
 
       <div className="border-t border-on-primary/15">
-        <div className="mx-auto max-w-[1200px] px-6 py-5 text-xs text-on-primary/60">
+        <div className="mx-auto max-w-[1248px] px-6 py-5 text-xs text-on-primary/60">
           © 2026 Dolenae.id. Seluruh hak cipta dilindungi.
         </div>
       </div>

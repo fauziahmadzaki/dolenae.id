@@ -42,10 +42,11 @@ interface AuthStoreState {
   hydrated: boolean;
   hydrate: () => void;
   setSession: (response: AuthTokenResponse, remember?: boolean) => void;
+  updateUser: (user: AuthUser) => void;
   clearSession: () => void;
 }
 
-export const useAuthStore = create<AuthStoreState>((set) => ({
+export const useAuthStore = create<AuthStoreState>((set, get) => ({
   token: null,
   user: null,
   hydrated: false,
@@ -62,6 +63,15 @@ export const useAuthStore = create<AuthStoreState>((set) => ({
   setSession: (response, remember = true) => {
     writeSession({ token: response.token, user: response.user }, remember);
     set({ token: response.token, user: response.user });
+  },
+
+  updateUser: (user) => {
+    const token = get().token;
+    if (token && typeof window !== "undefined") {
+      const inSession = window.sessionStorage.getItem(SESSION_KEY) !== null;
+      writeSession({ token, user }, !inSession);
+    }
+    set({ user });
   },
 
   clearSession: () => {

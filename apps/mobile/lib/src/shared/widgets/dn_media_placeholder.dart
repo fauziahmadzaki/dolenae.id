@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../app/theme/app_colors.dart';
+import 'package:dolenae_mobile/src/app/theme/app_colors.dart';
 
 /// Placeholder media bergaya "bukit + matahari" (pengganti foto sementara),
 /// meniru scene pada desain Figma.
@@ -41,17 +41,17 @@ class _ScenePainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     canvas.drawRect(
       Offset.zero & size,
-      Paint()..color = AppColors.canvas,
+      Paint()..color = AppColors.canvasSubtle,
     );
 
-    final hill = Paint()..color = AppColors.canvasSubtle;
+    final hill = Paint()..color = AppColors.hairline;
     canvas.drawCircle(
-      Offset(size.width * 0.5, size.height * 1.15),
-      size.width * 0.8,
+      Offset(size.width * 0.5, size.height * 1.38),
+      size.width * 0.65,
       hill,
     );
 
-    final sun = Paint()..color = AppColors.hairline;
+    final sun = Paint()..color = AppColors.canvas;
     canvas.drawCircle(
       Offset(size.width * 0.74, size.height * 0.24),
       size.width * 0.1,

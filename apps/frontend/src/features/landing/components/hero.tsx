@@ -5,27 +5,28 @@ import { heroChips } from "~/features/landing/data";
 export function Hero() {
   return (
     <section className="bg-canvas-subtle">
-      <div className="mx-auto grid max-w-[1200px] items-center gap-12 px-6 py-20 lg:grid-cols-2">
+      <div className="mx-auto grid max-w-[1248px] items-center gap-8 px-6 py-12 lg:min-h-[520px] lg:grid-cols-2 lg:gap-20 lg:py-20">
         <div className="flex flex-col items-start gap-5">
-          <span className="text-xs font-semibold tracking-[0.2em] text-primary">
+          <span className="text-[11px] leading-[14px] font-semibold text-primary">
             DISCOVER MORE, PREPARE BETTER
           </span>
-          <h1 className="font-display text-5xl font-extrabold leading-[1.08] text-ink">
+          <h1 className="font-display text-[32px] leading-[40px] font-extrabold text-ink md:text-[40px] md:leading-[48px]">
             Temukan destinasi alam, siapkan perjalanannya
           </h1>
-          <p className="max-w-lg text-lg text-body">
+          <p className="text-lg leading-7 text-body">
             Info akses, fasilitas sekitar, dan checklist persiapan pegunungan
             Indonesia dalam satu tempat.
           </p>
 
-          <form className="flex w-full max-w-lg items-center gap-2 rounded-full border border-hairline bg-surface p-1.5 shadow-sm">
-            <Search className="ml-3 h-5 w-5 shrink-0 text-body" />
+          <form action="/destinations" className="flex h-14 w-full items-center gap-2.5 rounded-full border border-hairline bg-surface pr-1.5 pl-3 focus-within:ring-2 focus-within:ring-primary/25 sm:pl-5">
+            <Search aria-hidden className="size-5 shrink-0 text-body" />
             <input
+              name="q"
               aria-label="Cari destinasi"
               placeholder="Mau ke mana?"
-              className="h-10 flex-1 bg-transparent text-sm text-ink outline-none placeholder:text-body"
+              className="h-full min-w-0 flex-1 bg-transparent text-sm text-ink outline-none placeholder:text-body"
             />
-            <Button type="submit" className="h-10">
+            <Button type="submit" className="h-11 shrink-0 px-3 sm:px-6">
               Cari destinasi
             </Button>
           </form>
@@ -34,7 +35,7 @@ export function Hero() {
             {heroChips.map((chip) => (
               <span
                 key={chip}
-                className="rounded-full border border-hairline bg-surface px-4 py-1.5 text-sm text-body"
+                className="inline-flex h-8 items-center rounded-full border border-hairline bg-canvas px-3.5 text-xs font-medium text-ink"
               >
                 {chip}
               </span>
@@ -42,13 +43,13 @@ export function Hero() {
           </div>
         </div>
 
-        <div className="relative h-full min-h-[360px] overflow-hidden rounded-2xl bg-primary">
-          {/* Hero photo — Unsplash (placeholder, ganti dgn aset final bila ada). */}
+        <div className="relative aspect-[14/9] overflow-hidden rounded-[24px] bg-primary">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
-            src="https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=1120&h=720&fit=crop&q=80"
-            alt="Pemandangan pegunungan Indonesia"
+            src="/images/public/landing-hero.jpg"
+            alt="Pemandangan matahari terbit di pegunungan"
             className="h-full w-full object-cover"
+            fetchPriority="high"
           />
         </div>
       </div>

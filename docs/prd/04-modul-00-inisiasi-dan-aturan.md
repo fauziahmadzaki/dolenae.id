@@ -5,6 +5,10 @@
 - **Dependency:** —
 - **Referensi:** [Index (00)](00-index-rebuild.md)
 
+> **Status:** checklist modul ini **sudah dieksekusi** (migrasi ke
+> `apps/frontend` Next.js + `apps/backend` Express). Path `apps/web` /
+> `apps/server` di bawah hanya konteks historis.
+
 ---
 
 ## Tujuan

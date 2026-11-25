@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 
-import '../../app/theme/app_colors.dart';
-import '../../app/theme/app_radius.dart';
-import '../../app/theme/app_spacing.dart';
-import '../../app/theme/app_text_styles.dart';
-import '../icons/app_icons.dart';
-import 'dn_progress_bar.dart';
+import 'package:dolenae_mobile/src/app/theme/app_colors.dart';
+import 'package:dolenae_mobile/src/app/theme/app_radius.dart';
+import 'package:dolenae_mobile/src/app/theme/app_spacing.dart';
+import 'package:dolenae_mobile/src/app/theme/app_text_styles.dart';
+import 'package:dolenae_mobile/src/shared/icons/app_icons.dart';
+import 'package:dolenae_mobile/src/shared/widgets/dn_progress_bar.dart';
 
 /// Kartu rencana pada daftar rencana tersimpan.
 ///
@@ -68,12 +68,21 @@ class DnPlanCard extends StatelessWidget {
                       vertical: 3,
                     ),
                     decoration: BoxDecoration(
-                      color: statusColor.withValues(alpha: 0.12),
+                      color: statusColor == AppColors.body
+                          ? AppColors.canvas
+                          : statusColor,
                       borderRadius: BorderRadius.circular(AppRadius.pill),
+                      border: statusColor == AppColors.body
+                          ? Border.all(color: AppColors.hairline)
+                          : null,
                     ),
                     child: Text(
                       statusLabel!,
-                      style: AppTextStyles.overline.copyWith(color: statusColor),
+                      style: AppTextStyles.overline.copyWith(
+                        color: statusColor == AppColors.body
+                            ? AppColors.body
+                            : AppColors.onPrimary,
+                      ),
                     ),
                   ),
                 ],

@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 
-import '../../app/theme/app_colors.dart';
-import '../../app/theme/app_spacing.dart';
-import '../../app/theme/app_text_styles.dart';
-import '../icons/app_icons.dart';
-import 'dn_buttons.dart';
+import 'package:dolenae_mobile/src/app/theme/app_colors.dart';
+import 'package:dolenae_mobile/src/app/theme/app_spacing.dart';
+import 'package:dolenae_mobile/src/app/theme/app_text_styles.dart';
+import 'package:dolenae_mobile/src/shared/icons/app_icons.dart';
+import 'package:dolenae_mobile/src/shared/widgets/dn_buttons.dart';
 
 /// Tipe keadaan kosong (component `EmptyState (Alam)`).
 enum DnEmptyVariant { tanpaHasil, belumAdaData, gagal, offline, aksesDitolak }

@@ -1,12 +1,15 @@
 import { Router } from "express";
-import { authController } from "../controllers/auth.controller";
+import { authController } from "../controllers/AuthController";
 import {
   forgotPasswordSchema,
   googleSchema,
   loginSchema,
   registerSchema,
+  resendVerificationSchema,
   resetPasswordSchema,
-} from "../controllers/auth.schema";
+  updateProfileSchema,
+  verifyEmailSchema,
+} from "../schemas/auth.schema";
 import { authRequired } from "../middleware/auth";
 import { validate } from "../middleware/validate";
 
@@ -33,4 +36,20 @@ authRouter.post(
   validate({ body: resetPasswordSchema }),
   authController.resetPassword,
 );
+authRouter.post(
+  "/verify-email",
+  validate({ body: verifyEmailSchema }),
+  authController.verifyEmail,
+);
+authRouter.post(
+  "/resend-verification",
+  validate({ body: resendVerificationSchema }),
+  authController.resendVerification,
+);
 authRouter.get("/me", authRequired, authController.me);
+authRouter.patch(
+  "/me",
+  authRequired,
+  validate({ body: updateProfileSchema }),
+  authController.updateMe,
+);

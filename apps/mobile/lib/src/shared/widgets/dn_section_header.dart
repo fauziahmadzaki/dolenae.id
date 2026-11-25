@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:dolenae_mobile/src/shared/icons/app_icons.dart';
 
-import '../../app/theme/app_colors.dart';
-import '../../app/theme/app_text_styles.dart';
+import 'package:dolenae_mobile/src/app/theme/app_colors.dart';
+import 'package:dolenae_mobile/src/app/theme/app_text_styles.dart';
 
 /// Judul seksi dengan aksi opsional di kanan.
 class DnSectionHeader extends StatelessWidget {
@@ -32,12 +32,15 @@ class DnSectionHeader extends StatelessWidget {
               children: [
                 Text(
                   actionLabel!,
-                  style: AppTextStyles.label.copyWith(color: AppColors.primary),
+                  style: AppTextStyles.label.copyWith(
+                    color: AppColors.body,
+                    fontWeight: FontWeight.w500,
+                  ),
                 ),
                 const Icon(
                   AppIcons.chevronRight,
                   size: 16,
-                  color: AppColors.primary,
+                  color: AppColors.body,
                 ),
               ],
             ),

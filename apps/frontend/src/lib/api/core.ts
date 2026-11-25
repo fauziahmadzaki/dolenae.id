@@ -46,13 +46,20 @@ export function createApi(baseUrl: string): ApiClient {
     config: RequestConfig = {},
   ): Promise<ApiResult<T>> => {
     const { token, headers, body, signal } = config;
+    const isFormData =
+      typeof FormData !== "undefined" && body instanceof FormData;
 
     const res = await fetch(`${baseUrl}${path}`, {
       method,
       signal,
-      body: body === undefined ? undefined : JSON.stringify(body),
+      body:
+        body === undefined
+          ? undefined
+          : isFormData
+            ? (body as FormData)
+            : JSON.stringify(body),
       headers: {
-        "content-type": "application/json",
+        ...(isFormData ? {} : { "content-type": "application/json" }),
         ...(token ? { authorization: `Bearer ${token}` } : {}),
         ...headers,
       },

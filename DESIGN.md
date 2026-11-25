@@ -85,12 +85,13 @@ perjalanan gunung" yang tenang, tegas, dan meyakinkan — bukan SaaS pastel.
 ## 3. Tipografi
 
 ### Fonts
-- **Display/Heading:** Poppins (800 / ExtraBold, 700 / Bold) — Google Font, di
-  Flutter dipakai via package `google_fonts`.
+- **Display/Heading:** Poppins (800 / ExtraBold, 700 / Bold, 600 / SemiBold),
+  sesuai frame Hi-Fi web dan mobile. Flutter memuat font lewat `google_fonts`.
 - **Body/UI:** Inter (400 / Regular, 500 / Medium, 600 / SemiBold)
 
-> Catatan: jika Poppins belum terinstal di Figma, gunakan Inter untuk seluruh
-> skala agar rendering tetap konsisten.
+> Catatan: Poppins dan Inter tersedia di Figma. Jika salah
+> satu belum terinstal, fallback ke Inter untuk seluruh skala agar rendering
+> tetap konsisten.
 
 ### Scale
 
@@ -189,7 +190,7 @@ perjalanan gunung" yang tenang, tegas, dan meyakinkan — bukan SaaS pastel.
 - Warna kesulitan diselaraskan sistem: ramah-pemula → `success`, menengah →
   `warning`, sulit → `danger`.
 - Bind warna ke variabel token (menggunakan `var:<nama>`), jangan hardcode hex.
-- Teks deskriptif panjang gunakan Inter Regular; heading gunakan Poppins Bold.
+- Gunakan Inter Regular untuk teks deskriptif panjang dan Poppins Bold untuk judul.
 
 ### Don't
 - Jangan menambah warna baru tanpa mencatat ke palette di dokumen ini.

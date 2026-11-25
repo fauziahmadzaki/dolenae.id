@@ -1,11 +1,11 @@
-import 'package:dolenae_mobile/src/data/models/app_notification.dart';
-import 'package:dolenae_mobile/src/data/models/facility_proposal.dart';
-import 'package:dolenae_mobile/src/data/seed/seed_data.dart';
-import 'package:dolenae_mobile/src/features/notifications/presentation/notifications_screen.dart';
-import 'package:dolenae_mobile/src/features/saved/presentation/saved_checklists_screen.dart';
-import 'package:dolenae_mobile/src/features/saved/presentation/saved_destinations_screen.dart';
-import 'package:dolenae_mobile/src/features/saved/presentation/saved_plans_screen.dart';
-import 'package:dolenae_mobile/src/features/saved/presentation/saved_proposals_screen.dart';
+import 'package:dolenae_mobile/src/features/notifications/domain/entities/app_notification.dart';
+import 'package:dolenae_mobile/src/features/facilities/domain/entities/facility_proposal.dart';
+import 'package:dolenae_mobile/src/features/saved/data/data_sources/saved_seed_data_source.dart';
+import 'package:dolenae_mobile/src/features/notifications/presentation/screens/notifications_screen.dart';
+import 'package:dolenae_mobile/src/features/saved/presentation/screens/saved_checklists_screen.dart';
+import 'package:dolenae_mobile/src/features/saved/presentation/screens/saved_destinations_screen.dart';
+import 'package:dolenae_mobile/src/features/saved/presentation/screens/saved_plans_screen.dart';
+import 'package:dolenae_mobile/src/features/saved/presentation/screens/saved_proposals_screen.dart';
 import 'package:dolenae_mobile/src/shared/widgets/dn_plan_card.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -52,7 +52,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('Destinasi tersimpan'), findsOneWidget);
-      for (final item in SeedData.savedDestinations) {
+      for (final item in SavedSeedData.destinations) {
         expect(find.text(item.destination.name), findsOneWidget);
       }
     });
@@ -94,7 +94,7 @@ void main() {
       await tester.pumpWidget(
         wrapScreen(
           SavedDestinationsScreen(
-            items: SeedData.savedDestinations,
+            items: SavedSeedData.destinations,
             onRemove: removed.add,
           ),
         ),
@@ -132,7 +132,7 @@ void main() {
 
       expect(find.text('Daftar rencana'), findsOneWidget);
       expect(find.byType(DnPlanCard), findsWidgets);
-      for (final plan in SeedData.savedPlans) {
+      for (final plan in SavedSeedData.plans) {
         expect(find.text(plan.name), findsOneWidget);
         expect(find.text(plan.dateRange), findsOneWidget);
         expect(find.text(plan.statusLabel), findsOneWidget);
@@ -143,9 +143,7 @@ void main() {
       tester,
     ) async {
       await usePhone(tester);
-      await tester.pumpWidget(
-        wrapScreen(const SavedPlansScreen(items: [])),
-      );
+      await tester.pumpWidget(wrapScreen(const SavedPlansScreen(items: [])));
       await tester.pumpAndSettle();
 
       expect(find.text('Belum ada rencana'), findsOneWidget);
@@ -173,13 +171,15 @@ void main() {
   });
 
   group('Layar Checklist Tersimpan', () {
-    testWidgets('menampilkan rasio item siap dan badge selesai', (tester) async {
+    testWidgets('menampilkan rasio item siap dan badge selesai', (
+      tester,
+    ) async {
       await usePhone(tester);
       await tester.pumpWidget(wrapScreen(const SavedChecklistsScreen()));
       await tester.pumpAndSettle();
 
       expect(find.text('Checklist tersimpan'), findsOneWidget);
-      for (final checklist in SeedData.savedChecklists) {
+      for (final checklist in SavedSeedData.checklists) {
         expect(find.text(checklist.name), findsOneWidget);
         expect(find.text(checklist.countLabel), findsOneWidget);
       }
@@ -225,7 +225,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('Fasilitas diusulkan'), findsOneWidget);
-      for (final proposal in SeedData.proposals) {
+      for (final proposal in SavedSeedData.proposals) {
         expect(find.text(proposal.name), findsOneWidget);
         expect(find.text(proposal.statusLabel), findsOneWidget);
       }
@@ -244,7 +244,7 @@ void main() {
 
     testWidgets('status menunggu memakai warna peringatan', (tester) async {
       await usePhone(tester);
-      final menunggu = SeedData.proposals
+      final menunggu = SavedSeedData.proposals
           .where((p) => p.status == ProposalStatus.menunggu)
           .toList();
       expect(menunggu, isNotEmpty);
@@ -258,10 +258,16 @@ void main() {
   });
 
   group('Layar Notifikasi', () {
-    testWidgets('memisahkan notifikasi hari ini dan sebelumnya', (tester) async {
+    testWidgets('memisahkan notifikasi hari ini dan sebelumnya', (
+      tester,
+    ) async {
       await usePhone(tester);
       final items = [
-        _notification(id: 'n1', title: 'Pengingat rencana', createdAt: _todayMidnight),
+        _notification(
+          id: 'n1',
+          title: 'Pengingat rencana',
+          createdAt: _todayMidnight,
+        ),
         _notification(
           id: 'n2',
           title: 'Rekomendasi baru',
@@ -274,9 +280,7 @@ void main() {
         ),
       ];
 
-      await tester.pumpWidget(
-        wrapScreen(NotificationsScreen(items: items)),
-      );
+      await tester.pumpWidget(wrapScreen(NotificationsScreen(items: items)));
       await tester.pumpAndSettle();
 
       expect(find.text('Notifikasi'), findsOneWidget);
@@ -285,7 +289,7 @@ void main() {
       expect(find.text('Pengingat rencana'), findsOneWidget);
       expect(find.text('Rekomendasi baru'), findsOneWidget);
       expect(find.text('Usulan diproses'), findsOneWidget);
-      expect(find.text('3 belum dibaca'), findsOneWidget);
+      expect(find.byTooltip('3 belum dibaca'), findsOneWidget);
     });
 
     testWidgets('aksi tandai dibaca hilang saat semua sudah dibaca', (
@@ -301,14 +305,13 @@ void main() {
         ),
       ];
 
-      await tester.pumpWidget(
-        wrapScreen(NotificationsScreen(items: items)),
-      );
+      await tester.pumpWidget(wrapScreen(NotificationsScreen(items: items)));
       await tester.pumpAndSettle();
 
       expect(find.text('Tandai dibaca'), findsNothing);
-      expect(find.text('belum dibaca'), findsNothing);
+      expect(find.byTooltip(RegExp(r'belum dibaca$')), findsNothing);
       expect(find.text('SEBELUMNYA'), findsOneWidget);
+      expect(find.text('Kemarin'), findsOneWidget);
     });
 
     testWidgets('delegasi tandai semua dibaca', (tester) async {
@@ -338,11 +341,11 @@ void main() {
     testWidgets('membuka notifikasi menandai terbaca di store', (tester) async {
       await usePhone(tester);
       final store = newStore();
-      final target = store.notifications.notifications.firstWhere((item) => !item.read);
-
-      await tester.pumpWidget(
-        wrapScreen(NotificationsScreen(), store: store),
+      final target = store.notifications.notifications.firstWhere(
+        (item) => !item.read,
       );
+
+      await tester.pumpWidget(wrapScreen(NotificationsScreen(), store: store));
       await tester.pumpAndSettle();
 
       await tester.tap(find.text(target.title));
@@ -356,9 +359,7 @@ void main() {
 
     testWidgets('daftar kosong memunculkan empty state', (tester) async {
       await usePhone(tester);
-      await tester.pumpWidget(
-        wrapScreen(NotificationsScreen(items: const [])),
-      );
+      await tester.pumpWidget(wrapScreen(NotificationsScreen(items: const [])));
       await tester.pumpAndSettle();
 
       expect(find.text('Belum ada notifikasi'), findsOneWidget);
@@ -367,19 +368,22 @@ void main() {
 
   group('Model Tersimpan', () {
     test('progres rencana dan checklist dihitung benar', () {
-      final plan = SeedData.savedPlans.first;
+      final plan = SavedSeedData.plans.first;
       expect(
         plan.progress,
         closeTo(plan.destinationCount / plan.destinationTotal, 0.001),
       );
 
-      final checklist = SeedData.savedChecklists.first;
+      final checklist = SavedSeedData.checklists.first;
       expect(
         checklist.progress,
         closeTo(checklist.completedCount / checklist.totalCount, 0.001),
       );
-      expect(checklist.countLabel, '${checklist.completedCount}/'
-          '${checklist.totalCount} siap');
+      expect(
+        checklist.countLabel,
+        '${checklist.completedCount}/'
+        '${checklist.totalCount} siap',
+      );
     });
   });
 }
