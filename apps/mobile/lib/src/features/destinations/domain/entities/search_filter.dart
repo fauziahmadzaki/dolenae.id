@@ -35,6 +35,7 @@ class SearchFilter {
     this.query = '',
     this.categoryId = '',
     this.terrain = '',
+    this.categoryLabel = '',
     this.sort = SortOption.populer,
     this.difficulty = DifficultyFilter.semua,
     this.supports = const [],
@@ -48,6 +49,9 @@ class SearchFilter {
   ///
   /// Dipakai chip Beranda yang hanya membawa nama kategori, bukan ID.
   final String terrain;
+
+  /// Nama kategori dari chip; dipakai bila destinasi belum punya `categoryIds`.
+  final String categoryLabel;
   final SortOption sort;
   final DifficultyFilter difficulty;
   final List<String> supports;
@@ -56,6 +60,7 @@ class SearchFilter {
   bool get isFiltered =>
       categoryId.isNotEmpty ||
       terrain.isNotEmpty ||
+      categoryLabel.isNotEmpty ||
       sort != SortOption.populer ||
       difficulty != DifficultyFilter.semua ||
       supports.isNotEmpty ||
@@ -65,6 +70,7 @@ class SearchFilter {
     String? query,
     String? categoryId,
     String? terrain,
+    String? categoryLabel,
     SortOption? sort,
     DifficultyFilter? difficulty,
     List<String>? supports,
@@ -74,6 +80,7 @@ class SearchFilter {
       query: query ?? this.query,
       categoryId: categoryId ?? this.categoryId,
       terrain: terrain ?? this.terrain,
+      categoryLabel: categoryLabel ?? this.categoryLabel,
       sort: sort ?? this.sort,
       difficulty: difficulty ?? this.difficulty,
       supports: supports ?? this.supports,

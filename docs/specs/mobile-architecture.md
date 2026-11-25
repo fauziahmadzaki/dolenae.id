@@ -164,6 +164,38 @@ Endpoint yang dipakai mobile:
 4. Bila cache kosong (pertama kali buka atau offline), repository memakai
    `DestinationSeedData` sebagai fallback.
 
+### Akurasi filter Jelajah
+
+- `SearchDestinationsUseCase` mencocokkan setiap kata kueri dengan seluruh data
+  destinasi yang tersedia di entity: nama, slug, tagline, wilayah, musim, akses,
+  medan, aktivitas, dan tag yang sudah dikirim API.
+- Kategori dicocokkan lebih dulu lewat `categoryIds`. Bila destinasi belum
+  memiliki UUID tersebut (seed/offline), nama kategori dari chip dipakai sebagai
+  fallback terhadap medan, aktivitas, dan tag. Kategori dan teks bisa digabung.
+- Tile aktivitas Beranda memakai label yang memang ada di data destinasi
+  (`Gunung`, `Camping Ground`, `Sunrise`, `Savana`) dan mengirimkannya sebagai
+  kueri Jelajah. Filter yang tersisa dari kunjungan sebelumnya dibersihkan
+  sebelum kueri baru diterapkan.
+
+### Ringkasan Profil
+
+Angka **Tersimpan**, **Rencana**, dan **Checklist** berturut-turut diambil dari
+`SavedController.savedDestinations`, `PlanController.plans`, dan
+`ChecklistController.items` — sama dengan halaman tujuan masing-masing. Tidak
+ada angka contoh statis. Profil meminta `PlanController.load()` bila rencana
+masih kosong agar halaman yang dibuka langsung tidak menampilkan nol sebelum
+data selesai dimuat.
+
+Menu **Perjalanan** mengarah ke halaman yang memang memiliki data:
+“Destinasi tersimpan” → `/saved/destinations`, “Rencana” → `/plan`, dan
+“Checklist” → `/checklist`. Tidak ada menu yang mengarah ke daftar
+`savedPlans`/`savedChecklists` yang tidak pernah diisi. Menu “Edit profil” di
+grup **AKUN & KEAMANAN** dihapus karena tujuannya sama dengan tombol “Ubah
+profil”; satu-satunya pintu ke `/profile/edit` adalah tombol tersebut.
+
+Filter lain dari `dev` (medan, tingkat kesulitan, fasilitas, dan urutan) tetap
+berjalan bersama pencarian kata kunci dan fallback kategori di atas.
+
 ## State management
 
 - Tetap memakai `provider` + `ChangeNotifier`. Tidak ada state library baru.

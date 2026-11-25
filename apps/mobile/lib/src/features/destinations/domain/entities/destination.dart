@@ -23,6 +23,7 @@ class Destination {
     this.guideRequired,
     this.terrain = const [],
     this.activities = const [],
+    this.tags = const [],
     this.accessDescription,
     this.accessTransportModes = const [],
     this.accessTravelTime,
@@ -53,6 +54,9 @@ class Destination {
 
   /// Aktivitas yang cocok (mis. `Hiking`, `Camping`).
   final List<String> activities;
+
+  /// Tag yang sudah dikirim API dan ikut dicocokkan saat mencari.
+  final List<String> tags;
   final String? accessDescription;
   final List<String> accessTransportModes;
   final String? accessTravelTime;

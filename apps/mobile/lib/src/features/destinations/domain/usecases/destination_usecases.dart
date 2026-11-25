@@ -14,18 +14,20 @@ class RefreshDestinationsUseCase implements UseCase<void, NoParams> {
   Future<Result<void>> call(NoParams params) => _repository.refresh();
 }
 
-/// Filters a catalog snapshot by the active search query.
+/// Menyaring katalog Jelajah berdasarkan teks dan kategori yang aktif.
 class SearchDestinationsUseCase {
   const SearchDestinationsUseCase();
 
   List<Destination> call(List<Destination> source, SearchFilter filter) {
-    final query = filter.query.trim().toLowerCase();
-    if (query.isEmpty && !filter.isFiltered) return source;
+    final tokens = _tokens(filter.query);
+    final categoryTokens = _tokens(filter.categoryLabel);
+    if (tokens.isEmpty && !filter.isFiltered && categoryTokens.isEmpty) {
+      return source;
+    }
 
     final filtered = source
         .where((destination) {
-          if (filter.categoryId.isNotEmpty &&
-              !destination.categoryIds.contains(filter.categoryId)) {
+          if (!_matchesCategory(destination, filter, categoryTokens)) {
             return false;
           }
           if (!_matchesTerrain(destination, filter.terrain)) {
@@ -38,7 +40,9 @@ class SearchDestinationsUseCase {
               !_matchesSupports(destination, filter.supports)) {
             return false;
           }
-          return query.isEmpty || _haystack(destination).contains(query);
+          if (tokens.isEmpty) return true;
+          final haystack = _normalize(_haystack(destination));
+          return tokens.every(haystack.contains);
         })
         .toList(growable: false);
 
@@ -47,10 +51,7 @@ class SearchDestinationsUseCase {
 
   /// Urutan hasil. Destinasi tanpa nilai selalu diletakkan paling akhir supaya
   /// data kosong tidak tampil seolah paling murah/tertinggi.
-  static List<Destination> _sorted(
-    List<Destination> items,
-    SortOption sort,
-  ) {
+  static List<Destination> _sorted(List<Destination> items, SortOption sort) {
     if (sort == SortOption.populer) return items;
     final sorted = [...items];
     sorted.sort((a, b) {
@@ -67,17 +68,9 @@ class SearchDestinationsUseCase {
             descending: true,
           );
           if (byRating != 0) return byRating;
-          return _compareNullable(
-            a.elevationM,
-            b.elevationM,
-            descending: true,
-          );
+          return _compareNullable(a.elevationM, b.elevationM, descending: true);
         case SortOption.ketinggian:
-          return _compareNullable(
-            a.elevationM,
-            b.elevationM,
-            descending: true,
-          );
+          return _compareNullable(a.elevationM, b.elevationM, descending: true);
       }
     });
     return sorted;
@@ -102,9 +95,7 @@ class SearchDestinationsUseCase {
   static bool _matchesTerrain(Destination destination, String terrain) {
     final wanted = terrain.trim().toLowerCase();
     if (wanted.isEmpty) return true;
-    return destination.terrain.any(
-      (item) => item.toLowerCase() == wanted,
-    );
+    return destination.terrain.any((item) => item.toLowerCase() == wanted);
   }
 
   static bool _matchesDifficulty(
@@ -117,10 +108,7 @@ class SearchDestinationsUseCase {
     DifficultyFilter.sulit => level == DifficultyLevel.sulit,
   };
 
-  static bool _matchesSupports(
-    Destination destination,
-    List<String> supports,
-  ) {
+  static bool _matchesSupports(Destination destination, List<String> supports) {
     final blob = [
       ...destination.activities,
       ...destination.terrain,
@@ -138,6 +126,36 @@ class SearchDestinationsUseCase {
     });
   }
 }
+
+bool _matchesCategory(
+  Destination destination,
+  SearchFilter filter,
+  List<String> categoryTokens,
+) {
+  if (filter.categoryId.isEmpty) return true;
+  if (destination.categoryIds.contains(filter.categoryId)) return true;
+  if (categoryTokens.isEmpty) return false;
+
+  // Fallback untuk seed/cache lama yang belum punya categoryIds, serta
+  // kategori yang hanya tercantum di medan, aktivitas, atau tag destinasi.
+  final categoryHaystack = _normalize(
+    [
+      ...destination.terrain,
+      ...destination.activities,
+      ...destination.tags,
+    ].join(' '),
+  );
+  return categoryTokens.any(categoryHaystack.contains);
+}
+
+List<String> _tokens(String value) =>
+    _normalize(value)
+        .split(RegExp(r'\s+'))
+        .where((part) => part.isNotEmpty)
+        .toList(growable: false);
+
+String _normalize(String value) =>
+    value.toLowerCase().replaceAll(RegExp(r'[-_]'), ' ');
 
 /// Satu hasil pencarian Beranda: destinasi, skor, dan alasannya.
 class DestinationMatch {
@@ -235,11 +253,19 @@ class SearchRecommendationsUseCase {
 
 String _haystack(Destination destination) => [
   destination.name,
+  destination.slug,
   destination.tagline,
   destination.province,
   destination.regency,
+  destination.bestSeason ?? '',
+  destination.accessDescription ?? '',
+  destination.accessTravelTime ?? '',
+  destination.accessDistance ?? '',
+  destination.accessPointName ?? '',
+  ...destination.accessTransportModes,
   ...destination.terrain,
   ...destination.activities,
+  ...destination.tags,
 ].join(' ').toLowerCase();
 
 List<String> _matched(List<String> values, String needle) => values
