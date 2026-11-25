@@ -26,7 +26,7 @@ abstract final class NotificationSeedData {
     AppNotification(
       id: 'notif-3',
       kind: NotificationKind.checklist,
-      title: 'Checklist Trip Dieng Almost selesai',
+      title: 'Checklist Trip Dieng hampir selesai',
       body: 'Tinggal 7 item lagi di kelompok Perlengkapan dan Kesehatan.',
       createdAt: _ago(const Duration(hours: 9)),
       href: '/checklist',
@@ -36,7 +36,7 @@ abstract final class NotificationSeedData {
       id: 'notif-4',
       kind: NotificationKind.usulan,
       title: 'Usulan Homestay Pinggir ditinjau',
-      body: 'Tim kami sedang memverifikasi data totality fasilitas yang kamu usulkan.',
+      body: 'Tim kami sedang memverifikasi data fasilitas yang kamu usulkan.',
       createdAt: _ago(const Duration(days: 2, hours: 4)),
       href: '/saved/proposals',
       read: true,

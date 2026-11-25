@@ -28,6 +28,8 @@ class Destination {
     this.accessTravelTime,
     this.accessDistance,
     this.accessPointName,
+    this.facilities = const {},
+    this.rating,
   });
 
   final String id;
@@ -56,6 +58,14 @@ class Destination {
   final String? accessTravelTime;
   final String? accessDistance;
   final String? accessPointName;
+
+  /// Fasilitas sekitar terbit per nama, mis. `{'Warung': 2, 'Parkir': 1}`.
+  ///
+  /// Dihitung backend dari fasilitas berstatus `published` pada destinasi ini.
+  final Map<String, int> facilities;
+
+  /// Rata-rata rating 0–5 bila backend menyediakannya; `null` bila belum ada.
+  final double? rating;
 
   String get locationLabel =>
       [regency, province].where((part) => part.isNotEmpty).join(', ');

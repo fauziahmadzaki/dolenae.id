@@ -8,17 +8,23 @@ export interface UpdateProfilePayload {
   bio?: string | null;
 }
 
+type MePayload = AuthUser | { user: AuthUser };
+
+function unwrapUser(data: MePayload): AuthUser {
+  return "user" in data ? data.user : data;
+}
+
 export async function getMe(token: string): Promise<AuthUser> {
-  const { data } = await get<AuthUser>("/auth/me", { token });
-  return data;
+  const { data } = await get<MePayload>("/auth/me", { token });
+  return unwrapUser(data);
 }
 
 export async function updateMe(
   payload: UpdateProfilePayload,
   token: string,
 ): Promise<AuthUser> {
-  const { data } = await patch<AuthUser>("/auth/me", payload, { token });
-  return data;
+  const { data } = await patch<MePayload>("/auth/me", payload, { token });
+  return unwrapUser(data);
 }
 
 export async function resendVerificationEmail(

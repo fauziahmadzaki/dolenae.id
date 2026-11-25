@@ -1,7 +1,8 @@
 import type { RequestHandler } from "express";
 import { getValidated } from "../middleware/validate";
 import { storageService } from "../services/StorageService";
-import { ValidationError } from "../utils/errors";
+import { galleryService } from "../services/GalleryService";
+import { ForbiddenError, ValidationError } from "../utils/errors";
 import { ok } from "../utils/response";
 import type { DeleteUploadQuery, UploadQuery } from "../types/upload";
 
@@ -28,7 +29,13 @@ class UploadController {
   remove: RequestHandler = async (req, res, next) => {
     try {
       const { url } = getValidated<DeleteUploadQuery>(req, "query");
-      const result = await storageService.deleteByUrl(url);
+      const key = storageService.keyForPublicUrl(url);
+      if (!key) throw new ValidationError("URL gambar bukan milik storage Dolenae");
+      const isGallery = key.startsWith("gallery/");
+      if (isGallery && req.user?.role !== "admin") throw new ForbiddenError();
+      const result = isGallery
+        ? await galleryService.discardUnregistered(key)
+        : await storageService.deleteByUrl(url);
       ok(res, result);
     } catch (err) {
       next(err);

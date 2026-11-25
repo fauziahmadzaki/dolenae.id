@@ -2,9 +2,9 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { Loader2, Plus } from "lucide-react";
+import { Download, Loader2, Package, Plus, Store } from "lucide-react";
 import { Button } from "~/components/ui/button";
 import {
   DataTable,
@@ -14,12 +14,21 @@ import {
 } from "~/components/ui/data-table";
 import { useToast } from "~/components/ui/toaster";
 import { ApiError } from "~/lib/api/types";
+import { exportCsv } from "~/lib/export-csv";
 import { useAuth } from "~/features/auth/hooks/use-auth";
+import { useMyFacilities } from "~/features/facilities/hooks/use-facilities";
+import { categoryLabels } from "~/features/facilities/types";
 import { UserDialog } from "./components/user-dialog";
-import { userColumns } from "./components/users-columns";
+import {
+  merchantColumns,
+  userColumns,
+  userStatusLabels,
+  type MerchantSummary,
+} from "./components/users-columns";
+import { formatUserDate } from "./format";
 import { useUsers } from "./hooks/use-users";
-import { roleOptions, type ManagedUser, type UserMode } from "./schema";
-import { INACTIVE_AFTER_DAYS, userStatusOptions } from "./status";
+import { roleLabels, roleOptions, type ManagedUser, type UserMode } from "./schema";
+import { INACTIVE_AFTER_DAYS, userStatusOf, userStatusOptions } from "./status";
 
 const SORT_OPTIONS: SortOption[] = [
   { value: "createdAt:desc", label: "Terbaru" },
@@ -30,24 +39,30 @@ const SORT_OPTIONS: SortOption[] = [
   { value: "email:desc", label: "Email Z–A" },
 ];
 
-export default function UsersPage() {
+export default function UsersPage({ merchantOnly = false }: { merchantOnly?: boolean }) {
   const auth = useAuth();
   const router = useRouter();
   const cache = useQueryClient();
   const { toast } = useToast();
 
-  const table = useDataTableState();
+  const table = useDataTableState({ syncFromUrl: true });
   const [role, setRole] = useState("");
   const [status, setStatus] = useState("");
   const [mode, setMode] = useState<UserMode | null>(null);
+  const itemLabel = merchantOnly ? "merchant" : "pengguna";
 
   const enabled =
     auth.hydrated && !!auth.token && auth.user?.role === "admin";
 
   const list = useUsers(
-    { ...table.query, role, status },
+    { ...table.query, role: merchantOnly ? "merchant" : role, status },
     auth.token,
     enabled,
+  );
+  const facilitiesList = useMyFacilities(
+    { page: 1, limit: 100 },
+    auth.token,
+    enabled && merchantOnly,
   );
 
   useEffect(() => {
@@ -61,6 +76,41 @@ export default function UsersPage() {
       router.replace("/auth/login");
     }
   }, [list.error, auth, cache, router]);
+
+  const merchantSummaries = useMemo(() => {
+    const map = new Map<string, MerchantSummary>();
+    if (!merchantOnly) return map;
+
+    const grouped = new Map<
+      string,
+      { categories: Set<string>; destinations: Set<string>; count: number }
+    >();
+    for (const facility of facilitiesList.data?.data ?? []) {
+      if (!facility.ownerId) continue;
+      const entry = grouped.get(facility.ownerId) ?? {
+        categories: new Set<string>(),
+        destinations: new Set<string>(),
+        count: 0,
+      };
+      entry.categories.add(categoryLabels[facility.category]);
+      if (facility.destinationName) entry.destinations.add(facility.destinationName);
+      entry.count += 1;
+      grouped.set(facility.ownerId, entry);
+    }
+
+    for (const [ownerId, entry] of grouped) {
+      const destinations = Array.from(entry.destinations);
+      map.set(ownerId, {
+        serviceCount: entry.count,
+        categoriesLabel: Array.from(entry.categories).join(", ") || "Layanan",
+        locationLabel:
+          destinations.length > 1
+            ? `${destinations[0]} (+${destinations.length - 1})`
+            : (destinations[0] ?? "Belum diisi"),
+      });
+    }
+    return map;
+  }, [merchantOnly, facilitiesList.data]);
 
   if (!auth.hydrated || !auth.token) {
     return (
@@ -90,22 +140,29 @@ export default function UsersPage() {
 
   const users = list.data?.data ?? [];
   const total = Number(list.data?.meta?.total ?? 0);
+  const facilitiesTotal = Number(
+    facilitiesList.data?.meta?.total ?? facilitiesList.data?.data.length ?? 0,
+  );
 
   const open = (next: UserMode) => setMode(next);
 
-  const columns = userColumns({
+  const columnOptions = {
     currentUserId: auth.user?.id,
     onDetail: (user: ManagedUser) => open({ kind: "detail", user }),
     onEdit: (user: ManagedUser) => open({ kind: "edit", user }),
     onDelete: (user: ManagedUser) => open({ kind: "delete", user }),
-  });
+  };
+
+  const columns = merchantOnly
+    ? merchantColumns({ ...columnOptions, summaries: merchantSummaries })
+    : userColumns(columnOptions);
 
   const resetPageOn = <T,>(setter: (value: T) => void) => (value: T) => {
     setter(value);
     table.resetPage();
   };
 
-  const filters: DataTableFilter[] = [
+  const availableFilters: DataTableFilter[] = [
     {
       key: "role",
       label: "Role",
@@ -123,25 +180,97 @@ export default function UsersPage() {
       onChange: resetPageOn(setStatus),
     },
   ];
+  const filters = merchantOnly
+    ? availableFilters.filter((item) => item.key !== "role")
+    : availableFilters;
+
+  const handleExport = () => {
+    if (merchantOnly) {
+      exportCsv("merchant.csv", [
+        ["Merchant", "Email", "Jenis", "Lokasi", "Status", "Terdaftar"],
+        ...users.map((user) => {
+          const info = merchantSummaries.get(user.id);
+          return [
+            user.name,
+            user.email,
+            info?.categoriesLabel ?? "Belum ada layanan",
+            info?.locationLabel ?? "Belum diisi",
+            userStatusLabels[userStatusOf(user)],
+            formatUserDate(user.createdAt),
+          ];
+        }),
+      ]);
+      return;
+    }
+
+    exportCsv("pengguna.csv", [
+      ["Nama", "Email", "Peran", "Tanggal daftar", "Terakhir aktif"],
+      ...users.map((user) => [
+        user.name,
+        user.email,
+        roleLabels[user.role],
+        user.createdAt,
+        user.lastLoginAt ?? "",
+      ]),
+    ]);
+  };
 
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <h2 className="font-display text-2xl font-bold text-ink">
-            Daftar Pengguna
-          </h2>
+          <p className="text-xs text-body">
+            {merchantOnly ? "Admin / Merchant" : "Admin / Pengguna"}
+          </p>
+          <h1 className="mt-0.5 font-display text-2xl font-bold text-ink">
+            {merchantOnly ? "Merchant" : "Kelola pengguna"}
+          </h1>
           <p className="mt-1 text-sm text-body">
-            Lihat dan atur peran serta status pengguna.
+            {list.isSuccess
+              ? `${total} ${itemLabel} terdaftar`
+              : `Kelola akun ${itemLabel}.`}
           </p>
         </div>
         <div className="flex items-center gap-2">
+          <Button
+            variant="secondary"
+            disabled={!users.length}
+            title="Ekspor halaman yang ditampilkan"
+            onClick={handleExport}
+          >
+            <Download aria-hidden className="size-4" /> Ekspor
+          </Button>
           <Button onClick={() => open({ kind: "create" })}>
             <Plus aria-hidden className="h-4 w-4" />
-            Tambah pengguna
+            Tambah {itemLabel}
           </Button>
         </div>
       </div>
+
+      {merchantOnly && (
+        <nav aria-label="Pengelolaan merchant" className="flex flex-wrap gap-2">
+          <span
+            aria-current="page"
+            className="inline-flex items-center gap-2 rounded-xl border border-primary bg-primary px-3.5 py-2 text-sm font-semibold text-on-primary"
+          >
+            <Store aria-hidden className="h-4 w-4" />
+            Merchant
+            <span className="rounded-full bg-accent px-2 py-0.5 text-[11px] font-semibold text-on-accent">
+              {total}
+            </span>
+          </span>
+          <Link
+            href="/admin/fasilitas"
+            className="inline-flex items-center gap-2 rounded-xl border border-hairline bg-surface px-3.5 py-2 text-sm font-semibold text-ink transition-colors hover:bg-canvas-subtle"
+          >
+            <Package aria-hidden className="h-4 w-4 text-body" />
+            Layanan
+            <span className="rounded-full bg-canvas-subtle px-2 py-0.5 text-[11px] font-semibold text-body">
+              {facilitiesTotal}
+            </span>
+          </Link>
+        </nav>
+      )}
 
       <DataTable
         data={users}
@@ -157,8 +286,8 @@ export default function UsersPage() {
         onSortChange={table.setSort}
         onSearchChange={table.setSearch}
         sortOptions={SORT_OPTIONS}
-        searchPlaceholder="Cari pengguna"
-        itemLabel="pengguna"
+        searchPlaceholder={`Cari ${itemLabel}`}
+        itemLabel={itemLabel}
         isLoading={list.isPending}
         isFetching={list.isFetching}
         error={list.error}
@@ -167,14 +296,14 @@ export default function UsersPage() {
         emptyState={
           <div className="rounded-lg border border-dashed border-hairline bg-surface p-10 text-center">
             <h3 className="font-display font-semibold text-ink">
-              Tidak ada pengguna
+              Tidak ada {itemLabel}
             </h3>
             <p className="mt-1 text-sm text-body">
-              Coba ubah pencarian atau role, atau tambahkan pengguna.
+              Coba ubah pencarian atau tambahkan {itemLabel}.
             </p>
             <Button className="mt-4" onClick={() => open({ kind: "create" })}>
               <Plus aria-hidden className="h-4 w-4" />
-              Tambah pengguna
+              Tambah {itemLabel}
             </Button>
           </div>
         }
@@ -189,6 +318,7 @@ export default function UsersPage() {
         <UserDialog
           key={mode.kind + ("user" in mode ? mode.user.id : "")}
           mode={mode}
+          initialRole={merchantOnly ? "merchant" : undefined}
           token={auth.token}
           onClose={() => setMode(null)}
           onSaved={(message) => {

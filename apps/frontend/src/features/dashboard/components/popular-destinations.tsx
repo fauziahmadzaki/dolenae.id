@@ -1,178 +1,193 @@
+"use client";
+
 import Link from "next/link";
-import { ArrowRight, Mountain } from "lucide-react";
+import { useState } from "react";
+import { ChevronLeft, ChevronRight, Clock, MountainSnow } from "lucide-react";
+import { formatRelativeId } from "~/lib/format-date";
+import type { Destination } from "~/types/domain";
 import type { PopularDestination, RecentDestination } from "../schema";
 
-const MONTHS = [
-  "Jan",
-  "Feb",
-  "Mar",
-  "Apr",
-  "Mei",
-  "Jun",
-  "Jul",
-  "Agu",
-  "Sep",
-  "Okt",
-  "Nov",
-  "Des",
-];
+const CARD_COUNT = 3;
 
-function formatDate(value: string): string {
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "—";
-  return `${date.getDate()} ${MONTHS[date.getMonth()]} ${date.getFullYear()}`;
-}
-
-function regionLabel(item: {
-  regency: string | null;
-  province: string | null;
-}): string {
-  return [item.regency, item.province].filter(Boolean).join(", ") || "—";
-}
-
-function Thumbnail({
-  image,
-  name,
-}: {
-  image: string | null;
+export interface RecentDestinationCardItem {
+  id: string;
   name: string;
-}) {
-  return (
-    <div className="relative h-11 w-11 shrink-0 overflow-hidden rounded-lg bg-canvas-subtle">
-      {image ? (
-        // Remote Wikimedia URLs are already used as plain <img> elsewhere in admin.
-        // eslint-disable-next-line @next/next/no-img-element
-        <img
-          src={image}
-          alt={name}
-          loading="lazy"
-          className="h-full w-full object-cover"
-        />
-      ) : (
-        <div className="flex h-full w-full items-center justify-center text-body">
-          <Mountain aria-hidden className="h-4 w-4" />
-        </div>
-      )}
-    </div>
-  );
+  tag: string;
+  image: string | null;
+  updatedAt: string;
 }
 
-interface PopularDestinationsProps {
-  popular: PopularDestination[];
-  recent: RecentDestination[];
+export function mapDestinationCards(
+  destinations: Destination[] | undefined,
+  fallback: RecentDestination[],
+  categoryName: (id: string) => string | undefined,
+): RecentDestinationCardItem[] {
+  if (destinations?.length) {
+    return destinations.map((item) => {
+      const cat = item.categoryIds.map(categoryName).find(Boolean);
+      const region = [item.location.regency, item.location.province]
+        .filter(Boolean)
+        .join(", ");
+      return {
+        id: item.id,
+        name: item.name,
+        tag: cat ?? (region || "Destinasi"),
+        image: item.images[0] ?? null,
+        updatedAt: item.updatedAt || item.createdAt,
+      };
+    });
+  }
+
+  return fallback.map((item) => ({
+    id: item.id,
+    name: item.name,
+    tag: [item.regency, item.province].filter(Boolean).join(", ") || "Destinasi",
+    image: item.image,
+    updatedAt: item.createdAt,
+  }));
+}
+
+interface RecentDestinationsSectionProps {
+  items: RecentDestinationCardItem[];
   isLoading: boolean;
 }
 
-export function PopularDestinations({
-  popular,
-  recent,
+export function RecentDestinationsSection({
+  items,
   isLoading,
-}: PopularDestinationsProps) {
-  const usingPlans = popular.length > 0;
-  const maxPlans = Math.max(1, ...popular.map((item) => item.planCount));
+}: RecentDestinationsSectionProps) {
+  const [page, setPage] = useState(0);
+  const lastPage = Math.max(0, Math.ceil(items.length / CARD_COUNT) - 1);
+  const currentPage = Math.min(page, lastPage);
+  const visible = items.slice(
+    currentPage * CARD_COUNT,
+    (currentPage + 1) * CARD_COUNT,
+  );
 
   return (
-    <section className="rounded-xl border border-hairline bg-surface">
-      <div className="flex flex-wrap items-start justify-between gap-3 border-b border-hairline px-4 py-3">
-        <div>
-          <h2 className="text-sm font-semibold text-ink">
-            {usingPlans
-              ? "Destinasi populer di rencana AI"
-              : "Destinasi terbaru"}
-          </h2>
-          <p className="text-xs text-body">
-            {usingPlans
-              ? "Destinasi yang paling sering muncul di itinerary AI pengguna."
-              : "Belum ada data rencana AI. Menampilkan destinasi yang baru ditambahkan."}
-          </p>
+    <section>
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+        <h2 className="font-display text-lg font-bold text-ink">
+          Destinasi Terbaru
+        </h2>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            aria-label="Destinasi sebelumnya"
+            disabled={currentPage === 0}
+            onClick={() => setPage(currentPage - 1)}
+            className="grid size-9 place-items-center rounded-full border border-hairline bg-surface text-primary transition-colors hover:bg-canvas-subtle disabled:opacity-50"
+          >
+            <ChevronLeft aria-hidden className="size-4" />
+          </button>
+          <button
+            type="button"
+            aria-label="Destinasi berikutnya"
+            disabled={currentPage === lastPage}
+            onClick={() => setPage(currentPage + 1)}
+            className="grid size-9 place-items-center rounded-full bg-primary text-on-primary transition-colors hover:bg-primary-hover disabled:opacity-50"
+          >
+            <ChevronRight aria-hidden className="size-4" />
+          </button>
         </div>
-        <Link
-          href="/admin/destinasi"
-          className="inline-flex items-center gap-1 text-xs font-semibold text-primary hover:text-primary-hover"
-        >
-          Lihat semua <ArrowRight className="h-3.5 w-3.5" />
-        </Link>
       </div>
 
       {isLoading ? (
-        <div className="space-y-3 p-4">
-          {[0, 1, 2, 3].map((row) => (
-            <div
-              key={row}
-              className="h-14 animate-pulse rounded-lg bg-canvas-subtle"
-            />
-          ))}
-        </div>
-      ) : usingPlans ? (
-        <ol className="divide-y divide-hairline">
-          {popular.map((item, index) => (
-            <li
-              key={item.id}
-              className="flex items-center gap-3 px-4 py-3"
-            >
-              <span className="w-6 shrink-0 font-display text-sm font-bold tabular-nums text-body">
-                {String(index + 1).padStart(2, "0")}
-              </span>
-              <Thumbnail image={item.image} name={item.name} />
-              <div className="min-w-0 flex-1">
-                <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
-                  <Link
-                    href={`/admin/destinasi/${item.id}/edit`}
-                    className="truncate text-sm font-semibold text-ink hover:text-primary"
-                  >
-                    {item.name}
-                  </Link>
-                  <span className="shrink-0 text-xs font-semibold text-primary">
-                    {item.planCount} rencana
-                  </span>
-                </div>
-                <div className="mt-1 flex items-center gap-2">
-                  <p className="min-w-0 flex-1 truncate text-xs text-body">
-                    {regionLabel(item)}
-                  </p>
-                  <div
-                    className="h-1.5 w-24 overflow-hidden rounded-full bg-canvas-subtle"
-                    role="presentation"
-                  >
-                    <div
-                      className="h-full rounded-full bg-primary"
-                      style={{
-                        width: `${Math.round((item.planCount / maxPlans) * 100)}%`,
+        <p
+          role="status"
+          className="rounded-2xl border border-hairline bg-surface p-5 text-sm text-body"
+        >
+          Memuat destinasi…
+        </p>
+      ) : visible.length ? (
+        <ul className="grid gap-4 sm:grid-cols-3">
+          {visible.map((item) => (
+            <li key={item.id}>
+              <Link
+                href={`/admin/destinasi/${item.id}/edit`}
+                className="group block overflow-hidden rounded-[20px] border border-hairline bg-surface transition-colors hover:border-border-strong"
+              >
+                <div className="relative grid h-[116px] place-items-center bg-canvas-subtle text-primary">
+                  <MountainSnow aria-hidden className="size-8" />
+                  {item.image && (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={item.image}
+                      alt=""
+                      className="absolute inset-0 size-full object-cover"
+                      onError={(event) => {
+                        event.currentTarget.hidden = true;
                       }}
                     />
+                  )}
+                </div>
+                <div className="space-y-2 p-3.5">
+                  <span className="inline-block max-w-full truncate rounded-full bg-canvas-subtle px-2.5 py-0.5 text-[11px] font-medium text-body">
+                    {item.tag}
+                  </span>
+                  <h3 className="truncate font-sans text-sm font-semibold text-ink group-hover:underline">
+                    {item.name}
+                  </h3>
+                  <div className="flex items-center gap-2 text-xs text-body">
+                    <span
+                      aria-hidden
+                      className="grid size-5 shrink-0 place-items-center rounded-full bg-canvas-subtle text-primary"
+                    >
+                      <Clock className="size-3" />
+                    </span>
+                    <span className="truncate">
+                      Diperbarui {formatRelativeId(item.updatedAt)}
+                    </span>
                   </div>
                 </div>
-              </div>
-            </li>
-          ))}
-        </ol>
-      ) : recent.length === 0 ? (
-        <p className="px-4 py-10 text-center text-sm text-body">
-          Belum ada destinasi di katalog.
-        </p>
-      ) : (
-        <ul className="divide-y divide-hairline">
-          {recent.map((item) => (
-            <li key={item.id} className="flex items-center gap-3 px-4 py-3">
-              <Thumbnail image={item.image} name={item.name} />
-              <div className="min-w-0 flex-1">
-                <Link
-                  href={`/admin/destinasi/${item.id}/edit`}
-                  className="block truncate text-sm font-semibold text-ink hover:text-primary"
-                >
-                  {item.name}
-                </Link>
-                <p className="truncate text-xs text-body">
-                  {regionLabel(item)}
-                </p>
-              </div>
-              <span className="shrink-0 text-xs text-body">
-                {formatDate(item.createdAt)}
-              </span>
+              </Link>
             </li>
           ))}
         </ul>
+      ) : (
+        <p className="rounded-2xl border border-hairline bg-surface p-5 text-sm text-body">
+          Belum ada destinasi di katalog.
+        </p>
       )}
+    </section>
+  );
+}
+
+export function AiPopularDestinationsCard({
+  popular,
+}: {
+  popular: PopularDestination[];
+}) {
+  if (!popular.length) return null;
+
+  return (
+    <section className="rounded-[20px] border border-hairline bg-surface">
+      <h2 className="px-5 py-4 font-display text-base font-bold text-ink">
+        Destinasi populer di rencana AI
+      </h2>
+      <ol className="divide-y divide-hairline border-t border-hairline">
+        {popular.map((item) => (
+          <li
+            key={item.id}
+            className="flex items-start justify-between gap-3 px-5 py-3 text-sm"
+          >
+            <div className="min-w-0">
+              <Link
+                href={`/admin/destinasi/${item.id}/edit`}
+                className="font-semibold text-ink hover:underline"
+              >
+                {item.name}
+              </Link>
+              <p className="truncate text-xs text-body">
+                {[item.regency, item.province].filter(Boolean).join(", ") || "—"}
+              </p>
+            </div>
+            <span className="shrink-0 rounded-full bg-canvas-subtle px-2.5 py-1 text-xs font-semibold text-primary">
+              {item.planCount} rencana
+            </span>
+          </li>
+        ))}
+      </ol>
     </section>
   );
 }

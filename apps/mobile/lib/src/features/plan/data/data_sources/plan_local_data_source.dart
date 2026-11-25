@@ -6,14 +6,32 @@ import 'package:dolenae_mobile/src/features/checklist/domain/entities/checklist_
 import 'package:dolenae_mobile/src/features/plan/domain/entities/trip_plan.dart';
 
 /// Penyimpanan lokal daftar rencana (prototype, tanpa backend).
+///
+/// Data dipisah per pengguna untuk mencegah kebocoran lintas akun pada
+/// perangkat yang sama. Kunci lama `plan.list.v1` dimigrasikan ke scope
+/// guest (`plan.list.v1.guest`) sekali saja, lalu dihapus, karena pemilik
+/// akun lama tidak dapat ditentukan secara aman.
 class PlanLocalDataSource {
   PlanLocalDataSource(this._prefs);
 
-  static const _storageKey = 'plan.list.v1';
+  static const _legacyStorageKey = 'plan.list.v1';
+  static const _storagePrefix = 'plan.list.v1.';
+  static const _guestScope = 'guest';
 
   final SharedPreferences _prefs;
+  String _userScope = _guestScope;
+  bool _legacyMigrated = false;
+
+  void setUserId(String? userId) {
+    final next = _normalizeScope(userId);
+    if (next == _userScope) return;
+    _userScope = next;
+  }
+
+  String get _storageKey => '$_storagePrefix$_userScope';
 
   List<TripPlan>? read() {
+    _migrateLegacyIfNeeded();
     final raw = _prefs.getString(_storageKey);
     if (raw == null || raw.isEmpty) return null;
     final decoded = jsonDecode(raw);
@@ -25,8 +43,30 @@ class PlanLocalDataSource {
   }
 
   Future<void> write(List<TripPlan> plans) async {
+    _migrateLegacyIfNeeded();
     final raw = jsonEncode(plans.map(_planToJson).toList(growable: false));
     await _prefs.setString(_storageKey, raw);
+  }
+
+  void _migrateLegacyIfNeeded() {
+    if (_legacyMigrated) return;
+    _legacyMigrated = true;
+    final legacyRaw = _prefs.getString(_legacyStorageKey);
+    if (legacyRaw == null || legacyRaw.isEmpty) return;
+
+    final guestKey = '$_storagePrefix$_guestScope';
+    if (!_prefs.containsKey(guestKey)) {
+      // Pemilik data lama tidak diketahui; simpan ke scope guest agar tidak
+      // bocor ke akun terautentikasi.
+      _prefs.setString(guestKey, legacyRaw);
+    }
+    _prefs.remove(_legacyStorageKey);
+  }
+
+  static String _normalizeScope(String? userId) {
+    final trimmed = userId?.trim();
+    if (trimmed == null || trimmed.isEmpty) return _guestScope;
+    return trimmed;
   }
 }
 

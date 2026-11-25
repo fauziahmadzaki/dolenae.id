@@ -186,10 +186,9 @@ class PlanItemDetailScreen extends StatelessWidget {
                   vertical: 4,
                 ),
                 decoration: BoxDecoration(
-                  color: isWarningDifficulty
-                      ? const Color(0xFFFBEEDB)
-                      : const Color(0xFFE2F0E5),
+                  color: AppColors.canvas,
                   borderRadius: BorderRadius.circular(AppRadius.pill),
+                  border: Border.all(color: AppColors.hairline),
                 ),
                 child: Text(
                   difficultyLabel,
@@ -329,6 +328,7 @@ class PlanItemDetailScreen extends StatelessWidget {
             icon: AppIcons.delete,
             height: 48,
             foreground: AppColors.danger,
+            borderColor: AppColors.danger,
             onPressed:
                 onDelete ??
                 () {

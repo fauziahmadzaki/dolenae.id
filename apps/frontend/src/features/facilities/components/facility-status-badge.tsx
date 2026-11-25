@@ -3,11 +3,11 @@ import type { FacilityStatus } from "../types";
 import { statusLabels } from "../types";
 
 const styles: Record<FacilityStatus, string> = {
-  draft: "bg-canvas-subtle text-body",
-  pending: "bg-warning/15 text-warning",
-  published: "bg-success/15 text-success",
-  rejected: "bg-danger/10 text-danger",
-  archived: "bg-ink/10 text-body",
+  draft: "border border-hairline bg-canvas-subtle text-body",
+  pending: "border border-hairline bg-canvas-subtle text-warning",
+  published: "border border-hairline bg-canvas-subtle text-success",
+  rejected: "border border-hairline bg-canvas-subtle text-danger",
+  archived: "border border-hairline bg-canvas-subtle text-body",
 };
 
 export function FacilityStatusBadge({

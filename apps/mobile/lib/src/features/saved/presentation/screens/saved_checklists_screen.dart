@@ -13,6 +13,7 @@ import 'package:dolenae_mobile/src/shared/widgets/dn_app_bar.dart';
 import 'package:dolenae_mobile/src/shared/widgets/dn_buttons.dart';
 import 'package:dolenae_mobile/src/shared/widgets/dn_dialog.dart';
 import 'package:dolenae_mobile/src/shared/widgets/dn_empty_state.dart';
+import 'package:dolenae_mobile/src/shared/widgets/dn_icon_circle.dart';
 import 'package:dolenae_mobile/src/shared/widgets/dn_progress_bar.dart';
 import 'package:dolenae_mobile/src/shared/widgets/dn_toast.dart';
 
@@ -103,6 +104,12 @@ class SavedChecklistsScreen extends StatelessWidget {
                         Row(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
+                            const DnIconCircle(
+                              icon: AppIcons.squareCheck,
+                              size: 40,
+                              iconSize: 18,
+                            ),
+                            const SizedBox(width: AppSpacing.s3),
                             Expanded(
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,

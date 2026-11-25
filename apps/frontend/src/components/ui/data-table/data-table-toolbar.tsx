@@ -24,6 +24,10 @@ export interface DataTableToolbarProps {
   total: number;
   /** Plural noun used in the count and states, e.g. "pengguna". */
   itemLabel: string;
+  /** Optional range description rendered inside unified table cards. */
+  rangeText?: string;
+  /** Render flat without outer card chrome when placed inside a DataTable card. */
+  embedded?: boolean;
   className?: string;
 }
 
@@ -38,11 +42,21 @@ export function DataTableToolbar({
   actions,
   total,
   itemLabel,
+  rangeText,
+  embedded = false,
   className,
 }: DataTableToolbarProps) {
   return (
-    <div className={cn("flex flex-wrap items-center gap-2", className)}>
-      <label className="flex h-10 w-full items-center gap-2 rounded-lg border border-hairline bg-surface px-3 sm:w-72">
+    <div
+      className={cn(
+        "flex flex-wrap items-center gap-3",
+        embedded
+          ? "border-b border-hairline px-5 py-4"
+          : "rounded-2xl border border-hairline bg-surface px-5 py-3.5",
+        className,
+      )}
+    >
+      <label className="flex h-10 w-full items-center gap-2 rounded-full border border-hairline bg-canvas-subtle px-3.5 sm:w-80">
         <Search aria-hidden className="h-4 w-4 shrink-0 text-body" />
         <span className="sr-only">{searchPlaceholder}</span>
         <input
@@ -54,17 +68,16 @@ export function DataTableToolbar({
         />
       </label>
 
-      <DataTableFilterPanel
-        sort={sort}
-        onSortChange={onSortChange}
-        sortOptions={sortOptions}
-        filters={filters}
-      />
-
-      <div className="ml-auto flex items-center gap-2">
-        <span className="text-sm text-body" aria-live="polite">
-          {total} {itemLabel}
+      <div className="ml-auto flex flex-wrap items-center gap-2.5">
+        <span className="text-xs text-body" aria-live="polite">
+          {rangeText ?? `${total} ${itemLabel}`}
         </span>
+        <DataTableFilterPanel
+          sort={sort}
+          onSortChange={onSortChange}
+          sortOptions={sortOptions}
+          filters={filters}
+        />
         {actions}
       </div>
     </div>

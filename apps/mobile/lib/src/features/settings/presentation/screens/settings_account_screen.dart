@@ -83,6 +83,14 @@ class SettingsAccountScreen extends StatelessWidget {
               icon: AppIcons.delete,
               foreground: AppColors.danger,
               onTap: () async {
+                final remove = onDeleteAccount;
+                if (remove == null) {
+                  showDnToast(
+                    context,
+                    'Penghapusan akun belum tersedia di aplikasi.',
+                  );
+                  return;
+                }
                 final confirmed = await showDnDialog(
                   context,
                   title: 'Hapus akun permanen?',
@@ -94,16 +102,7 @@ class SettingsAccountScreen extends StatelessWidget {
                   icon: AppIcons.delete,
                 );
                 if (confirmed != true || !context.mounted) return;
-                final remove = onDeleteAccount;
-                if (remove != null) {
-                  remove();
-                } else {
-                  showDnToast(
-                    context,
-                    'Permintaan hapus akun dicatat',
-                    type: DnToastType.info,
-                  );
-                }
+                remove();
               },
             ),
           ],

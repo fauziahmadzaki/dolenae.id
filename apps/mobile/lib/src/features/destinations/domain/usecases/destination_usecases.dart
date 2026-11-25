@@ -20,16 +20,122 @@ class SearchDestinationsUseCase {
 
   List<Destination> call(List<Destination> source, SearchFilter filter) {
     final query = filter.query.trim().toLowerCase();
-    if (query.isEmpty && filter.categoryId.isEmpty) return source;
+    if (query.isEmpty && !filter.isFiltered) return source;
 
-    return source
-        .where(
-          (destination) =>
-              (filter.categoryId.isEmpty ||
-                  destination.categoryIds.contains(filter.categoryId)) &&
-              _haystack(destination).contains(query),
-        )
+    final filtered = source
+        .where((destination) {
+          if (filter.categoryId.isNotEmpty &&
+              !destination.categoryIds.contains(filter.categoryId)) {
+            return false;
+          }
+          if (!_matchesTerrain(destination, filter.terrain)) {
+            return false;
+          }
+          if (!_matchesDifficulty(destination.difficulty, filter.difficulty)) {
+            return false;
+          }
+          if (filter.supports.isNotEmpty &&
+              !_matchesSupports(destination, filter.supports)) {
+            return false;
+          }
+          return query.isEmpty || _haystack(destination).contains(query);
+        })
         .toList(growable: false);
+
+    return _sorted(filtered, filter.sort);
+  }
+
+  /// Urutan hasil. Destinasi tanpa nilai selalu diletakkan paling akhir supaya
+  /// data kosong tidak tampil seolah paling murah/tertinggi.
+  static List<Destination> _sorted(
+    List<Destination> items,
+    SortOption sort,
+  ) {
+    if (sort == SortOption.populer) return items;
+    final sorted = [...items];
+    sorted.sort((a, b) {
+      switch (sort) {
+        case SortOption.populer:
+          return 0;
+        case SortOption.termurah:
+          return _compareNullable(a.priceFrom, b.priceFrom);
+        case SortOption.rating:
+          // Rating pertama, lalu ketinggian sebagai penentu bila seri/kosong.
+          final byRating = _compareNullable(
+            a.rating,
+            b.rating,
+            descending: true,
+          );
+          if (byRating != 0) return byRating;
+          return _compareNullable(
+            a.elevationM,
+            b.elevationM,
+            descending: true,
+          );
+        case SortOption.ketinggian:
+          return _compareNullable(
+            a.elevationM,
+            b.elevationM,
+            descending: true,
+          );
+      }
+    });
+    return sorted;
+  }
+
+  /// `null` dianggap paling akhir, baik urutan naik maupun turun.
+  static int _compareNullable<T extends num>(
+    T? a,
+    T? b, {
+    bool descending = false,
+  }) {
+    if (a == null && b == null) return 0;
+    if (a == null) return 1;
+    if (b == null) return -1;
+    return descending ? b.compareTo(a) : a.compareTo(b);
+  }
+
+  /// Chip Beranda hanya membawa nama medan, jadi dicocokkan ke `terrain`.
+  ///
+  /// Sengaja tidak memakai nama/tagline: "Camping Gunungkidul" bertagline
+  /// gunung tapi medannya camping, dan harus tetap tersaring keluar.
+  static bool _matchesTerrain(Destination destination, String terrain) {
+    final wanted = terrain.trim().toLowerCase();
+    if (wanted.isEmpty) return true;
+    return destination.terrain.any(
+      (item) => item.toLowerCase() == wanted,
+    );
+  }
+
+  static bool _matchesDifficulty(
+    DifficultyLevel? level,
+    DifficultyFilter filter,
+  ) => switch (filter) {
+    DifficultyFilter.semua => true,
+    DifficultyFilter.ramahPemula => level == DifficultyLevel.pemula,
+    DifficultyFilter.menengah => level == DifficultyLevel.menengah,
+    DifficultyFilter.sulit => level == DifficultyLevel.sulit,
+  };
+
+  static bool _matchesSupports(
+    Destination destination,
+    List<String> supports,
+  ) {
+    final blob = [
+      ...destination.activities,
+      ...destination.terrain,
+      ...destination.accessTransportModes,
+      destination.tagline,
+      destination.accessDescription ?? '',
+    ].join(' ').toLowerCase();
+
+    return supports.every((item) {
+      final token = item.trim().toLowerCase();
+      if (token == 'area camping') {
+        return blob.contains('camping') || blob.contains('camp');
+      }
+      return blob.contains(token);
+    });
   }
 }
 

@@ -1,8 +1,8 @@
 "use client";
 
 import { ChevronLeft, ChevronRight } from "lucide-react";
-import { Button } from "~/components/ui/button";
 import { Select } from "~/components/ui/select";
+import { cn } from "~/lib/cn";
 import { PAGE_SIZES, pageCount, pageRange } from "~/lib/pagination";
 
 export interface DataTablePaginationProps {
@@ -14,12 +14,26 @@ export interface DataTablePaginationProps {
   onPageChange: (page: number) => void;
   onPageSizeChange: (pageSize: number) => void;
   isFetching?: boolean;
+  /** Render inside a unified table card footer with top hairline border. */
+  embedded?: boolean;
 }
 
 const PAGE_SIZE_OPTIONS = PAGE_SIZES.map((size) => ({
   value: String(size),
   label: String(size),
 }));
+
+function pageWindow(current: number, totalPages: number): number[] {
+  const maxVisible = 5;
+  if (totalPages <= maxVisible) {
+    return Array.from({ length: totalPages }, (_, index) => index + 1);
+  }
+  const half = Math.floor(maxVisible / 2);
+  let start = Math.max(1, current - half);
+  const end = Math.min(totalPages, start + maxVisible - 1);
+  start = Math.max(1, end - maxVisible + 1);
+  return Array.from({ length: end - start + 1 }, (_, index) => start + index);
+}
 
 export function DataTablePagination({
   page,
@@ -29,53 +43,71 @@ export function DataTablePagination({
   onPageChange,
   onPageSizeChange,
   isFetching = false,
+  embedded = false,
 }: DataTablePaginationProps) {
   const pages = pageCount(total, pageSize);
   const { from, to } = pageRange(page, pageSize, total);
+  const visible = pageWindow(page, pages);
 
   return (
-    <div className="flex flex-wrap items-center justify-between gap-3 text-sm text-body">
-      <p aria-live="polite">
-        Menampilkan {from}–{to} dari {total} {itemLabel}
-      </p>
+    <div
+      className={cn(
+        "flex flex-wrap items-center justify-between gap-3 text-sm text-body",
+        embedded && "border-t border-hairline px-5 py-3.5",
+      )}
+    >
+      <div className="flex flex-wrap items-center gap-2.5 text-xs sm:text-sm">
+        <span>Tampilkan</span>
+        <Select
+          ariaLabel="Jumlah baris per halaman"
+          size="sm"
+          value={String(pageSize)}
+          onChange={(value) => onPageSizeChange(Number(value))}
+          options={PAGE_SIZE_OPTIONS}
+          className="w-20"
+        />
+        <p aria-live="polite">
+          ({from}–{to} dari {total} {itemLabel})
+        </p>
+      </div>
 
-      <div className="flex flex-wrap items-center gap-3">
-        <div className="flex items-center gap-2">
-          <span>Tampilkan</span>
-          <Select
-            ariaLabel="Jumlah baris per halaman"
-            size="sm"
-            value={String(pageSize)}
-            onChange={(value) => onPageSizeChange(Number(value))}
-            options={PAGE_SIZE_OPTIONS}
-            className="w-20"
-          />
-        </div>
-
-        <div className="flex items-center gap-2">
-          <Button
-            variant="secondary"
-            size="sm"
-            aria-label="Halaman sebelumnya"
-            disabled={page <= 1 || isFetching}
-            onClick={() => onPageChange(page - 1)}
+      <div className="flex items-center gap-1.5">
+        <button
+          type="button"
+          aria-label="Halaman sebelumnya"
+          disabled={page <= 1 || isFetching}
+          onClick={() => onPageChange(page - 1)}
+          className="inline-flex size-9 items-center justify-center rounded-full border border-hairline bg-surface text-ink transition-colors hover:bg-canvas-subtle disabled:cursor-not-allowed disabled:opacity-40"
+        >
+          <ChevronLeft aria-hidden className="h-4 w-4" />
+        </button>
+        {visible.map((number) => (
+          <button
+            key={number}
+            type="button"
+            aria-label={`Halaman ${number}`}
+            aria-current={page === number ? "page" : undefined}
+            disabled={isFetching}
+            onClick={() => onPageChange(number)}
+            className={cn(
+              "inline-flex size-9 items-center justify-center rounded-full text-xs font-semibold transition-colors",
+              page === number
+                ? "bg-primary text-on-primary"
+                : "border border-hairline bg-surface text-body hover:bg-canvas-subtle hover:text-ink",
+            )}
           >
-            <ChevronLeft aria-hidden className="h-4 w-4" />
-          </Button>
-          <span className="rounded-md bg-primary px-3 py-1.5 text-on-primary">
-            {page}
-          </span>
-          <span>dari {pages}</span>
-          <Button
-            variant="secondary"
-            size="sm"
-            aria-label="Halaman berikutnya"
-            disabled={page >= pages || isFetching}
-            onClick={() => onPageChange(page + 1)}
-          >
-            <ChevronRight aria-hidden className="h-4 w-4" />
-          </Button>
-        </div>
+            {number}
+          </button>
+        ))}
+        <button
+          type="button"
+          aria-label="Halaman berikutnya"
+          disabled={page >= pages || isFetching}
+          onClick={() => onPageChange(page + 1)}
+          className="inline-flex size-9 items-center justify-center rounded-full border border-hairline bg-surface text-ink transition-colors hover:bg-canvas-subtle disabled:cursor-not-allowed disabled:opacity-40"
+        >
+          <ChevronRight aria-hidden className="h-4 w-4" />
+        </button>
       </div>
     </div>
   );

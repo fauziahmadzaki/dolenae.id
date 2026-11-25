@@ -5,9 +5,14 @@ import 'package:dolenae_mobile/src/features/destinations/domain/entities/destina
 
 /// Badge tingkat kesulitan: pemula=success, menengah=warning, sulit=danger.
 class DnDifficultyBadge extends StatelessWidget {
-  const DnDifficultyBadge({super.key, required this.level});
+  const DnDifficultyBadge({
+    super.key,
+    required this.level,
+    this.solid = true,
+  });
 
   final DifficultyLevel? level;
+  final bool solid;
 
   @override
   Widget build(BuildContext context) {
@@ -22,18 +27,23 @@ class DnDifficultyBadge extends StatelessWidget {
       height: 24,
       padding: const EdgeInsets.symmetric(horizontal: 10),
       decoration: BoxDecoration(
-        color: AppColors.canvas,
+        color: solid ? color : AppColors.canvas,
         borderRadius: BorderRadius.circular(99),
-        border: Border.all(color: AppColors.hairline),
+        border: solid ? null : Border.all(color: AppColors.hairline),
       ),
-      alignment: Alignment.center,
-      child: Text(
-        label,
-        style: TextStyle(
-          fontSize: 11,
-          fontWeight: FontWeight.w600,
-          color: color,
-        ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w600,
+              color: solid ? AppColors.onPrimary : color,
+            ),
+          ),
+        ],
       ),
     );
   }

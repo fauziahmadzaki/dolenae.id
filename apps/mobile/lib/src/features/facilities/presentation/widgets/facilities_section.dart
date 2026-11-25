@@ -2,9 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'package:dolenae_mobile/src/app/theme/app_spacing.dart';
-import 'package:dolenae_mobile/src/app/theme/app_text_styles.dart';
 import 'package:dolenae_mobile/src/features/facilities/domain/entities/facility.dart';
 import 'package:dolenae_mobile/src/features/facilities/presentation/controllers/facilities_controller.dart';
+import 'package:dolenae_mobile/src/shared/widgets/dn_chip.dart';
+import 'package:dolenae_mobile/src/shared/widgets/dn_section_header.dart';
 import 'package:dolenae_mobile/src/shared/widgets/dn_support_row.dart';
 
 /// Bagian reusable; ID harus berasal dari destinasi yang sedang ditampilkan.
@@ -60,25 +61,32 @@ class _FacilitiesSectionState extends State<FacilitiesSection> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('Berbagai Fasilitas', style: AppTextStyles.title),
+        DnSectionHeader(
+          title: 'Berbagai Fasilitas',
+          actionLabel: 'Lihat semua',
+          onAction: () => context.push(
+            '/destinations/${Uri.encodeComponent(widget.destinationId)}/facilities',
+          ),
+        ),
         const SizedBox(height: AppSpacing.s3),
         Wrap(
           spacing: AppSpacing.s2,
+          runSpacing: AppSpacing.s2,
           children: [
-            ChoiceChip(
-              label: const Text('Semua'),
-              selected: _category == null,
-              onSelected: (_) => setState(() => _category = null),
+            DnChip(
+              label: 'Semua',
+              active: _category == null,
+              onTap: () => setState(() => _category = null),
             ),
             for (final category in FacilityCategory.values)
-              ChoiceChip(
-                label: Text(switch (category) {
+              DnChip(
+                label: switch (category) {
                   FacilityCategory.penginapan => 'Penginapan',
                   FacilityCategory.transportasi => 'Transportasi',
                   FacilityCategory.makanan => 'Makanan',
-                }),
-                selected: _category == category,
-                onSelected: (_) => setState(() => _category = category),
+                },
+                active: _category == category,
+                onTap: () => setState(() => _category = category),
               ),
           ],
         ),

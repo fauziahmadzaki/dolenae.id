@@ -38,13 +38,14 @@ void main() {
     expect(find.text('Destinasi tidak ditemukan'), findsOneWidget);
   });
 
-  testWidgets('beranda tidak lagi menampilkan chip kategori', (tester) async {
+  testWidgets('beranda menampilkan chip kategori terrain', (tester) async {
     await usePhone(tester);
     await tester.pumpWidget(wrapScreen(const BerandaScreen()));
     await tester.pumpAndSettle();
 
-    expect(find.text('Gunung'), findsNothing);
-    expect(find.text('Bukit'), findsNothing);
+    // Frame Hi-Fi Beranda `56:10021` memuat chip Gunung..Camping.
+    expect(find.text('Gunung'), findsOneWidget);
+    expect(find.text('Bukit'), findsOneWidget);
     expect(find.text('Destinasi populer'), findsOneWidget);
     expect(find.byType(TextField), findsOneWidget);
   });

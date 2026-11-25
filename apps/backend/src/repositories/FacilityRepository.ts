@@ -7,6 +7,7 @@ import {
   getTableColumns,
   ilike,
   inArray,
+  or,
   type SQL,
 } from "drizzle-orm";
 import { database } from "../db/DatabaseClient";
@@ -54,6 +55,26 @@ class FacilityRepository {
     return row;
   }
 
+  /**
+   * Published facilities of one destination, grouped by `type`.
+   * Used to build the destination detail amenity summary.
+   */
+  async countPublishedTypes(
+    destinationId: string,
+  ): Promise<{ type: string; total: number }[]> {
+    const rows = await this.db
+      .select({ type: facilities.type, value: count() })
+      .from(facilities)
+      .where(
+        and(
+          eq(facilities.destinationId, destinationId),
+          eq(facilities.status, "published"),
+        ),
+      )
+      .groupBy(facilities.type);
+    return rows.map((row) => ({ type: row.type, total: Number(row.value) }));
+  }
+
   async list(
     params: FacilityListParams,
   ): Promise<{ items: JoinedFacility[]; total: number }> {
@@ -74,17 +95,25 @@ class FacilityRepository {
     if (params.type) {
       conditions.push(ilike(facilities.type, `%${params.type}%`));
     }
+    if (params.search) {
+      const pattern = `%${params.search}%`;
+      const search = or(ilike(facilities.name, pattern), ilike(destinations.name, pattern));
+      if (search) conditions.push(search);
+    }
     if (params.publishedDestinationOnly) {
       conditions.push(eq(destinations.status, "published"));
     }
     const where = conditions.length ? and(...conditions) : undefined;
+    const byDate = params.sort === "createdAt";
+    const order = byDate || params.sort === "name" ? params.order : "asc";
+    const direction = order === "desc" ? desc : asc;
 
     const items = await db
       .select(selection)
       .from(facilities)
       .innerJoin(destinations, eq(facilities.destinationId, destinations.id))
       .where(where)
-      .orderBy(asc(facilities.name), asc(facilities.id))
+      .orderBy(direction(byDate ? facilities.createdAt : facilities.name), asc(facilities.id))
       .limit(params.limit)
       .offset(params.offset);
 

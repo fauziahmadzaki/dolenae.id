@@ -9,6 +9,7 @@ import 'package:dolenae_mobile/src/app/theme/app_text_styles.dart';
 import 'package:dolenae_mobile/src/features/checklist/domain/entities/checklist_item.dart';
 import 'package:dolenae_mobile/src/shared/widgets/dn_app_bar.dart';
 import 'package:dolenae_mobile/src/shared/widgets/dn_buttons.dart';
+import 'package:dolenae_mobile/src/shared/widgets/dn_toast.dart';
 
 /// Layar Tambah Item Checklist (Node Figma: 86:1513).
 ///
@@ -59,11 +60,10 @@ class _AddChecklistItemScreenState extends State<AddChecklistItemScreen> {
   void _handleSubmit() {
     final name = _nameController.text.trim();
     if (name.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Nama item tidak boleh kosong'),
-          backgroundColor: AppColors.danger,
-        ),
+      showDnToast(
+        context,
+        'Nama item tidak boleh kosong',
+        type: DnToastType.gagal,
       );
       return;
     }
@@ -83,11 +83,10 @@ class _AddChecklistItemScreenState extends State<AddChecklistItemScreen> {
     widget.onSave?.call(newItem);
 
     if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Item "${newItem.name}" ditambahkan!'),
-          backgroundColor: AppColors.success,
-        ),
+      showDnToast(
+        context,
+        'Item "${newItem.name}" ditambahkan!',
+        type: DnToastType.sukses,
       );
       if (context.canPop()) {
         context.pop(newItem);

@@ -34,7 +34,9 @@ class Categories implements CategoryRepository {
 
 void main() {
   setUpAll(useTestFonts);
-  testWidgets('home tidak memakai chip kategori', (tester) async {
+  testWidgets('home menampilkan chip kategori terrain dari katalog', (
+    tester,
+  ) async {
     await usePhone(tester);
     await tester.pumpWidget(
       wrapScreen(
@@ -44,7 +46,9 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('Medan baru'), findsNothing);
+    // Frame Beranda `56:10021` punya baris chip terrain; kategori bertipe
+    // activity hanya dipakai di Jelajah.
+    expect(find.text('Medan baru'), findsOneWidget);
     expect(find.text('Aktivitas baru'), findsNothing);
     expect(find.byType(TextField), findsOneWidget);
   });
@@ -57,13 +61,15 @@ void main() {
       await tester.pumpAndSettle();
       await tester.tap(find.text('Medan baru'));
       await tester.pumpAndSettle();
-      expect(stores.search.searchFilter.categoryId, 'terrain-id');
+      // Chip terrain memfilter lewat nama medan (`?q=` hanya membawa nama).
+      expect(stores.search.searchFilter.terrain, 'Medan baru');
       expect(find.text('Tidak ada hasil'), findsOneWidget);
       expect(find.text('Medan baru'), findsOneWidget);
       await tester.tap(find.text('Semuanya'));
       await tester.pumpAndSettle();
       expect(stores.search.searchFilter.categoryId, '');
-      expect(find.text('DESTINASI DISARANKAN'), findsOneWidget);
+      expect(stores.search.searchFilter.terrain, '');
+      expect(find.text('Urutkan: Populer'), findsOneWidget);
     },
   );
 }

@@ -232,6 +232,7 @@ class FacilityService {
     const { items, total } = await facilityRepository.list({
       ...pagination,
       ownerId: actor.role === "admin" ? undefined : actor.id,
+      statuses: query.status ? [query.status] : undefined,
       category: query.category,
       type: query.type,
     });

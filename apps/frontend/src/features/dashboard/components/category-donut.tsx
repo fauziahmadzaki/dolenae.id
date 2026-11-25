@@ -47,7 +47,7 @@ export function CategoryDonut({
   let offset = 0;
 
   return (
-    <section className="rounded-xl border border-hairline bg-surface">
+    <section className="rounded-[20px] border border-hairline bg-surface">
       <div className="border-b border-hairline px-4 py-3">
         <h2 className="text-sm font-semibold text-ink">
           Persebaran kategori destinasi

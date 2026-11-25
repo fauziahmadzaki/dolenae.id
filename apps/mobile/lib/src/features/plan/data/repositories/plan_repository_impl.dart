@@ -10,6 +10,12 @@ class PlanRepositoryImpl implements PlanRepository {
 
   final PlanLocalDataSource _local;
 
+  /// Mengatur scope pengguna aktif. Data rencana dipisah per pengguna.
+  @override
+  void setUserId(String? userId) {
+    _local.setUserId(userId);
+  }
+
   @override
   Future<Result<List<TripPlan>>> load() async {
     try {

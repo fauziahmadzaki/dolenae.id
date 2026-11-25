@@ -45,6 +45,7 @@ class SavedPlansScreen extends StatelessWidget {
       appBar: DnAppBar(
         title: 'Daftar rencana',
         showBack: true,
+        plainBack: true,
         onBack: onBack ?? () => context.pop(),
         trailing: DnIconPlus(
           onTap: onCreatePlan ?? () => context.push('/plan/new'),
@@ -62,13 +63,15 @@ class SavedPlansScreen extends StatelessWidget {
                       const DnEmptyState(
                         variant: DnEmptyVariant.belumAdaData,
                         title: 'Belum ada rencana',
-                        body: 'Susun rencana perjalanan supaya mudah '
+                        body:
+                            'Susun rencana perjalanan supaya mudah '
                             'dibawa ke lapangan.',
                       ),
                       const SizedBox(height: AppSpacing.s5),
                       DnPrimaryButton(
                         label: 'Buat rencana',
-                        onPressed: onCreatePlan ?? () => context.push('/plan/new'),
+                        onPressed:
+                            onCreatePlan ?? () => context.push('/plan/new'),
                       ),
                     ],
                   ),
@@ -91,10 +94,10 @@ class SavedPlansScreen extends StatelessWidget {
                   return DnPlanCard(
                     name: plan.name,
                     dateRange: plan.dateRange,
-                    destinationName: '${plan.destinationTotal} destinasi dipilih',
+                    destinationName:
+                        '${plan.destinationTotal} destinasi dipilih',
                     statusLabel: plan.statusLabel,
-                    statusColor:
-                        archived ? AppColors.body : AppColors.success,
+                    statusColor: archived ? AppColors.body : AppColors.success,
                     completed: plan.destinationCount,
                     total: plan.destinationTotal,
                     onTap: onOpenPlan == null
@@ -105,7 +108,7 @@ class SavedPlansScreen extends StatelessWidget {
                         context,
                         title: 'Hapus rencana ini?',
                         message:
-                            '${plan.name} beserta daftar.destinasinya akan '
+                            '${plan.name} beserta daftar destinasinya akan '
                             'dihapus dari daftar tersimpan.',
                         type: DnDialogType.destruktif,
                         confirmLabel: 'Hapus',
@@ -141,7 +144,7 @@ class DnIconPlus extends StatelessWidget {
   Widget build(BuildContext context) {
     return IconButton(
       onPressed: onTap,
-      icon: const Icon(AppIcons.plus, size: 20, color: AppColors.primary),
+      icon: const Icon(AppIcons.plus, size: 20, color: AppColors.onPrimary),
       tooltip: 'Buat rencana baru',
     );
   }

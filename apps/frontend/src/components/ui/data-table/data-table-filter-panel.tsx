@@ -86,7 +86,7 @@ export function DataTableFilterPanel({
           type="button"
           aria-label={activeCount > 0 ? `Filter, ${activeCount} aktif` : "Filter"}
           className={cn(
-            "flex h-10 items-center gap-2 rounded-lg border px-3 text-sm font-semibold transition-colors",
+            "flex h-10 items-center gap-2 rounded-xl border px-3.5 text-sm font-semibold transition-colors",
             activeCount > 0
               ? "border-primary bg-primary/5 text-primary"
               : "border-hairline bg-surface text-body hover:bg-canvas-subtle hover:text-ink",

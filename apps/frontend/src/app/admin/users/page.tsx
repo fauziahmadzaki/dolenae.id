@@ -1,2 +1,5 @@
 import UsersPage from "~/features/users/users-page";
-export default UsersPage;
+
+export default function AdminUsersPage() {
+  return <UsersPage />;
+}

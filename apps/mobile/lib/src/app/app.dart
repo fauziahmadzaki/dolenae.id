@@ -53,6 +53,7 @@ class _DolenaeAppState extends State<DolenaeApp> {
   late final PlanController _plan;
   late final ChecklistController _checklist;
   late final GoRouter _router;
+  String? _activeUserId;
 
   @override
   void initState() {
@@ -84,16 +85,29 @@ class _DolenaeAppState extends State<DolenaeApp> {
       dependencies.aiRepository,
       dependencies.locationRepository,
     );
-    unawaited(_plan.load());
     _checklist = ChecklistController(dependencies.checklistRepository);
+
+    _activeUserId = _auth.session?.user.id;
+    _saved.setUserId(_activeUserId);
+    unawaited(_plan.setUserId(_activeUserId));
+    _auth.addListener(_handleAuthChanged);
 
     _router = AppRouter.create(_auth);
     // Validate the restored token; a revoked session redirects to /login.
     unawaited(_auth.verifySession());
   }
 
+  void _handleAuthChanged() {
+    final next = _auth.session?.user.id;
+    if (next == _activeUserId) return;
+    _activeUserId = next;
+    _saved.setUserId(next);
+    unawaited(_plan.setUserId(next));
+  }
+
   @override
   void dispose() {
+    _auth.removeListener(_handleAuthChanged);
     _router.dispose();
     _destinations.dispose();
     _categories.dispose();

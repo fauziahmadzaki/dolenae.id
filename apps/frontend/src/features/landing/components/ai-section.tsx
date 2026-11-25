@@ -4,12 +4,12 @@ import { aiFeatures } from "~/features/landing/data";
 export function AiSection() {
   return (
     <section id="ai" className="bg-canvas py-24">
-      <div className="mx-auto grid max-w-[1200px] items-center gap-12 px-6 lg:grid-cols-2">
+      <div className="mx-auto grid max-w-[1248px] items-center gap-10 px-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,560px)] lg:gap-16">
         <div className="flex flex-col items-start gap-5">
-          <span className="text-xs font-semibold tracking-[0.2em] text-primary">
+          <span className="text-[11px] leading-[14px] font-semibold text-primary">
             PERSIAPAN AI
           </span>
-          <h2 className="font-display text-3xl font-extrabold leading-tight text-ink">
+          <h2 className="font-display text-2xl leading-8 font-bold text-ink">
             Jangan lupa bawa apa? Tanya Dolenae.
           </h2>
           <p className="text-body">
@@ -22,7 +22,7 @@ export function AiSection() {
                 key={feature}
                 className="flex items-start gap-3 text-sm text-body"
               >
-                <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-success/15 text-success">
+                <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-canvas-subtle text-primary">
                   <Check className="h-3.5 w-3.5" />
                 </span>
                 {feature}
@@ -31,12 +31,14 @@ export function AiSection() {
           </ul>
         </div>
 
-        <div className="flex flex-col items-start gap-4 rounded-2xl bg-primary p-8 text-on-primary">
-          <Sparkles className="h-8 w-8 text-on-primary/90" />
+        <div className="flex flex-col items-start gap-4 rounded-[20px] bg-primary p-6 text-on-primary">
+          <div className="grid h-40 w-full place-items-center rounded-xl bg-primary-hover">
+            <Sparkles aria-hidden className="size-14 text-accent" strokeWidth={1.25} />
+          </div>
           <span className="text-xs font-semibold tracking-wide text-on-primary/70">
             RENCANA 2 HARI, BUDGET 500RB
           </span>
-          <p className="font-display text-2xl font-bold leading-tight text-on-primary">
+          <p className="font-display text-xl leading-7 font-bold text-on-primary">
             Temukan 3 destinasi dan 12 item checklist
           </p>
           <p className="text-sm text-on-primary/75">

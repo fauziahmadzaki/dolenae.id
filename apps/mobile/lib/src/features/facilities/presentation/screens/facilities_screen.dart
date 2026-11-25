@@ -44,11 +44,13 @@ class _FacilitiesScreenState extends State<FacilitiesScreen> {
   static const _economicMaxPrice = 200000;
 
   FacilityCategory? _category;
+  bool _verifiedOnly = false;
   bool _economicOnly = false;
   bool _nearbyOnly = false;
 
   List<Facility> _filter(List<Facility> items, Destination destination) {
     return items.where((facility) {
+      if (_verifiedOnly && !facility.verified) return false;
       if (_economicOnly &&
           (facility.priceMin == null ||
               facility.priceMin! > _economicMaxPrice)) {
@@ -77,7 +79,8 @@ class _FacilitiesScreenState extends State<FacilitiesScreen> {
     return _filter(categoryItems, destination);
   }
 
-  bool get _hasFilter => _economicOnly || _nearbyOnly || _category != null;
+  bool get _hasFilter =>
+      _verifiedOnly || _economicOnly || _nearbyOnly || _category != null;
 
   void _openDetail(Facility facility) {
     final onOpenDetail = widget.onOpenDetail;
@@ -108,7 +111,7 @@ class _FacilitiesScreenState extends State<FacilitiesScreen> {
       ),
       (
         category: FacilityCategory.makanan,
-        label: 'TOKO / WARUNG',
+        label: 'TEMPAT MAKAN',
         icon: AppIcons.utensils,
       ),
     ];
@@ -116,7 +119,7 @@ class _FacilitiesScreenState extends State<FacilitiesScreen> {
     return Scaffold(
       backgroundColor: AppColors.canvas,
       appBar: DnAppBar(
-        title: 'Berbagai Fasilitas',
+        title: 'Fasilitas Sekitar',
         showBack: true,
         onBack: widget.onBack ?? () => context.pop(),
       ),
@@ -127,9 +130,9 @@ class _FacilitiesScreenState extends State<FacilitiesScreen> {
             Expanded(
               child: ListView(
                 padding: const EdgeInsets.fromLTRB(
-                  AppSpacing.s5,
                   AppSpacing.s4,
-                  AppSpacing.s5,
+                  AppSpacing.s4,
+                  AppSpacing.s4,
                   AppSpacing.s5,
                 ),
                 children: [
@@ -148,7 +151,7 @@ class _FacilitiesScreenState extends State<FacilitiesScreen> {
                         value: FacilityCategory.transportasi,
                         label: 'Transport',
                       ),
-                      (value: FacilityCategory.makanan, label: 'Toko/Warung'),
+                      (value: FacilityCategory.makanan, label: 'Makanan'),
                     ],
                     value: _category,
                     onChanged: (value) => setState(() => _category = value),
@@ -157,14 +160,20 @@ class _FacilitiesScreenState extends State<FacilitiesScreen> {
                   SingleChildScrollView(
                     scrollDirection: Axis.horizontal,
                     child: Row(
+                      spacing: AppSpacing.s2,
                       children: [
+                        DnChip(
+                          label: 'Terverifikasi',
+                          active: _verifiedOnly,
+                          onTap: () =>
+                              setState(() => _verifiedOnly = !_verifiedOnly),
+                        ),
                         DnChip(
                           label: 'Ekonomis',
                           active: _economicOnly,
                           onTap: () =>
                               setState(() => _economicOnly = !_economicOnly),
                         ),
-                        const SizedBox(width: AppSpacing.s2),
                         DnChip(
                           label: 'Kurang dari 2 km',
                           active: _nearbyOnly,
@@ -240,6 +249,8 @@ class _FacilitiesScreenState extends State<FacilitiesScreen> {
                 label: 'Usulkan fasilitas',
                 icon: AppIcons.plus,
                 height: 48,
+                backgroundColor: AppColors.canvasSubtle,
+                borderColor: AppColors.hairline,
                 onPressed:
                     widget.onPropose ??
                     () => context.push('/facilities/propose'),

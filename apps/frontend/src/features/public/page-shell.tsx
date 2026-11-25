@@ -10,6 +10,12 @@ export function PageHead({ title, description, children }: { title: string; desc
     <p className="max-w-[620px] text-base">{description}</p>{children}
   </div></section>;
 }
-export function PublicShell({ children }: { children: React.ReactNode }) {
-  return <><SiteHeader /><main id="main-content">{children}</main><SiteFooter /></>;
+export function PublicShell({ children, compactFooter = false }: { children: React.ReactNode; compactFooter?: boolean }) {
+  return (
+    <div className="flex min-h-dvh flex-col">
+      <SiteHeader />
+      <main id="main-content" className="flex-1">{children}</main>
+      <SiteFooter compact={compactFooter} />
+    </div>
+  );
 }

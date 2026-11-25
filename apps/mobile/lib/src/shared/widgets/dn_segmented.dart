@@ -40,18 +40,20 @@ class DnSegmented<T> extends StatelessWidget {
             height: height - 8,
             alignment: Alignment.center,
             padding: EdgeInsets.symmetric(
-              horizontal: expand ? AppSpacing.s2 : AppSpacing.s4,
+              horizontal: expand ? 6 : AppSpacing.s4,
             ),
             decoration: BoxDecoration(
               color: active ? AppColors.primary : Colors.transparent,
-              borderRadius: BorderRadius.circular(AppRadius.md),
+              borderRadius: BorderRadius.circular(AppRadius.pill),
             ),
-            child: Text(
-              segment.label,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: AppTextStyles.labelSm.copyWith(
-                color: active ? AppColors.onPrimary : AppColors.body,
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Text(
+                segment.label,
+                maxLines: 1,
+                style: AppTextStyles.labelSm.copyWith(
+                  color: active ? AppColors.onPrimary : AppColors.body,
+                ),
               ),
             ),
           ),
@@ -64,7 +66,7 @@ class DnSegmented<T> extends StatelessWidget {
       padding: const EdgeInsets.all(4),
       decoration: BoxDecoration(
         color: AppColors.canvasSubtle,
-        borderRadius: BorderRadius.circular(AppRadius.lg),
+        borderRadius: BorderRadius.circular(AppRadius.pill),
         border: Border.all(color: AppColors.hairline),
       ),
       child: Row(mainAxisSize: MainAxisSize.min, children: items),

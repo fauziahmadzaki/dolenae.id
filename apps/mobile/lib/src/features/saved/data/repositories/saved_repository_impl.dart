@@ -4,45 +4,62 @@ import 'package:dolenae_mobile/src/features/saved/data/data_sources/saved_seed_d
 import 'package:dolenae_mobile/src/features/saved/domain/entities/saved_item.dart';
 import 'package:dolenae_mobile/src/features/saved/domain/repositories/saved_repository.dart';
 
+class _SavedUserState {
+  _SavedUserState()
+    : destinations = List.of(SavedSeedData.destinations),
+      plans = List.of(SavedSeedData.plans),
+      checklists = List.of(SavedSeedData.checklists),
+      proposals = List.of(SavedSeedData.proposals);
+
+  final List<SavedDestination> destinations;
+  final List<SavedTripPlan> plans;
+  final List<SavedChecklist> checklists;
+  final List<FacilityProposal> proposals;
+}
+
 class SavedRepositoryImpl implements SavedRepository {
-  SavedRepositoryImpl()
-    : _destinations = List.of(SavedSeedData.destinations),
-      _plans = List.of(SavedSeedData.plans),
-      _checklists = List.of(SavedSeedData.checklists),
-      _proposals = List.of(SavedSeedData.proposals);
+  SavedRepositoryImpl();
 
-  final List<SavedDestination> _destinations;
-  final List<SavedTripPlan> _plans;
-  final List<SavedChecklist> _checklists;
-  final List<FacilityProposal> _proposals;
+  static const _guestScope = 'guest';
+  String _userScope = _guestScope;
+  final Map<String, _SavedUserState> _states = {};
+
+  _SavedUserState get _state => _states.putIfAbsent(_userScope, _SavedUserState.new);
+
+  /// Memisahkan state tersimpan/usulan per pengguna agar tidak bocor lintas akun.
+  @override
+  void setUserId(String? userId) {
+    final trimmed = userId?.trim();
+    _userScope = (trimmed == null || trimmed.isEmpty) ? _guestScope : trimmed;
+  }
 
   @override
-  List<SavedDestination> get destinations => List.unmodifiable(_destinations);
+  List<SavedDestination> get destinations => List.unmodifiable(_state.destinations);
 
   @override
-  List<SavedTripPlan> get plans => List.unmodifiable(_plans);
+  List<SavedTripPlan> get plans => List.unmodifiable(_state.plans);
 
   @override
-  List<SavedChecklist> get checklists => List.unmodifiable(_checklists);
+  List<SavedChecklist> get checklists => List.unmodifiable(_state.checklists);
 
   @override
-  List<FacilityProposal> get proposals => List.unmodifiable(_proposals);
+  List<FacilityProposal> get proposals => List.unmodifiable(_state.proposals);
 
   @override
   bool isDestinationSaved(String destinationId) {
-    return _destinations.any((item) => item.destination.id == destinationId);
+    return _state.destinations.any((item) => item.destination.id == destinationId);
   }
 
   @override
   void toggleDestination(Destination destination) {
-    final index = _destinations.indexWhere(
+    final index = _state.destinations.indexWhere(
       (item) => item.destination.id == destination.id,
     );
     if (index != -1) {
-      _destinations.removeAt(index);
+      _state.destinations.removeAt(index);
       return;
     }
-    _destinations.insert(
+    _state.destinations.insert(
       0,
       SavedDestination(
         id: 'save-${destination.id}',
@@ -54,20 +71,20 @@ class SavedRepositoryImpl implements SavedRepository {
 
   @override
   void removeDestination(String destinationId) {
-    _destinations.removeWhere((item) => item.destination.id == destinationId);
+    _state.destinations.removeWhere((item) => item.destination.id == destinationId);
   }
 
   @override
   void removePlan(String planId) {
-    _plans.removeWhere((item) => item.id == planId);
+    _state.plans.removeWhere((item) => item.id == planId);
   }
 
   @override
   void archivePlan(String planId) {
-    final index = _plans.indexWhere((item) => item.id == planId);
+    final index = _state.plans.indexWhere((item) => item.id == planId);
     if (index == -1) return;
-    final plan = _plans[index];
-    _plans[index] = SavedTripPlan(
+    final plan = _state.plans[index];
+    _state.plans[index] = SavedTripPlan(
       id: plan.id,
       name: plan.name,
       dateRange: plan.dateRange,
@@ -82,11 +99,11 @@ class SavedRepositoryImpl implements SavedRepository {
 
   @override
   void removeChecklist(String checklistId) {
-    _checklists.removeWhere((item) => item.id == checklistId);
+    _state.checklists.removeWhere((item) => item.id == checklistId);
   }
 
   @override
   void addProposal(FacilityProposal proposal) {
-    _proposals.insert(0, proposal);
+    _state.proposals.insert(0, proposal);
   }
 }

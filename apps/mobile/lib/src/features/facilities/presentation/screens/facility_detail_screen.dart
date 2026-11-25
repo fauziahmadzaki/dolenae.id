@@ -130,35 +130,73 @@ class _FacilityDetailScreenState extends State<FacilityDetailScreen> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Expanded(
-                              child: Text(
-                                facility.name,
-                                style: AppTextStyles.displayMd,
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    facility.name,
+                                    style: AppTextStyles.title,
+                                  ),
+                                  const SizedBox(height: AppSpacing.s2),
+                                  Wrap(
+                                    spacing: AppSpacing.s2,
+                                    runSpacing: AppSpacing.s1,
+                                    crossAxisAlignment:
+                                        WrapCrossAlignment.center,
+                                    children: [
+                                      Text(
+                                        [
+                                          facility.categoryLabel,
+                                          if (facility.type.isNotEmpty)
+                                            facility.type,
+                                          if (facility
+                                              .destinationName
+                                              .isNotEmpty)
+                                            facility.destinationName,
+                                        ].join(' · '),
+                                        style: AppTextStyles.bodySm,
+                                      ),
+                                      if (facility.verified)
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(
+                                            horizontal: AppSpacing.s2,
+                                            vertical: 3,
+                                          ),
+                                          decoration: BoxDecoration(
+                                            color: AppColors.success,
+                                            borderRadius: BorderRadius.circular(
+                                              AppRadius.pill,
+                                            ),
+                                          ),
+                                          child: Row(
+                                            mainAxisSize: MainAxisSize.min,
+                                            children: [
+                                              const Icon(
+                                                AppIcons.badgeCheck,
+                                                size: 12,
+                                                color: AppColors.onPrimary,
+                                              ),
+                                              const SizedBox(width: 4),
+                                              Text(
+                                                'Terverifikasi',
+                                                style: AppTextStyles.labelSm
+                                                    .copyWith(
+                                                      fontSize: 11,
+                                                      color:
+                                                          AppColors.onPrimary,
+                                                    ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                    ],
+                                  ),
+                                ],
                               ),
                             ),
-                            if (facility.verified)
-                              const Icon(
-                                AppIcons.badgeCheck,
-                                size: 20,
-                                color: AppColors.success,
-                              ),
+                            const SizedBox(width: AppSpacing.s3),
+                            _HeaderPrice(priceLabel: facility.priceLabel),
                           ],
-                        ),
-                        const SizedBox(height: AppSpacing.s1),
-                        Text(
-                          [
-                            facility.categoryLabel,
-                            if (facility.type.isNotEmpty) facility.type,
-                            if (facility.destinationName.isNotEmpty)
-                              facility.destinationName,
-                          ].join(' · '),
-                          style: AppTextStyles.bodySm,
-                        ),
-                        const SizedBox(height: AppSpacing.s2),
-                        Text(
-                          facility.priceLabel,
-                          style: AppTextStyles.titleSm.copyWith(
-                            color: AppColors.primary,
-                          ),
                         ),
                         const SizedBox(height: AppSpacing.s5),
                         _InfoGrid(rows: facility.infoRows),
@@ -170,18 +208,21 @@ class _FacilityDetailScreenState extends State<FacilityDetailScreen> {
                               .map(
                                 (label) => Container(
                                   padding: const EdgeInsets.symmetric(
-                                    horizontal: AppSpacing.s2,
+                                    horizontal: AppSpacing.s3,
                                     vertical: 4,
                                   ),
                                   decoration: BoxDecoration(
-                                    color: AppColors.canvasSubtle,
+                                    color: AppColors.canvas,
                                     borderRadius: BorderRadius.circular(
-                                      AppRadius.sm,
+                                      AppRadius.pill,
+                                    ),
+                                    border: Border.all(
+                                      color: AppColors.hairline,
                                     ),
                                   ),
                                   child: Text(
                                     label,
-                                    style: AppTextStyles.overline,
+                                    style: AppTextStyles.caption,
                                   ),
                                 ),
                               )
@@ -200,28 +241,57 @@ class _FacilityDetailScreenState extends State<FacilityDetailScreen> {
                           const SizedBox(height: AppSpacing.s5),
                           Text('KONTAK', style: AppTextStyles.overline),
                           const SizedBox(height: AppSpacing.s2),
-                          ...facility.contactRows.map(
-                            (row) => Padding(
-                              padding: const EdgeInsets.only(
-                                bottom: AppSpacing.s2,
-                              ),
-                              child: Row(
-                                children: [
-                                  Expanded(
-                                    child: Text(
-                                      row[0],
-                                      style: AppTextStyles.bodySm,
+                          Container(
+                            decoration: BoxDecoration(
+                              color: AppColors.canvasSubtle,
+                              borderRadius: BorderRadius.circular(AppRadius.lg),
+                              border: Border.all(color: AppColors.hairline),
+                            ),
+                            child: Column(
+                              children: [
+                                for (
+                                  var i = 0;
+                                  i < facility.contactRows.length;
+                                  i++
+                                ) ...[
+                                  if (i > 0)
+                                    const Divider(
+                                      height: 1,
+                                      thickness: 1,
+                                      color: AppColors.hairline,
                                     ),
-                                  ),
-                                  Flexible(
-                                    child: Text(
-                                      row[1],
-                                      textAlign: TextAlign.right,
-                                      style: AppTextStyles.titleSm,
+                                  Padding(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: AppSpacing.s4,
+                                      vertical: AppSpacing.s3,
+                                    ),
+                                    child: Row(
+                                      children: [
+                                        const Icon(
+                                          AppIcons.phone,
+                                          size: 16,
+                                          color: AppColors.primary,
+                                        ),
+                                        const SizedBox(width: AppSpacing.s3),
+                                        Expanded(
+                                          child: Text(
+                                            facility.contactRows[i][0],
+                                            style: AppTextStyles.bodySm,
+                                          ),
+                                        ),
+                                        const SizedBox(width: AppSpacing.s2),
+                                        Flexible(
+                                          child: Text(
+                                            facility.contactRows[i][1],
+                                            textAlign: TextAlign.right,
+                                            style: AppTextStyles.titleSm,
+                                          ),
+                                        ),
+                                      ],
                                     ),
                                   ),
                                 ],
-                              ),
+                              ],
                             ),
                           ),
                         ],
@@ -331,22 +401,68 @@ class _Banner extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (facility.bannerUrl.isEmpty) {
-      return DnMediaPlaceholder(
-        icon: _FacilityDetailScreenState._iconFor(facility.category),
-        height: 220,
+    final child = facility.bannerUrl.isEmpty
+        ? DnMediaPlaceholder(
+            icon: _FacilityDetailScreenState._iconFor(facility.category),
+            height: 220,
+          )
+        : Image.network(
+            facility.bannerUrl,
+            height: 220,
+            width: double.infinity,
+            fit: BoxFit.cover,
+            errorBuilder: (_, _, _) => DnMediaPlaceholder(
+              icon: _FacilityDetailScreenState._iconFor(facility.category),
+              height: 220,
+            ),
+          );
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(
+        AppSpacing.s4,
+        AppSpacing.s3,
+        AppSpacing.s4,
+        0,
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(AppRadius.xl),
+        child: child,
+      ),
+    );
+  }
+}
+
+class _HeaderPrice extends StatelessWidget {
+  const _HeaderPrice({required this.priceLabel});
+
+  final String priceLabel;
+
+  @override
+  Widget build(BuildContext context) {
+    final slash = priceLabel.indexOf('/');
+    if (slash <= 0 || slash >= priceLabel.length - 1) {
+      return Text(
+        priceLabel,
+        textAlign: TextAlign.right,
+        style: AppTextStyles.titleSm.copyWith(color: AppColors.primary),
       );
     }
 
-    return Image.network(
-      facility.bannerUrl,
-      height: 220,
-      width: double.infinity,
-      fit: BoxFit.cover,
-      errorBuilder: (_, _, _) => DnMediaPlaceholder(
-        icon: _FacilityDetailScreenState._iconFor(facility.category),
-        height: 220,
-      ),
+    final amount = priceLabel.substring(0, slash).trimRight();
+    final unit = priceLabel.substring(slash).trim();
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.end,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(
+          amount,
+          style: AppTextStyles.titleSm.copyWith(color: AppColors.primary),
+        ),
+        Text(
+          unit,
+          style: AppTextStyles.caption,
+        ),
+      ],
     );
   }
 }

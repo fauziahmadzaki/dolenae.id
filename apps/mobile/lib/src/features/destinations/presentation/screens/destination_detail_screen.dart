@@ -10,18 +10,65 @@ import 'package:dolenae_mobile/src/app/theme/app_text_styles.dart';
 import 'package:dolenae_mobile/src/features/destinations/domain/entities/destination.dart';
 import 'package:dolenae_mobile/src/shared/icons/app_icons.dart';
 import 'package:dolenae_mobile/src/shared/widgets/dn_buttons.dart';
+import 'package:dolenae_mobile/src/shared/widgets/dn_chip.dart';
 import 'package:dolenae_mobile/src/shared/widgets/dn_difficulty_badge.dart';
 import 'package:dolenae_mobile/src/shared/widgets/dn_remote_image.dart';
+import 'package:dolenae_mobile/src/shared/widgets/dn_section_header.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:dolenae_mobile/src/features/facilities/presentation/widgets/facilities_section.dart';
 import 'package:dolenae_mobile/src/features/routes/presentation/widgets/routes_section.dart';
 
+
+/// Tombol zoom `+`/`-` dan recenter di bawah peta (`65:215`).
+class _MapControls extends StatelessWidget {
+  const _MapControls({
+    required this.onZoomIn,
+    required this.onZoomOut,
+    required this.onRecenter,
+  });
+
+  final VoidCallback onZoomIn;
+  final VoidCallback onZoomOut;
+  final VoidCallback onRecenter;
+
+  @override
+  Widget build(BuildContext context) {
+    Widget button(IconData icon, String tooltip, VoidCallback onTap) {
+      return Material(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(AppRadius.lg),
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(AppRadius.lg),
+          child: SizedBox(
+            width: 44,
+            height: 44,
+            child: Tooltip(
+              message: tooltip,
+              child: Icon(icon, size: 20, color: AppColors.ink),
+            ),
+          ),
+        ),
+      );
+    }
+
+    return Row(
+      spacing: AppSpacing.s2,
+      children: [
+        button(AppIcons.plus, 'Perbesar peta', onZoomIn),
+        button(AppIcons.minus, 'Perkecil peta', onZoomOut),
+        button(AppIcons.locateFixed, 'Kembali ke titik destinasi', onRecenter),
+      ],
+    );
+  }
+}
+
 /// Layar Detail Destinasi (Node Figma: 65:215).
 ///
 /// Menampilkan spesifikasi, akses, peta lokasi, ketersediaan fasilitas,
 /// kebutuhan pendukung, dan aksi cepat untuk menyusun rencana / checklist.
-class DestinationDetailScreen extends StatelessWidget {
+class DestinationDetailScreen extends StatefulWidget {
   const DestinationDetailScreen({
     super.key,
     this.destinationId = '',
@@ -38,9 +85,24 @@ class DestinationDetailScreen extends StatelessWidget {
   final VoidCallback? onBookmark;
 
   @override
+  State<DestinationDetailScreen> createState() =>
+      _DestinationDetailScreenState();
+}
+
+class _DestinationDetailScreenState extends State<DestinationDetailScreen> {
+  /// Pengendali peta untuk tombol zoom/recenter (`65:215`).
+  final _mapController = MapController();
+
+  @override
+  void dispose() {
+    _mapController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     final controller = context.watch<DestinationsController>();
-    final destination = controller.find(destinationId);
+    final destination = controller.find(widget.destinationId);
     if (destination == null) {
       return Scaffold(
         backgroundColor: AppColors.canvas,
@@ -50,7 +112,7 @@ class DestinationDetailScreen extends StatelessWidget {
             tooltip: 'Kembali',
             icon: const Icon(AppIcons.chevronLeft),
             onPressed:
-                onBack ??
+                widget.onBack ??
                 () {
                   if (context.canPop()) {
                     context.pop();
@@ -89,6 +151,8 @@ class DestinationDetailScreen extends StatelessWidget {
                     const SizedBox(height: AppSpacing.s4),
                     _buildLocationSection(destination),
                     const SizedBox(height: AppSpacing.s4),
+                    _buildFacilitiesSection(destination),
+                    const SizedBox(height: AppSpacing.s4),
                     _buildRoutesSection(destination),
                     const SizedBox(height: AppSpacing.s4),
                     _buildSupportsSection(destination),
@@ -121,7 +185,7 @@ class DestinationDetailScreen extends StatelessWidget {
             child: InkWell(
               customBorder: const CircleBorder(),
               onTap:
-                  onBack ??
+                  widget.onBack ??
                   () {
                     if (context.canPop()) {
                       context.pop();
@@ -153,7 +217,7 @@ class DestinationDetailScreen extends StatelessWidget {
             shape: const CircleBorder(),
             child: InkWell(
               customBorder: const CircleBorder(),
-              onTap: onBookmark,
+              onTap: widget.onBookmark,
               child: const SizedBox(
                 width: 36,
                 height: 36,
@@ -405,7 +469,14 @@ class DestinationDetailScreen extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Lokasi', style: AppTextStyles.title),
+          // Frame `65:215`: judul Lokasi + tautan "Lihat semua >", peta 200 px
+          // dengan kontrol zoom, lalu keterangan titik akses.
+          DnSectionHeader(
+            title: 'Lokasi',
+            actionLabel: 'Lihat semua',
+            onAction: () =>
+                context.push('/destinations/${destination.id}/facilities'),
+          ),
           const SizedBox(height: AppSpacing.s2),
           Text(
             destination.locationLabel.isEmpty
@@ -413,23 +484,18 @@ class DestinationDetailScreen extends StatelessWidget {
                 : destination.locationLabel,
             style: AppTextStyles.bodySm,
           ),
-          Text(
-            destination.accessPointName == null
-                ? 'Titik akses belum tersedia.'
-                : 'Titik akses: ${destination.accessPointName}',
-            style: AppTextStyles.caption,
-          ),
           if (hasCoords) ...[
             const SizedBox(height: AppSpacing.s3),
             ClipRRect(
               borderRadius: BorderRadius.circular(AppRadius.lg),
               child: Container(
-                height: 190,
+                height: 200,
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(AppRadius.lg),
                   border: Border.all(color: AppColors.hairline),
                 ),
                 child: FlutterMap(
+                  mapController: _mapController,
                   options: MapOptions(
                     initialCenter: LatLng(
                       destination.latitude!,
@@ -480,7 +546,64 @@ class DestinationDetailScreen extends StatelessWidget {
                 ),
               ),
             ),
-          ],
+            const SizedBox(height: AppSpacing.s2),
+            _MapControls(
+              onZoomIn: () =>
+                  _mapController.move(_mapController.camera.center,
+                      (_mapController.camera.zoom + 1).clamp(3, 18)),
+              onZoomOut: () =>
+                  _mapController.move(_mapController.camera.center,
+                      (_mapController.camera.zoom - 1).clamp(3, 18)),
+              onRecenter: () => _mapController.move(
+                LatLng(destination.latitude!, destination.longitude!),
+                13,
+              ),
+            ),
+            if (destination.accessPointName != null) ...[
+              const SizedBox(height: AppSpacing.s2),
+              Text(
+                'Titik akses: ${destination.accessPointName}',
+                style: AppTextStyles.caption,
+              ),
+            ],
+          ] else
+            Text(
+              'Titik akses belum tersedia.',
+              style: AppTextStyles.caption,
+            ),
+        ],
+      ),
+    );
+  }
+
+  /// Seksi Fasilitas (`65:215`): pill tercentang untuk fasilitas yang tersedia.
+  ///
+  /// Data dari `GET /api/destinations/:id` field `facilities`. Bila belum ada
+  /// fasilitas terbit, seksi disembunyikan agar tidak menampilkan pill kosong.
+  Widget _buildFacilitiesSection(Destination destination) {
+    final facilities = destination.facilities;
+    if (facilities.isEmpty) return const SizedBox.shrink();
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.s4),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('Fasilitas', style: AppTextStyles.title),
+          const SizedBox(height: AppSpacing.s2),
+          Wrap(
+            spacing: AppSpacing.s2,
+            runSpacing: AppSpacing.s2,
+            children: [
+              for (final entry in facilities.entries)
+                DnChip(
+                  label: entry.value > 1
+                      ? '${entry.key} (${entry.value})'
+                      : entry.key,
+                  leading: AppIcons.badgeCheck,
+                ),
+            ],
+          ),
         ],
       ),
     );
@@ -515,7 +638,7 @@ class DestinationDetailScreen extends StatelessWidget {
               label: 'Checklist',
               icon: AppIcons.squareCheck,
               height: 48,
-              onPressed: onChecklist ?? () => context.push('/checklist'),
+              onPressed: widget.onChecklist ?? () => context.push('/checklist'),
             ),
           ),
           const SizedBox(width: AppSpacing.s3),
@@ -524,7 +647,7 @@ class DestinationDetailScreen extends StatelessWidget {
             child: DnPrimaryButton(
               label: 'Tambah ke rencana',
               height: 48,
-              onPressed: onAddToPlan ?? () => context.push('/plan/create'),
+              onPressed: widget.onAddToPlan ?? () => context.push('/plan/create'),
             ),
           ),
         ],

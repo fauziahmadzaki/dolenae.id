@@ -1,10 +1,11 @@
 "use client";
 
 import { ArrowDown, ArrowUp, ChevronsUpDown } from "lucide-react";
-import { useEffect, type ReactNode } from "react";
+import { useEffect, useMemo, type ReactNode } from "react";
 import { Button } from "~/components/ui/button";
 import { cn } from "~/lib/cn";
-import { pageCount } from "~/lib/pagination";
+import { createDebug } from "~/lib/debug";
+import { pageCount, pageRange } from "~/lib/pagination";
 import { DataTablePagination } from "./data-table-pagination";
 import { DataTableToolbar } from "./data-table-toolbar";
 import {
@@ -79,15 +80,38 @@ export function DataTable<T>({
   minWidthClassName = "min-w-[960px]",
 }: DataTableProps<T>) {
   const pages = pageCount(total, pageSize);
+  const { from, to } = pageRange(page, pageSize, total);
+
+  // One logger instance per table, so a stuck "loading" state is traceable.
+  const debug = useMemo(() => createDebug("data-table"), []);
+
+  useEffect(() => {
+    debug("state", {
+      page,
+      pages,
+      pageSize,
+      total,
+      rows: data.length,
+      isLoading,
+      isFetching,
+      error: error ? errorMessage(error) : null,
+      range: `${from}-${to}`,
+    });
+  }, [debug, page, pages, pageSize, total, data.length, isLoading, isFetching, error, from, to]);
 
   // Keep the page in range when the result set shrinks (filter/search).
+  // Skipped while a new page/filter is still loading: `total` is 0 until the
+  // new result arrives, which would clamp back to page 1 and cancel the request.
+  // Errors are skipped too so a retry stays on the page the user picked.
   useEffect(() => {
+    if (isLoading || isFetching || error) return;
     if (page > pages) onPageChange(pages);
-  }, [page, pages, onPageChange]);
+  }, [page, pages, onPageChange, isLoading, isFetching, error]);
 
   return (
-    <div className="space-y-4">
+    <div className="overflow-hidden rounded-2xl border border-hairline bg-surface">
       <DataTableToolbar
+        embedded
         search={search}
         onSearchChange={onSearchChange}
         searchPlaceholder={searchPlaceholder}
@@ -98,17 +122,15 @@ export function DataTable<T>({
         actions={actions}
         total={total}
         itemLabel={itemLabel}
+        rangeText={`Menampilkan ${from}–${to} dari ${total} ${itemLabel}`}
       />
 
       {isLoading ? (
-        <p role="status" className="text-sm text-body">
+        <p role="status" className="px-5 py-8 text-sm text-body">
           Memuat {itemLabel}…
         </p>
       ) : error ? (
-        <div
-          role="alert"
-          className="rounded-lg border border-hairline bg-surface p-6"
-        >
+        <div role="alert" className="p-6">
           <p className="text-sm text-danger">{errorMessage(error)}</p>
           {onRetry && (
             <Button variant="secondary" className="mt-3" onClick={onRetry}>
@@ -119,25 +141,24 @@ export function DataTable<T>({
       ) : (
         <>
           {data.length === 0 ? (
-            (emptyState ?? (
-              <div className="rounded-lg border border-dashed border-hairline bg-surface p-10 text-center">
-                <h3 className="font-display font-semibold text-ink">
-                  Belum ada {itemLabel}
-                </h3>
-                <p className="mt-1 text-sm text-body">
-                  Coba ubah pencarian atau filter.
-                </p>
-              </div>
-            ))
+            <div className="p-6">
+              {emptyState ?? (
+                <div className="rounded-lg border border-dashed border-hairline bg-surface p-10 text-center">
+                  <h3 className="font-display font-semibold text-ink">
+                    Belum ada {itemLabel}
+                  </h3>
+                  <p className="mt-1 text-sm text-body">
+                    Coba ubah pencarian atau filter.
+                  </p>
+                </div>
+              )}
+            </div>
           ) : (
-            <div
-              className="overflow-x-auto rounded-xl border border-hairline bg-surface"
-              aria-busy={isFetching}
-            >
+            <div className="overflow-x-auto" aria-busy={isFetching}>
               <table
                 className={cn("w-full text-left text-sm", minWidthClassName)}
               >
-                <thead className="h-12 bg-surface-2 text-[11px] uppercase tracking-wide text-body">
+                <thead className="h-12 border-b border-hairline bg-surface text-[11px] font-semibold uppercase tracking-wide text-body">
                   <tr>
                     {columns.map((column) => {
                       const sortKey = column.sortKey;
@@ -193,7 +214,7 @@ export function DataTable<T>({
                   {data.map((row) => (
                     <tr
                       key={getRowId(row)}
-                      className="h-16 border-t border-hairline align-middle"
+                      className="h-16 border-t border-hairline align-middle hover:bg-canvas/40"
                     >
                       {columns.map((column) => (
                         <td
@@ -216,6 +237,7 @@ export function DataTable<T>({
           )}
 
           <DataTablePagination
+            embedded
             page={page}
             pageSize={pageSize}
             total={total}

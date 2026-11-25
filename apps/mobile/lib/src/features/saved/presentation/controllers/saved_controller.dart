@@ -9,6 +9,17 @@ class SavedController extends ChangeNotifier {
   SavedController(this._repository);
 
   final SavedRepository _repository;
+  String? _userId;
+
+  /// Set active user scope for per-account isolation.
+  void setUserId(String? userId) {
+    final normalized = userId?.trim();
+    final next = (normalized == null || normalized.isEmpty) ? null : normalized;
+    if (next == _userId) return;
+    _userId = next;
+    _repository.setUserId(next);
+    notifyListeners();
+  }
 
   List<SavedDestination> get savedDestinations => _repository.destinations;
 

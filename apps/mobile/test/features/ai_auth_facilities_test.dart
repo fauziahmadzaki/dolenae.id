@@ -5,9 +5,11 @@ import 'package:dolenae_mobile/src/features/ai/data/data_sources/ai_seed_data_so
 import 'package:dolenae_mobile/src/features/facilities/data/data_sources/facility_seed_data_source.dart';
 import 'package:dolenae_mobile/src/features/ai/presentation/screens/ai_preferences_screen.dart';
 import 'package:dolenae_mobile/src/features/ai/presentation/screens/ai_results_screen.dart';
+import 'package:dolenae_mobile/src/features/auth/presentation/routes/auth_routes.dart';
 import 'package:dolenae_mobile/src/features/auth/presentation/screens/change_password_screen.dart';
 import 'package:dolenae_mobile/src/features/auth/presentation/screens/forgot_password_screen.dart';
 import 'package:dolenae_mobile/src/features/auth/presentation/screens/otp_screen.dart';
+import 'package:dolenae_mobile/src/features/facilities/presentation/routes/facility_routes.dart';
 import 'package:dolenae_mobile/src/features/facilities/presentation/screens/facilities_screen.dart';
 import 'package:dolenae_mobile/src/features/facilities/presentation/screens/facility_detail_screen.dart';
 import 'package:dolenae_mobile/src/features/facilities/presentation/screens/proposal_success_screen.dart';
@@ -15,6 +17,8 @@ import 'package:dolenae_mobile/src/features/facilities/presentation/screens/prop
 import 'package:dolenae_mobile/src/shared/widgets/dn_otp_input.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:go_router/go_router.dart';
+import 'package:provider/provider.dart';
 
 import '../helpers/test_harness.dart';
 
@@ -222,7 +226,7 @@ void main() {
       tester,
     ) async {
       await usePhone(tester);
-      await tester.pumpWidget(wrapScreen(const OtpScreen()));
+      await tester.pumpWidget(wrapScreen(OtpScreen(onVerify: (_) {})));
       await tester.pumpAndSettle();
 
       expect(find.text('Masukkan kode'), findsOneWidget);
@@ -247,6 +251,40 @@ void main() {
       expect(codes, ['123456']);
     });
 
+    testWidgets(
+      'OTP tanpa layanan tidak berpura-pura mengirim atau memverifikasi',
+      (tester) async {
+        await usePhone(tester);
+        await tester.pumpWidget(wrapScreen(const OtpScreen(resendSeconds: 0)));
+        await tester.pumpAndSettle();
+
+        expect(
+          find.text('Buka tautan verifikasi yang dikirim ke emailmu.'),
+          findsOneWidget,
+        );
+        expect(
+          tester.widget<TextField>(find.byType(TextField)).enabled,
+          isFalse,
+        );
+        expect(
+          tester
+              .widget<TextButton>(
+                find.widgetWithText(TextButton, 'Kirim ulang'),
+              )
+              .onPressed,
+          isNull,
+        );
+        expect(
+          tester
+              .widget<FilledButton>(
+                find.widgetWithText(FilledButton, 'Verifikasi'),
+              )
+              .onPressed,
+          isNull,
+        );
+      },
+    );
+
     testWidgets('kir ulang memakai delegate bila tersedia', (tester) async {
       await usePhone(tester);
       var resent = 0;
@@ -262,6 +300,30 @@ void main() {
   });
 
   group('Layar Ubah Kata Sandi', () {
+    testWidgets('rute produksi memakai reset lewat email akun', (tester) async {
+      await usePhone(tester);
+      final auth = newStore().auth;
+      await auth.login(email: 'user@example.test', password: 'sandi-uji');
+      final router = GoRouter(
+        initialLocation: '/auth/change-password',
+        routes: authRoutes,
+      );
+      addTearDown(router.dispose);
+      addTearDown(auth.dispose);
+      await tester.pumpWidget(
+        ChangeNotifierProvider.value(
+          value: auth,
+          child: MaterialApp.router(routerConfig: router),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.byType(ForgotPasswordScreen), findsOneWidget);
+      expect(find.byType(ChangePasswordScreen), findsNothing);
+      final field = tester.widget<TextField>(find.byType(TextField));
+      expect(field.controller?.text, auth.user?.email);
+    });
+
     testWidgets('menampilkan tiga kolom dan tombol simpan', (tester) async {
       await usePhone(tester);
       await tester.pumpWidget(wrapScreen(const ChangePasswordScreen()));
@@ -359,11 +421,11 @@ void main() {
       await tester.pumpWidget(wrapScreen(const FacilitiesScreen()));
       await tester.pumpAndSettle();
 
-      expect(find.text('Berbagai Fasilitas'), findsOneWidget);
+      expect(find.text('Fasilitas Sekitar'), findsOneWidget);
       expect(find.text('Semua'), findsOneWidget);
       expect(find.text('Penginapan'), findsOneWidget);
       expect(find.text('Transport'), findsOneWidget);
-      expect(find.text('Toko/Warung'), findsOneWidget);
+      expect(find.text('Makanan'), findsOneWidget);
       expect(find.text('Usulkan fasilitas'), findsOneWidget);
     });
 
@@ -490,7 +552,7 @@ void main() {
       await scrollTo(tester, find.text('Catatan'));
       expect(find.text('Tambah foto'), findsOneWidget);
       expect(find.text('Catatan'), findsOneWidget);
-      expect(find.text('Kirim usulan'), findsOneWidget);
+      expect(find.text('Simpan usulan'), findsOneWidget);
     });
 
     testWidgets('form lengkap menghasilkan usulan', (tester) async {
@@ -510,7 +572,7 @@ void main() {
         'Dusun Cemoro Lawang, Kab. Probolinggo',
       );
       await tester.pumpAndSettle();
-      await tester.tap(find.text('Kirim usulan'));
+      await tester.tap(find.text('Simpan usulan'));
       await tester.pumpAndSettle();
 
       expect(sent, hasLength(1));
@@ -529,14 +591,46 @@ void main() {
 
       await tester.enterText(inputFor('Alamat'), 'Alamat tanpa nama fasilitas');
       await tester.pumpAndSettle();
-      await tester.tap(find.text('Kirim usulan'));
+      await tester.tap(find.text('Simpan usulan'));
       await tester.pumpAndSettle();
 
       expect(sent, isEmpty);
     });
   });
 
-  group('Layar Usulan Terkirim', () {
+  group('Layar Usulan Disimpan', () {
+    testWidgets('rute usulan menampilkan data yang disimpan di aplikasi', (
+      tester,
+    ) async {
+      await usePhone(tester);
+      final store = newStore();
+      final router = GoRouter(
+        initialLocation: '/facilities/propose',
+        routes: facilityRoutes,
+      );
+      addTearDown(router.dispose);
+      await tester.pumpWidget(
+        MultiProvider(
+          providers: [
+            ChangeNotifierProvider.value(value: store.destinations),
+            ChangeNotifierProvider.value(value: store.saved),
+          ],
+          child: MaterialApp.router(routerConfig: router),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.enterText(find.byType(TextField).at(0), 'Warung Uji');
+      await tester.enterText(find.byType(TextField).at(1), 'Alamat contoh');
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Simpan usulan'));
+      await tester.pumpAndSettle();
+
+      expect(store.saved.proposals.first.name, 'Warung Uji');
+      expect(find.text('Warung Uji'), findsOneWidget);
+      expect(find.text('Homestay Pinggir'), findsNothing);
+      expect(find.textContaining('belum dikirim ke admin'), findsOneWidget);
+    });
+
     testWidgets('menampilkan ringkasan usulan dari seed', (tester) async {
       await usePhone(tester);
       await tester.pumpWidget(wrapScreen(const ProposalSuccessScreen()));

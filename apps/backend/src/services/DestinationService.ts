@@ -4,11 +4,13 @@ import type {
   Difficulty,
 } from "../db/models";
 import { categoryRepository } from "../repositories/CategoryRepository";
+import { facilityRepository } from "../repositories/FacilityRepository";
 import { destinationRepository } from "../repositories/DestinationRepository";
 import type { PublicCategory } from "../types/category";
 import type {
   CreateDestinationDto,
   DestinationAccess,
+  DestinationFacilities,
   DestinationLocation,
   PublicDestination,
   PublicDestinationDetail,
@@ -21,6 +23,16 @@ import { slugify } from "../utils/slug";
 import { categoryService } from "./CategoryService";
 
 type CategoryLookup = Map<string, PublicCategory>;
+
+/** Published facility types mapped to the amenity names the mobile frame shows. */
+const AMENITY_BY_FACILITY_TYPE: Record<string, string> = {
+  homestay: "Homestay dekat",
+  ojek: "Ojek",
+  parkir: "Parkir",
+  warung: "Warung",
+  toilet: "Toilet",
+  mushola: "Mushola",
+};
 
 class DestinationService {
   private toNumber(value: string | null): number | null {
@@ -105,7 +117,25 @@ class DestinationService {
     const categories = categoryIds
       .map((categoryId) => lookup.get(categoryId))
       .filter((c): c is PublicCategory => Boolean(c));
-    return { ...this.toPublicDestination(row, categoryIds, categories), categories };
+    const facilities = await this.buildFacilities(id);
+    return {
+      ...this.toPublicDestination(row, categoryIds, categories),
+      categories,
+      facilities,
+    };
+  }
+
+  /** Amenity counts from published facilities; unknown types are skipped. */
+  private async buildFacilities(
+    destinationId: string,
+  ): Promise<DestinationFacilities> {
+    const counts = await facilityRepository.countPublishedTypes(destinationId);
+    const facilities: DestinationFacilities = {};
+    for (const { type, total } of counts) {
+      const amenity = AMENITY_BY_FACILITY_TYPE[type];
+      if (amenity && total > 0) facilities[amenity] = total;
+    }
+    return facilities;
   }
 
   async list(

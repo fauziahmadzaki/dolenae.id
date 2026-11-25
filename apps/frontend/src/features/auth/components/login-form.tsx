@@ -22,7 +22,7 @@ export function LoginForm() {
   return (
     <section
       aria-label="Form masuk"
-      className="flex w-full flex-col justify-center px-6 py-10 sm:px-10 lg:px-[100px] lg:py-0"
+      className="flex w-full flex-col justify-center px-6 py-10 sm:px-10 lg:items-end lg:px-[min(7vw,100px)] lg:py-20"
     >
       <div className="w-full max-w-[520px]">
         <div className="space-y-5">
@@ -32,7 +32,7 @@ export function LoginForm() {
           </div>
 
           <div className="space-y-2">
-            <h1 className="font-display text-[32px] font-extrabold leading-tight tracking-tight text-ink">
+            <h1 className="font-display text-[32px] leading-10 font-extrabold text-ink">
               Masuk ke akunmu
             </h1>
             <p className="text-[15px] text-body">

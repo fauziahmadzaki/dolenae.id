@@ -13,7 +13,7 @@ export default function AboutPage() {
         <p>Kami merapikannya jadi satu tempat supaya kamu bisa lebih banyak menghabiskan waktu menikmati perjalanan, bukan menyiapkannya.</p></div>
       <Image src="/images/public/about-story.png" alt="Puncak gunung di atas awan saat matahari terbenam" width={520} height={360} className="h-[360px] w-full rounded-xl object-cover" />
     </section>
-    <section className="bg-primary text-on-primary" aria-label="Dolenae dalam angka"><dl className={`${container} flex flex-wrap gap-10 py-14`}>
+    <section className="bg-primary text-on-primary" aria-label="Dolenae dalam angka"><dl className={`${container} grid grid-cols-2 gap-8 py-14 sm:grid-cols-4`}>
       {[["120+", "destinasi terkurasi"], ["42", "merchant terverifikasi"], ["12rb+", "wisatawan terbantu"], ["4.8", "rating pengguna"]].map(([value, label]) => <div key={label}><dd className="font-display text-4xl font-bold">{value}</dd><dt className="mt-1.5 text-sm">{label}</dt></div>)}
     </dl></section>
     <div className={`${container} space-y-14 pt-18 pb-10`}>
@@ -24,6 +24,6 @@ export default function AboutPage() {
         {[["F", "Fauzi Ahmad Zaki", "Founder"], ["A", "Adi Achya", "Product"], ["W", "Widan Ababil", "Engineering"]].map(([initial, name, role], i) => <div key={name} className="flex flex-col items-center gap-2.5"><span className={`flex size-14 items-center justify-center rounded-full font-display text-xl font-bold ${i === 0 ? "bg-primary text-on-primary" : "bg-canvas-subtle text-primary"}`}>{initial}</span><h3 className="text-base font-bold">{name}</h3><p className="text-[13px]">{role}</p></div>)}
       </div></section>
     </div>
-    <section className="bg-canvas-subtle"><div className={`${container} flex flex-col items-start gap-6 pt-16 pb-18 sm:flex-row sm:items-center`}><div><h2 className="text-[28px] font-bold">Mari siapkan perjalananmu</h2><p className="mt-1.5">Temukan destinasi dan susun persiapan dalam satu tempat.</p></div><Link href="/#destinations" className="rounded-full bg-primary px-6 py-3.5 text-[15px] font-semibold text-on-primary hover:bg-primary-hover">Mulai jelajah</Link></div></section>
+    <section className="bg-canvas-subtle"><div className={`${container} flex flex-col items-start gap-6 pt-16 pb-18 sm:flex-row sm:items-center sm:justify-between`}><div><h2 className="text-[28px] font-bold">Mari siapkan perjalananmu</h2><p className="mt-1.5">Temukan destinasi dan susun persiapan dalam satu tempat.</p></div><Link href="/#destinations" className="rounded-full bg-primary px-6 py-3.5 text-[15px] font-semibold text-on-primary hover:bg-primary-hover">Mulai jelajah</Link></div></section>
   </PublicShell>;
 }

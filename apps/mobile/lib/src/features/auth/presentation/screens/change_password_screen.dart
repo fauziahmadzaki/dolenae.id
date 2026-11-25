@@ -6,7 +6,6 @@ import 'package:dolenae_mobile/src/app/theme/app_spacing.dart';
 import 'package:dolenae_mobile/src/shared/widgets/dn_app_bar.dart';
 import 'package:dolenae_mobile/src/shared/widgets/dn_buttons.dart';
 import 'package:dolenae_mobile/src/shared/widgets/dn_input.dart';
-import 'package:dolenae_mobile/src/shared/widgets/dn_toast.dart';
 
 /// Layar Ubah Kata Sandi (Node Figma: 80:169).
 ///
@@ -70,12 +69,7 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
     });
     if (!valid) return;
 
-    final onSubmit = widget.onSubmit;
-    if (onSubmit != null) {
-      onSubmit(_current, _next, _confirm);
-      return;
-    }
-    showDnToast(context, 'Kata sandi berhasil diubah', type: DnToastType.sukses);
+    widget.onSubmit?.call(_current, _next, _confirm);
   }
 
   @override
@@ -109,7 +103,8 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
                   const SizedBox(height: AppSpacing.s4),
                   DnPasswordField(
                     label: 'Kata sandi baru',
-                    helperText: 'Minimal 8 karakter, kombinasi huruf dan angka.',
+                    helperText:
+                        'Minimal 8 karakter, kombinasi huruf dan angka.',
                     value: _next,
                     errorText: _newError,
                     onChanged: (value) => setState(() => _next = value),
@@ -137,7 +132,9 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
               ),
               child: DnPrimaryButton(
                 label: 'Simpan kata sandi',
-                onPressed: _canSubmit ? _submit : null,
+                onPressed: _canSubmit && widget.onSubmit != null
+                    ? _submit
+                    : null,
               ),
             ),
           ],

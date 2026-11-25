@@ -11,8 +11,10 @@ final List<RouteBase> mainTabRoutes = [
   GoRoute(path: '/home', builder: (_, _) => const BerandaScreen()),
   GoRoute(
     path: '/explore',
-    builder: (_, state) =>
-        ExploreScreen(initialActivity: state.uri.queryParameters['activity']),
+    builder: (_, state) => ExploreScreen(
+      initialActivity: state.uri.queryParameters['activity'],
+      initialQuery: state.uri.queryParameters['q'],
+    ),
   ),
   GoRoute(path: '/plan', builder: (_, _) => const TripPlanScreen()),
   GoRoute(path: '/checklist', builder: (_, _) => const ChecklistScreen()),

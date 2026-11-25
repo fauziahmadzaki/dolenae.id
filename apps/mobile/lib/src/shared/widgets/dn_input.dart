@@ -147,7 +147,7 @@ class _DnInputState extends State<DnInput> {
 
   OutlineInputBorder _outline(Color color, double width) {
     return OutlineInputBorder(
-      borderRadius: BorderRadius.circular(AppRadius.md),
+      borderRadius: BorderRadius.circular(AppRadius.lg),
       borderSide: BorderSide(color: color, width: width),
     );
   }

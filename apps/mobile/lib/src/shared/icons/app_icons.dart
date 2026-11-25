@@ -37,6 +37,7 @@ abstract final class AppIcons {
   static const IconData helpCircle = Icons.help_outline;
   static const IconData home = Icons.home_outlined;
   static const IconData hourglass = Icons.hourglass_empty;
+  static const IconData image = Icons.photo_library_outlined;
   static const IconData info = Icons.info_outline;
   static const IconData key = Icons.vpn_key_outlined;
   static const IconData laptop = Icons.laptop_outlined;

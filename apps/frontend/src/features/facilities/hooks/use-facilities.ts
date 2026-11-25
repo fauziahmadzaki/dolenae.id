@@ -86,6 +86,7 @@ export function useFacilityMutation({
     },
     onSuccess: (_data, input) => {
       cache.invalidateQueries({ queryKey: ["facilities"] });
+      cache.invalidateQueries({ queryKey: ["admin-stats"] });
       if (input.kind === "create") onSaved("Fasilitas berhasil didaftarkan.");
       else if (input.kind === "edit") onSaved("Perubahan fasilitas disimpan.");
       else if (input.kind === "delete") onSaved("Fasilitas dihapus.");

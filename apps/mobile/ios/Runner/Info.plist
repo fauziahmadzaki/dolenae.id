@@ -28,6 +28,10 @@
 	<true/>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>Dolenae memakai lokasi untuk memperkirakan transportasi antarprovinsi.</string>
+	<key>NSCameraUsageDescription</key>
+	<string>Dolenae memerlukan izin kamera untuk mengambil foto profil atau foto fasilitas yang diusulkan.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Dolenae memerlukan izin galeri foto untuk memilih gambar profil atau foto fasilitas yang diusulkan.</string>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>

@@ -1,7 +1,10 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
+import 'package:dolenae_mobile/src/core/media/photo_picker.dart';
 import 'package:dolenae_mobile/src/features/auth/presentation/controllers/auth_controller.dart';
 import 'package:dolenae_mobile/src/app/theme/app_colors.dart';
 import 'package:dolenae_mobile/src/app/theme/app_radius.dart';
@@ -9,7 +12,10 @@ import 'package:dolenae_mobile/src/app/theme/app_spacing.dart';
 import 'package:dolenae_mobile/src/app/theme/app_text_styles.dart';
 import 'package:dolenae_mobile/src/shared/icons/app_icons.dart';
 import 'package:dolenae_mobile/src/shared/widgets/dn_app_bar.dart';
+import 'package:dolenae_mobile/src/shared/widgets/dn_avatar.dart';
 import 'package:dolenae_mobile/src/shared/widgets/dn_buttons.dart';
+import 'package:dolenae_mobile/src/shared/widgets/dn_photo_picker_sheet.dart';
+import 'package:dolenae_mobile/src/shared/widgets/dn_toast.dart';
 
 /// Layar Edit Profil (Node Figma: 81:824).
 ///
@@ -23,6 +29,9 @@ class EditProfileScreen extends StatefulWidget {
     this.initialPhone = '',
     this.initialCity = '',
     this.initialBio = '',
+    this.initialAvatarUrl,
+    this.onPickPhoto,
+    this.onRecoverLostPhoto,
     this.onSave,
     this.onBack,
   });
@@ -32,6 +41,10 @@ class EditProfileScreen extends StatefulWidget {
   final String initialPhone;
   final String initialCity;
   final String initialBio;
+  final String? initialAvatarUrl;
+  final PhotoPickerCallback? onPickPhoto;
+  @visibleForTesting
+  final Future<PickedPhoto?> Function()? onRecoverLostPhoto;
   final VoidCallback? onSave;
   final VoidCallback? onBack;
 
@@ -45,7 +58,18 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   late final TextEditingController _phoneController;
   late final TextEditingController _cityController;
   late final TextEditingController _bioController;
+  String? _avatarUrl;
+  bool _clearAvatar = false;
+  bool _pickingPhoto = false;
   bool _saving = false;
+
+  String? _currentUserId() {
+    try {
+      return context.read<AuthController?>()?.user?.id;
+    } on ProviderNotFoundException {
+      return null;
+    }
+  }
 
   @override
   void initState() {
@@ -66,6 +90,35 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     _bioController = TextEditingController(
       text: user?.bio ?? widget.initialBio,
     );
+    _avatarUrl = user?.avatarUrl ?? widget.initialAvatarUrl;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        unawaited(_recoverLostPhoto());
+      }
+    });
+  }
+
+  Future<void> _recoverLostPhoto() async {
+    final expectedUserId = _currentUserId();
+    try {
+      final recovered = await recoverLostPhotoForTarget(
+        target: PhotoCaptureTarget.editProfile,
+        userId: expectedUserId,
+        recover: widget.onRecoverLostPhoto,
+      );
+      if (!mounted || recovered == null) return;
+      if (_currentUserId() != expectedUserId) return;
+      setState(() {
+        _avatarUrl = recovered.path;
+        _clearAvatar = false;
+      });
+    } on PhotoPickerException catch (error) {
+      if (!mounted) return;
+      if (_currentUserId() != expectedUserId) return;
+      showDnToast(context, error.message, type: DnToastType.gagal);
+    } catch (_) {
+      // Abaikan kegagalan tak terduga saat memulihkan foto agar layar tetap aman.
+    }
   }
 
   @override
@@ -82,25 +135,26 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     if (_saving) return;
     final name = _nameController.text.trim();
     if (name.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Nama tidak boleh kosong'),
-          backgroundColor: AppColors.danger,
-        ),
+      showDnToast(
+        context,
+        'Nama tidak boleh kosong',
+        type: DnToastType.gagal,
       );
       return;
     }
 
     final auth = context.read<AuthController?>();
     if (auth == null || !auth.isAuthenticated) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Sesi tidak ditemukan. Silakan masuk kembali.'),
-          backgroundColor: AppColors.danger,
-        ),
+      showDnToast(
+        context,
+        'Sesi tidak ditemukan. Silakan masuk kembali.',
+        type: DnToastType.gagal,
       );
       return;
     }
+
+    final currentAvatar = auth.user?.avatarUrl;
+    final avatarChanged = !_clearAvatar && _avatarUrl != currentAvatar;
 
     setState(() => _saving = true);
     final failure = await auth.updateProfile(
@@ -108,26 +162,22 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       phone: _nullable(_phoneController.text),
       city: _nullable(_cityController.text),
       bio: _nullable(_bioController.text),
+      avatarUrl: avatarChanged ? _avatarUrl : null,
+      clearAvatar: _clearAvatar,
     );
     if (!mounted) return;
     setState(() => _saving = false);
 
     if (failure != null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(failure.message),
-          backgroundColor: AppColors.danger,
-        ),
-      );
+      showDnToast(context, failure.message, type: DnToastType.gagal);
       return;
     }
 
     widget.onSave?.call();
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Perubahan profil berhasil disimpan!'),
-        backgroundColor: AppColors.success,
-      ),
+    showDnToast(
+      context,
+      'Perubahan profil berhasil disimpan!',
+      type: DnToastType.sukses,
     );
 
     if (context.canPop()) {
@@ -225,6 +275,69 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     );
   }
 
+  Future<void> _openPhotoPicker() async {
+    if (_pickingPhoto || _saving) return;
+    final hasAvatar = _avatarUrl?.trim().isNotEmpty ?? false;
+    final action = await showDnPhotoPickerSheet(
+      context: context,
+      canRemove: hasAvatar,
+    );
+    if (!mounted || action == null) return;
+
+    if (action == PhotoPickerAction.remove) {
+      setState(() {
+        _avatarUrl = null;
+        _clearAvatar = true;
+      });
+      return;
+    }
+
+    final source = switch (action) {
+      PhotoPickerAction.camera => PhotoSource.camera,
+      PhotoPickerAction.gallery => PhotoSource.gallery,
+      PhotoPickerAction.remove => null,
+    };
+    if (source == null) return;
+
+    final expectedUserId = _currentUserId();
+    setState(() => _pickingPhoto = true);
+    String? captureId;
+    try {
+      captureId = await markPendingPhotoCapture(
+        target: PhotoCaptureTarget.editProfile,
+        userId: expectedUserId,
+      );
+      if (!mounted || _currentUserId() != expectedUserId) return;
+      final picker = widget.onPickPhoto ?? defaultPickPhoto;
+      final picked = await picker(source);
+      if (!mounted || picked == null) return;
+      if (_currentUserId() != expectedUserId) return;
+      setState(() {
+        _avatarUrl = picked.path;
+        _clearAvatar = false;
+      });
+    } on PhotoPickerException catch (error) {
+      if (!mounted) return;
+      if (_currentUserId() != expectedUserId) return;
+      showDnToast(context, error.message, type: DnToastType.gagal);
+    } catch (_) {
+      if (!mounted) return;
+      if (_currentUserId() != expectedUserId) return;
+      showDnToast(
+        context,
+        'Gagal mengambil foto. Coba lagi.',
+        type: DnToastType.gagal,
+      );
+    } finally {
+      if (captureId != null) {
+        await clearPendingPhotoCapture(captureId: captureId);
+      }
+      if (mounted) {
+        setState(() => _pickingPhoto = false);
+      }
+    }
+  }
+
   Widget _buildAvatarBlock(BuildContext context) {
     final initial = _nameController.text.trim().isNotEmpty
         ? _nameController.text.trim()[0].toUpperCase()
@@ -232,30 +345,30 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
     return Column(
       children: [
-        Container(
-          width: 84,
-          height: 84,
-          decoration: const BoxDecoration(
-            color: AppColors.primary,
-            shape: BoxShape.circle,
-          ),
-          alignment: Alignment.center,
-          child: Text(
-            initial,
-            style: AppTextStyles.displayLg.copyWith(
-              color: AppColors.onPrimary,
-              fontWeight: FontWeight.w800,
+        Semantics(
+          button: true,
+          label: 'Ubah foto profil',
+          child: InkWell(
+            key: const Key('edit-profile-avatar'),
+            customBorder: const CircleBorder(),
+            onTap: _pickingPhoto ? null : _openPhotoPicker,
+            child: DnAvatar(
+              imagePath: _avatarUrl,
+              initials: initial,
+              size: 84,
+              backgroundColor: AppColors.primary,
+              foregroundColor: AppColors.onPrimary,
+              textStyle: AppTextStyles.displayLg.copyWith(
+                color: AppColors.onPrimary,
+                fontWeight: FontWeight.w800,
+              ),
             ),
           ),
         ),
         const SizedBox(height: 8),
         InkWell(
           borderRadius: BorderRadius.circular(AppRadius.sm),
-          onTap: () {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Pilih foto dari galeri atau kamera')),
-            );
-          },
+          onTap: _pickingPhoto ? null : _openPhotoPicker,
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
             child: Row(

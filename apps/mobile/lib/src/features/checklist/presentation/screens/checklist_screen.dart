@@ -12,6 +12,7 @@ import 'package:dolenae_mobile/src/features/checklist/presentation/controllers/c
 import 'package:dolenae_mobile/src/shared/icons/app_icons.dart';
 import 'package:dolenae_mobile/src/shared/widgets/dn_app_bar.dart';
 import 'package:dolenae_mobile/src/shared/widgets/dn_buttons.dart';
+import 'package:dolenae_mobile/src/shared/widgets/dn_toast.dart';
 
 /// Layar Checklist Persiapan (Node Figma: 68:1036).
 ///
@@ -325,11 +326,11 @@ class _ChecklistScreenState extends State<ChecklistScreen> {
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(6),
                 color: item.isCompleted
-                    ? AppColors.primary
+                    ? AppColors.success
                     : Colors.transparent,
                 border: Border.all(
                   color: item.isCompleted
-                      ? AppColors.primary
+                      ? AppColors.success
                       : AppColors.borderStrong,
                   width: 1.5,
                 ),
@@ -355,9 +356,6 @@ class _ChecklistScreenState extends State<ChecklistScreen> {
                       fontSize: 14,
                       fontWeight: FontWeight.w500,
                       color: item.isCompleted ? AppColors.body : AppColors.ink,
-                      decoration: item.isCompleted
-                          ? TextDecoration.lineThrough
-                          : TextDecoration.none,
                     ),
                   ),
                   if (item.note != null) ...[
@@ -367,26 +365,35 @@ class _ChecklistScreenState extends State<ChecklistScreen> {
                       style: AppTextStyles.caption.copyWith(fontSize: 11),
                     ),
                   ],
+                  const SizedBox(height: 6),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 2,
+                    ),
+                    decoration: BoxDecoration(
+                      color: AppColors.canvas,
+                      borderRadius: BorderRadius.circular(AppRadius.pill),
+                      border: Border.all(color: AppColors.hairline),
+                    ),
+                    child: Text(
+                      item.isRequired ? 'Wajib' : 'Opsional',
+                      style: AppTextStyles.overline.copyWith(
+                        fontSize: 10,
+                        color: AppColors.body,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
                 ],
               ),
             ),
             const SizedBox(width: 8),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-              decoration: BoxDecoration(
-                color: item.isRequired
-                    ? const Color(0xFFFBEEDB)
-                    : AppColors.canvas,
-                borderRadius: BorderRadius.circular(AppRadius.pill),
-                border: Border.all(color: AppColors.hairline),
-              ),
-              child: Text(
-                item.isRequired ? 'Wajib' : 'Opsional',
-                style: AppTextStyles.overline.copyWith(
-                  fontSize: 10,
-                  color: item.isRequired ? AppColors.warning : AppColors.body,
-                  fontWeight: FontWeight.w600,
-                ),
+            Text(
+              item.isCompleted ? 'Selesai' : 'Belum',
+              style: AppTextStyles.labelSm.copyWith(
+                fontSize: 11,
+                color: item.isCompleted ? AppColors.success : AppColors.body,
               ),
             ),
           ],
@@ -442,11 +449,10 @@ class _ChecklistScreenState extends State<ChecklistScreen> {
         onPressed:
             widget.onMarkReady ??
             () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Kesiapan checklist tersimpan!'),
-                  backgroundColor: AppColors.success,
-                ),
+              showDnToast(
+                context,
+                'Kesiapan checklist tersimpan!',
+                type: DnToastType.sukses,
               );
             },
       ),

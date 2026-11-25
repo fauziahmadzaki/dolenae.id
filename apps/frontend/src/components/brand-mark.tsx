@@ -1,4 +1,4 @@
-import { Mountain } from "lucide-react";
+import { MountainSnow } from "lucide-react";
 import { cn } from "~/lib/cn";
 
 interface BrandMarkProps {
@@ -26,7 +26,7 @@ export function BrandMark({
       )}
       style={{ width: size, height: size }}
     >
-      <Mountain
+      <MountainSnow
         style={{ width: size * 0.55, height: size * 0.55 }}
         strokeWidth={2}
         className={iconClassName}

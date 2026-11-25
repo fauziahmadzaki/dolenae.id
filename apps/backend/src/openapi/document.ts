@@ -15,6 +15,7 @@ export const openApiDocument = {
     { name: "Auth", description: "Authentication and account access" },
     { name: "Users", description: "Admin user management" },
     { name: "Categories", description: "Destination categories (terrain/activity)" },
+    { name: "Contents", description: "Editorial content (Artikel/Panduan/Tips) and admin gallery photos" },
     { name: "Destinations", description: "Nature destinations catalog & admin CRUD" },
     { name: "Regions", description: "Indonesian province/regency/district data & reverse geocoding" },
     { name: "Supports", description: "Published-destination travel support discovery" },
@@ -140,6 +141,22 @@ export const openApiDocument = {
           categoryIds: { type: "array", items: { type: "string", format: "uuid" } },
           createdAt: { type: "string", format: "date-time" },
           updatedAt: { type: "string", format: "date-time" },
+        },
+      },
+      PagedContents: {
+        type: "object",
+        properties: {
+          success: { type: "boolean", enum: [true] },
+          data: { type: "array", items: { type: "object" } },
+          meta: { $ref: "#/components/schemas/PageMeta" },
+        },
+      },
+      PagedGallery: {
+        type: "object",
+        properties: {
+          success: { type: "boolean", enum: [true] },
+          data: { type: "array", items: { type: "object" } },
+          meta: { $ref: "#/components/schemas/PageMeta" },
         },
       },
       PagedCategories: {
@@ -799,6 +816,246 @@ export const openApiDocument = {
             },
           },
           "401": { description: "Missing or invalid token" },
+        },
+      },
+    },
+    "/api/contents": {
+      get: {
+        tags: ["Contents"],
+        summary: "List published articles (public)",
+        parameters: [
+          { name: "page", in: "query", schema: { type: "integer", default: 1 } },
+          { name: "limit", in: "query", schema: { type: "integer", default: 20, maximum: 100 } },
+          { name: "search", in: "query", schema: { type: "string" } },
+          { name: "kind", in: "query", schema: { type: "string", enum: ["artikel", "panduan", "tips"] } },
+        ],
+        responses: {
+          "200": {
+            description: "Paginated published articles",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/PagedContents" },
+              },
+            },
+          },
+        },
+      },
+    },
+    "/api/contents/{slug}": {
+      parameters: [
+        { name: "slug", in: "path", required: true, schema: { type: "string" } },
+      ],
+      get: {
+        tags: ["Contents"],
+        summary: "Get a published article by slug (public, increments views)",
+        responses: {
+          "200": { description: "Article" },
+          "404": { description: "Not found or not published" },
+        },
+      },
+    },
+    "/api/admin/contents": {
+      get: {
+        tags: ["Contents"],
+        summary: "List all content for the admin table",
+        security: [{ bearerAuth: [] }],
+        parameters: [
+          { name: "page", in: "query", schema: { type: "integer", default: 1 } },
+          { name: "limit", in: "query", schema: { type: "integer", default: 20, maximum: 100 } },
+          { name: "search", in: "query", schema: { type: "string" } },
+          { name: "kind", in: "query", schema: { type: "string", enum: ["artikel", "panduan", "tips"] } },
+          { name: "status", in: "query", schema: { type: "string", enum: ["draft", "pending", "published"] } },
+          { name: "sort", in: "query", schema: { type: "string", enum: ["createdAt", "updatedAt", "title", "publishedAt", "views"] } },
+          { name: "order", in: "query", schema: { type: "string", enum: ["asc", "desc"] } },
+        ],
+        responses: {
+          "200": {
+            description: "Paginated content",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/PagedContents" },
+              },
+            },
+          },
+          "401": { description: "Missing or invalid token" },
+          "403": { description: "Admin role required" },
+        },
+      },
+      post: {
+        tags: ["Contents"],
+        summary: "Create content (admin)",
+        security: [{ bearerAuth: [] }],
+        requestBody: {
+          required: true,
+          content: {
+            "application/json": {
+              schema: {
+                type: "object",
+                required: ["title", "body"],
+                properties: {
+                  title: { type: "string", maxLength: 180 },
+                  kind: { type: "string", enum: ["artikel", "panduan", "tips"] },
+                  excerpt: { type: ["string", "null"], maxLength: 400 },
+                  body: { type: "string" },
+                  coverUrl: { type: ["string", "null"], description: "URL from a Gallery upload" },
+                  status: { type: "string", enum: ["draft", "pending", "published"] },
+                },
+              },
+            },
+          },
+        },
+        responses: {
+          "201": { description: "Content created" },
+          "401": { description: "Missing or invalid token" },
+          "403": { description: "Admin role required" },
+          "422": { description: "Validation error" },
+        },
+      },
+    },
+    "/api/admin/contents/{id}": {
+      parameters: [
+        { name: "id", in: "path", required: true, schema: { type: "string", format: "uuid" } },
+      ],
+      get: {
+        tags: ["Contents"],
+        summary: "Get one content entry (admin)",
+        security: [{ bearerAuth: [] }],
+        responses: {
+          "200": { description: "Content" },
+          "404": { description: "Not found" },
+        },
+      },
+      patch: {
+        tags: ["Contents"],
+        summary: "Update content or its status (admin)",
+        security: [{ bearerAuth: [] }],
+        requestBody: {
+          required: true,
+          content: {
+            "application/json": {
+              schema: {
+                type: "object",
+                minProperties: 1,
+                properties: {
+                  title: { type: "string" },
+                  kind: { type: "string", enum: ["artikel", "panduan", "tips"] },
+                  excerpt: { type: ["string", "null"] },
+                  body: { type: "string" },
+                  coverUrl: { type: ["string", "null"], description: "Replacement URL from a Gallery upload" },
+                  status: { type: "string", enum: ["draft", "pending", "published"] },
+                },
+              },
+            },
+          },
+        },
+        responses: {
+          "200": { description: "Content updated" },
+          "404": { description: "Not found" },
+          "422": { description: "Validation error" },
+        },
+      },
+      delete: {
+        tags: ["Contents"],
+        summary: "Delete content (admin)",
+        security: [{ bearerAuth: [] }],
+        responses: {
+          "200": { description: "Deleted" },
+          "404": { description: "Not found" },
+        },
+      },
+    },
+    "/api/admin/gallery": {
+      get: {
+        tags: ["Contents"],
+        summary: "List gallery photos (admin)",
+        security: [{ bearerAuth: [] }],
+        parameters: [
+          { name: "page", in: "query", schema: { type: "integer", default: 1 } },
+          { name: "limit", in: "query", schema: { type: "integer", default: 20, maximum: 100 } },
+          { name: "search", in: "query", schema: { type: "string" } },
+          { name: "region", in: "query", description: "Region name, or 'none' for photos without a region", schema: { type: "string" } },
+          { name: "sort", in: "query", schema: { type: "string", enum: ["fileName", "createdAt", "size"] } },
+          { name: "order", in: "query", schema: { type: "string", enum: ["asc", "desc"] } },
+        ],
+        responses: {
+          "200": {
+            description: "Paginated gallery photos",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/PagedGallery" },
+              },
+            },
+          },
+          "401": { description: "Missing or invalid token" },
+          "403": { description: "Admin role required" },
+        },
+      },
+      post: {
+        tags: ["Contents"],
+        summary: "Register an uploaded gallery photo (admin)",
+        description:
+          "Upload the file first with POST /api/uploads?folder=gallery. The server derives the URL and metadata from the key. Retrying the same key returns the registered photo.",
+        security: [{ bearerAuth: [] }],
+        requestBody: {
+          required: true,
+          content: {
+            "application/json": {
+              schema: {
+                type: "object",
+                required: ["key", "name", "mime", "size"],
+                properties: {
+                  url: { type: "string", format: "uri" },
+                  key: { type: "string", description: "Must start with gallery/" },
+                  name: { type: "string" },
+                  mime: { type: "string" },
+                  size: { type: "integer" },
+                  region: { type: ["string", "null"] },
+                },
+              },
+            },
+          },
+        },
+        responses: {
+          "201": { description: "Photo registered or already registered for this key" },
+          "422": { description: "Validation error" },
+        },
+      },
+    },
+    "/api/admin/gallery/{id}": {
+      parameters: [
+        { name: "id", in: "path", required: true, schema: { type: "string", format: "uuid" } },
+      ],
+      patch: {
+        tags: ["Contents"],
+        summary: "Rename a photo or set its region (admin)",
+        security: [{ bearerAuth: [] }],
+        requestBody: {
+          required: true,
+          content: {
+            "application/json": {
+              schema: {
+                type: "object",
+                minProperties: 1,
+                properties: {
+                  name: { type: "string" },
+                  region: { type: ["string", "null"] },
+                },
+              },
+            },
+          },
+        },
+        responses: {
+          "200": { description: "Photo updated" },
+          "404": { description: "Not found" },
+        },
+      },
+      delete: {
+        tags: ["Contents"],
+        summary: "Delete a photo and its stored file (admin)",
+        security: [{ bearerAuth: [] }],
+        responses: {
+          "200": { description: "Deleted or already absent" },
+          "409": { description: "Photo is still used as an article cover" },
         },
       },
     },

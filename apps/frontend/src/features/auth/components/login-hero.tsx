@@ -1,4 +1,4 @@
-import { Check, Mountain } from "lucide-react";
+import { Check, MountainSnow } from "lucide-react";
 
 const VALUE_POINTS = [
   "Rekomendasi destinasi sesuai minat dan waktu",
@@ -9,11 +9,11 @@ const VALUE_POINTS = [
 /** Right-hand value panel of the login page (desktop only, from Figma). */
 export function LoginHero() {
   return (
-    <aside className="hidden flex-col justify-center gap-4 bg-primary px-20 py-16 lg:flex">
-      <Mountain
+    <aside className="hidden flex-col justify-center gap-4 bg-primary px-[min(5.6vw,80px)] py-16 lg:flex">
+      <MountainSnow
         aria-hidden
         className="h-[140px] w-[140px] text-canvas"
-        strokeWidth={1.5}
+        strokeWidth={0.4}
       />
 
       <h2 className="mt-4 text-[28px] font-bold leading-snug text-on-primary">

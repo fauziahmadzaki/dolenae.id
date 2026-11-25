@@ -1,10 +1,14 @@
-import type { LucideIcon } from "lucide-react";
+import * as Popover from "@radix-ui/react-popover";
+import Link from "next/link";
+import { ArrowRight, MoreVertical, type LucideIcon } from "lucide-react";
 import { cn } from "~/lib/cn";
 
 interface KpiCardProps {
   label: string;
   value: number;
-  hint: string;
+  hint?: string;
+  href?: string;
+  actionLabel?: string;
   icon: LucideIcon;
   tone: string;
   isLoading?: boolean;
@@ -14,27 +18,59 @@ export function KpiCard({
   label,
   value,
   hint,
+  href,
+  actionLabel = "Lihat semua",
   icon: Icon,
   tone,
   isLoading = false,
 }: KpiCardProps) {
   return (
-    <div className="rounded-xl border border-hairline bg-surface p-4">
-      <div className="flex items-start justify-between gap-3">
+    <div className="flex items-start gap-3 rounded-[20px] border border-hairline bg-surface p-4">
+      <span
+        className={cn(
+          "inline-flex size-11 shrink-0 items-center justify-center rounded-xl",
+          tone,
+        )}
+      >
+        <Icon aria-hidden className="size-5" />
+      </span>
+      <div className="min-w-0 flex-1">
         <p className="text-xs font-medium text-body">{label}</p>
-        <span
-          className={cn(
-            "inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg",
-            tone,
-          )}
-        >
-          <Icon aria-hidden className="h-4 w-4" />
-        </span>
+        <p className="mt-1 font-sans text-xl leading-6 font-bold text-ink">
+          {isLoading ? "—" : value.toLocaleString("id-ID")}
+        </p>
+        {hint && <p className="mt-1 text-xs text-body">{hint}</p>}
       </div>
-      <p className="mt-3 font-display text-3xl font-bold text-ink">
-        {isLoading ? "—" : value.toLocaleString("id-ID")}
-      </p>
-      <p className="mt-1 text-xs text-body">{hint}</p>
+      {href ? (
+        <Popover.Root>
+          <Popover.Trigger asChild>
+            <button
+              type="button"
+              aria-label={`Opsi ${label}`}
+              className="-mr-1 -mt-1 inline-flex size-7 shrink-0 items-center justify-center rounded-lg text-body/70 transition-colors hover:bg-canvas-subtle hover:text-ink"
+            >
+              <MoreVertical aria-hidden className="size-4" />
+            </button>
+          </Popover.Trigger>
+          <Popover.Portal>
+            <Popover.Content
+              align="end"
+              sideOffset={6}
+              className="z-50 w-44 rounded-xl border border-hairline bg-surface p-1 shadow-md focus:outline-none"
+            >
+              <Link
+                href={href}
+                className="flex items-center justify-between rounded-lg px-3 py-2 text-xs font-semibold text-ink hover:bg-canvas-subtle"
+              >
+                {actionLabel}
+                <ArrowRight aria-hidden className="size-3.5 text-primary" />
+              </Link>
+            </Popover.Content>
+          </Popover.Portal>
+        </Popover.Root>
+      ) : (
+        <MoreVertical aria-hidden className="size-4 shrink-0 text-body/70" />
+      )}
     </div>
   );
 }

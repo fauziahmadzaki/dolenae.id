@@ -40,6 +40,23 @@ class PlanController extends ChangeNotifier {
   bool isGeneratingChecklist(String planId) =>
       _generatingChecklistIds.contains(planId);
 
+  String? _userId;
+
+  /// Set active user scope and reload plans for that user.
+  Future<void> setUserId(String? userId) async {
+    final normalized = userId?.trim();
+    final next = (normalized == null || normalized.isEmpty) ? null : normalized;
+    if (next == _userId) return;
+    _userId = next;
+    _repository.setUserId(next);
+    _plans = const [];
+    _error = null;
+    _generatingIds.clear();
+    _generatingChecklistIds.clear();
+    notifyListeners();
+    await load();
+  }
+
   Future<void> load() async {
     if (_isLoading) return;
     _isLoading = true;
