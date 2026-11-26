@@ -80,6 +80,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (!mounted) return;
         final store = context.read<ExploreController>()
+          ..clearSearchFilters()
           ..setSearchQuery(activity)
           ..commitSearch(activity);
         final terrain = _knownTerrain(activity);
@@ -104,8 +105,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
   String? _knownTerrain(String label) {
     final needle = label.trim().toLowerCase();
     for (final category in context.read<CategoriesController>().items) {
-      if (category.type == 'terrain' &&
-          category.name.toLowerCase() == needle) {
+      if (category.type == 'terrain' && category.name.toLowerCase() == needle) {
         return category.name;
       }
     }
@@ -224,6 +224,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
         filter: store.searchFilter,
         onReset: () {
           store.clearSearchFilters();
+          _selectedCategory = 'Semuanya';
           Navigator.of(sheetContext).pop();
           setState(() {
             _selectedCategory = 'Semuanya';
@@ -248,11 +249,12 @@ class _ExploreScreenState extends State<ExploreScreen> {
     final signature = [
       store.searchFilter.query,
       store.searchFilter.categoryId,
+      store.searchFilter.categoryLabel,
+      store.searchFilter.terrain,
       store.searchFilter.sort.name,
       store.searchFilter.difficulty.name,
       store.searchFilter.supports.join(','),
       store.searchFilter.verifiedOnly,
-      store.searchFilter.terrain,
       _selectedCategory,
     ].join('|');
     _resetPagination(signature);
@@ -359,6 +361,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
                             () {
                               final current = context.read<ExploreController>();
                               current.clearSearchFilters();
+                              _selectedCategory = 'Semuanya';
                               setState(() {});
                             },
                       ),
@@ -547,7 +550,10 @@ class _ExploreScreenState extends State<ExploreScreen> {
                           } else {
                             store
                               ..setTerrain('')
-                              ..setCategoryId(selected ? '' : item.id);
+                              ..setCategoryId(
+                                selected ? '' : item.id,
+                                label: selected ? '' : item.name,
+                              );
                           }
                           setState(() {
                             _selectedCategory = 'Semuanya';
@@ -805,7 +811,9 @@ class _FilterSheet extends StatelessWidget {
                 borderRadius: BorderRadius.circular(AppRadius.lg),
                 child: Container(
                   height: 44,
-                  padding: const EdgeInsets.symmetric(horizontal: AppSpacing.s3),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: AppSpacing.s3,
+                  ),
                   decoration: BoxDecoration(
                     color: AppColors.canvasSubtle,
                     borderRadius: BorderRadius.circular(AppRadius.lg),

@@ -44,7 +44,8 @@ void main() {
     await tester.pumpAndSettle();
 
     // Frame Hi-Fi Beranda `56:10021` memuat chip Gunung..Camping.
-    expect(find.text('Gunung'), findsOneWidget);
+    // "Gunung" juga muncul sebagai label tile aktivitas.
+    expect(find.text('Gunung'), findsNWidgets(2));
     expect(find.text('Bukit'), findsOneWidget);
     expect(find.text('Destinasi populer'), findsOneWidget);
     expect(find.byType(TextField), findsOneWidget);

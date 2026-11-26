@@ -69,6 +69,7 @@ abstract final class DestinationCacheMapper {
       longitude: row.longitude,
       terrain: _strings(row.terrain),
       activities: _strings(row.activities),
+      tags: _strings(row.tags),
       accessDescription: row.accessDescription,
       accessTransportModes: _transport(row.accessTransport),
       accessTravelTime: row.accessDuration,
