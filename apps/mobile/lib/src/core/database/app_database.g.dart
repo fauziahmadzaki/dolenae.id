@@ -289,6 +289,18 @@ class $CachedDestinationsTable extends CachedDestinations
     requiredDuringInsert: false,
     defaultValue: const Constant('[]'),
   );
+  static const VerificationMeta _facilitiesMeta = const VerificationMeta(
+    'facilities',
+  );
+  @override
+  late final GeneratedColumn<String> facilities = GeneratedColumn<String>(
+    'facilities',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('{}'),
+  );
   static const VerificationMeta _sortOrderMeta = const VerificationMeta(
     'sortOrder',
   );
@@ -349,6 +361,7 @@ class $CachedDestinationsTable extends CachedDestinations
     guideRequired,
     verified,
     categoryIds,
+    facilities,
     sortOrder,
     lastFetched,
     serverUpdatedAt,
@@ -547,6 +560,12 @@ class $CachedDestinationsTable extends CachedDestinations
         ),
       );
     }
+    if (data.containsKey('facilities')) {
+      context.handle(
+        _facilitiesMeta,
+        facilities.isAcceptableOrUnknown(data['facilities']!, _facilitiesMeta),
+      );
+    }
     if (data.containsKey('sort_order')) {
       context.handle(
         _sortOrderMeta,
@@ -684,6 +703,10 @@ class $CachedDestinationsTable extends CachedDestinations
         DriftSqlType.string,
         data['${effectivePrefix}category_ids'],
       )!,
+      facilities: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}facilities'],
+      )!,
       sortOrder: attachedDatabase.typeMapping.read(
         DriftSqlType.int,
         data['${effectivePrefix}sort_order'],
@@ -732,6 +755,7 @@ class CachedDestination extends DataClass
   final bool? guideRequired;
   final bool verified;
   final String categoryIds;
+  final String facilities;
   final int sortOrder;
   final int lastFetched;
   final int? serverUpdatedAt;
@@ -761,6 +785,7 @@ class CachedDestination extends DataClass
     this.guideRequired,
     required this.verified,
     required this.categoryIds,
+    required this.facilities,
     required this.sortOrder,
     required this.lastFetched,
     this.serverUpdatedAt,
@@ -819,6 +844,7 @@ class CachedDestination extends DataClass
     }
     map['verified'] = Variable<bool>(verified);
     map['category_ids'] = Variable<String>(categoryIds);
+    map['facilities'] = Variable<String>(facilities);
     map['sort_order'] = Variable<int>(sortOrder);
     map['last_fetched'] = Variable<int>(lastFetched);
     if (!nullToAbsent || serverUpdatedAt != null) {
@@ -880,6 +906,7 @@ class CachedDestination extends DataClass
           : Value(guideRequired),
       verified: Value(verified),
       categoryIds: Value(categoryIds),
+      facilities: Value(facilities),
       sortOrder: Value(sortOrder),
       lastFetched: Value(lastFetched),
       serverUpdatedAt: serverUpdatedAt == null && nullToAbsent
@@ -921,6 +948,7 @@ class CachedDestination extends DataClass
       guideRequired: serializer.fromJson<bool?>(json['guideRequired']),
       verified: serializer.fromJson<bool>(json['verified']),
       categoryIds: serializer.fromJson<String>(json['categoryIds']),
+      facilities: serializer.fromJson<String>(json['facilities']),
       sortOrder: serializer.fromJson<int>(json['sortOrder']),
       lastFetched: serializer.fromJson<int>(json['lastFetched']),
       serverUpdatedAt: serializer.fromJson<int?>(json['serverUpdatedAt']),
@@ -955,6 +983,7 @@ class CachedDestination extends DataClass
       'guideRequired': serializer.toJson<bool?>(guideRequired),
       'verified': serializer.toJson<bool>(verified),
       'categoryIds': serializer.toJson<String>(categoryIds),
+      'facilities': serializer.toJson<String>(facilities),
       'sortOrder': serializer.toJson<int>(sortOrder),
       'lastFetched': serializer.toJson<int>(lastFetched),
       'serverUpdatedAt': serializer.toJson<int?>(serverUpdatedAt),
@@ -987,6 +1016,7 @@ class CachedDestination extends DataClass
     Value<bool?> guideRequired = const Value.absent(),
     bool? verified,
     String? categoryIds,
+    String? facilities,
     int? sortOrder,
     int? lastFetched,
     Value<int?> serverUpdatedAt = const Value.absent(),
@@ -1026,6 +1056,7 @@ class CachedDestination extends DataClass
         : this.guideRequired,
     verified: verified ?? this.verified,
     categoryIds: categoryIds ?? this.categoryIds,
+    facilities: facilities ?? this.facilities,
     sortOrder: sortOrder ?? this.sortOrder,
     lastFetched: lastFetched ?? this.lastFetched,
     serverUpdatedAt: serverUpdatedAt.present
@@ -1083,6 +1114,9 @@ class CachedDestination extends DataClass
       categoryIds: data.categoryIds.present
           ? data.categoryIds.value
           : this.categoryIds,
+      facilities: data.facilities.present
+          ? data.facilities.value
+          : this.facilities,
       sortOrder: data.sortOrder.present ? data.sortOrder.value : this.sortOrder,
       lastFetched: data.lastFetched.present
           ? data.lastFetched.value
@@ -1121,6 +1155,7 @@ class CachedDestination extends DataClass
           ..write('guideRequired: $guideRequired, ')
           ..write('verified: $verified, ')
           ..write('categoryIds: $categoryIds, ')
+          ..write('facilities: $facilities, ')
           ..write('sortOrder: $sortOrder, ')
           ..write('lastFetched: $lastFetched, ')
           ..write('serverUpdatedAt: $serverUpdatedAt')
@@ -1155,6 +1190,7 @@ class CachedDestination extends DataClass
     guideRequired,
     verified,
     categoryIds,
+    facilities,
     sortOrder,
     lastFetched,
     serverUpdatedAt,
@@ -1188,6 +1224,7 @@ class CachedDestination extends DataClass
           other.guideRequired == this.guideRequired &&
           other.verified == this.verified &&
           other.categoryIds == this.categoryIds &&
+          other.facilities == this.facilities &&
           other.sortOrder == this.sortOrder &&
           other.lastFetched == this.lastFetched &&
           other.serverUpdatedAt == this.serverUpdatedAt);
@@ -1219,6 +1256,7 @@ class CachedDestinationsCompanion extends UpdateCompanion<CachedDestination> {
   final Value<bool?> guideRequired;
   final Value<bool> verified;
   final Value<String> categoryIds;
+  final Value<String> facilities;
   final Value<int> sortOrder;
   final Value<int> lastFetched;
   final Value<int?> serverUpdatedAt;
@@ -1249,6 +1287,7 @@ class CachedDestinationsCompanion extends UpdateCompanion<CachedDestination> {
     this.guideRequired = const Value.absent(),
     this.verified = const Value.absent(),
     this.categoryIds = const Value.absent(),
+    this.facilities = const Value.absent(),
     this.sortOrder = const Value.absent(),
     this.lastFetched = const Value.absent(),
     this.serverUpdatedAt = const Value.absent(),
@@ -1280,6 +1319,7 @@ class CachedDestinationsCompanion extends UpdateCompanion<CachedDestination> {
     this.guideRequired = const Value.absent(),
     this.verified = const Value.absent(),
     this.categoryIds = const Value.absent(),
+    this.facilities = const Value.absent(),
     required int sortOrder,
     required int lastFetched,
     this.serverUpdatedAt = const Value.absent(),
@@ -1316,6 +1356,7 @@ class CachedDestinationsCompanion extends UpdateCompanion<CachedDestination> {
     Expression<bool>? guideRequired,
     Expression<bool>? verified,
     Expression<String>? categoryIds,
+    Expression<String>? facilities,
     Expression<int>? sortOrder,
     Expression<int>? lastFetched,
     Expression<int>? serverUpdatedAt,
@@ -1347,6 +1388,7 @@ class CachedDestinationsCompanion extends UpdateCompanion<CachedDestination> {
       if (guideRequired != null) 'guide_required': guideRequired,
       if (verified != null) 'verified': verified,
       if (categoryIds != null) 'category_ids': categoryIds,
+      if (facilities != null) 'facilities': facilities,
       if (sortOrder != null) 'sort_order': sortOrder,
       if (lastFetched != null) 'last_fetched': lastFetched,
       if (serverUpdatedAt != null) 'server_updated_at': serverUpdatedAt,
@@ -1380,6 +1422,7 @@ class CachedDestinationsCompanion extends UpdateCompanion<CachedDestination> {
     Value<bool?>? guideRequired,
     Value<bool>? verified,
     Value<String>? categoryIds,
+    Value<String>? facilities,
     Value<int>? sortOrder,
     Value<int>? lastFetched,
     Value<int?>? serverUpdatedAt,
@@ -1411,6 +1454,7 @@ class CachedDestinationsCompanion extends UpdateCompanion<CachedDestination> {
       guideRequired: guideRequired ?? this.guideRequired,
       verified: verified ?? this.verified,
       categoryIds: categoryIds ?? this.categoryIds,
+      facilities: facilities ?? this.facilities,
       sortOrder: sortOrder ?? this.sortOrder,
       lastFetched: lastFetched ?? this.lastFetched,
       serverUpdatedAt: serverUpdatedAt ?? this.serverUpdatedAt,
@@ -1496,6 +1540,9 @@ class CachedDestinationsCompanion extends UpdateCompanion<CachedDestination> {
     if (categoryIds.present) {
       map['category_ids'] = Variable<String>(categoryIds.value);
     }
+    if (facilities.present) {
+      map['facilities'] = Variable<String>(facilities.value);
+    }
     if (sortOrder.present) {
       map['sort_order'] = Variable<int>(sortOrder.value);
     }
@@ -1539,6 +1586,7 @@ class CachedDestinationsCompanion extends UpdateCompanion<CachedDestination> {
           ..write('guideRequired: $guideRequired, ')
           ..write('verified: $verified, ')
           ..write('categoryIds: $categoryIds, ')
+          ..write('facilities: $facilities, ')
           ..write('sortOrder: $sortOrder, ')
           ..write('lastFetched: $lastFetched, ')
           ..write('serverUpdatedAt: $serverUpdatedAt, ')
@@ -1587,6 +1635,7 @@ typedef $$CachedDestinationsTableCreateCompanionBuilder =
       Value<bool?> guideRequired,
       Value<bool> verified,
       Value<String> categoryIds,
+      Value<String> facilities,
       required int sortOrder,
       required int lastFetched,
       Value<int?> serverUpdatedAt,
@@ -1619,6 +1668,7 @@ typedef $$CachedDestinationsTableUpdateCompanionBuilder =
       Value<bool?> guideRequired,
       Value<bool> verified,
       Value<String> categoryIds,
+      Value<String> facilities,
       Value<int> sortOrder,
       Value<int> lastFetched,
       Value<int?> serverUpdatedAt,
@@ -1756,6 +1806,11 @@ class $$CachedDestinationsTableFilterComposer
 
   ColumnFilters<String> get categoryIds => $composableBuilder(
     column: $table.categoryIds,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get facilities => $composableBuilder(
+    column: $table.facilities,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -1909,6 +1964,11 @@ class $$CachedDestinationsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get facilities => $composableBuilder(
+    column: $table.facilities,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<int> get sortOrder => $composableBuilder(
     column: $table.sortOrder,
     builder: (column) => ColumnOrderings(column),
@@ -2033,6 +2093,11 @@ class $$CachedDestinationsTableAnnotationComposer
     builder: (column) => column,
   );
 
+  GeneratedColumn<String> get facilities => $composableBuilder(
+    column: $table.facilities,
+    builder: (column) => column,
+  );
+
   GeneratedColumn<int> get sortOrder =>
       $composableBuilder(column: $table.sortOrder, builder: (column) => column);
 
@@ -2112,6 +2177,7 @@ class $$CachedDestinationsTableTableManager
                 Value<bool?> guideRequired = const Value.absent(),
                 Value<bool> verified = const Value.absent(),
                 Value<String> categoryIds = const Value.absent(),
+                Value<String> facilities = const Value.absent(),
                 Value<int> sortOrder = const Value.absent(),
                 Value<int> lastFetched = const Value.absent(),
                 Value<int?> serverUpdatedAt = const Value.absent(),
@@ -2142,6 +2208,7 @@ class $$CachedDestinationsTableTableManager
                 guideRequired: guideRequired,
                 verified: verified,
                 categoryIds: categoryIds,
+                facilities: facilities,
                 sortOrder: sortOrder,
                 lastFetched: lastFetched,
                 serverUpdatedAt: serverUpdatedAt,
@@ -2174,6 +2241,7 @@ class $$CachedDestinationsTableTableManager
                 Value<bool?> guideRequired = const Value.absent(),
                 Value<bool> verified = const Value.absent(),
                 Value<String> categoryIds = const Value.absent(),
+                Value<String> facilities = const Value.absent(),
                 required int sortOrder,
                 required int lastFetched,
                 Value<int?> serverUpdatedAt = const Value.absent(),
@@ -2204,6 +2272,7 @@ class $$CachedDestinationsTableTableManager
                 guideRequired: guideRequired,
                 verified: verified,
                 categoryIds: categoryIds,
+                facilities: facilities,
                 sortOrder: sortOrder,
                 lastFetched: lastFetched,
                 serverUpdatedAt: serverUpdatedAt,

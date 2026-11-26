@@ -14,30 +14,59 @@ class RefreshDestinationsUseCase implements UseCase<void, NoParams> {
   Future<Result<void>> call(NoParams params) => _repository.refresh();
 }
 
-/// Menyaring katalog Jelajah berdasarkan teks dan kategori yang aktif.
+/// Menyaring katalog Jelajah berdasarkan filter cepat terstruktur dan teks pencarian.
 class SearchDestinationsUseCase {
   const SearchDestinationsUseCase();
 
   List<Destination> call(List<Destination> source, SearchFilter filter) {
     final tokens = _tokens(filter.query);
-    final categoryTokens = _tokens(filter.categoryLabel);
-    if (tokens.isEmpty && !filter.isFiltered && categoryTokens.isEmpty) {
+    if (tokens.isEmpty && !filter.isFiltered) {
       return source;
     }
 
+    final terrain = SearchFilter.sanitizeStructuredValue(filter.terrain);
+    final categoryId = SearchFilter.sanitizeStructuredValue(filter.categoryId);
+    final categoryLabel = SearchFilter.sanitizeStructuredValue(
+      filter.categoryLabel,
+    );
+    final activityTag = SearchFilter.sanitizeStructuredValue(
+      filter.activityTag,
+    );
+    final province = SearchFilter.sanitizeStructuredValue(filter.province);
+    final supports = filter.supports
+        .map(SearchFilter.sanitizeStructuredValue)
+        .where((item) => item.isNotEmpty)
+        .toList(growable: false);
+
     final filtered = source
         .where((destination) {
-          if (!_matchesCategory(destination, filter, categoryTokens)) {
+          if (!_matchesTerrain(
+            destination,
+            terrain,
+            categoryId: categoryId,
+          )) {
             return false;
           }
-          if (!_matchesTerrain(destination, filter.terrain)) {
+          if (terrain.isEmpty &&
+              (categoryId.isNotEmpty || categoryLabel.isNotEmpty) &&
+              !_matchesCategory(
+                destination,
+                categoryId: categoryId,
+                categoryLabel: categoryLabel,
+              )) {
+            return false;
+          }
+          if (!_matchesActivityTag(destination, activityTag)) {
+            return false;
+          }
+          if (!_matchesProvince(destination, province)) {
             return false;
           }
           if (!_matchesDifficulty(destination.difficulty, filter.difficulty)) {
             return false;
           }
-          if (filter.supports.isNotEmpty &&
-              !_matchesSupports(destination, filter.supports)) {
+          if (supports.isNotEmpty &&
+              !_matchesSupports(destination, supports)) {
             return false;
           }
           if (tokens.isEmpty) return true;
@@ -46,7 +75,74 @@ class SearchDestinationsUseCase {
         })
         .toList(growable: false);
 
+    if (tokens.isNotEmpty && filter.sort == SortOption.populer) {
+      return _sortedByRelevance(filtered, _normalize(filter.query), tokens);
+    }
     return _sorted(filtered, filter.sort);
+  }
+
+  static List<Destination> _sortedByRelevance(
+    List<Destination> items,
+    String normalizedQuery,
+    List<String> tokens,
+  ) {
+    final indexed = [
+      for (var i = 0; i < items.length; i++)
+        (
+          index: i,
+          item: items[i],
+          score: _relevanceScore(items[i], normalizedQuery, tokens),
+        ),
+    ];
+    indexed.sort((a, b) {
+      final byScore = b.score.compareTo(a.score);
+      if (byScore != 0) return byScore;
+      return a.index.compareTo(b.index);
+    });
+    return indexed.map((entry) => entry.item).toList(growable: false);
+  }
+
+  static int _relevanceScore(
+    Destination destination,
+    String normalizedQuery,
+    List<String> tokens,
+  ) {
+    final name = _normalize(destination.name.trim());
+    final trimmedQuery = normalizedQuery.trim();
+    var score = 0;
+    if (trimmedQuery.isNotEmpty) {
+      if (name == trimmedQuery) {
+        score += 1000;
+      } else if (name.startsWith(trimmedQuery)) {
+        score += 500;
+      }
+    }
+    if (tokens.isNotEmpty && tokens.every(name.contains)) {
+      score += 250;
+    }
+
+    final region = _normalize('${destination.regency} ${destination.province}');
+    final terrainAndActivities = _normalize(
+      [...destination.terrain, ...destination.activities].join(' '),
+    );
+    final tags = _normalize(destination.tags.join(' '));
+    final details = _normalize(
+      [
+        destination.tagline,
+        destination.accessDescription ?? '',
+        destination.accessPointName ?? '',
+        ...destination.accessTransportModes,
+      ].join(' '),
+    );
+
+    for (final token in tokens) {
+      if (name.contains(token)) score += 60;
+      if (region.contains(token)) score += 30;
+      if (terrainAndActivities.contains(token)) score += 20;
+      if (tags.contains(token)) score += 15;
+      if (details.contains(token)) score += 5;
+    }
+    return score;
   }
 
   /// Urutan hasil. Destinasi tanpa nilai selalu diletakkan paling akhir supaya
@@ -88,14 +184,37 @@ class SearchDestinationsUseCase {
     return descending ? b.compareTo(a) : a.compareTo(b);
   }
 
-  /// Chip Beranda hanya membawa nama medan, jadi dicocokkan ke `terrain`.
-  ///
-  /// Sengaja tidak memakai nama/tagline: "Camping Gunungkidul" bertagline
-  /// gunung tapi medannya camping, dan harus tetap tersaring keluar.
-  static bool _matchesTerrain(Destination destination, String terrain) {
-    final wanted = terrain.trim().toLowerCase();
+  /// Cocokkan medan hanya pada `destination.terrain` (fallback `categoryIds`
+  /// hanya bila `destination.terrain` kosong).
+  static bool _matchesTerrain(
+    Destination destination,
+    String terrain, {
+    String categoryId = '',
+  }) {
+    final wanted = _normalize(terrain);
     if (wanted.isEmpty) return true;
-    return destination.terrain.any((item) => item.toLowerCase() == wanted);
+    if (destination.terrain.isNotEmpty) {
+      return destination.terrain.any((item) => _normalize(item) == wanted);
+    }
+    if (categoryId.isNotEmpty && destination.categoryIds.isNotEmpty) {
+      return destination.categoryIds.contains(categoryId);
+    }
+    return false;
+  }
+
+  static bool _matchesActivityTag(Destination destination, String activityTag) {
+    final wanted = _normalize(activityTag);
+    if (wanted.isEmpty) return true;
+    return _matchesStructuredValues([
+      ...destination.activities,
+      ...destination.tags,
+    ], wanted);
+  }
+
+  static bool _matchesProvince(Destination destination, String province) {
+    final wanted = _normalize(province);
+    if (wanted.isEmpty) return true;
+    return _normalize(destination.province) == wanted;
   }
 
   static bool _matchesDifficulty(
@@ -109,43 +228,69 @@ class SearchDestinationsUseCase {
   };
 
   static bool _matchesSupports(Destination destination, List<String> supports) {
-    final blob = [
-      ...destination.activities,
-      ...destination.terrain,
-      ...destination.accessTransportModes,
-      destination.tagline,
-      destination.accessDescription ?? '',
-    ].join(' ').toLowerCase();
-
     return supports.every((item) {
-      final token = item.trim().toLowerCase();
-      if (token == 'area camping') {
-        return blob.contains('camping') || blob.contains('camp');
+      final wanted = _normalize(item);
+      if (wanted.isEmpty) return true;
+      if (wanted == 'area camping') {
+        final hasStructuredCamping = _matchesStructuredValues([
+          ...destination.activities,
+          ...destination.tags,
+          ...destination.terrain,
+        ], 'camping ground');
+        if (hasStructuredCamping) return true;
+        return destination.facilities.entries.any(
+          (entry) =>
+              entry.value > 0 &&
+              const {
+                'area camping',
+                'camping ground',
+                'camping',
+              }.contains(_normalize(entry.key)),
+        );
       }
-      return blob.contains(token);
+      return destination.facilities.entries.any(
+        (entry) => entry.value > 0 && _normalize(entry.key) == wanted,
+      );
     });
   }
 }
 
 bool _matchesCategory(
-  Destination destination,
-  SearchFilter filter,
-  List<String> categoryTokens,
-) {
-  if (filter.categoryId.isEmpty) return true;
-  if (destination.categoryIds.contains(filter.categoryId)) return true;
-  if (categoryTokens.isEmpty) return false;
-
-  // Fallback untuk seed/cache lama yang belum punya categoryIds, serta
-  // kategori yang hanya tercantum di medan, aktivitas, atau tag destinasi.
-  final categoryHaystack = _normalize(
-    [
-      ...destination.terrain,
+  Destination destination, {
+  required String categoryId,
+  required String categoryLabel,
+}) {
+  final cleanId = SearchFilter.sanitizeStructuredValue(categoryId);
+  if (cleanId.isNotEmpty && destination.categoryIds.isNotEmpty) {
+    return destination.categoryIds.contains(cleanId);
+  }
+  final wanted = _normalize(categoryLabel);
+  if (wanted.isEmpty) return false;
+  if (destination.terrain.any((item) => _normalize(item) == wanted) ||
+      destination.activities.any((item) => _normalize(item) == wanted)) {
+    return true;
+  }
+  if (destination.categoryIds.isEmpty) {
+    return _matchesStructuredValues([
       ...destination.activities,
       ...destination.tags,
-    ].join(' '),
-  );
-  return categoryTokens.any(categoryHaystack.contains);
+    ], wanted);
+  }
+  return false;
+}
+
+bool _matchesStructuredValues(List<String> values, String wantedNormalized) {
+  for (final item in values) {
+    final normalized = _normalize(item.trim());
+    if (normalized == wantedNormalized) return true;
+    if (wantedNormalized == 'camping ground' && normalized == 'camping') {
+      return true;
+    }
+    if (wantedNormalized == 'camping' && normalized == 'camping ground') {
+      return true;
+    }
+  }
+  return false;
 }
 
 List<String> _tokens(String value) =>
@@ -154,8 +299,7 @@ List<String> _tokens(String value) =>
         .where((part) => part.isNotEmpty)
         .toList(growable: false);
 
-String _normalize(String value) =>
-    value.toLowerCase().replaceAll(RegExp(r'[-_]'), ' ');
+String _normalize(String value) => SearchFilter.normalizeToken(value);
 
 /// Satu hasil pencarian Beranda: destinasi, skor, dan alasannya.
 class DestinationMatch {

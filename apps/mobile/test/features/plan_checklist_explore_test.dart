@@ -260,10 +260,8 @@ void main() {
       await tester.enterText(find.byType(TextField).first, 'bromo');
       await tester.pumpAndSettle();
 
-      expect(
-        find.textContaining('hasil · Urutkan: Paling populer'),
-        findsOneWidget,
-      );
+      expect(find.textContaining('hasil untuk "bromo"'), findsOneWidget);
+      expect(find.text('Urutkan: Populer'), findsOneWidget);
       expect(find.text('Gunung Bromo'), findsWidgets);
       expect(find.text('Tidak ada hasil'), findsNothing);
     });
@@ -295,7 +293,7 @@ void main() {
         await tester.enterText(find.byType(TextField).first, 'Destinasi Uji');
         await tester.pumpAndSettle();
 
-        expect(find.text('10 hasil · Urutkan: Paling populer'), findsOneWidget);
+        expect(find.text('10 hasil untuk "Destinasi Uji"'), findsOneWidget);
         expect(find.byType(DnDestinationListTile), findsWidgets);
         expect(find.text('Destinasi Uji 9'), findsNothing);
 
@@ -316,7 +314,7 @@ void main() {
       },
     );
 
-    testWidgets('aktivitas dari beranda langsung menjadi kueri', (
+    testWidgets('aktivitas dari beranda memakai filter terstruktur tanpa mengisi teks cari', (
       tester,
     ) async {
       await usePhone(tester);
@@ -329,18 +327,21 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      expect(store.search.searchFilter.query, 'Hiking');
-      expect(
-        find.textContaining('hasil · Urutkan: Paling populer'),
-        findsOneWidget,
-      );
+      expect(store.search.searchFilter.query, '');
+      expect(store.search.searchFilter.activityTag, 'Hiking');
+      expect(find.textContaining('destinasi cocok'), findsOneWidget);
+      expect(find.text('Aktivitas: Hiking'), findsOneWidget);
       expect(find.text('Tidak ada hasil'), findsNothing);
     });
 
-    testWidgets('aktivitas beranda menghapus filter lama', (tester) async {
+    testWidgets('aktivitas beranda menghapus filter dan kueri lama', (
+      tester,
+    ) async {
       await usePhone(tester);
       final store = newStore();
-      store.search.setCategoryId('kategori-lama', label: 'Kategori lama');
+      store.search
+        ..setSearchQuery('kueri lama')
+        ..setCategoryId('kategori-lama', label: 'Kategori lama');
       await tester.pumpWidget(
         wrapScreen(
           const ExploreScreen(initialActivity: 'Gunung'),
@@ -349,10 +350,34 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      expect(store.search.searchFilter.query, 'Gunung');
+      expect(store.search.searchFilter.query, '');
+      expect(store.search.searchFilter.terrain, 'Gunung');
       expect(store.search.searchFilter.categoryId, '');
       expect(store.search.searchFilter.categoryLabel, '');
+      expect(find.text('Medan: Gunung'), findsOneWidget);
       expect(find.text('Tidak ada hasil'), findsNothing);
+    });
+
+    testWidgets('fast filter kosong tidak menampilkan saran kata kunci populer', (
+      tester,
+    ) async {
+      await usePhone(tester);
+      final store = newStore();
+      await tester.pumpWidget(
+        wrapScreen(
+          const ExploreScreen(initialTag: 'menyelam'),
+          store: store,
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Tidak ada hasil'), findsOneWidget);
+      expect(
+        find.text('Tidak ada destinasi yang cocok dengan filter aktif.'),
+        findsOneWidget,
+      );
+      expect(find.text('Reset filter'), findsWidgets);
+      expect(find.text('Ubah filter'), findsOneWidget);
     });
 
     testWidgets('kueri tanpa cocok memunculkan empty state', (tester) async {

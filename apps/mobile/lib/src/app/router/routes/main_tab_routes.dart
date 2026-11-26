@@ -12,8 +12,15 @@ final List<RouteBase> mainTabRoutes = [
   GoRoute(
     path: '/explore',
     builder: (_, state) => ExploreScreen(
+      initialTerrain: state.uri.queryParameters['terrain'],
+      initialCategoryId: state.uri.queryParameters['categoryId'],
+      initialCategoryLabel:
+          state.uri.queryParameters['category'] ??
+          state.uri.queryParameters['categoryLabel'],
+      initialTag: state.uri.queryParameters['tag'],
       initialActivity: state.uri.queryParameters['activity'],
       initialQuery: state.uri.queryParameters['q'],
+      resetOnEmptyParams: true,
     ),
   ),
   GoRoute(path: '/plan', builder: (_, _) => const TripPlanScreen()),

@@ -74,11 +74,30 @@ DifficultyLevel? _difficulty(String? value) {
 
 Map<String, int> _countMap(Object? value) {
   if (value is! Map) return const {};
-  return {
-    for (final entry in value.entries)
-      if (entry.key is String && entry.value is num)
-        entry.key as String: (entry.value as num).toInt(),
-  };
+  final result = <String, int>{};
+  for (final entry in value.entries) {
+    final key = entry.key;
+    if (key is! String || key.trim().isEmpty) continue;
+    final count = _positiveInt(entry.value);
+    if (count != null) result[key] = count;
+  }
+  return result;
+}
+
+const _maxFacilityCount = 9007199254740991;
+
+int? _positiveInt(Object? value) {
+  if (value is int) {
+    return value > 0 && value <= _maxFacilityCount ? value : null;
+  }
+  if (value is double &&
+      value.isFinite &&
+      value > 0 &&
+      value == value.truncateToDouble() &&
+      value <= _maxFacilityCount) {
+    return value.toInt();
+  }
+  return null;
 }
 
 List<String> _stringList(Object? value) {

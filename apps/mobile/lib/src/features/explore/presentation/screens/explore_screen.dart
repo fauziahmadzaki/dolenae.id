@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:dolenae_mobile/src/features/categories/domain/entities/category.dart';
 import 'package:dolenae_mobile/src/features/categories/presentation/controllers/categories_controller.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
@@ -27,19 +28,39 @@ import 'package:dolenae_mobile/src/shared/widgets/dn_search_field.dart';
 class ExploreScreen extends StatefulWidget {
   const ExploreScreen({
     super.key,
+    this.initialTerrain,
+    this.initialCategoryId,
+    this.initialCategoryLabel,
+    this.initialTag,
     this.initialActivity,
     this.initialQuery,
+    this.resetOnEmptyParams = false,
     this.onOpenFilter,
     this.hasError = false,
     this.onRetry,
     this.onResetFilter,
   });
 
-  /// Aktivitas dari Beranda (mis. `Hiking`) yang langsung dijadikan kueri.
+  /// Medan terstruktur dari chip Beranda atau tile aktivitas (mis. `Gunung`).
+  final String? initialTerrain;
+
+  /// ID kategori terstruktur dari rute `/explore?categoryId=...`.
+  final String? initialCategoryId;
+
+  /// Label kategori terstruktur dari rute `/explore?category=...`.
+  final String? initialCategoryLabel;
+
+  /// Tag aktivitas terstruktur dari rute `/explore?tag=...` (mis. `sunrise`).
+  final String? initialTag;
+
+  /// Aktivitas terstruktur dari rute `/explore?activity=...`.
   final String? initialActivity;
 
-  /// Kata kunci awal dari chip kategori Beranda.
+  /// Kata kunci teks bebas dari rute `/explore?q=...`.
   final String? initialQuery;
+
+  /// Mereset filter dan kueri lama saat rute `/explore` dibuka tanpa parameter.
+  final bool resetOnEmptyParams;
 
   /// Dipanggil saat tombol filter ditekan; bila null membuka bottom sheet bawaan.
   final VoidCallback? onOpenFilter;
@@ -57,13 +78,23 @@ class ExploreScreen extends StatefulWidget {
 
 class _ExploreScreenState extends State<ExploreScreen> {
   static const _pageSize = 6;
+  static const _provinceOptions = <String>[
+    'Jawa Timur',
+    'Jawa Barat',
+    'Jawa Tengah',
+  ];
+  static const _fallbackTerrainNames = <String>{
+    'gunung',
+    'bukit',
+    'danau',
+    'air terjun',
+    'hutan',
+    'pantai',
+    'savana',
+  };
 
   final _scrollController = ScrollController();
   bool _searchFocused = false;
-  String _selectedCategory = 'Semuanya';
-
-  /// Medan aktif dari chip Beranda; kosong berarti semua medan.
-  String _terrain = '';
   int _visibleCount = _pageSize;
   int _resultCount = 0;
   String _filterSignature = '';
@@ -72,24 +103,27 @@ class _ExploreScreenState extends State<ExploreScreen> {
   void initState() {
     super.initState();
     _scrollController.addListener(_onScroll);
-    // Chip Beranda membuka Jelajah lewat `?q=Gunung`: kata kunci dicari dulu,
-    // lalu difilter sebagai medan bila cocok dengan kategori terrain.
-    final activity =
-        (widget.initialActivity ?? widget.initialQuery)?.trim() ?? '';
-    if (activity.isNotEmpty) {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      _applyInitialParams();
+    });
+  }
+
+  @override
+  void didUpdateWidget(covariant ExploreScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    final changed =
+        oldWidget.initialTerrain != widget.initialTerrain ||
+        oldWidget.initialCategoryId != widget.initialCategoryId ||
+        oldWidget.initialCategoryLabel != widget.initialCategoryLabel ||
+        oldWidget.initialTag != widget.initialTag ||
+        oldWidget.initialActivity != widget.initialActivity ||
+        oldWidget.initialQuery != widget.initialQuery ||
+        oldWidget.resetOnEmptyParams != widget.resetOnEmptyParams;
+    if (changed) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (!mounted) return;
-        final store = context.read<ExploreController>()
-          ..clearSearchFilters()
-          ..setSearchQuery(activity)
-          ..commitSearch(activity);
-        final terrain = _knownTerrain(activity);
-        if (terrain != null) {
-          store.setTerrain(terrain);
-          setState(() => _terrain = terrain);
-        } else {
-          setState(() {});
-        }
+        _applyInitialParams();
       });
     }
   }
@@ -101,21 +135,149 @@ class _ExploreScreenState extends State<ExploreScreen> {
     super.dispose();
   }
 
-  /// Nama medan dari katalog bila [label] sama dengan nama kategori terrain.
-  String? _knownTerrain(String label) {
-    final needle = label.trim().toLowerCase();
-    for (final category in context.read<CategoriesController>().items) {
-      if (category.type == 'terrain' && category.name.toLowerCase() == needle) {
-        return category.name;
+  void _applyInitialParams() {
+    final terrain = SearchFilter.sanitizeStructuredValue(widget.initialTerrain);
+    final categoryId = SearchFilter.sanitizeStructuredValue(
+      widget.initialCategoryId,
+    );
+    final categoryLabel = SearchFilter.sanitizeStructuredValue(
+      widget.initialCategoryLabel,
+    );
+    final tag = SearchFilter.sanitizeStructuredValue(widget.initialTag);
+    final activity = SearchFilter.sanitizeStructuredValue(
+      widget.initialActivity,
+    );
+    final rawQuery = SearchFilter.sanitizeRouteText(widget.initialQuery);
+    final query = SearchFilter.normalizeToken(rawQuery).isEmpty ? '' : rawQuery;
+
+    final hasFastFilterParam =
+        terrain.isNotEmpty ||
+        categoryId.isNotEmpty ||
+        categoryLabel.isNotEmpty ||
+        tag.isNotEmpty ||
+        activity.isNotEmpty;
+
+    if (!hasFastFilterParam && query.isEmpty) {
+      if (widget.resetOnEmptyParams && !widget.hasError) {
+        context.read<ExploreController>().resetAll();
       }
+      return;
+    }
+
+    final store = context.read<ExploreController>();
+    final categories = context.read<CategoriesController>().items;
+
+    if (hasFastFilterParam) {
+      store.resetAll();
+
+      if (terrain.isNotEmpty) {
+        final matched = _matchCategory(categories, terrain, type: 'terrain');
+        final verifiedCategoryId =
+            (matched != null &&
+                matched.id.isNotEmpty &&
+                (categoryId.isEmpty || categoryId == matched.id))
+            ? matched.id
+            : '';
+        store.setTerrain(
+          matched?.name ?? _canonicalTagLabel(terrain),
+          categoryId: verifiedCategoryId,
+        );
+      } else if (categoryId.isNotEmpty || categoryLabel.isNotEmpty) {
+        final matched = categoryId.isNotEmpty
+            ? _matchCategoryById(categories, categoryId)
+            : _matchCategory(categories, categoryLabel);
+        store.setCategoryId(
+          categoryId.isNotEmpty ? categoryId : (matched?.id ?? ''),
+          label: categoryLabel.isNotEmpty
+              ? categoryLabel
+              : (matched?.name ?? ''),
+        );
+        if (terrain.isEmpty && matched?.type == 'terrain') {
+          store.setTerrain(matched!.name, categoryId: matched.id);
+        } else if (categoryId.isEmpty &&
+            matched == null &&
+            categoryLabel.isNotEmpty) {
+          store.setCategoryId('', label: _canonicalTagLabel(categoryLabel));
+        }
+      }
+
+      if (tag.isNotEmpty) {
+        store.setActivityTag(_canonicalTagLabel(tag));
+      }
+
+      if (activity.isNotEmpty) {
+        final normalizedActivity = activity.toLowerCase();
+        final matchedTerrain = _matchCategory(
+          categories,
+          activity,
+          type: 'terrain',
+        );
+        if (matchedTerrain != null ||
+            _fallbackTerrainNames.contains(normalizedActivity)) {
+          store.setTerrain(
+            matchedTerrain?.name ?? _canonicalTagLabel(activity),
+            categoryId: matchedTerrain?.id ?? '',
+          );
+        } else if (normalizedActivity == 'camping ground') {
+          final matchedActivity = _matchCategory(categories, activity);
+          if (matchedActivity != null && matchedActivity.id.isNotEmpty) {
+            store.setCategoryId(
+              matchedActivity.id,
+              label: matchedActivity.name,
+            );
+          } else {
+            store.setActivityTag('Camping Ground');
+          }
+        } else {
+          store.setActivityTag(_canonicalTagLabel(activity));
+        }
+      }
+      if (query.isNotEmpty) store.setSearchQuery(query);
+      return;
+    }
+
+    store
+      ..clearSearchFilters()
+      ..setSearchQuery(query);
+  }
+
+  Category? _matchCategory(List<Category> items, String name, {String? type}) {
+    final needle = name.trim().toLowerCase();
+    for (final category in items) {
+      if (type != null && category.type != type) continue;
+      if (category.name.trim().toLowerCase() == needle) return category;
     }
     return null;
   }
 
+  Category? _matchCategoryById(List<Category> items, String id) {
+    for (final category in items) {
+      if (category.id == id) return category;
+    }
+    return null;
+  }
+
+  static String _canonicalTagLabel(String raw) {
+    final trimmed = raw.trim();
+    if (trimmed.isEmpty) return '';
+    return switch (trimmed.toLowerCase()) {
+      'sunrise' => 'Sunrise',
+      'camping' => 'Camping',
+      'camping ground' => 'Camping Ground',
+      'air terjun' => 'Air Terjun',
+      'bukit' => 'Bukit',
+      'danau' => 'Danau',
+      'hutan' => 'Hutan',
+      'pantai' => 'Pantai',
+      'hiking' => 'Hiking',
+      'gunung' => 'Gunung',
+      'savana' => 'Savana',
+      _ => trimmed,
+    };
+  }
+
   void _onScroll() {
     if (!_scrollController.hasClients) return;
-    // `extentAfter` diukur dari posisi layar, jadi pemicunya tetap akurat
-    // meskipun tinggi kartu berubah setelah data baru masuk.
     if (_scrollController.position.extentAfter < 400) {
       _loadMore();
     }
@@ -129,9 +291,6 @@ class _ExploreScreenState extends State<ExploreScreen> {
     _fillViewportIfNeeded();
   }
 
-  /// Di layar tinggi, satu halaman bisa belum memenuhi viewport sehingga tidak
-  /// ada scroll untuk memicu halaman berikutnya. Tambah halaman sampai layar
-  /// bisa digulir atau semua hasil tampil.
   void _fillViewportIfNeeded() {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted || !_scrollController.hasClients) return;
@@ -146,7 +305,6 @@ class _ExploreScreenState extends State<ExploreScreen> {
     if (signature == _filterSignature) return;
     _filterSignature = signature;
     _visibleCount = _pageSize;
-    // Filter/kueri baru selalu mulai dari halaman pertama.
     if (_scrollController.hasClients && _scrollController.offset > 0) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted && _scrollController.hasClients) {
@@ -154,31 +312,6 @@ class _ExploreScreenState extends State<ExploreScreen> {
         }
       });
     }
-  }
-
-  static const _filterOptions = <String>[
-    'Ramah Pemula',
-    'Jawa Timur',
-    'Jawa Barat',
-    'Jawa Tengah',
-  ];
-
-  List<Destination> _byCategory(List<Destination> source) {
-    return source.where((destination) {
-      switch (_selectedCategory) {
-        case 'Ramah Pemula':
-          return destination.difficulty == DifficultyLevel.pemula;
-        case 'Jawa Timur':
-          return destination.province == 'Jawa Timur';
-        case 'Jawa Barat':
-          return destination.province == 'Jawa Barat';
-        case 'Jawa Tengah':
-          return destination.province == 'Jawa Tengah';
-        case 'Semuanya':
-        default:
-          return true;
-      }
-    }).toList();
   }
 
   void _onTab(BuildContext context, DnTab tab) {
@@ -196,21 +329,6 @@ class _ExploreScreenState extends State<ExploreScreen> {
     }
   }
 
-  void _onChanged(String value, ExploreController store) {
-    store.setSearchQuery(value);
-    setState(() {});
-  }
-
-  void _clear(ExploreController store) {
-    store.setSearchQuery('');
-    setState(() {});
-  }
-
-  void _commit(String value, ExploreController store) {
-    store.commitSearch(value);
-    setState(() {});
-  }
-
   Future<void> _openFilter(ExploreController store) async {
     if (widget.onOpenFilter != null) {
       widget.onOpenFilter!();
@@ -224,12 +342,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
         filter: store.searchFilter,
         onReset: () {
           store.clearSearchFilters();
-          _selectedCategory = 'Semuanya';
           Navigator.of(sheetContext).pop();
-          setState(() {
-            _selectedCategory = 'Semuanya';
-            _terrain = '';
-          });
         },
       ),
     );
@@ -239,23 +352,23 @@ class _ExploreScreenState extends State<ExploreScreen> {
   Widget build(BuildContext context) {
     final store = context.watch<ExploreController>();
     final catalog = context.watch<DestinationsController>().items;
-    final hasQuery = store.hasActiveQuery;
-    final showSuggestions =
-        _searchFocused &&
-        !hasQuery &&
-        !store.searchFilter.isFiltered &&
-        _selectedCategory == 'Semuanya';
-    final results = _byCategory(store.resultsFor(catalog));
+    final filter = store.searchFilter;
+    final hasQuery = filter.hasQuery;
+    final isFiltered = filter.isFiltered;
+    final filterCount = filter.activeFilterCount;
+    final showSuggestions = _searchFocused && !hasQuery && !isFiltered;
+    final results = store.resultsFor(catalog);
     final signature = [
-      store.searchFilter.query,
-      store.searchFilter.categoryId,
-      store.searchFilter.categoryLabel,
-      store.searchFilter.terrain,
-      store.searchFilter.sort.name,
-      store.searchFilter.difficulty.name,
-      store.searchFilter.supports.join(','),
-      store.searchFilter.verifiedOnly,
-      _selectedCategory,
+      filter.query,
+      filter.categoryId,
+      filter.categoryLabel,
+      filter.terrain,
+      filter.activityTag,
+      filter.province,
+      filter.sort.name,
+      filter.difficulty.name,
+      filter.supports.join(','),
+      filter.verifiedOnly,
     ].join('|');
     _resetPagination(signature);
     _resultCount = results.length;
@@ -292,63 +405,58 @@ class _ExploreScreenState extends State<ExploreScreen> {
                             AppSpacing.s4,
                             0,
                           ),
-                          child: Focus(
-                            onFocusChange: (focused) {
-                              if (mounted) {
-                                setState(() => _searchFocused = focused);
-                              }
-                            },
-                            child: DnSearchField(
-                              hint: 'Cari destinasi, gunung, atau aktivitas',
-                              value: store.searchFilter.query,
-                              focused: _searchFocused || hasQuery,
-                              trailing: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  if (hasQuery)
-                                    GestureDetector(
-                                      onTap: () => _clear(store),
-                                      child: const Padding(
-                                        padding: EdgeInsets.all(4),
-                                        child: Icon(
-                                          AppIcons.close,
-                                          size: 16,
-                                          color: AppColors.body,
-                                        ),
-                                      ),
-                                    ),
-                                  GestureDetector(
-                                    onTap: () => _openFilter(store),
-                                    child: Container(
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: AppSpacing.s2,
-                                        vertical: AppSpacing.s1,
-                                      ),
-                                      decoration: BoxDecoration(
-                                        color: hasQuery
-                                            ? AppColors.primary
-                                            : AppColors.canvasSubtle,
-                                        borderRadius: BorderRadius.circular(
-                                          AppRadius.md,
-                                        ),
-                                      ),
-                                      child: Icon(
-                                        AppIcons.slidersHorizontal,
-                                        size: 16,
-                                        color: hasQuery
-                                            ? AppColors.onPrimary
-                                            : AppColors.body,
-                                      ),
+                          child: Row(
+                            children: [
+                              Expanded(
+                                child: Semantics(
+                                  label: 'Kolom pencarian destinasi',
+                                  child: Focus(
+                                    onFocusChange: (focused) {
+                                      if (mounted) {
+                                        setState(
+                                          () => _searchFocused = focused,
+                                        );
+                                      }
+                                    },
+                                    child: DnSearchField(
+                                      hint: 'Cari destinasi, gunung, atau aktivitas',
+                                      value: filter.query,
+                                      focused: _searchFocused || hasQuery,
+                                      trailing: hasQuery
+                                          ? IconButton(
+                                              onPressed: store.clearSearchQuery,
+                                              tooltip:
+                                                  'Hapus kata kunci pencarian',
+                                              icon: const Icon(
+                                                AppIcons.close,
+                                                size: 18,
+                                              ),
+                                              color: AppColors.body,
+                                              padding: EdgeInsets.zero,
+                                              constraints:
+                                                  const BoxConstraints(
+                                                    minWidth: 44,
+                                                    minHeight: 44,
+                                                  ),
+                                            )
+                                          : null,
+                                      onChanged: store.setSearchQuery,
+                                      onSubmitted: store.commitSearch,
                                     ),
                                   ),
-                                ],
+                                ),
                               ),
-                              onChanged: (value) => _onChanged(value, store),
-                              onSubmitted: (value) => _commit(value, store),
-                            ),
+                              const SizedBox(width: AppSpacing.s2),
+                              _StandaloneFilterButton(
+                                activeCount: filterCount,
+                                onTap: () => _openFilter(store),
+                              ),
+                            ],
                           ),
                         ),
                         _buildCategoryFilters(store),
+                        if (isFiltered && !widget.hasError)
+                          _buildActiveFilterStrip(store),
                       ],
                     ),
                   ),
@@ -357,13 +465,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
                       child: _LoadError(
                         onRetry: widget.onRetry,
                         onResetFilter:
-                            widget.onResetFilter ??
-                            () {
-                              final current = context.read<ExploreController>();
-                              current.clearSearchFilters();
-                              _selectedCategory = 'Semuanya';
-                              setState(() {});
-                            },
+                            widget.onResetFilter ?? store.clearSearchFilters,
                       ),
                     )
                   else if (showSuggestions)
@@ -372,21 +474,29 @@ class _ExploreScreenState extends State<ExploreScreen> {
                         store: store,
                         suggested: catalog.take(3).toList(),
                         onPick: (value) {
-                          _onChanged(value, store);
-                          _commit(value, store);
+                          store
+                            ..setSearchQuery(value)
+                            ..commitSearch(value);
                         },
                       ),
                     )
                   else if (results.isEmpty)
                     SliverToBoxAdapter(
                       child: _EmptyResults(
-                        query: store.searchFilter.query,
+                        query: filter.query,
+                        isFiltered: isFiltered,
                         popular: store.popularSearches,
-                        onPick: (value) => _onChanged(value, store),
+                        onPick: (value) {
+                          store
+                            ..setSearchQuery(value)
+                            ..commitSearch(value);
+                        },
+                        onResetFilters: store.clearSearchFilters,
+                        onClearQuery: store.clearSearchQuery,
+                        onOpenFilter: () => _openFilter(store),
                       ),
                     )
                   else ...[
-                    if (hasQuery) SliverToBoxAdapter(child: _buildFilters()),
                     SliverToBoxAdapter(
                       child: Padding(
                         padding: const EdgeInsets.fromLTRB(
@@ -395,50 +505,58 @@ class _ExploreScreenState extends State<ExploreScreen> {
                           AppSpacing.s4,
                           0,
                         ),
-                        child: hasQuery
-                            ? Text(
-                                '${results.length} hasil · '
-                                'Urutkan: ${store.searchFilter.sortLabel}',
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Expanded(
+                              child: Text(
+                                _resultSummaryText(
+                                  count: results.length,
+                                  filter: filter,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
                                 style: AppTextStyles.caption,
-                              )
-                            : Row(
-                                mainAxisAlignment:
-                                    MainAxisAlignment.spaceBetween,
-                                children: [
-                                  Text(
-                                    '${results.length} destinasi',
-                                    style: AppTextStyles.caption,
-                                  ),
-                                  InkWell(
-                                    onTap: () => _openFilter(store),
-                                    borderRadius: BorderRadius.circular(
-                                      AppRadius.sm,
-                                    ),
-                                    child: Padding(
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 4,
-                                        vertical: 2,
-                                      ),
-                                      child: Row(
-                                        mainAxisSize: MainAxisSize.min,
-                                        children: [
-                                          Text(
-                                            'Urutkan: '
-                                            '${store.searchFilter.sortShortLabel}',
-                                            style: AppTextStyles.caption,
-                                          ),
-                                          const SizedBox(width: 2),
-                                          const Icon(
-                                            AppIcons.chevronDown,
-                                            size: 14,
-                                            color: AppColors.body,
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                  ),
-                                ],
                               ),
+                            ),
+                            const SizedBox(width: AppSpacing.s2),
+                            Semantics(
+                              button: true,
+                              label: 'Urutkan hasil: ${filter.sortShortLabel}',
+                              child: InkWell(
+                                onTap: () => _openFilter(store),
+                                borderRadius: BorderRadius.circular(
+                                  AppRadius.sm,
+                                ),
+                                child: ConstrainedBox(
+                                  constraints: const BoxConstraints(
+                                    minHeight: 44,
+                                  ),
+                                  child: Padding(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: AppSpacing.s2,
+                                    ),
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Text(
+                                          'Urutkan: ${filter.sortShortLabel}',
+                                          style: AppTextStyles.caption,
+                                        ),
+                                        const SizedBox(width: 2),
+                                        const Icon(
+                                          AppIcons.chevronDown,
+                                          size: 14,
+                                          color: AppColors.body,
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                     ),
                     const SliverToBoxAdapter(
@@ -481,112 +599,372 @@ class _ExploreScreenState extends State<ExploreScreen> {
     );
   }
 
+  static String _resultSummaryText({
+    required int count,
+    required SearchFilter filter,
+  }) {
+    final hasQuery = filter.hasQuery;
+    final isFiltered = filter.isFiltered;
+    if (hasQuery && isFiltered) {
+      return '$count hasil · ${filter.activeFilterCount} filter';
+    }
+    if (hasQuery) {
+      return '$count hasil untuk "${filter.query.trim()}"';
+    }
+    if (isFiltered) {
+      return '$count destinasi cocok';
+    }
+    return '$count destinasi';
+  }
+
   Widget _buildCategoryFilters(ExploreController store) {
+    final filter = store.searchFilter;
     final items = context.watch<CategoriesController>().items;
+    final isBeginnerActive = filter.difficulty == DifficultyFilter.ramahPemula;
+    final isSunriseActive = filter.activityTag.toLowerCase() == 'sunrise';
+
     return Padding(
       padding: const EdgeInsets.only(top: AppSpacing.s3),
       child: SizedBox(
-        height: 32,
+        height: 44,
         child: ListView(
           scrollDirection: Axis.horizontal,
           padding: const EdgeInsets.symmetric(horizontal: AppSpacing.s4),
           children: [
-            DnChip(
+            _semanticChip(
               label: 'Semuanya',
-              active:
-                  store.searchFilter.categoryId.isEmpty &&
-                  _terrain.isEmpty &&
-                  _selectedCategory == 'Semuanya',
-              onTap: () {
-                store
-                  ..setCategoryId('')
-                  ..setTerrain('');
-                setState(() {
-                  _selectedCategory = 'Semuanya';
-                  _terrain = '';
-                });
-              },
+              active: !filter.isFiltered,
+              onTap: store.clearSearchFilters,
             ),
-            if (!store.hasActiveQuery)
-              Padding(
-                padding: const EdgeInsets.only(left: AppSpacing.s2),
-                child: DnChip(
-                  label: 'Ramah Pemula',
-                  active: _selectedCategory == 'Ramah Pemula',
-                  onTap: () {
-                    store
-                      ..setCategoryId('')
-                      ..setTerrain('');
-                    setState(() {
-                      _selectedCategory = 'Ramah Pemula';
-                      _terrain = '';
-                    });
-                  },
-                ),
+            const SizedBox(width: AppSpacing.s2),
+            _semanticChip(
+              label: 'Ramah Pemula',
+              active: isBeginnerActive,
+              onTap: () => store.setDifficultyFilter(
+                isBeginnerActive
+                    ? DifficultyFilter.semua
+                    : DifficultyFilter.ramahPemula,
               ),
-            for (final item in items)
-              Padding(
-                padding: const EdgeInsets.only(left: AppSpacing.s2),
-                child: DnChip(
-                  label: item.name,
-                  // Chip terrain (Gunung, Bukit, …) memfilter lewat nama medan
-                  // karena `?q=` hanya membawa nama; kategori lain lewat ID.
-                  active: item.type == 'terrain'
-                      ? _terrain.toLowerCase() == item.name.toLowerCase()
-                      : item.id.isNotEmpty &&
-                            store.searchFilter.categoryId == item.id,
-                  onTap: item.id.isEmpty && item.type != 'terrain'
-                      ? null
-                      : () {
-                          final isTerrain = item.type == 'terrain';
-                          final selected = isTerrain
-                              ? _terrain.toLowerCase() ==
-                                    item.name.toLowerCase()
-                              : store.searchFilter.categoryId == item.id;
-                          if (isTerrain) {
-                            store
-                              ..setCategoryId('')
-                              ..setTerrain(selected ? '' : item.name);
-                          } else {
-                            store
-                              ..setTerrain('')
-                              ..setCategoryId(
-                                selected ? '' : item.id,
-                                label: selected ? '' : item.name,
-                              );
-                          }
-                          setState(() {
-                            _selectedCategory = 'Semuanya';
-                            _terrain = isTerrain && !selected ? item.name : '';
-                          });
-                        },
-                ),
+            ),
+            for (final item in items) ...[
+              const SizedBox(width: AppSpacing.s2),
+              _buildCatalogCategoryChip(store, filter, item),
+            ],
+            const SizedBox(width: AppSpacing.s2),
+            _semanticChip(
+              label: 'Sunrise',
+              active: isSunriseActive,
+              onTap: () =>
+                  store.setActivityTag(isSunriseActive ? '' : 'Sunrise'),
+            ),
+            for (final province in _provinceOptions) ...[
+              const SizedBox(width: AppSpacing.s2),
+              _semanticChip(
+                label: province,
+                active: filter.province.toLowerCase() == province.toLowerCase(),
+                onTap: () {
+                  final active =
+                      filter.province.toLowerCase() == province.toLowerCase();
+                  store.setProvince(active ? '' : province);
+                },
               ),
+            ],
           ],
         ),
       ),
     );
   }
 
-  Widget _buildFilters() {
+  Widget _buildCatalogCategoryChip(
+    ExploreController store,
+    SearchFilter filter,
+    Category item,
+  ) {
+    if (item.type == 'terrain') {
+      if (item.id.isEmpty && item.name.toLowerCase() == 'camping') {
+        final active = filter.activityTag.toLowerCase() == 'camping';
+        return _semanticChip(
+          label: item.name,
+          active: active,
+          onTap: () => store.setActivityTag(active ? '' : 'Camping'),
+        );
+      }
+      final active = filter.terrain.toLowerCase() == item.name.toLowerCase();
+      return _semanticChip(
+        label: item.name,
+        active: active,
+        onTap: () => store.setTerrain(
+          active ? '' : item.name,
+          categoryId: active ? '' : item.id,
+        ),
+      );
+    }
+
+    final active =
+        (item.id.isNotEmpty && filter.categoryId == item.id) ||
+        (filter.categoryId.isEmpty &&
+            (filter.categoryLabel.toLowerCase() == item.name.toLowerCase() ||
+                filter.activityTag.toLowerCase() == item.name.toLowerCase()));
+    return _semanticChip(
+      label: item.name,
+      active: active,
+      onTap: () {
+        if (active) {
+          store.setCategoryId('');
+          if (filter.activityTag.toLowerCase() == item.name.toLowerCase()) {
+            store.setActivityTag('');
+          }
+        } else if (item.id.isNotEmpty) {
+          store.setCategoryId(item.id, label: item.name);
+        } else {
+          store.setActivityTag(item.name);
+        }
+      },
+    );
+  }
+
+  Widget _semanticChip({
+    required String label,
+    required bool active,
+    required VoidCallback? onTap,
+  }) {
+    return Semantics(
+      button: true,
+      selected: active,
+      label: active ? 'Filter cepat: $label, aktif' : 'Filter cepat: $label',
+      child: Material(
+        type: MaterialType.transparency,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(AppRadius.pill),
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(minHeight: 44),
+            child: Center(
+              child: DnChip(label: label, active: active),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildActiveFilterStrip(ExploreController store) {
+    final filter = store.searchFilter;
+    final pills = <({String label, VoidCallback onRemove})>[
+      if (filter.terrain.isNotEmpty)
+        (
+          label: 'Medan: ${filter.terrain}',
+          onRemove: () => store.setTerrain(''),
+        )
+      else if (filter.categoryId.isNotEmpty || filter.categoryLabel.isNotEmpty)
+        (
+          label:
+              'Kategori: ${filter.categoryLabel.isNotEmpty ? filter.categoryLabel : filter.categoryId}',
+          onRemove: () => store.setCategoryId(''),
+        ),
+      if (filter.activityTag.isNotEmpty)
+        (
+          label: 'Aktivitas: ${filter.activityTag}',
+          onRemove: () => store.setActivityTag(''),
+        ),
+      if (filter.difficulty != DifficultyFilter.semua)
+        (
+          label: 'Kesulitan: ${filter.difficultyLabel}',
+          onRemove: () => store.setDifficultyFilter(DifficultyFilter.semua),
+        ),
+      if (filter.province.isNotEmpty)
+        (
+          label: 'Provinsi: ${filter.province}',
+          onRemove: () => store.setProvince(''),
+        ),
+      for (final support in filter.supports)
+        (
+          label: 'Fasilitas: $support',
+          onRemove: () => store.toggleSupportFilter(support),
+        ),
+      if (filter.verifiedOnly)
+        (label: 'Terverifikasi', onRemove: () => store.setVerifiedOnly(false)),
+      if (filter.sort != SortOption.populer)
+        (
+          label: 'Urutkan: ${filter.sortShortLabel}',
+          onRemove: () => store.setSortOption(SortOption.populer),
+        ),
+    ];
+
     return Padding(
-      padding: const EdgeInsets.only(top: AppSpacing.s3),
+      padding: const EdgeInsets.only(top: AppSpacing.s2),
       child: SizedBox(
-        height: 32,
-        child: ListView.separated(
+        height: 44,
+        child: ListView(
           scrollDirection: Axis.horizontal,
           padding: const EdgeInsets.symmetric(horizontal: AppSpacing.s4),
-          itemCount: _filterOptions.length,
-          separatorBuilder: (_, _) => const SizedBox(width: AppSpacing.s2),
-          itemBuilder: (_, i) {
-            final label = _filterOptions[i];
-            final isSelected = label == _selectedCategory;
-            return DnChip(
-              label: label,
-              active: isSelected,
-              onTap: () => setState(() => _selectedCategory = label),
-            );
-          },
+          children: [
+            for (final pill in pills) ...[
+              Center(
+                child: _ActiveFilterPill(
+                  label: pill.label,
+                  onRemove: pill.onRemove,
+                ),
+              ),
+              const SizedBox(width: AppSpacing.s2),
+            ],
+            Center(
+              child: Semantics(
+                button: true,
+                label: 'Reset semua filter',
+                child: InkWell(
+                  onTap: store.clearSearchFilters,
+                  borderRadius: BorderRadius.circular(AppRadius.pill),
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(minHeight: 44),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: AppSpacing.s2,
+                      ),
+                      child: Center(
+                        child: Text(
+                          'Reset filter',
+                          style: AppTextStyles.labelSm.copyWith(
+                            color: AppColors.primary,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _StandaloneFilterButton extends StatelessWidget {
+  const _StandaloneFilterButton({
+    required this.activeCount,
+    required this.onTap,
+  });
+
+  final int activeCount;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final isFiltered = activeCount > 0;
+    return Semantics(
+      button: true,
+      label: isFiltered
+          ? 'Filter dan urutkan, $activeCount aktif'
+          : 'Filter dan urutkan',
+      child: Material(
+        color: isFiltered ? AppColors.primary : AppColors.canvasSubtle,
+        borderRadius: BorderRadius.circular(AppRadius.lg),
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(AppRadius.lg),
+          child: Container(
+            width: 48,
+            height: 48,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(AppRadius.lg),
+              border: Border.all(
+                color: isFiltered ? AppColors.primary : AppColors.hairline,
+              ),
+            ),
+            child: Stack(
+              clipBehavior: Clip.none,
+              alignment: Alignment.center,
+              children: [
+                Icon(
+                  AppIcons.slidersHorizontal,
+                  size: 18,
+                  color: isFiltered ? AppColors.onPrimary : AppColors.body,
+                ),
+                if (activeCount > 0)
+                  Positioned(
+                    top: 4,
+                    right: 4,
+                    child: Container(
+                      constraints: const BoxConstraints(
+                        minWidth: 16,
+                        minHeight: 16,
+                      ),
+                      padding: const EdgeInsets.symmetric(horizontal: 4),
+                      decoration: BoxDecoration(
+                        color: AppColors.accent,
+                        borderRadius: BorderRadius.circular(AppRadius.pill),
+                      ),
+                      alignment: Alignment.center,
+                      child: Text(
+                        activeCount > 9 ? '9+' : '$activeCount',
+                        style: const TextStyle(
+                          fontSize: 10,
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.onAccent,
+                          height: 1,
+                        ),
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _ActiveFilterPill extends StatelessWidget {
+  const _ActiveFilterPill({required this.label, required this.onRemove});
+
+  final String label;
+  final VoidCallback onRemove;
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      button: true,
+      label: 'Hapus filter $label',
+      child: Material(
+        type: MaterialType.transparency,
+        borderRadius: BorderRadius.circular(AppRadius.pill),
+        child: InkWell(
+          onTap: onRemove,
+          borderRadius: BorderRadius.circular(AppRadius.pill),
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(minHeight: 44),
+            child: Center(
+              child: Container(
+                height: 30,
+                padding: const EdgeInsets.symmetric(horizontal: AppSpacing.s3),
+                decoration: BoxDecoration(
+                  color: AppColors.surface,
+                  borderRadius: BorderRadius.circular(AppRadius.pill),
+                  border: Border.all(color: AppColors.borderStrong),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      label,
+                      style: AppTextStyles.caption.copyWith(
+                        color: AppColors.ink,
+                      ),
+                    ),
+                    const SizedBox(width: AppSpacing.s1),
+                    const Icon(
+                      AppIcons.close,
+                      size: 14,
+                      color: AppColors.body,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
         ),
       ),
     );
@@ -734,20 +1112,40 @@ class _RecommendationPanels extends StatelessWidget {
   }
 }
 
-/// State kosong: tidak ada destinasi yang cocok dengan kueri.
+/// State kosong: tidak ada destinasi yang cocok dengan pencarian atau filter.
 class _EmptyResults extends StatelessWidget {
   const _EmptyResults({
     required this.query,
+    required this.isFiltered,
     required this.popular,
     required this.onPick,
+    required this.onResetFilters,
+    required this.onClearQuery,
+    required this.onOpenFilter,
   });
 
   final String query;
+  final bool isFiltered;
   final List<String> popular;
   final ValueChanged<String> onPick;
+  final VoidCallback onResetFilters;
+  final VoidCallback onClearQuery;
+  final VoidCallback onOpenFilter;
 
   @override
   Widget build(BuildContext context) {
+    final trimmedQuery = query.trim();
+    final hasQuery = trimmedQuery.isNotEmpty;
+
+    final body = switch ((hasQuery, isFiltered)) {
+      (true, true) =>
+        'Tidak ada destinasi untuk "$trimmedQuery" dengan filter aktif.',
+      (true, false) =>
+        'Tidak ada destinasi untuk "$trimmedQuery". Coba kata kunci populer:',
+      (false, false) => 'Belum ada destinasi tersedia di katalog.',
+      (false, true) => 'Tidak ada destinasi yang cocok dengan filter aktif.',
+    };
+
     return Column(
       children: [
         Padding(
@@ -758,20 +1156,61 @@ class _EmptyResults extends StatelessWidget {
           child: DnEmptyState(
             variant: DnEmptyVariant.tanpaHasil,
             title: 'Tidak ada hasil',
-            body: query.trim().isEmpty
-                ? 'Tidak ada destinasi yang cocok. Coba kata kunci populer:'
-                : 'Tidak ada destinasi untuk "${query.trim()}". '
-                      'Coba kata kunci populer:',
+            body: body,
           ),
         ),
-        Wrap(
-          spacing: AppSpacing.s2,
-          runSpacing: AppSpacing.s2,
-          alignment: WrapAlignment.center,
-          children: popular
-              .map((item) => DnChip(label: item, onTap: () => onPick(item)))
-              .toList(),
-        ),
+        if (hasQuery && !isFiltered) ...[
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.s4),
+            child: Wrap(
+              spacing: AppSpacing.s2,
+              runSpacing: AppSpacing.s2,
+              alignment: WrapAlignment.center,
+              children: popular
+                  .map((item) => DnChip(label: item, onTap: () => onPick(item)))
+                  .toList(),
+            ),
+          ),
+          const SizedBox(height: AppSpacing.s3),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.s5),
+            child: DnGhostButton(
+              label: 'Hapus pencarian',
+              onPressed: onClearQuery,
+            ),
+          ),
+        ] else if (!hasQuery && isFiltered) ...[
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.s5),
+            child: Column(
+              children: [
+                DnPrimaryButton(
+                  label: 'Reset filter',
+                  onPressed: onResetFilters,
+                ),
+                const SizedBox(height: AppSpacing.s2),
+                DnGhostButton(label: 'Ubah filter', onPressed: onOpenFilter),
+              ],
+            ),
+          ),
+        ] else if (hasQuery && isFiltered) ...[
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.s5),
+            child: Column(
+              children: [
+                DnPrimaryButton(
+                  label: 'Reset filter',
+                  onPressed: onResetFilters,
+                ),
+                const SizedBox(height: AppSpacing.s2),
+                DnOutlineButton(
+                  label: 'Hapus pencarian',
+                  onPressed: onClearQuery,
+                ),
+              ],
+            ),
+          ),
+        ],
       ],
     );
   }
@@ -869,10 +1308,10 @@ class _FilterSheet extends StatelessWidget {
         const SizedBox(height: AppSpacing.s2),
         Wrap(
           spacing: AppSpacing.s2,
-          runSpacing: AppSpacing.s2,
+          runSpacing: 0,
           children: DifficultyFilter.values
               .map(
-                (option) => DnChip(
+                (option) => _SheetChipTarget(
                   label: option.label,
                   active: filter.difficulty == option,
                   onTap: () => store.setDifficultyFilter(option),
@@ -880,7 +1319,7 @@ class _FilterSheet extends StatelessWidget {
               )
               .toList(),
         ),
-        const SizedBox(height: AppSpacing.s5),
+        const SizedBox(height: AppSpacing.s4),
         Text(
           'Fasilitas',
           style: AppTextStyles.bodySm.copyWith(color: AppColors.ink),
@@ -888,10 +1327,10 @@ class _FilterSheet extends StatelessWidget {
         const SizedBox(height: AppSpacing.s2),
         Wrap(
           spacing: AppSpacing.s2,
-          runSpacing: AppSpacing.s2,
+          runSpacing: 0,
           children: ['Area camping', 'Parkir', 'Warung']
               .map(
-                (option) => DnChip(
+                (option) => _SheetChipTarget(
                   label: option,
                   active: filter.supports.contains(option),
                   onTap: () => store.toggleSupportFilter(option),
@@ -921,6 +1360,37 @@ class _FilterSheet extends StatelessWidget {
           ],
         ),
       ],
+    );
+  }
+}
+
+class _SheetChipTarget extends StatelessWidget {
+  const _SheetChipTarget({
+    required this.label,
+    required this.active,
+    required this.onTap,
+  });
+
+  final String label;
+  final bool active;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      type: MaterialType.transparency,
+      borderRadius: BorderRadius.circular(AppRadius.pill),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(AppRadius.pill),
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(minHeight: 44),
+          child: Center(
+            widthFactor: 1,
+            child: DnChip(label: label, active: active),
+          ),
+        ),
+      ),
     );
   }
 }

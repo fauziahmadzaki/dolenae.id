@@ -42,6 +42,7 @@ abstract final class DestinationCacheMapper {
       guideRequired: Value(json['guideRequired'] as bool?),
       verified: Value(json['verified'] as bool? ?? false),
       categoryIds: Value(jsonEncode(json['categoryIds'] ?? const [])),
+      facilities: Value(_encodeFacilities(json['facilities'])),
       sortOrder: sortOrder,
       lastFetched: fetchedAt,
       serverUpdatedAt: Value(updatedAt?.toUtc().millisecondsSinceEpoch),
@@ -77,7 +78,53 @@ abstract final class DestinationCacheMapper {
           ? null
           : '${_compact(distance)} km dari kota terdekat',
       accessPointName: row.accessPoint,
+      facilities: _countMap(row.facilities),
     );
+  }
+
+  static String _encodeFacilities(Object? value) {
+    if (value is! Map) return '{}';
+    final cleaned = <String, int>{};
+    for (final entry in value.entries) {
+      final key = entry.key;
+      if (key is! String || key.trim().isEmpty) continue;
+      final count = _positiveInt(entry.value);
+      if (count != null) cleaned[key] = count;
+    }
+    return jsonEncode(cleaned);
+  }
+
+  static Map<String, int> _countMap(String raw) {
+    try {
+      final decoded = jsonDecode(raw);
+      if (decoded is! Map) return const {};
+      final result = <String, int>{};
+      for (final entry in decoded.entries) {
+        final key = entry.key;
+        if (key is! String || key.trim().isEmpty) continue;
+        final count = _positiveInt(entry.value);
+        if (count != null) result[key] = count;
+      }
+      return result;
+    } catch (_) {
+      return const {};
+    }
+  }
+
+  static const _maxFacilityCount = 9007199254740991;
+
+  static int? _positiveInt(Object? value) {
+    if (value is int) {
+      return value > 0 && value <= _maxFacilityCount ? value : null;
+    }
+    if (value is double &&
+        value.isFinite &&
+        value > 0 &&
+        value == value.truncateToDouble() &&
+        value <= _maxFacilityCount) {
+      return value.toInt();
+    }
+    return null;
   }
 
   static List<String> _strings(String raw) {

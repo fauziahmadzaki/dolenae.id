@@ -52,7 +52,7 @@ void main() {
     expect(search(catalog, const SearchFilter(categoryId: 'missing')), isEmpty);
     expect(
       search(catalog, const SearchFilter(query: 'gunung')).map((e) => e.id),
-      ['1', '3'],
+      ['3', '1'],
     );
   });
   test('kata kunci cocok dengan akses dan tag yang sudah ada', () {
@@ -148,6 +148,101 @@ void main() {
     expect(controller.searchFilter.categoryId, '');
     expect(controller.searchFilter.query, 'gunung');
     controller.dispose();
+  });
+
+  test('filter medan, aktivitas, dan provinsi mencocokkan field terstruktur saja', () {
+    const search = SearchDestinationsUseCase();
+    final local = [
+      const Destination(
+        id: 'gunung-1',
+        slug: 'gunung-1',
+        name: 'Gunung Prau',
+        tagline: 'Sunrise di Jawa Tengah',
+        elevationM: 2565,
+        regency: 'Wonosobo',
+        province: 'Jawa Tengah',
+        priceFrom: 30000,
+        difficulty: DifficultyLevel.pemula,
+        terrain: ['Gunung'],
+        activities: ['Hiking', 'Camping'],
+        tags: ['sunrise'],
+      ),
+      const Destination(
+        id: 'camp-1',
+        slug: 'camp-1',
+        name: 'Camping Gunungkidul',
+        tagline: 'Pemandangan gunung dan pantai',
+        elevationM: 200,
+        regency: 'Gunungkidul',
+        province: 'DI Yogyakarta',
+        priceFrom: 25000,
+        difficulty: DifficultyLevel.pemula,
+        terrain: ['Pantai'],
+        activities: ['Camping'],
+        tags: ['sunset'],
+      ),
+      const Destination(
+        id: 'air-1',
+        slug: 'air-1',
+        name: 'Curug Air Bersih',
+        tagline: 'Air jernih di hutan',
+        elevationM: 500,
+        regency: 'Bogor',
+        province: 'Jawa Barat',
+        priceFrom: 15000,
+        difficulty: DifficultyLevel.pemula,
+        terrain: ['Hutan'],
+        activities: ['Trekking'],
+        tags: ['air segar'],
+      ),
+    ];
+
+    expect(
+      search(local, const SearchFilter(terrain: 'Gunung')).map((e) => e.id),
+      ['gunung-1'],
+    );
+    expect(
+      search(local, const SearchFilter(activityTag: 'Sunrise')).map((e) => e.id),
+      ['gunung-1'],
+    );
+    expect(
+      search(
+        local,
+        const SearchFilter(activityTag: 'Camping Ground'),
+      ).map((e) => e.id),
+      ['gunung-1', 'camp-1'],
+    );
+    expect(
+      search(
+        local,
+        const SearchFilter(province: 'Jawa Barat'),
+      ).map((e) => e.id),
+      ['air-1'],
+    );
+    // Air Terjun tidak boleh cocok secara parsial dengan tag 'air segar'.
+    expect(
+      search(
+        local,
+        const SearchFilter(categoryId: 'air-terjun', categoryLabel: 'Air Terjun'),
+      ),
+      isEmpty,
+    );
+  });
+
+  test('activeFilterCount menghitung terrain+categoryId sebagai satu filter', () {
+    const filter = SearchFilter(
+      query: 'bromo',
+      terrain: 'Gunung',
+      categoryId: 'gunung-id',
+      activityTag: 'Sunrise',
+      province: 'Jawa Timur',
+      difficulty: DifficultyFilter.ramahPemula,
+      supports: ['Warung', 'Parkir'],
+    );
+    expect(filter.activeFilterCount, 6);
+    final cleared = filter.cleared();
+    expect(cleared.query, 'bromo');
+    expect(cleared.activeFilterCount, 0);
   });
 
   test('controller menyimpan label kategori dan reset menghapusnya', () {

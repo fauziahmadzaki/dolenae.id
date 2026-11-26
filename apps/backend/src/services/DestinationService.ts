@@ -32,6 +32,7 @@ const AMENITY_BY_FACILITY_TYPE: Record<string, string> = {
   warung: "Warung",
   toilet: "Toilet",
   mushola: "Mushola",
+  jeep: "Jeep",
 };
 
 class DestinationService {
@@ -47,6 +48,7 @@ class DestinationService {
     row: DestinationRow,
     categoryIds: string[],
     categories: PublicCategory[],
+    facilities?: DestinationFacilities,
   ): PublicDestination {
     // Classification is derived from the official category links, so a renamed
     // category is reflected everywhere without duplicated columns.
@@ -90,6 +92,7 @@ class DestinationService {
       status: row.status,
       verified: row.verified,
       categoryIds,
+      ...(facilities !== undefined ? { facilities } : {}),
       createdAt: row.createdAt.toISOString(),
       updatedAt: row.updatedAt.toISOString(),
     };
@@ -126,16 +129,22 @@ class DestinationService {
   }
 
   /** Amenity counts from published facilities; unknown types are skipped. */
-  private async buildFacilities(
-    destinationId: string,
-  ): Promise<DestinationFacilities> {
-    const counts = await facilityRepository.countPublishedTypes(destinationId);
+  private mapFacilityCounts(
+    counts: { type: string; total: number }[],
+  ): DestinationFacilities {
     const facilities: DestinationFacilities = {};
     for (const { type, total } of counts) {
       const amenity = AMENITY_BY_FACILITY_TYPE[type];
       if (amenity && total > 0) facilities[amenity] = total;
     }
     return facilities;
+  }
+
+  private async buildFacilities(
+    destinationId: string,
+  ): Promise<DestinationFacilities> {
+    const counts = await facilityRepository.countPublishedTypes(destinationId);
+    return this.mapFacilityCounts(counts);
   }
 
   async list(
@@ -152,15 +161,27 @@ class DestinationService {
       status: query.status,
       categoryId: query.categoryId,
     });
-    // One pivot query for the whole page, grouped in memory.
-    const links = await destinationRepository.findCategoryLinks(
-      items.map((row) => row.id),
-    );
+    const destinationIds = items.map((row) => row.id);
+    // One pivot query and one facility-count query for the whole page.
+    const [links, facilityRows] = await Promise.all([
+      destinationRepository.findCategoryLinks(destinationIds),
+      facilityRepository.countPublishedTypesByDestinations(destinationIds),
+    ]);
     const linked = new Map<string, string[]>();
     for (const link of links) {
       const list = linked.get(link.destinationId) ?? [];
       list.push(link.categoryId);
       linked.set(link.destinationId, list);
+    }
+
+    const facilityCountsByDestination = new Map<
+      string,
+      { type: string; total: number }[]
+    >();
+    for (const row of facilityRows) {
+      const list = facilityCountsByDestination.get(row.destinationId) ?? [];
+      list.push({ type: row.type, total: row.total });
+      facilityCountsByDestination.set(row.destinationId, list);
     }
 
     // One lookup for every category referenced on this page.
@@ -177,7 +198,10 @@ class DestinationService {
         const categories = categoryIds
           .map((categoryId) => categoryById.get(categoryId))
           .filter((category): category is PublicCategory => Boolean(category));
-        return this.toPublicDestination(row, categoryIds, categories);
+        const facilities = this.mapFacilityCounts(
+          facilityCountsByDestination.get(row.id) ?? [],
+        );
+        return this.toPublicDestination(row, categoryIds, categories, facilities);
       }),
       meta: buildMeta(total, query.page, query.limit),
     };

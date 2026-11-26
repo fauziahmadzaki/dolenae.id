@@ -166,16 +166,22 @@ Endpoint yang dipakai mobile:
 
 ### Akurasi filter Jelajah
 
-- `SearchDestinationsUseCase` mencocokkan setiap kata kueri dengan seluruh data
-  destinasi yang tersedia di entity: nama, slug, tagline, wilayah, musim, akses,
-  medan, aktivitas, dan tag yang sudah dikirim API.
-- Kategori dicocokkan lebih dulu lewat `categoryIds`. Bila destinasi belum
-  memiliki UUID tersebut (seed/offline), nama kategori dari chip dipakai sebagai
-  fallback terhadap medan, aktivitas, dan tag. Kategori dan teks bisa digabung.
-- Tile aktivitas Beranda memakai label yang memang ada di data destinasi
-  (`Gunung`, `Camping Ground`, `Sunrise`, `Savana`) dan mengirimkannya sebagai
-  kueri Jelajah. Filter yang tersisa dari kunjungan sebelumnya dibersihkan
-  sebelum kueri baru diterapkan.
+- Jelajah memisahkan **Fast Filter** dari **Search Engine**. Fast Filter memakai
+  filter terstruktur `terrain`, `categoryId`/`categoryLabel`, `activityTag`,
+  `province`, `difficulty`, `supports`, dan `sort`. Memilihnya tidak mengisi
+  kolom pencarian dan tidak menambah `searchHistory`.
+- Search Engine memakai teks bebas `query`, riwayat pencarian, dan panel saran.
+  Saat `SortOption.populer` aktif, hasil kueri mendapat relevance ranking
+  deterministik; pilihan sort lain tetap memakai urutan pilihannya.
+- Parameter rute `/explore`: `terrain`, `categoryId`, `category` (atau
+  `categoryLabel`), `tag`, dan `activity` mengaktifkan Fast Filter. Parameter
+  `q` khusus Search Engine. Parameter dapat digabung; hasil menerapkan keduanya.
+- Chip kategori dan kartu aktivitas Beranda mengirim parameter terstruktur.
+  `Gunung` dan `Savana` memakai medan, `Camping Ground` memakai kategori atau
+  aktivitas offline, dan `Sunrise` memakai tag aktivitas.
+- Kategori daring dicocokkan dengan `categoryIds`; seed offline memakai
+  kecocokan tepat pada medan, aktivitas, dan tag terstruktur. Medan, aktivitas,
+  provinsi, dan fasilitas tidak dicari lewat teks deskripsi.
 
 ### Ringkasan Profil
 

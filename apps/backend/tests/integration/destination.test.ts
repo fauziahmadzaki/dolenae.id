@@ -22,8 +22,12 @@ describe("Destination CRUD API (/api/destinations)", () => {
   let userToken: string;
 
   beforeAll(async () => {
-    // Detail reads the published-facility counts; DB is mocked in this suite.
+    // Detail & list read published-facility counts; DB is mocked in this suite.
     vi.spyOn(facilityRepository, "countPublishedTypes").mockResolvedValue([]);
+    vi.spyOn(
+      facilityRepository,
+      "countPublishedTypesByDestinations",
+    ).mockResolvedValue([]);
     adminToken = await signAccessToken({
       sub: "87654321-4321-4321-a321-1234567890ab",
       email: "admin@dolenae.id",
@@ -38,8 +42,12 @@ describe("Destination CRUD API (/api/destinations)", () => {
 
   beforeEach(() => {
     vi.restoreAllMocks();
-    // Restored by the line above; re-apply for detail reads (DB is mocked).
+    // Restored by the line above; re-apply for detail & list reads (DB is mocked).
     vi.spyOn(facilityRepository, "countPublishedTypes").mockResolvedValue([]);
+    vi.spyOn(
+      facilityRepository,
+      "countPublishedTypesByDestinations",
+    ).mockResolvedValue([]);
   });
 
   const categoryId = "11111111-1111-4111-a111-111111111111";
@@ -127,6 +135,36 @@ describe("Destination CRUD API (/api/destinations)", () => {
       });
       expect(res.body.data[0].access.distanceKm).toBe(140.5);
       expect(res.body.meta).toMatchObject({ page: 1, limit: 10, total: 1 });
+    });
+
+    it("maps published facility counts per destination on GET /api/destinations", async () => {
+      vi.spyOn(destinationRepository, "list").mockResolvedValueOnce({
+        items: [{ ...mockDestination, status: "published" }],
+        total: 1,
+      });
+      vi.spyOn(destinationRepository, "findCategoryLinks").mockResolvedValueOnce(
+        [{ destinationId: mockDestination.id, categoryId }],
+      );
+      vi.spyOn(categoryRepository, "findByIds").mockResolvedValueOnce([
+        mockCategory,
+      ]);
+      vi.spyOn(
+        facilityRepository,
+        "countPublishedTypesByDestinations",
+      ).mockResolvedValueOnce([
+        { destinationId: mockDestination.id, type: "warung", total: 2 },
+        { destinationId: mockDestination.id, type: "parkir", total: 1 },
+        { destinationId: mockDestination.id, type: "jeep", total: 1 },
+        { destinationId: mockDestination.id, type: "unknown", total: 3 },
+      ]);
+
+      const res = await request(app).get("/api/destinations?page=1&limit=10");
+      expect(res.status).toBe(200);
+      expect(res.body.data[0].facilities).toEqual({
+        Warung: 2,
+        Parkir: 1,
+        Jeep: 1,
+      });
     });
 
     it.each(["", "?status=draft", "?status=archived"])(

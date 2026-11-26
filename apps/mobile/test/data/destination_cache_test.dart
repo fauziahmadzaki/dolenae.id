@@ -1,5 +1,8 @@
+import 'dart:io';
+
 import 'package:dolenae_mobile/src/core/database/app_database.dart';
 import 'package:dolenae_mobile/src/features/destinations/data/mappers/destination_cache_mapper.dart';
+import 'package:dolenae_mobile/src/features/destinations/data/models/destination_model.dart';
 import 'package:dolenae_mobile/src/features/destinations/data/data_sources/destination_local_data_source.dart';
 import 'package:drift/native.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -64,6 +67,126 @@ void main() {
     final snapshot = await dao.watch().first;
     expect(snapshot.items, hasLength(1));
     expect(snapshot.items.single.name, 'Baru');
+  });
+
+  test('facilities map bertahan di cache v4 dan menyaring hitungan nol', () async {
+    await dao.replaceAll([
+      DestinationCacheMapper.toCompanion(
+        {
+          ..._json(name: 'Bromo', slug: 'bromo'),
+          'facilities': {'Warung': 2, 'Parkir': 1, 'Toilet': 0},
+        },
+        sortOrder: 0,
+        fetchedAt: 10,
+      ),
+    ], fetchedAt: 10);
+
+    final snapshot = await dao.watch().first;
+    expect(snapshot.items.single.facilities, {'Warung': 2, 'Parkir': 1});
+  });
+
+  test('migrasi schema v3 ke v4 menambahkan kolom facilities default', () async {
+    final directory = Directory.systemTemp.createTempSync('v3-v4-cache-');
+    addTearDown(() => directory.deleteSync(recursive: true));
+    final file = File('${directory.path}/cache.sqlite');
+    final seed = AppDatabase.forTesting(NativeDatabase(file));
+    await seed.customSelect('SELECT 1 FROM cached_destinations').get();
+    await seed.customStatement(
+      'ALTER TABLE cached_destinations DROP COLUMN facilities',
+    );
+    await seed.customStatement(
+      "INSERT INTO cached_destinations (id, slug, name, difficulty, sort_order, last_fetched) VALUES ('v3', 'v3', 'Destinasi v3', 'menengah', 0, 1)",
+    );
+    await seed.customStatement('PRAGMA user_version = 3');
+    await seed.close();
+
+    final migrated = AppDatabase.forTesting(NativeDatabase(file));
+    addTearDown(migrated.close);
+    final rows = await migrated.select(migrated.cachedDestinations).get();
+    expect(rows.single.id, 'v3');
+    expect(rows.single.facilities, '{}');
+  });
+
+  test('DestinationModel menolak nilai fasilitas non-finite, pecahan, dan negatif tanpa membuang entri valid', () {
+    final entity = DestinationModel({
+      ..._json(name: 'Bromo', slug: 'bromo'),
+      'facilities': {
+        'Warung': 2,
+        'Jeep': 1.0,
+        'Inf': double.infinity,
+        'NaN': double.nan,
+        'Huge': 1e308,
+        'Float': 1.5,
+        'Zero': 0,
+        'Neg': -2,
+        'Str': '3',
+        '   ': 5,
+      },
+    }).toEntity();
+
+    expect(entity.facilities, {'Warung': 2, 'Jeep': 1});
+  });
+
+  test('DestinationCacheMapper menjaga entri fasilitas valid saat JSON cache berisi nilai rusak', () {
+    const row = CachedDestination(
+      id: 'bromo',
+      slug: 'bromo',
+      name: 'Gunung Bromo',
+      difficulty: 'ramah-pemula',
+      bestSeason: '[]',
+      tags: '[]',
+      terrain: '["Gunung"]',
+      activities: '[]',
+      accessTransport: '[]',
+      images: '[]',
+      verified: true,
+      categoryIds: '[]',
+      facilities:
+          '{"Warung":2,"BadHuge":1e308,"BadFloat":2.5,"BadStr":"x","Zero":0,"Jeep":1}',
+      sortOrder: 0,
+      lastFetched: 1,
+    );
+
+    final domain = DestinationCacheMapper.toDomain(row);
+    expect(domain.facilities, {'Warung': 2, 'Jeep': 1});
+  });
+
+  test('batas atas 9007199254740991 berlaku untuk int native pada model dan cache mapper', () {
+    final model = DestinationModel({
+      ..._json(name: 'Bromo', slug: 'bromo'),
+      'facilities': {
+        'Warung': 2,
+        'MaxValid': 9007199254740991,
+        'OverflowInt': 9007199254740992,
+      },
+    }).toEntity();
+    expect(model.facilities, {
+      'Warung': 2,
+      'MaxValid': 9007199254740991,
+    });
+
+    const row = CachedDestination(
+      id: 'bromo',
+      slug: 'bromo',
+      name: 'Gunung Bromo',
+      difficulty: 'ramah-pemula',
+      bestSeason: '[]',
+      tags: '[]',
+      terrain: '["Gunung"]',
+      activities: '[]',
+      accessTransport: '[]',
+      images: '[]',
+      verified: true,
+      categoryIds: '[]',
+      facilities:
+          '{"Warung":2,"MaxValid":9007199254740991,"OverflowInt":9007199254740992}',
+      sortOrder: 0,
+      lastFetched: 1,
+    );
+    expect(DestinationCacheMapper.toDomain(row).facilities, {
+      'Warung': 2,
+      'MaxValid': 9007199254740991,
+    });
   });
 }
 

@@ -79,6 +79,34 @@ class FacilityRepository {
   }
 
   /**
+   * Published facilities for a page of destinations, grouped by destination and `type`.
+   */
+  async countPublishedTypesByDestinations(
+    destinationIds: string[],
+  ): Promise<Array<{ destinationId: string; type: string; total: number }>> {
+    if (destinationIds.length === 0) return [];
+    const rows = await this.db
+      .select({
+        destinationId: facilities.destinationId,
+        type: facilities.type,
+        value: count(),
+      })
+      .from(facilities)
+      .where(
+        and(
+          inArray(facilities.destinationId, destinationIds),
+          eq(facilities.status, "published"),
+        ),
+      )
+      .groupBy(facilities.destinationId, facilities.type);
+    return rows.map((row) => ({
+      destinationId: row.destinationId,
+      type: row.type,
+      total: Number(row.value),
+    }));
+  }
+
+  /**
    * Minimum published facility price per destination and category.
    * Uses a single aggregate query so retrieval avoids N+1 facility fetches.
    */

@@ -34,14 +34,53 @@ class ExploreController extends ChangeNotifier {
     notifyListeners();
   }
 
-  void setCategoryId(String id, {String label = ''}) {
-    _filter = _filter.copyWith(categoryId: id, categoryLabel: label);
+  void clearSearchQuery() {
+    if (_filter.query.isEmpty) return;
+    _filter = _filter.copyWith(query: '');
     notifyListeners();
   }
 
-  /// Filter medan dari chip Beranda (mis. `Gunung`); string kosong = semua.
-  void setTerrain(String terrain) {
-    _filter = _filter.copyWith(terrain: terrain);
+  void setCategoryId(String id, {String label = ''}) {
+    final cleanId = SearchFilter.sanitizeStructuredValue(id);
+    final cleanLabel = SearchFilter.sanitizeStructuredValue(label);
+    final activatesCategory = cleanId.isNotEmpty || cleanLabel.isNotEmpty;
+    _filter = _filter.copyWith(
+      categoryId: cleanId,
+      categoryLabel: activatesCategory ? cleanLabel : '',
+      terrain: activatesCategory ? '' : _filter.terrain,
+      activityTag:
+          activatesCategory &&
+              cleanLabel.isNotEmpty &&
+              cleanLabel.toLowerCase() == _filter.activityTag.toLowerCase()
+          ? ''
+          : _filter.activityTag,
+    );
+    notifyListeners();
+  }
+
+  /// Filter medan terstruktur (mis. `Gunung`); string kosong = semua.
+  void setTerrain(String terrain, {String categoryId = ''}) {
+    final cleanTerrain = SearchFilter.sanitizeStructuredValue(terrain);
+    final cleanCategoryId = SearchFilter.sanitizeStructuredValue(categoryId);
+    _filter = _filter.copyWith(
+      terrain: cleanTerrain,
+      categoryId: cleanTerrain.isEmpty ? '' : cleanCategoryId,
+      categoryLabel: '',
+    );
+    notifyListeners();
+  }
+
+  void setActivityTag(String tag) {
+    _filter = _filter.copyWith(
+      activityTag: SearchFilter.sanitizeStructuredValue(tag),
+    );
+    notifyListeners();
+  }
+
+  void setProvince(String province) {
+    _filter = _filter.copyWith(
+      province: SearchFilter.sanitizeStructuredValue(province),
+    );
     notifyListeners();
   }
 
@@ -56,8 +95,10 @@ class ExploreController extends ChangeNotifier {
   }
 
   void toggleSupportFilter(String support) {
+    final cleanSupport = SearchFilter.sanitizeStructuredValue(support);
+    if (cleanSupport.isEmpty) return;
     final next = [..._filter.supports];
-    if (!next.remove(support)) next.add(support);
+    if (!next.remove(cleanSupport)) next.add(cleanSupport);
     _filter = _filter.copyWith(supports: next);
     notifyListeners();
   }
@@ -69,6 +110,11 @@ class ExploreController extends ChangeNotifier {
 
   void clearSearchFilters() {
     _filter = _filter.cleared();
+    notifyListeners();
+  }
+
+  void resetAll() {
+    _filter = const SearchFilter();
     notifyListeners();
   }
 

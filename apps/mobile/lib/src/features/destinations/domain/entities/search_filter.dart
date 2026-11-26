@@ -36,6 +36,8 @@ class SearchFilter {
     this.categoryId = '',
     this.terrain = '',
     this.categoryLabel = '',
+    this.activityTag = '',
+    this.province = '',
     this.sort = SortOption.populer,
     this.difficulty = DifficultyFilter.semua,
     this.supports = const [],
@@ -46,31 +48,88 @@ class SearchFilter {
   final String categoryId;
 
   /// Nama medan terpilih (mis. `Gunung`), dicocokkan ke `destination.terrain`.
-  ///
-  /// Dipakai chip Beranda yang hanya membawa nama kategori, bukan ID.
   final String terrain;
 
   /// Nama kategori dari chip; dipakai bila destinasi belum punya `categoryIds`.
   final String categoryLabel;
+
+  /// Tag aktivitas terstruktur (mis. `Sunrise`, `Camping Ground`).
+  final String activityTag;
+
+  /// Provinsi terstruktur (mis. `Jawa Timur`).
+  final String province;
+
   final SortOption sort;
   final DifficultyFilter difficulty;
   final List<String> supports;
   final bool verifiedOnly;
 
+  static final RegExp _controlChars = RegExp(r'[\x00-\x1F\x7F]');
+  static final RegExp _separatorsAndSpaces = RegExp(r'[-_\s]+');
+
+  /// Membersihkan teks rute dari karakter kontrol dan memotong tanpa membelah
+  /// pasangan surrogate UTF-16.
+  static String sanitizeRouteText(String? raw, {int maxLength = 120}) {
+    var cleaned = (raw ?? '').replaceAll(_controlChars, '').trim();
+    if (cleaned.length > maxLength) {
+      var end = maxLength;
+      if (end > 0) {
+        final last = cleaned.codeUnitAt(end - 1);
+        if (last >= 0xD800 && last <= 0xDBFF) {
+          end--;
+        }
+      }
+      cleaned = cleaned.substring(0, end).trim();
+    }
+    return cleaned;
+  }
+
+  /// Normalisasi token terstruktur dan teks pencarian.
+  static String normalizeToken(String value) => value
+      .replaceAll(_controlChars, '')
+      .toLowerCase()
+      .replaceAll(_separatorsAndSpaces, ' ')
+      .trim();
+
+  /// Membersihkan nilai filter terstruktur; nilai berisi pemisah saja menjadi `''`.
+  static String sanitizeStructuredValue(String? raw, {int maxLength = 120}) {
+    final cleaned = sanitizeRouteText(raw, maxLength: maxLength);
+    return normalizeToken(cleaned).isEmpty ? '' : cleaned;
+  }
+
+  bool get hasQuery => query.trim().isNotEmpty;
+
   bool get isFiltered =>
-      categoryId.isNotEmpty ||
-      terrain.isNotEmpty ||
-      categoryLabel.isNotEmpty ||
+      normalizeToken(categoryId).isNotEmpty ||
+      normalizeToken(terrain).isNotEmpty ||
+      normalizeToken(categoryLabel).isNotEmpty ||
+      normalizeToken(activityTag).isNotEmpty ||
+      normalizeToken(province).isNotEmpty ||
       sort != SortOption.populer ||
       difficulty != DifficultyFilter.semua ||
-      supports.isNotEmpty ||
+      supports.any((item) => normalizeToken(item).isNotEmpty) ||
       verifiedOnly;
+
+  int get activeFilterCount =>
+      ((normalizeToken(terrain).isNotEmpty ||
+              normalizeToken(categoryId).isNotEmpty ||
+              normalizeToken(categoryLabel).isNotEmpty)
+          ? 1
+          : 0) +
+      (normalizeToken(activityTag).isNotEmpty ? 1 : 0) +
+      (normalizeToken(province).isNotEmpty ? 1 : 0) +
+      (difficulty != DifficultyFilter.semua ? 1 : 0) +
+      supports.where((item) => normalizeToken(item).isNotEmpty).length +
+      (verifiedOnly ? 1 : 0) +
+      (sort != SortOption.populer ? 1 : 0);
 
   SearchFilter copyWith({
     String? query,
     String? categoryId,
     String? terrain,
     String? categoryLabel,
+    String? activityTag,
+    String? province,
     SortOption? sort,
     DifficultyFilter? difficulty,
     List<String>? supports,
@@ -81,6 +140,8 @@ class SearchFilter {
       categoryId: categoryId ?? this.categoryId,
       terrain: terrain ?? this.terrain,
       categoryLabel: categoryLabel ?? this.categoryLabel,
+      activityTag: activityTag ?? this.activityTag,
+      province: province ?? this.province,
       sort: sort ?? this.sort,
       difficulty: difficulty ?? this.difficulty,
       supports: supports ?? this.supports,

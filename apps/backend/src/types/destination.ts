@@ -44,6 +44,15 @@ export interface DestinationAccess {
   distanceKm: number | null;
 }
 
+/**
+ * Count of published facilities per category, keyed by the mobile amenity name
+ * (Toilet, Warung, Parkir, Homestay dekat, Mushola, …).
+ *
+ * Derivation lives in the backend so the mobile amenity list stays a display
+ * concern; unknown facility types are simply absent from the map.
+ */
+export type DestinationFacilities = Record<string, number>;
+
 /** Destination shape sent to clients (web + mobile). */
 export interface PublicDestination {
   id: string;
@@ -64,18 +73,10 @@ export interface PublicDestination {
   status: DestinationStatus;
   verified: boolean;
   categoryIds: string[];
+  facilities?: DestinationFacilities;
   createdAt: string;
   updatedAt: string;
 }
-
-/**
- * Count of published facilities per category, keyed by the mobile amenity name
- * (Toilet, Warung, Parkir, Homestay dekat, Mushola, …).
- *
- * Derivation lives in the backend so the mobile amenity list stays a display
- * concern; unknown facility types are simply absent from the map.
- */
-export type DestinationFacilities = Record<string, number>;
 
 export interface PublicDestinationDetail extends PublicDestination {
   categories: PublicCategory[];

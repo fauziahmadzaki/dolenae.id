@@ -31,6 +31,7 @@ class CachedDestinations extends Table {
 
   BoolColumn get verified => boolean().withDefault(const Constant(false))();
   TextColumn get categoryIds => text().withDefault(const Constant('[]'))();
+  TextColumn get facilities => text().withDefault(const Constant('{}'))();
   IntColumn get sortOrder => integer()();
 
   IntColumn get lastFetched => integer()();
@@ -48,14 +49,19 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.e);
 
   @override
-  int get schemaVersion => 3;
+  int get schemaVersion => 4;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
     onUpgrade: (migrator, from, to) async {
       if (from < 3) {
-        // v3 drops `facilities` and `entry_fee` (no longer sent by the API).
+        // Recreates table at current schema (including `facilities` default '{}').
         await migrator.alterTable(TableMigration(cachedDestinations));
+      } else if (from < 4) {
+        await migrator.addColumn(
+          cachedDestinations,
+          cachedDestinations.facilities,
+        );
       }
       if (from < 2) {
         // Cache lama mengubah guide unknown menjadi false; jangan klaim fakta.

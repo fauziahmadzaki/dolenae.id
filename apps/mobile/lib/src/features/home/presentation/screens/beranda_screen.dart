@@ -279,7 +279,7 @@ class _BerandaScreenState extends State<BerandaScreen> {
 
   /// Baris chip kategori terrain (`Chips` pada frame Beranda `56:10021`).
   ///
-  /// Menekan chip membuka Jelajah dengan kata kunci kategori tersebut.
+  /// Menekan chip membuka Jelajah dengan filter medan/tag terstruktur.
   Widget _categoryChips(BuildContext context) {
     final controller = context.watch<CategoriesController?>();
     // Frame hanya memuat chip terrain; kategori aktivitas tetap di Jelajah.
@@ -288,21 +288,69 @@ class _BerandaScreenState extends State<BerandaScreen> {
         if (category.type == 'terrain') category,
     ];
     if (terrains.isEmpty) {
-      // ponytail: katalog kategori belum termuat (offline/loading) -> chip
-      // nama dari frame dipakai sebagai label saja, tanpa penyaringan.
       if (controller == null) return const SizedBox.shrink();
-      return _chipRow([for (final name in _fallbackTerrains) DnChip(label: name)]);
+      return _chipRow([
+        for (final name in _fallbackTerrains)
+          _fastFilterChip(
+            context,
+            label: name,
+            route: _terrainOrTagRoute(name),
+          ),
+      ]);
     }
 
     return _chipRow([
       for (final category in terrains)
-        DnChip(
+        _fastFilterChip(
+          context,
           label: category.name,
-          onTap: () => context.go(
-            '/explore?q=${Uri.encodeQueryComponent(category.name)}',
-          ),
+          route: _terrainOrTagRoute(category.name, categoryId: category.id),
         ),
     ]);
+  }
+
+  Widget _fastFilterChip(
+    BuildContext context, {
+    required String label,
+    required String route,
+  }) {
+    return Semantics(
+      button: true,
+      label: 'Filter cepat: $label',
+      child: Material(
+        type: MaterialType.transparency,
+        borderRadius: BorderRadius.circular(AppRadius.pill),
+        child: InkWell(
+          onTap: () => context.go(route),
+          borderRadius: BorderRadius.circular(AppRadius.pill),
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(minHeight: 44),
+            child: Center(child: DnChip(label: label)),
+          ),
+        ),
+      ),
+    );
+  }
+
+  static String _terrainOrTagRoute(String name, {String categoryId = ''}) {
+    if (categoryId.isNotEmpty) {
+      return '/explore?terrain=${Uri.encodeQueryComponent(name)}'
+          '&categoryId=${Uri.encodeQueryComponent(categoryId)}';
+    }
+    if (name.trim().toLowerCase() == 'camping') {
+      return '/explore?tag=camping';
+    }
+    return '/explore?terrain=${Uri.encodeQueryComponent(name)}';
+  }
+
+  static String _findCategoryId(List<Category> items, String name) {
+    final needle = name.trim().toLowerCase();
+    for (final category in items) {
+      if (category.name.trim().toLowerCase() == needle) {
+        return category.id;
+      }
+    }
+    return '';
   }
 
   /// Label terrain dari frame, dipakai saat katalog kategori belum termuat.
@@ -462,13 +510,35 @@ class _BerandaScreenState extends State<BerandaScreen> {
   }
 
   Widget _activities() {
-    // Label memakai nilai yang memang ada di data destinasi agar kueri yang
-    // dikirim ke Jelajah selalu punya hasil yang cocok.
-    const items = <(IconData, String)>[
-      (AppIcons.mountain, 'Gunung'),
-      (AppIcons.tent, 'Camping Ground'),
-      (AppIcons.sunrise, 'Sunrise'),
-      (AppIcons.camera, 'Savana'),
+    final categories =
+        context.watch<CategoriesController?>()?.items ?? const <Category>[];
+    final campingCategoryId = _findCategoryId(categories, 'Camping Ground');
+    final items = <(IconData, String, String)>[
+      (
+        AppIcons.mountain,
+        'Gunung',
+        _terrainOrTagRoute(
+          'Gunung',
+          categoryId: _findCategoryId(categories, 'Gunung'),
+        ),
+      ),
+      (
+        AppIcons.tent,
+        'Camping Ground',
+        campingCategoryId.isNotEmpty
+            ? '/explore?categoryId=${Uri.encodeQueryComponent(campingCategoryId)}'
+                  '&category=${Uri.encodeQueryComponent('Camping Ground')}'
+            : '/explore?activity=${Uri.encodeQueryComponent('Camping Ground')}',
+      ),
+      (AppIcons.sunrise, 'Sunrise', '/explore?tag=sunrise'),
+      (
+        AppIcons.camera,
+        'Savana',
+        _terrainOrTagRoute(
+          'Savana',
+          categoryId: _findCategoryId(categories, 'Savana'),
+        ),
+      ),
     ];
     return Padding(
       padding: const EdgeInsets.fromLTRB(
@@ -489,9 +559,7 @@ class _BerandaScreenState extends State<BerandaScreen> {
                   child: DnActivityTile(
                     icon: item.$1,
                     label: item.$2,
-                    onTap: () => context.go(
-                      '/explore?activity=${Uri.encodeQueryComponent(item.$2)}',
-                    ),
+                    onTap: () => context.go(item.$3),
                   ),
                 ),
                 if (item != items.last) const SizedBox(width: AppSpacing.s2),
