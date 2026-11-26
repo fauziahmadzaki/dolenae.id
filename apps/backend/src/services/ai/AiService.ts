@@ -56,7 +56,7 @@ class AiService {
     return createHash("sha256")
       // Bump when the prompt/retrieval contract changes so older cached rows do
       // not bypass new grounding/notice rules.
-      .update("ai-v6:")
+      .update("ai-v9:")
       .update(JSON.stringify(input, Object.keys(input).sort()))
       .digest("hex");
   }
@@ -172,22 +172,26 @@ class AiService {
 
     const startedAt = Date.now();
     const context = await aiRetrieval.build(input);
+    const effectivePreference = context.preference;
 
     // Gemini is optional. Skip it entirely when retrieval found no destination,
     // otherwise the model tends to invent generic ungrounded stops.
     let result =
       context.destinations.length > 0
-        ? await geminiService.generate(context, input)
+        ? await geminiService.generate(context, effectivePreference)
         : null;
     if (!result) {
-      result = itineraryService.build(context, input);
+      result = itineraryService.build(context, effectivePreference);
     }
     result = this.attachQueryNotice(result, context);
 
     // Keep the AI checklist useful even when the model returns only a few
     // items. The deterministic list fills the gaps without touching the
     // model's itinerary.
-    const originDiff = this.needsInterprovinceTransport(context, input);
+    const originDiff = this.needsInterprovinceTransport(
+      context,
+      effectivePreference,
+    );
     const hasInterprovinceAlternatives = result.checklistItems.some(
       (item) =>
         item.alternativeGroup === "transport-antarprovinsi" ||
@@ -199,12 +203,12 @@ class AiService {
         (originDiff && !hasInterprovinceAlternatives))
     ) {
       const requestedDays = Math.min(
-        Math.max(input.durationDays ?? 2, 1),
+        Math.max(effectivePreference.durationDays ?? 2, 1),
         7,
       );
       const fallback = itineraryService.buildChecklist(
         context,
-        input,
+        effectivePreference,
         context.destinations,
         requestedDays,
       );

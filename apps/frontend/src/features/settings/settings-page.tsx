@@ -39,11 +39,14 @@ const message = (error: unknown) => {
 };
 
 const DEFAULT_MODELS = [
+  "gemini-3.5-flash-lite",
   "gemini-3.5-flash",
   "gemini-3.6-flash",
   "gemini-3.7-flash",
   "gemini-3.8-flash",
 ];
+
+const LEGACY_MODEL_RE = /^gemini-(?:1\.|2\.|3(?:\.[0-4]|-))/i;
 
 export function SettingsPage() {
   const auth = useAuth();
@@ -61,7 +64,7 @@ export function SettingsPage() {
   const testMutation = useTestAi(auth.token);
 
   const [apiKey, setApiKey] = useState("");
-  const [model, setModel] = useState("gemini-3.5-flash");
+  const [model, setModel] = useState("gemini-3.5-flash-lite");
   const [models, setModels] = useState<GeminiModel[]>([]);
   const [prompt, setPrompt] = useState(
     "Balas dengan satu kalimat: koneksi berhasil.",
@@ -131,10 +134,19 @@ export function SettingsPage() {
       ...models.map((item) => item.id),
       ...(data?.model ? [data.model] : []),
     ]);
-    return [...values].map((value) => ({
-      value,
-      label: models.find((item) => item.id === value)?.displayName ?? value,
-    }));
+    return [...values].map((value) => {
+      const fetched = models.find((item) => item.id === value);
+      const baseLabel = fetched?.displayName ?? value;
+      const isLegacy =
+        LEGACY_MODEL_RE.test(value) ||
+        (value === data?.model &&
+          !DEFAULT_MODELS.includes(value) &&
+          !fetched);
+      return {
+        value,
+        label: isLegacy ? `${baseLabel} (model lama)` : baseLabel,
+      };
+    });
   })();
 
   const save = () => {

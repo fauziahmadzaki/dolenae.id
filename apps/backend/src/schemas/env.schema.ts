@@ -29,7 +29,7 @@ export const envSchema = z.object({
     .transform((value) => value.toLowerCase() !== "false"),
   MAX_UPLOAD_MB: z.coerce.number().int().positive().default(5),
   GEMINI_API_KEY: z.string().default(""),
-  AI_MODEL: z.string().default("gemini-3.5-flash"),
+  AI_MODEL: z.string().default("gemini-3.5-flash-lite"),
   AI_TIMEOUT_MS: z.coerce.number().int().positive().default(30000),
   AI_DAILY_LIMIT: z.coerce.number().int().positive().default(10),
   AI_CACHE_TTL_HOURS: z.coerce.number().int().positive().default(24),

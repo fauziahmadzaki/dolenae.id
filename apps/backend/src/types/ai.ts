@@ -27,6 +27,7 @@ export interface AiPreferenceInput {
   difficulty?: Difficulty;
   durationDays?: number;
   budgetPerPerson?: number;
+  preferLowCost?: boolean;
   needsAccommodation?: boolean;
   needsTransport?: boolean;
   note?: string;
@@ -46,6 +47,9 @@ export interface AiContextDestination {
   guideRequired: boolean;
   description: string | null;
   categories: string[];
+  estimatedCostPerPerson?: number | null;
+  costSummary?: string | null;
+  isExplicit?: boolean;
 }
 
 export interface AiContextSupport {

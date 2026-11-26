@@ -7,7 +7,10 @@ import {
   getTableColumns,
   ilike,
   inArray,
+  isNotNull,
+  min,
   or,
+  sql,
   type SQL,
 } from "drizzle-orm";
 import { database } from "../db/DatabaseClient";
@@ -75,6 +78,50 @@ class FacilityRepository {
     return rows.map((row) => ({ type: row.type, total: Number(row.value) }));
   }
 
+  /**
+   * Minimum published facility price per destination and category.
+   * Uses a single aggregate query so retrieval avoids N+1 facility fetches.
+   */
+  async minPricesByCategory(
+    destinationIds?: string[],
+  ): Promise<
+    Array<{
+      destinationId: string;
+      category: FacilityCategory;
+      minPrice: number | null;
+    }>
+  > {
+    if (destinationIds && destinationIds.length === 0) {
+      return [];
+    }
+
+    const conditions: SQL[] = [
+      eq(facilities.status, "published"),
+      eq(destinations.status, "published"),
+      isNotNull(facilities.priceMin),
+    ];
+    if (destinationIds?.length) {
+      conditions.push(inArray(facilities.destinationId, destinationIds));
+    }
+
+    const rows = await this.db
+      .select({
+        destinationId: facilities.destinationId,
+        category: facilities.category,
+        minPrice: min(facilities.priceMin),
+      })
+      .from(facilities)
+      .innerJoin(destinations, eq(facilities.destinationId, destinations.id))
+      .where(and(...conditions))
+      .groupBy(facilities.destinationId, facilities.category);
+
+    return rows.map((row) => ({
+      destinationId: row.destinationId,
+      category: row.category,
+      minPrice: row.minPrice == null ? null : Number(row.minPrice),
+    }));
+  }
+
   async list(
     params: FacilityListParams,
   ): Promise<{ items: JoinedFacility[]; total: number }> {
@@ -105,15 +152,29 @@ class FacilityRepository {
     }
     const where = conditions.length ? and(...conditions) : undefined;
     const byDate = params.sort === "createdAt";
-    const order = byDate || params.sort === "name" ? params.order : "asc";
+    const byPrice = params.sort === "priceMin";
+    const order =
+      byDate || byPrice || params.sort === "name" ? params.order : "asc";
     const direction = order === "desc" ? desc : asc;
+    const orderClauses = byPrice
+      ? [
+          order === "desc"
+            ? sql`${facilities.priceMin} DESC NULLS LAST`
+            : sql`${facilities.priceMin} ASC NULLS LAST`,
+          asc(facilities.name),
+          asc(facilities.id),
+        ]
+      : [
+          direction(byDate ? facilities.createdAt : facilities.name),
+          asc(facilities.id),
+        ];
 
     const items = await db
       .select(selection)
       .from(facilities)
       .innerJoin(destinations, eq(facilities.destinationId, destinations.id))
       .where(where)
-      .orderBy(direction(byDate ? facilities.createdAt : facilities.name), asc(facilities.id))
+      .orderBy(...orderClauses)
       .limit(params.limit)
       .offset(params.offset);
 

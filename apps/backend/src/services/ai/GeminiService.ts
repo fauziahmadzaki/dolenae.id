@@ -66,9 +66,27 @@ ATURAN WAJIB:
 11. Buat 14–18 item checklist yang lengkap dan relevan: perlengkapan wajib, pakaian berlapis, alas kaki, kesehatan, administrasi, konservasi, dan biaya perjalanan. Sesuaikan dengan durasi, medan, aktivitas, dan kebutuhan transport/penginapan.
 12. Jangan mengisi estimatedCost hanya untuk menghabiskan budget. Total boleh jauh di bawah preference.budgetPerPerson. Perlengkapan pribadi tahan lama (jaket, sepatu, headlamp, daypack) memakai estimatedCost null dengan note "jika belum punya"; hanya tiket, transport, penginapan, makan, air minum, P3K, sewa tenda, dan item habis pakai yang diberi biaya.
 13. Kategori "biaya" untuk tiket/transport/penginapan/makan; kategori lain untuk perlengkapan, kesehatan, konservasi, dan administrasi.
-14. Jika preference.originProvince diisi dan berbeda dari provinsi destinasi, sertakan DUA item biaya: "Tiket pesawat antarprovinsi" dan "Tiket kapal laut antarprovinsi". Keduanya memakai "alternativeGroup": "transport-antarprovinsi"; hanya satu yang "selected": true (pilih pesawat jika budget cukup, kapal laut jika budget ketat). Jelaskan estimasi dan cek jadwal di "note". Jangan menambahkan keduanya tanpa group.`;
+14. Jika preference.originProvince diisi dan berbeda dari provinsi destinasi, sertakan DUA item biaya: "Tiket pesawat antarprovinsi" dan "Tiket kapal laut antarprovinsi". Keduanya memakai "alternativeGroup": "transport-antarprovinsi"; hanya satu yang "selected": true (pilih pesawat jika budget cukup, kapal laut jika budget ketat). Jelaskan estimasi dan cek jadwal di "note". Jangan menambahkan keduanya tanpa group.
+15. Jika preference.preferLowCost bernilai true atau preference.budgetPerPerson diisi, prioritaskan destinasi dengan total biaya fasilitas lokal termurah di "context" (lihat data "supports" beserta "estimatedCostPerPerson"/"costSummary") dan jelaskan rincian biayanya secara transparan di summary maupun catatan aktivitas.`;
 
   private static readonly API_BASE = "https://generativelanguage.googleapis.com/v1beta";
+  private static readonly FALLBACK_MODELS = [
+    "gemini-3.5-flash-lite",
+    "gemini-3.5-flash",
+    "gemini-3.6-flash",
+    "gemini-3.7-flash",
+    "gemini-3.8-flash",
+  ] as const;
+
+  private static readonly LEGACY_MODEL_RE = /^gemini-(?:1\.|2\.|3(?:\.[0-4]|-))/i;
+
+  private modelCandidates(primaryModel: string): string[] {
+    const cleaned = primaryModel.trim().replace(/^models\//i, "").trim();
+    if (!cleaned || GeminiService.LEGACY_MODEL_RE.test(cleaned)) {
+      return [...GeminiService.FALLBACK_MODELS];
+    }
+    return [...new Set([cleaned, ...GeminiService.FALLBACK_MODELS])];
+  }
 
   private extractText(body: GeminiResponse): string {
     return (
@@ -94,44 +112,55 @@ ATURAN WAJIB:
     );
 
     try {
-      const url =
-        `${GeminiService.API_BASE}/models/` +
-        `${encodeURIComponent(config.model)}:generateContent`;
-
-      const response = await fetch(url, {
-        method: "POST",
-        headers: {
-          "content-type": "application/json",
-          "x-goog-api-key": config.apiKey,
-        },
-        body: JSON.stringify({
-          systemInstruction: { parts: [{ text: GeminiService.SYSTEM_PROMPT }] },
-          contents: [
-            {
-              role: "user",
-              parts: [{ text: JSON.stringify({ preference, context }) }],
-            },
-          ],
-          generationConfig: {
-            temperature: 0.4,
-            responseMimeType: "application/json",
+      const requestBody = JSON.stringify({
+        systemInstruction: { parts: [{ text: GeminiService.SYSTEM_PROMPT }] },
+        contents: [
+          {
+            role: "user",
+            parts: [{ text: JSON.stringify({ preference, context }) }],
           },
-        }),
-        signal: controller.signal,
+        ],
+        generationConfig: {
+          temperature: 0.4,
+          responseMimeType: "application/json",
+        },
       });
 
-      if (!response.ok) return null;
+      for (const model of this.modelCandidates(config.model)) {
+        const url =
+          `${GeminiService.API_BASE}/models/` +
+          `${encodeURIComponent(model)}:generateContent`;
 
-      const body = (await response.json()) as GeminiResponse;
-      const text = this.extractText(body);
-      if (!text.trim()) return null;
+        const response = await fetch(url, {
+          method: "POST",
+          headers: {
+            "content-type": "application/json",
+            "x-goog-api-key": config.apiKey,
+          },
+          body: requestBody,
+          signal: controller.signal,
+        });
 
-      return aiPayloadValidator.validate(
-        JSON.parse(text),
-        context,
-        "gemini",
-        config.model,
-      );
+        if (!response.ok) {
+          if (response.status === 404 || response.status === 400) {
+            continue;
+          }
+          return null;
+        }
+
+        const body = (await response.json()) as GeminiResponse;
+        const text = this.extractText(body);
+        if (!text.trim()) return null;
+
+        return aiPayloadValidator.validate(
+          JSON.parse(text),
+          context,
+          "gemini",
+          model,
+        );
+      }
+
+      return null;
     } catch {
       return null;
     } finally {
@@ -148,17 +177,43 @@ ATURAN WAJIB:
       throw new ValidationError("Simpan API key Gemini terlebih dahulu");
     }
 
-    const response = await fetch(
-      `${GeminiService.API_BASE}/models?pageSize=100`,
-      {
-        headers: { "x-goog-api-key": config.apiKey },
-      },
-    );
+    try {
+      const response = await fetch(
+        `${GeminiService.API_BASE}/models?pageSize=100`,
+        {
+          headers: { "x-goog-api-key": config.apiKey },
+        },
+      );
 
-    if (!response.ok) {
-      const details = (await response.json().catch(() => null)) as {
-        error?: { message?: string };
-      } | null;
+      if (!response.ok) {
+        throw new AppError(
+          502,
+          "AI_MODELS_FAILED",
+          "Gagal mengambil daftar model Gemini. Periksa API key.",
+          {
+            expose: true,
+            details: {
+              reason: `HTTP ${response.status}`,
+            },
+          },
+        );
+      }
+
+      const body = (await response.json()) as GeminiModelList;
+
+      return (body.models ?? [])
+        .filter((model) =>
+          model.supportedGenerationMethods?.includes("generateContent"),
+        )
+        .map((model) => ({
+          id: (model.name ?? "").replace(/^models\//, ""),
+          displayName: model.displayName ?? model.name ?? "Model",
+          description: model.description ?? "",
+        }))
+        .filter((model) => model.id.length > 0)
+        .sort((a, b) => a.displayName.localeCompare(b.displayName));
+    } catch (error) {
+      if (error instanceof AppError) throw error;
       throw new AppError(
         502,
         "AI_MODELS_FAILED",
@@ -166,25 +221,11 @@ ATURAN WAJIB:
         {
           expose: true,
           details: {
-            reason: details?.error?.message ?? `HTTP ${response.status}`,
+            reason: "Permintaan ke layanan Gemini gagal",
           },
         },
       );
     }
-
-    const body = (await response.json()) as GeminiModelList;
-
-    return (body.models ?? [])
-      .filter((model) =>
-        model.supportedGenerationMethods?.includes("generateContent"),
-      )
-      .map((model) => ({
-        id: (model.name ?? "").replace(/^models\//, ""),
-        displayName: model.displayName ?? model.name ?? "Model",
-        description: model.description ?? "",
-      }))
-      .filter((model) => model.id.length > 0)
-      .sort((a, b) => a.displayName.localeCompare(b.displayName));
   }
 
   /** Simple prompt test used by the admin settings page. */
@@ -200,44 +241,54 @@ ATURAN WAJIB:
 
     const appConfig = AppConfig.load();
     const startedAt = Date.now();
+    let failureReason: string | null = null;
 
     try {
-      const response = await fetch(
-        `${GeminiService.API_BASE}/models/${encodeURIComponent(config.model)}:generateContent`,
-        {
-          method: "POST",
-          headers: {
-            "content-type": "application/json",
-            "x-goog-api-key": config.apiKey,
-          },
-          body: JSON.stringify({
-            contents: [{ role: "user", parts: [{ text: prompt }] }],
-            generationConfig: {
-              temperature: 0.2,
-              maxOutputTokens: 128,
-            },
-          }),
-          signal: AbortSignal.timeout(appConfig.aiTimeoutMs),
+      const requestBody = JSON.stringify({
+        contents: [{ role: "user", parts: [{ text: prompt }] }],
+        generationConfig: {
+          temperature: 0.2,
+          maxOutputTokens: 128,
         },
-      );
+      });
 
-      if (!response.ok) {
-        const payload = (await response.json().catch(() => null)) as {
-          error?: { message?: string };
-        } | null;
-        throw new Error(payload?.error?.message ?? `HTTP ${response.status}`);
+      for (const model of this.modelCandidates(config.model)) {
+        failureReason = null;
+        const response = await fetch(
+          `${GeminiService.API_BASE}/models/${encodeURIComponent(model)}:generateContent`,
+          {
+            method: "POST",
+            headers: {
+              "content-type": "application/json",
+              "x-goog-api-key": config.apiKey,
+            },
+            body: requestBody,
+            signal: AbortSignal.timeout(appConfig.aiTimeoutMs),
+          },
+        );
+
+        if (!response.ok) {
+          failureReason = `HTTP ${response.status}`;
+          if (response.status === 404 || response.status === 400) {
+            continue;
+          }
+          break;
+        }
+
+        const body = (await response.json()) as GeminiResponse;
+        const text = this.extractText(body).trim();
+        if (!text) {
+          failureReason = "Respons Gemini kosong";
+          break;
+        }
+
+        return {
+          text,
+          model,
+          latencyMs: Date.now() - startedAt,
+        };
       }
 
-      const body = (await response.json()) as GeminiResponse;
-      const text = this.extractText(body).trim();
-      if (!text) throw new Error("empty response");
-
-      return {
-        text,
-        model: config.model,
-        latencyMs: Date.now() - startedAt,
-      };
-    } catch (error) {
       throw new AppError(
         502,
         "AI_TEST_FAILED",
@@ -245,7 +296,20 @@ ATURAN WAJIB:
         {
           expose: true,
           details: {
-            reason: error instanceof Error ? error.message : String(error),
+            reason: failureReason ?? "Model Gemini tidak tersedia",
+          },
+        },
+      );
+    } catch (error) {
+      if (error instanceof AppError) throw error;
+      throw new AppError(
+        502,
+        "AI_TEST_FAILED",
+        "Koneksi ke Gemini gagal. Periksa API key dan model yang dipilih.",
+        {
+          expose: true,
+          details: {
+            reason: "Permintaan ke layanan Gemini gagal",
           },
         },
       );

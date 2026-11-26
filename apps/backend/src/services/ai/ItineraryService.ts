@@ -40,6 +40,13 @@ class ItineraryService {
     return `Rp ${value.toLocaleString("id-ID")}`;
   }
 
+  private formatDestinationList(names: string[]): string {
+    if (names.length === 0) return "";
+    if (names.length === 1) return names[0]!;
+    if (names.length === 2) return `${names[0]} dan ${names[1]}`;
+    return `${names.slice(0, -1).join(", ")}, dan ${names[names.length - 1]}`;
+  }
+
   private normalizeProvince(value?: string | null): string {
     return (value ?? "")
       .trim()
@@ -73,16 +80,31 @@ class ItineraryService {
     const supports = context.supports.filter(
       (support) => support.destinationId === destinationId,
     );
+    const isBudgetAware = Boolean(
+      preference.preferLowCost || preference.budgetPerPerson != null,
+    );
+    const pickCategory = (category: string): AiContextSupport | undefined => {
+      const candidates = supports.filter(
+        (support) => support.category === category,
+      );
+      if (!isBudgetAware || candidates.length <= 1) return candidates[0];
+      return [...candidates].sort((a, b) => {
+        const aPrice = a.priceMin ?? Number.POSITIVE_INFINITY;
+        const bPrice = b.priceMin ?? Number.POSITIVE_INFINITY;
+        return aPrice - bPrice || a.name.localeCompare(b.name);
+      })[0];
+    };
+
     const picked: AiContextSupport[] = [];
     if (preference.needsAccommodation) {
-      const stay = supports.find((support) => support.category === "accommodation");
+      const stay = pickCategory("accommodation");
       if (stay) picked.push(stay);
     }
     if (preference.needsTransport) {
-      const transport = supports.find((support) => support.category === "transport");
+      const transport = pickCategory("transport");
       if (transport) picked.push(transport);
     }
-    const food = supports.find((support) => support.category === "food");
+    const food = pickCategory("food");
     if (food) picked.push(food);
     return picked;
   }
@@ -130,12 +152,21 @@ class ItineraryService {
       });
     };
 
-    const supportPrice = (destinationId: string, category: string) =>
-      context.supports.find(
-        (support) =>
-          support.destinationId === destinationId &&
-          support.category === category,
-      )?.priceMin;
+    const isBudgetAware = Boolean(
+      preference.preferLowCost || preference.budgetPerPerson != null,
+    );
+    const supportPrice = (destinationId: string, category: string) => {
+      const candidates = context.supports
+        .filter(
+          (support) =>
+            support.destinationId === destinationId &&
+            support.category === category &&
+            support.priceMin != null,
+        )
+        .map((support) => support.priceMin as number);
+      if (candidates.length === 0) return undefined;
+      return isBudgetAware ? Math.min(...candidates) : candidates[0];
+    };
 
 
     if (preference.needsTransport) {
@@ -328,10 +359,17 @@ class ItineraryService {
     context: AiContext,
     preference: AiPreferenceInput,
   ): AiItineraryPayload {
-    const requestedDays = Math.min(Math.max(preference.durationDays ?? 2, 1), 7);
+    const effectivePreference: AiPreferenceInput = {
+      ...context.preference,
+      ...preference,
+    };
+    const requestedDays = Math.min(
+      Math.max(effectivePreference.durationDays ?? 2, 1),
+      7,
+    );
     // Explicit selections must all be scheduled. Without an explicit selection
     // keep the old behaviour: one destination per day.
-    const destinations = (preference.destinationIds?.length ?? 0) > 0
+    const destinations = (effectivePreference.destinationIds?.length ?? 0) > 0
       ? context.destinations
       : context.destinations.slice(0, requestedDays);
     const relaxedWarnings = context.relaxed.map(
@@ -386,7 +424,11 @@ class ItineraryService {
             : "Hari bebas",
         items: assigned.map((destination) => {
           const route = this.bestRoute(context, destination.id);
-          const supports = this.pickSupports(context, destination.id, preference);
+          const supports = this.pickSupports(
+            context,
+            destination.id,
+            effectivePreference,
+          );
           const cost = this.estimateCost(destination, supports);
           const routeNote = route
             ? `${route.name}: ${route.totalDistanceKm} km, +${route.totalGainMeters} m, ±${route.estimatedDurationMinutes} menit.`
@@ -443,7 +485,11 @@ class ItineraryService {
         warnings.push(`${destination.name} mewajibkan pemandu lokal.`);
       }
 
-      for (const support of this.pickSupports(context, destination.id, preference)) {
+      for (const support of this.pickSupports(
+        context,
+        destination.id,
+        effectivePreference,
+      )) {
         if (usedSupports.has(support.id)) continue;
         usedSupports.add(support.id);
         sources.push({ type: "support", id: support.id, label: support.name });
@@ -471,7 +517,7 @@ class ItineraryService {
 
     const checklistItems = this.buildChecklist(
       context,
-      preference,
+      effectivePreference,
       destinations,
       requestedDays,
     );
@@ -484,16 +530,76 @@ class ItineraryService {
     const titleLocation =
       titleProvinces.size === 1 ? Array.from(titleProvinces)[0] ?? null : null;
     const isAlternative = !context.queryMatched;
-    const baseTitle = titleLocation
-      ? `Rencana ${requestedDays} hari di ${titleLocation}`
-      : `Rencana ${requestedDays} hari`;
+    const isLowCost = Boolean(effectivePreference.preferLowCost);
+    const destNames = this.formatDestinationList(
+      destinations.slice(0, 3).map((d) => d.name),
+    );
+    const effectiveContext: AiContext = {
+      ...context,
+      preference: effectivePreference,
+    };
+    const destinationCosts = destinations
+      .map((destination) =>
+        this.resolveDestinationBudgetCost(
+          effectiveContext,
+          destination,
+          this.cheapestSupportsForDestination(effectiveContext, destination.id),
+        ),
+      )
+      .filter((cost): cost is number => cost != null && cost > 0);
+    const lowestCost =
+      destinationCosts.length > 0 ? Math.min(...destinationCosts) : null;
+    const focusLabels = [
+      ...new Set(
+        [
+          ...(effectivePreference.terrains ?? []),
+          ...(effectivePreference.activities ?? []),
+          ...(titleLocation
+            ? [titleLocation]
+            : (effectivePreference.regions ?? [])),
+          ...(effectivePreference.difficulty
+            ? [
+                ItineraryService.DIFFICULTY_LABEL[
+                  effectivePreference.difficulty
+                ] ?? effectivePreference.difficulty,
+              ]
+            : []),
+        ]
+          .map((label) => label.trim())
+          .filter(Boolean),
+      ),
+    ];
+    const titleScope =
+      destinations.length === 1
+        ? `ke ${destinations[0]!.name}`
+        : titleLocation
+          ? `di ${titleLocation}`
+          : focusLabels.length > 0
+            ? `(${focusLabels.slice(0, 2).join(" · ")})`
+            : `: ${destNames}`;
+    const joinScope = (prefix: string) =>
+      titleScope.startsWith(":")
+        ? `${prefix}${titleScope}`
+        : `${prefix} ${titleScope}`;
+    const baseTitle = isAlternative
+      ? joinScope(`Rencana ${requestedDays} hari`)
+      : isLowCost
+        ? joinScope(`Rencana hemat biaya ${requestedDays} hari`)
+        : effectivePreference.budgetPerPerson != null
+          ? `${joinScope(`Rencana ${requestedDays} hari`)} (Budget ${this.formatRupiah(effectivePreference.budgetPerPerson)})`
+          : joinScope(`Rencana ${requestedDays} hari`);
+    const summary = isAlternative
+      ? `Belum ada destinasi yang cocok dengan pencarianmu. Itinerary ${requestedDays} hari ini memakai ${destinations.length} destinasi alternatif.`
+      : isLowCost
+        ? `Itinerary hemat biaya ${requestedDays} hari disusun dari ${destinations.length} destinasi (${destNames}) dengan estimasi fasilitas lokal yang paling terjangkau${lowestCost != null ? ` mulai ${this.formatRupiah(lowestCost)}/orang` : ""}.`
+        : effectivePreference.budgetPerPerson != null
+          ? `Itinerary ${requestedDays} hari untuk budget hingga ${this.formatRupiah(effectivePreference.budgetPerPerson)}/orang mencakup ${destNames} (${destinations.length} destinasi)${lowestCost != null ? ` dengan estimasi fasilitas lokal mulai ${this.formatRupiah(lowestCost)}/orang` : ""}.`
+          : `Itinerary ${requestedDays} hari${focusLabels.length > 0 ? ` (${focusLabels.slice(0, 3).join(" · ")})` : ""} disusun dari ${destinations.length} destinasi yang cocok dengan preferensimu: ${destNames}${lowestCost != null ? ` (estimasi fasilitas lokal mulai ${this.formatRupiah(lowestCost)}/orang)` : ""}.`;
 
     return {
       itinerary: {
         title: isAlternative ? `Alternatif: ${baseTitle}` : baseTitle,
-        summary: isAlternative
-          ? `Belum ada destinasi yang cocok dengan pencarianmu. Itinerary ${requestedDays} hari ini memakai ${destinations.length} destinasi alternatif.`
-          : `Itinerary ${requestedDays} hari disusun dari ${destinations.length} destinasi yang cocok dengan preferensimu.`,
+        summary,
         days,
       },
       briefing: {
@@ -506,6 +612,115 @@ class ItineraryService {
       sources,
       engine: "deterministic",
     };
+  }
+
+  private includeAccommodationInBudget(
+    preference: AiPreferenceInput,
+  ): boolean {
+    return Boolean(
+      preference.needsAccommodation ||
+        (preference.budgetPerPerson == null && preference.preferLowCost),
+    );
+  }
+
+  private cheapestSupportsForDestination(
+    context: AiContext,
+    destinationId: string,
+  ): {
+    allSupports: AiContextSupport[];
+    cheapestPerCategory: AiContextSupport[];
+    categoryTotal: number | null;
+  } {
+    const allSupports = [...context.supports]
+      .filter((support) => support.destinationId === destinationId)
+      .sort(
+        (a, b) =>
+          (a.priceMin ?? Number.POSITIVE_INFINITY) -
+            (b.priceMin ?? Number.POSITIVE_INFINITY) ||
+          a.name.localeCompare(b.name) ||
+          a.id.localeCompare(b.id),
+      );
+    const includeAccommodation = this.includeAccommodationInBudget(
+      context.preference,
+    );
+    const eligibleSupports = includeAccommodation
+      ? allSupports
+      : allSupports.filter((support) => support.category !== "accommodation");
+    const cheapestPerCategory: AiContextSupport[] = [];
+    const seenCategories = new Set<string>();
+    for (const support of eligibleSupports) {
+      if (support.priceMin == null || seenCategories.has(support.category)) {
+        continue;
+      }
+      seenCategories.add(support.category);
+      cheapestPerCategory.push(support);
+    }
+    const categoryTotal =
+      cheapestPerCategory.length > 0
+        ? cheapestPerCategory.reduce(
+            (sum, support) => sum + (support.priceMin ?? 0),
+            0,
+          )
+        : null;
+    return {
+      allSupports: eligibleSupports,
+      cheapestPerCategory,
+      categoryTotal,
+    };
+  }
+
+  private resolveDestinationBudgetCost(
+    context: AiContext,
+    destination: AiContextDestination,
+    info: {
+      cheapestPerCategory: AiContextSupport[];
+      categoryTotal: number | null;
+    },
+  ): number | null {
+    if (
+      !this.includeAccommodationInBudget(context.preference) &&
+      info.cheapestPerCategory.length === 0 &&
+      context.supports.some(
+        (support) => support.destinationId === destination.id,
+      )
+    ) {
+      return null;
+    }
+    return destination.estimatedCostPerPerson ?? info.categoryTotal;
+  }
+
+  private isExplicitDestination(
+    destination: AiContextDestination,
+    preference: AiPreferenceInput,
+  ): boolean {
+    if (typeof destination.isExplicit === "boolean") {
+      return destination.isExplicit;
+    }
+    const normalizedText = [preference.rawText ?? "", preference.note ?? ""]
+      .join(" ")
+      .trim()
+      .toLowerCase();
+    if (!normalizedText) return false;
+    const escapeRegex = (value: string) =>
+      value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const fullName = destination.name.trim().toLowerCase();
+    if (
+      fullName.length >= 4 &&
+      new RegExp(`\\b${escapeRegex(fullName)}\\b`, "i").test(normalizedText)
+    ) {
+      return true;
+    }
+    const shortName = fullName
+      .replace(
+        /^(?:gunung|bukit|danau|air\s+terjun|pantai|pulau|goa|gua|kawah|ranu|taman\s+nasional)\s+/i,
+        "",
+      )
+      .trim();
+    return (
+      shortName.length >= 4 &&
+      shortName !== fullName &&
+      new RegExp(`\\b${escapeRegex(shortName)}\\b`, "i").test(normalizedText)
+    );
   }
 
   /**
@@ -528,23 +743,103 @@ class ItineraryService {
     const byId = new Map(
       context.destinations.map((destination) => [destination.id, destination]),
     );
-    const selected = orderedIds
+    const isBudgetPreference = Boolean(
+      context.preference.preferLowCost ||
+        context.preference.budgetPerPerson != null,
+    );
+    const sortDeterministicallyByCost =
+      isBudgetPreference &&
+      (context.preference.destinationIds?.length ?? 0) === 0;
+
+    const candidates = orderedIds
       .map((id) => byId.get(id))
       .filter((destination): destination is AiContextDestination =>
         Boolean(destination),
-      )
-      .slice(0, 3);
+      );
+
+    const orderedCandidates = sortDeterministicallyByCost
+      ? [...candidates].sort((a, b) => {
+          const aExplicit = this.isExplicitDestination(a, context.preference);
+          const bExplicit = this.isExplicitDestination(b, context.preference);
+          if (aExplicit !== bExplicit) {
+            return Number(bExplicit) - Number(aExplicit);
+          }
+          const aInfo = this.cheapestSupportsForDestination(context, a.id);
+          const bInfo = this.cheapestSupportsForDestination(context, b.id);
+          const aCost = this.resolveDestinationBudgetCost(context, a, aInfo);
+          const bCost = this.resolveDestinationBudgetCost(context, b, bInfo);
+          const aHasPrice = aCost != null;
+          const bHasPrice = bCost != null;
+          if (aHasPrice !== bHasPrice) {
+            return Number(bHasPrice) - Number(aHasPrice);
+          }
+          return (
+            (aCost ?? Number.POSITIVE_INFINITY) -
+              (bCost ?? Number.POSITIVE_INFINITY) ||
+            a.name.localeCompare(b.name) ||
+            a.id.localeCompare(b.id)
+          );
+        })
+      : candidates;
+
+    const selected = orderedCandidates.slice(0, 3);
     const scoreStart = context.queryMatched ? 95 : 80;
 
     return selected.map((destination, index) => {
       const route = this.bestRoute(context, destination.id);
-      const supports = this.pickSupports(context, destination.id, context.preference);
+      const pickedSupports = this.pickSupports(
+        context,
+        destination.id,
+        context.preference,
+      );
+      const { allSupports, cheapestPerCategory, categoryTotal } =
+        this.cheapestSupportsForDestination(context, destination.id);
       const reasons: string[] = [];
 
-      if (!context.queryMatched && context.unmatchedTerms.length > 0 && index === 0) {
+      if (
+        !context.queryMatched &&
+        context.unmatchedTerms.length > 0 &&
+        index === 0
+      ) {
         reasons.push(
           `Alternatif karena "${context.unmatchedTerms.join(", ")}" belum ada di data Dolenae.`,
         );
+      }
+
+      if (isBudgetPreference) {
+        const totalCost = this.resolveDestinationBudgetCost(
+          context,
+          destination,
+          {
+            cheapestPerCategory,
+            categoryTotal,
+          },
+        );
+        if (cheapestPerCategory.length > 0 && categoryTotal != null) {
+          const breakdown = cheapestPerCategory
+            .map(
+              (support) =>
+                `${support.name} ${support.priceLabel ?? this.formatRupiah(support.priceMin!)}`,
+            )
+            .join(" + ");
+          const summaryPart =
+            totalCost != null && totalCost !== categoryTotal
+              ? `subtotal fasilitas ${this.formatRupiah(categoryTotal)}; estimasi total mulai ${this.formatRupiah(totalCost)}`
+              : `total mulai ${this.formatRupiah(totalCost ?? categoryTotal)}`;
+          reasons.push(`Estimasi hemat: ${breakdown} (${summaryPart}).`);
+        } else if (totalCost != null) {
+          const fallbackSupport = pickedSupports[0] ?? allSupports[0];
+          reasons.push(
+            fallbackSupport
+              ? `Estimasi total mulai ${this.formatRupiah(totalCost)} (${fallbackSupport.name}).`
+              : `Estimasi total mulai ${this.formatRupiah(totalCost)}.`,
+          );
+        } else if (allSupports.length > 0) {
+          const fallbackSupport = pickedSupports[0] ?? allSupports[0]!;
+          reasons.push(
+            `${fallbackSupport.name}${fallbackSupport.priceLabel ? ` (${fallbackSupport.priceLabel})` : ""}.`,
+          );
+        }
       }
 
       if (route) {
@@ -553,25 +848,58 @@ class ItineraryService {
         );
       }
 
-      const support = supports[0];
-      if (support) {
-        reasons.push(
-          `${support.name}${support.priceLabel ? ` (${support.priceLabel})` : ""}.`,
-        );
-      } else if (destination.categories.length > 0) {
+      if (!isBudgetPreference) {
+        const support = pickedSupports[0];
+        if (support) {
+          reasons.push(
+            `${support.name}${support.priceLabel ? ` (${support.priceLabel})` : ""}.`,
+          );
+        } else if (destination.categories.length > 0) {
+          reasons.push(
+            `Cocok untuk ${destination.categories.slice(0, 3).join(", ")}.`,
+          );
+        }
+      } else if (destination.categories.length > 0 && reasons.length < 3) {
         reasons.push(
           `Cocok untuk ${destination.categories.slice(0, 3).join(", ")}.`,
         );
       }
 
+      if (reasons.length < 2 && destination.categories.length > 0) {
+        const categoryReason = `Cocok untuk ${destination.categories.slice(0, 3).join(", ")}.`;
+        if (!reasons.includes(categoryReason)) {
+          reasons.push(categoryReason);
+        }
+      }
+
       if (reasons.length < 2) {
-        reasons.push(
-          `${destination.province ?? "Indonesia"}${
-            destination.regency ? `, ${destination.regency}` : ""
-          } · ${destination.elevationMeters ?? "elevasi belum tersedia"} mdpl · kesulitan ${
-            ItineraryService.DIFFICULTY_LABEL[destination.difficulty] ?? destination.difficulty
-          }.`,
-        );
+        const locationLabel = [
+          destination.province ?? "",
+          destination.regency ?? "",
+        ]
+          .filter(Boolean)
+          .join(", ");
+        const factParts: string[] = [];
+        if (locationLabel) factParts.push(locationLabel);
+        if (destination.elevationMeters != null) {
+          factParts.push(`${destination.elevationMeters} mdpl`);
+        }
+        if (destination.bestSeason.length > 0) {
+          factParts.push(`musim terbaik ${destination.bestSeason[0]}`);
+        }
+        const hasOtherFacts =
+          destination.categories.length > 0 || factParts.length > 0;
+        if (context.preference.difficulty != null || !hasOtherFacts) {
+          factParts.push(
+            `kesulitan ${
+              ItineraryService.DIFFICULTY_LABEL[destination.difficulty] ??
+              destination.difficulty
+            }`,
+          );
+        }
+        if (factParts.length > 0) {
+          reasons.push(`${factParts.join(" · ")}.`);
+        }
       }
 
       return {
