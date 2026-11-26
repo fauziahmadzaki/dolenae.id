@@ -13,6 +13,7 @@ import {
   Plus,
   Rows3,
 } from "lucide-react";
+import { ActiveSearchChip } from "~/components/ui/active-search-chip";
 import { Button } from "~/components/ui/button";
 import {
   DataTable,
@@ -22,6 +23,7 @@ import {
   type DataTableFilter,
   type SortOption,
 } from "~/components/ui/data-table";
+import { useRegisterShellSearch } from "~/features/admin/components/shell-search-context";
 import { ApiError } from "~/lib/api/types";
 import { useAuth } from "~/features/auth/hooks/use-auth";
 import { useDashboardStats } from "~/features/dashboard/hooks/use-dashboard-stats";
@@ -77,6 +79,7 @@ export default function DestinationsPage() {
   const [tab, setTab] = useState<Tab>("destinasi");
   const [view, setView] = useState<View>("table");
   const [categoryView, setCategoryView] = useState<View>("table");
+  const [categorySearch, setCategorySearch] = useState("");
   const [difficulty, setDifficulty] = useState("");
   const [status, setStatus] = useState("");
   const [categoryId, setCategoryId] = useState("");
@@ -86,6 +89,24 @@ export default function DestinationsPage() {
 
   const enabled =
     auth.hydrated && !!auth.token && auth.user?.role === "admin";
+
+  useRegisterShellSearch(
+    tab === "destinasi"
+      ? {
+          scopeKey: "admin-destinasi",
+          value: table.search,
+          onChange: table.setSearch,
+          placeholder: "Cari destinasi…",
+          enabled,
+        }
+      : {
+          scopeKey: "admin-kategori",
+          value: categorySearch,
+          onChange: setCategorySearch,
+          placeholder: "Cari kategori…",
+          enabled,
+        },
+  );
 
   const categories = useCategories(enabled);
   const stats = useDashboardStats(6, auth.token, enabled);
@@ -261,6 +282,7 @@ export default function DestinationsPage() {
     search: table.search,
     onSearchChange: table.setSearch,
     searchPlaceholder: "Cari destinasi",
+    hideSearch: true,
     sort: table.sort,
     onSortChange: table.setSort,
     sortOptions: SORT_OPTIONS,
@@ -445,6 +467,8 @@ export default function DestinationsPage() {
             <CategoriesTable
               categories={categoryList}
               counts={categoryCounts}
+              search={categorySearch}
+              onSearchChange={setCategorySearch}
               isLoading={categories.isPending}
               onCreate={() => setCategoryMode({ kind: "create" })}
               onEdit={(category) => setCategoryMode({ kind: "edit", category })}
@@ -456,16 +480,40 @@ export default function DestinationsPage() {
             <p role="status" className="text-sm text-body">
               Memuat kategori…
             </p>
-          ) : (
-            <CategoriesGrid
-              categories={categoryList}
-              onCreate={() => setCategoryMode({ kind: "create" })}
-              onEdit={(category) => setCategoryMode({ kind: "edit", category })}
-              onDelete={(category) =>
-                setCategoryMode({ kind: "delete", category })
-              }
-            />
-          )}
+          ) : (() => {
+            const q = categorySearch.trim().toLowerCase();
+            const filteredCategories = q
+              ? categoryList.filter(
+                  (category) =>
+                    category.name.toLowerCase().includes(q) ||
+                    category.slug.toLowerCase().includes(q),
+                )
+              : categoryList;
+            return (
+              <>
+                {q && (
+                  <div className="flex flex-wrap items-center justify-between gap-2.5">
+                    <ActiveSearchChip
+                      query={categorySearch}
+                      onClear={() => setCategorySearch("")}
+                    />
+                    <span className="text-xs font-medium text-body" aria-live="polite">
+                      {filteredCategories.length} kategori
+                    </span>
+                  </div>
+                )}
+                <CategoriesGrid
+                  categories={filteredCategories}
+                  hasSearch={Boolean(q)}
+                  onCreate={() => setCategoryMode({ kind: "create" })}
+                  onEdit={(category) => setCategoryMode({ kind: "edit", category })}
+                  onDelete={(category) =>
+                    setCategoryMode({ kind: "delete", category })
+                  }
+                />
+              </>
+            );
+          })()}
         </section>
       ) : view === "table" ? (
         <section aria-label="Daftar destinasi">

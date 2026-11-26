@@ -1,11 +1,15 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Plus, Search } from "lucide-react";
+import { Plus } from "lucide-react";
+import { ActiveSearchChip } from "~/components/ui/active-search-chip";
 import { Button } from "~/components/ui/button";
-import { Input } from "~/components/ui/input";
 import { useToast } from "~/components/ui/toaster";
+import {
+  useRegisterShellSearch,
+  useUrlSearchSync,
+} from "~/features/admin/components/shell-search-context";
 import { useAuth } from "~/features/auth/hooks/use-auth";
 import { FacilitiesTable } from "./components/facilities-table";
 import { useFacilityMutation, useMyFacilities } from "./hooks/use-facilities";
@@ -34,6 +38,24 @@ export function MerchantFacilitiesPage() {
   const [search, setSearch] = useState("");
 
   const enabled = auth.hydrated && !!auth.token && auth.user?.role === "merchant";
+  const { clearUrlSearch } = useUrlSearchSync(
+    useCallback((next: string) => setSearch(next), []),
+    enabled,
+  );
+  const handleSearchChange = useCallback(
+    (next: string) => {
+      setSearch(next);
+      if (!next.trim()) clearUrlSearch();
+    },
+    [clearUrlSearch],
+  );
+  useRegisterShellSearch({
+    scopeKey: "merchant-fasilitas",
+    value: search,
+    onChange: handleSearchChange,
+    placeholder: "Cari fasilitas…",
+    enabled,
+  });
   const list = useMyFacilities({ limit: 100 }, auth.token, enabled);
   const facilities = list.data?.data ?? [];
 
@@ -100,15 +122,15 @@ export function MerchantFacilitiesPage() {
             </button>
           ))}
         </div>
-        <label className="relative flex h-10 w-full max-w-xs items-center gap-2 rounded-lg bg-surface-2 px-3">
-          <Search className="h-4 w-4 text-body" />
-          <Input
-            value={search}
-            onChange={(event) => setSearch(event.target.value)}
-            placeholder="Cari fasilitas…"
-            className="h-8 border-0 bg-transparent px-0 focus-visible:border-0"
+        <div className="flex flex-wrap items-center gap-2.5">
+          <ActiveSearchChip
+            query={search}
+            onClear={() => handleSearchChange("")}
           />
-        </label>
+          <span className="text-xs text-body" aria-live="polite">
+            {filtered.length} fasilitas
+          </span>
+        </div>
       </div>
 
       <FacilitiesTable

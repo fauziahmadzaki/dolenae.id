@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Loader2, X } from "lucide-react";
 import { useAuth } from "~/features/auth/hooks/use-auth";
 import type { UserRole } from "~/features/auth/types";
+import { ShellSearchProvider } from "./shell-search-context";
 import {
   ADMIN_NAV_MAIN,
   ADMIN_NAV_SYSTEM,
@@ -74,7 +75,8 @@ export function AdminShell({
   }
 
   return (
-    <div className="flex h-[100dvh] overflow-hidden bg-canvas">
+    <ShellSearchProvider>
+      <div className="flex h-[100dvh] overflow-hidden bg-canvas">
       {/* Desktop sidebar */}
       <div className="hidden shrink-0 lg:block">
         <Sidebar
@@ -121,5 +123,6 @@ export function AdminShell({
         <main className="flex-1 overflow-y-auto p-6 md:p-8">{children}</main>
       </div>
     </div>
+    </ShellSearchProvider>
   );
 }

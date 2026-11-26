@@ -69,7 +69,7 @@ export function MerchantShell({ children }: { children: ReactNode }) {
       mainNav={MERCHANT_NAV}
       systemNav={MERCHANT_SYSTEM}
       meta={MERCHANT_META}
-      searchPlaceholder="Cari fasilitas, produk"
+      searchPlaceholder="Cari fasilitas atau produk…"
     >
       {children}
     </AdminShell>

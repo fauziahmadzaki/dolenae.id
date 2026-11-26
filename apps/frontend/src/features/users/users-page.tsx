@@ -13,6 +13,7 @@ import {
   type SortOption,
 } from "~/components/ui/data-table";
 import { useToast } from "~/components/ui/toaster";
+import { useRegisterShellSearch } from "~/features/admin/components/shell-search-context";
 import { ApiError } from "~/lib/api/types";
 import { exportCsv } from "~/lib/export-csv";
 import { useAuth } from "~/features/auth/hooks/use-auth";
@@ -53,6 +54,14 @@ export default function UsersPage({ merchantOnly = false }: { merchantOnly?: boo
 
   const enabled =
     auth.hydrated && !!auth.token && auth.user?.role === "admin";
+
+  useRegisterShellSearch({
+    scopeKey: merchantOnly ? "admin-merchant" : "admin-users",
+    value: table.search,
+    onChange: table.setSearch,
+    placeholder: merchantOnly ? "Cari merchant…" : "Cari pengguna…",
+    enabled,
+  });
 
   const list = useUsers(
     { ...table.query, role: merchantOnly ? "merchant" : role, status },
@@ -287,6 +296,7 @@ export default function UsersPage({ merchantOnly = false }: { merchantOnly?: boo
         onSearchChange={table.setSearch}
         sortOptions={SORT_OPTIONS}
         searchPlaceholder={`Cari ${itemLabel}`}
+        hideSearch
         itemLabel={itemLabel}
         isLoading={list.isPending}
         isFetching={list.isFetching}

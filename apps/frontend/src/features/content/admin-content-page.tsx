@@ -9,7 +9,8 @@ import {
   Plus,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { ActiveSearchChip } from "~/components/ui/active-search-chip";
 import { Button } from "~/components/ui/button";
 import {
   Dialog,
@@ -18,9 +19,12 @@ import {
   DialogHeader,
   DialogTitle,
 } from "~/components/ui/dialog";
-import { Input } from "~/components/ui/input";
 import { Select } from "~/components/ui/select";
 import { useToast } from "~/components/ui/toaster";
+import {
+  useRegisterShellSearch,
+  useUrlSearchSync,
+} from "~/features/admin/components/shell-search-context";
 import { useAuth } from "~/features/auth/hooks/use-auth";
 import { uploadsApi } from "~/features/media/api";
 import { cn } from "~/lib/cn";
@@ -100,12 +104,43 @@ export function AdminContentPage() {
 
   const [tab, setTab] = useState<ContentTab>("artikel");
   const [search, setSearch] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
   const [kindFilter, setKindFilter] = useState<"all" | ContentKind>("all");
   const [statusFilter, setStatusFilter] = useState<"all" | ContentStatus>("all");
   const [sortValue, setSortValue] = useState("updatedAt:desc");
   const [gallerySort, setGallerySort] = useState("createdAt:desc");
   const [regionFilter, setRegionFilter] = useState("all");
   const [page, setPage] = useState(1);
+
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedSearch(search.trim()), 300);
+    return () => clearTimeout(timer);
+  }, [search]);
+
+  const { clearUrlSearch } = useUrlSearchSync(
+    useCallback((next: string) => {
+      setSearch(next);
+      setDebouncedSearch(next);
+      setPage(1);
+    }, []),
+    auth.isAuthenticated,
+  );
+  const handleSearchChange = useCallback(
+    (next: string) => {
+      setSearch(next);
+      setPage(1);
+      if (!next.trim()) clearUrlSearch();
+    },
+    [clearUrlSearch],
+  );
+  const isArtikel = tab === "artikel";
+  useRegisterShellSearch({
+    scopeKey: isArtikel ? "admin-konten-artikel" : "admin-konten-galeri",
+    value: search,
+    onChange: handleSearchChange,
+    placeholder: isArtikel ? "Cari judul konten…" : "Cari nama berkas…",
+    enabled: auth.isAuthenticated,
+  });
 
   const [sortOpen, setSortOpen] = useState(false);
   const [filterOpen, setFilterOpen] = useState(false);
@@ -125,7 +160,7 @@ export function AdminContentPage() {
     {
       page,
       limit: PAGE_SIZE,
-      search,
+      search: debouncedSearch,
       sort: sortField,
       order: sortOrder,
       kind: kindFilter === "all" ? undefined : kindFilter,
@@ -139,7 +174,7 @@ export function AdminContentPage() {
     {
       page,
       limit: PAGE_SIZE * 2,
-      search,
+      search: debouncedSearch,
       sort: gallerySort.split(":")[0],
       order: gallerySort.split(":")[1] === "asc" ? "asc" : "desc",
       region: regionFilter === "all" ? undefined : regionFilter,
@@ -183,7 +218,6 @@ export function AdminContentPage() {
     | { total?: number; totalPages?: number }
     | undefined;
 
-  const isArtikel = tab === "artikel";
   const activeCount = isArtikel ? contents.length : photos.length;
   const activeTotal = (isArtikel ? contentMeta?.total : galleryMeta?.total) ?? 0;
   const totalPages = (isArtikel ? contentMeta?.totalPages : galleryMeta?.totalPages) ?? 1;
@@ -202,9 +236,10 @@ export function AdminContentPage() {
   };
 
   const changeTab = (next: ContentTab) => {
+    if (next === tab) return;
     setTab(next);
-    setPage(1);
-    setSearch("");
+    setDebouncedSearch("");
+    handleSearchChange("");
   };
 
   /** Sort applies to the active tab and always restarts at page 1. */
@@ -425,21 +460,12 @@ export function AdminContentPage() {
         </div>
       </div>
 
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <label className="relative flex h-10 w-full items-center gap-2 rounded-full border border-hairline bg-surface px-3.5 sm:w-72">
-          <Input
-            value={search}
-            onChange={(event) => {
-              setSearch(event.target.value);
-              setPage(1);
-            }}
-            placeholder={
-              isArtikel ? "Cari judul konten…" : "Cari nama berkas…"
-            }
-            className="h-8 border-0 bg-transparent px-0 focus-visible:border-0"
-          />
-        </label>
-        <p className="text-xs text-body">
+      <div className="flex flex-wrap items-center justify-between gap-2.5">
+        <ActiveSearchChip
+          query={search}
+          onClear={() => handleSearchChange("")}
+        />
+        <p className="ml-auto text-xs text-body" aria-live="polite">
           Menampilkan {activeCount} dari {activeTotal}{" "}
           {isArtikel ? "konten" : "foto"}
         </p>

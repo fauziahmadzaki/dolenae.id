@@ -5,6 +5,7 @@ import { CategoryIcon } from "../category-icon";
 
 interface CategoriesGridProps {
   categories: Category[];
+  hasSearch?: boolean;
   onCreate: () => void;
   onEdit: (category: Category) => void;
   onDelete: (category: Category) => void;
@@ -12,11 +13,22 @@ interface CategoriesGridProps {
 
 export function CategoriesGrid({
   categories,
+  hasSearch = false,
   onCreate,
   onEdit,
   onDelete,
 }: CategoriesGridProps) {
   if (categories.length === 0) {
+    if (hasSearch) {
+      return (
+        <div className="rounded-lg border border-dashed border-hairline bg-surface p-10 text-center">
+          <p className="text-sm text-body">
+            Tidak ada kategori yang cocok dengan pencarian.
+          </p>
+        </div>
+      );
+    }
+
     return (
       <div className="rounded-lg border border-dashed border-hairline bg-surface p-10 text-center">
         <h3 className="font-display font-semibold text-ink">

@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Pencil, Plus, Trash2 } from "lucide-react";
 import { Button } from "~/components/ui/button";
 import {
@@ -25,6 +25,8 @@ const SORT_OPTIONS: SortOption[] = [
 interface CategoriesTableProps {
   categories: Category[];
   counts: Map<string, number>;
+  search: string;
+  onSearchChange: (value: string) => void;
   isLoading: boolean;
   onCreate: () => void;
   onEdit: (category: Category) => void;
@@ -35,16 +37,21 @@ interface CategoriesTableProps {
 export function CategoriesTable({
   categories,
   counts,
+  search,
+  onSearchChange,
   isLoading,
   onCreate,
   onEdit,
   onDelete,
 }: CategoriesTableProps) {
-  const [search, setSearch] = useState("");
   const [typeFilter, setTypeFilter] = useState("");
   const [sort, setSort] = useState<SortState>({ sort: "name", order: "asc" });
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState<number>(DEFAULT_PAGE_SIZE);
+
+  useEffect(() => {
+    setPage(1);
+  }, [search]);
 
   const filtered = useMemo(() => {
     const query = search.trim().toLowerCase();
@@ -69,10 +76,19 @@ export function CategoriesTable({
     });
   }, [categories, counts, search, typeFilter, sort]);
 
+  const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
+  const effectivePage = Math.min(Math.max(1, page), totalPages);
+
+  useEffect(() => {
+    if (page !== effectivePage) {
+      setPage(effectivePage);
+    }
+  }, [page, effectivePage]);
+
   const pageRows = useMemo(() => {
-    const start = (page - 1) * pageSize;
+    const start = (effectivePage - 1) * pageSize;
     return filtered.slice(start, start + pageSize);
-  }, [filtered, page, pageSize]);
+  }, [filtered, effectivePage, pageSize]);
 
   const filters: DataTableFilter[] = [
     {
@@ -163,12 +179,12 @@ export function CategoriesTable({
       data={pageRows}
       columns={columns}
       getRowId={(category) => category.id}
-      page={page}
+      page={effectivePage}
       pageSize={pageSize}
       total={filtered.length}
       sort={sort}
       search={search}
-      onPageChange={setPage}
+      onPageChange={(next) => setPage(Math.min(Math.max(1, next), totalPages))}
       onPageSizeChange={(size) => {
         setPageSize(size);
         setPage(1);
@@ -178,12 +194,13 @@ export function CategoriesTable({
         setPage(1);
       }}
       onSearchChange={(value) => {
-        setSearch(value);
+        onSearchChange(value);
         setPage(1);
       }}
       sortOptions={SORT_OPTIONS}
       filters={filters}
       searchPlaceholder="Cari kategori"
+      hideSearch
       itemLabel="kategori"
       isLoading={isLoading}
       minWidthClassName="min-w-[720px]"

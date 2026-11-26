@@ -1,12 +1,16 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Loader2, Package, Pencil, Plus, Search, Trash2 } from "lucide-react";
+import { Loader2, Package, Pencil, Plus, Trash2 } from "lucide-react";
+import { ActiveSearchChip } from "~/components/ui/active-search-chip";
 import { Button } from "~/components/ui/button";
-import { Input } from "~/components/ui/input";
 import { Select } from "~/components/ui/select";
 import { useToast } from "~/components/ui/toaster";
+import {
+  useRegisterShellSearch,
+  useUrlSearchSync,
+} from "~/features/admin/components/shell-search-context";
 import { useAuth } from "~/features/auth/hooks/use-auth";
 import { ProductFormDialog } from "./components/product-form-dialog";
 import {
@@ -30,6 +34,24 @@ export function MerchantProductsPage() {
   >(null);
 
   const enabled = auth.hydrated && !!auth.token && auth.user?.role === "merchant";
+  const { clearUrlSearch } = useUrlSearchSync(
+    useCallback((next: string) => setSearch(next), []),
+    enabled,
+  );
+  const handleSearchChange = useCallback(
+    (next: string) => {
+      setSearch(next);
+      if (!next.trim()) clearUrlSearch();
+    },
+    [clearUrlSearch],
+  );
+  useRegisterShellSearch({
+    scopeKey: "merchant-produk",
+    value: search,
+    onChange: handleSearchChange,
+    placeholder: "Cari produk…",
+    enabled,
+  });
   const facilities = useMyFacilities({ limit: 100 }, auth.token, enabled);
   const products = useMyProducts({ limit: 100 }, auth.token, enabled);
 
@@ -88,24 +110,24 @@ export function MerchantProductsPage() {
         </Button>
       </div>
 
-      <div className="flex flex-wrap items-center gap-3">
-        <div className="w-full max-w-xs">
-          <Select
-            options={[{ value: "", label: "Semua fasilitas" }, ...facilityOptions]}
-            value={facilityFilter}
-            onChange={setFacilityFilter}
-            size="sm"
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2.5">
+          <div className="w-full sm:w-64">
+            <Select
+              options={[{ value: "", label: "Semua fasilitas" }, ...facilityOptions]}
+              value={facilityFilter}
+              onChange={setFacilityFilter}
+              size="sm"
+            />
+          </div>
+          <ActiveSearchChip
+            query={search}
+            onClear={() => handleSearchChange("")}
           />
         </div>
-        <label className="relative flex h-10 w-full max-w-xs items-center gap-2 rounded-lg bg-surface-2 px-3">
-          <Search className="h-4 w-4 text-body" />
-          <Input
-            value={search}
-            onChange={(event) => setSearch(event.target.value)}
-            placeholder="Cari produk…"
-            className="h-8 border-0 bg-transparent px-0 focus-visible:border-0"
-          />
-        </label>
+        <span className="text-xs text-body" aria-live="polite">
+          {filtered.length} produk
+        </span>
       </div>
 
       {products.isLoading ? (

@@ -36,6 +36,8 @@ export interface DataTableProps<T> {
 
   sortOptions?: SortOption[];
   searchPlaceholder?: string;
+  /** Hide inline search input when search is bound to the Topbar. */
+  hideSearch?: boolean;
   /** Plural noun used in states and the count, e.g. "pengguna". */
   itemLabel: string;
 
@@ -69,6 +71,7 @@ export function DataTable<T>({
   onSearchChange,
   sortOptions,
   searchPlaceholder,
+  hideSearch = false,
   itemLabel,
   isLoading = false,
   isFetching = false,
@@ -115,6 +118,7 @@ export function DataTable<T>({
         search={search}
         onSearchChange={onSearchChange}
         searchPlaceholder={searchPlaceholder}
+        hideSearch={hideSearch}
         sort={sort}
         onSortChange={onSortChange}
         sortOptions={sortOptions ?? sortOptionsFromColumns(columns)}

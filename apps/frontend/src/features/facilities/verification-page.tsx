@@ -8,6 +8,7 @@ import { Button } from "~/components/ui/button";
 import { DataTable, useDataTableState, type DataTableColumn } from "~/components/ui/data-table";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogTitle } from "~/components/ui/dialog";
 import { useToast } from "~/components/ui/toaster";
+import { useRegisterShellSearch } from "~/features/admin/components/shell-search-context";
 import { UserAvatar } from "~/features/admin/components/user-avatar";
 import { useAuth } from "~/features/auth/hooks/use-auth";
 import { useUsers } from "~/features/users/hooks/use-users";
@@ -41,6 +42,13 @@ export function VerificationPage() {
   const table = useDataTableState({ syncFromUrl: true });
   const [selected, setSelected] = useState<Facility | null>(null);
   const enabled = auth.hydrated && !!auth.token && auth.user?.role === "admin";
+  useRegisterShellSearch({
+    scopeKey: "admin-verifikasi",
+    value: table.search,
+    onChange: table.setSearch,
+    placeholder: "Cari pengajuan verifikasi…",
+    enabled,
+  });
   const queue = useMyFacilities({ ...table.query, status: "pending" }, auth.token, enabled);
   const usersList = useUsers({ page: 1, limit: 100 }, auth.token, enabled);
 
@@ -174,6 +182,7 @@ export function VerificationPage() {
         onSortChange={table.setSort}
         onSearchChange={table.setSearch}
         searchPlaceholder="Cari item atau destinasi"
+        hideSearch
         itemLabel="item"
         isLoading={queue.isPending}
         isFetching={queue.isFetching}

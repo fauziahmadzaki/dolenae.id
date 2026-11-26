@@ -1,12 +1,16 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Bed, Car, Download, Layers, Plus, Search, Utensils } from "lucide-react";
+import { Bed, Car, Download, Layers, Plus, Utensils } from "lucide-react";
+import { ActiveSearchChip } from "~/components/ui/active-search-chip";
 import { Button } from "~/components/ui/button";
-import { Input } from "~/components/ui/input";
 import { Select } from "~/components/ui/select";
 import { useToast } from "~/components/ui/toaster";
+import {
+  useRegisterShellSearch,
+  useUrlSearchSync,
+} from "~/features/admin/components/shell-search-context";
 import { useAuth } from "~/features/auth/hooks/use-auth";
 import { useUsers } from "~/features/users/hooks/use-users";
 import { cn } from "~/lib/cn";
@@ -48,6 +52,24 @@ export function AdminFacilitiesPage() {
   const [productFacility, setProductFacility] = useState<Facility | null>(null);
 
   const enabled = auth.hydrated && !!auth.token && auth.user?.role === "admin";
+  const { clearUrlSearch } = useUrlSearchSync(
+    useCallback((next: string) => setSearch(next), []),
+    enabled,
+  );
+  const handleSearchChange = useCallback(
+    (next: string) => {
+      setSearch(next);
+      if (!next.trim()) clearUrlSearch();
+    },
+    [clearUrlSearch],
+  );
+  useRegisterShellSearch({
+    scopeKey: "admin-fasilitas",
+    value: search,
+    onChange: handleSearchChange,
+    placeholder: "Cari fasilitas atau merchant…",
+    enabled,
+  });
   const list = useMyFacilities({ limit: 100 }, auth.token, enabled);
   const usersList = useUsers({ page: 1, limit: 100 }, auth.token, enabled);
   const facilities = list.data?.data ?? [];
@@ -176,7 +198,7 @@ export function AdminFacilitiesPage() {
         </div>
 
         <div className="flex flex-wrap items-center gap-2.5">
-          <div className="w-44">
+          <div className="w-full sm:w-44">
             <Select
               size="sm"
               ariaLabel="Filter status fasilitas"
@@ -188,15 +210,13 @@ export function AdminFacilitiesPage() {
               ]}
             />
           </div>
-          <label className="relative flex h-10 w-full items-center gap-2 rounded-full border border-hairline bg-surface px-3.5 sm:w-64">
-            <Search aria-hidden className="h-4 w-4 text-body" />
-            <Input
-              value={search}
-              onChange={(event) => setSearch(event.target.value)}
-              placeholder="Cari fasilitas atau merchant…"
-              className="h-8 border-0 bg-transparent px-0 focus-visible:border-0"
-            />
-          </label>
+          <ActiveSearchChip
+            query={search}
+            onClear={() => handleSearchChange("")}
+          />
+          <span className="text-xs text-body" aria-live="polite">
+            {filtered.length} fasilitas
+          </span>
         </div>
       </div>
 
