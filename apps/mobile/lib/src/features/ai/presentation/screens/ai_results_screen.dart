@@ -9,12 +9,12 @@ import 'package:dolenae_mobile/src/app/theme/app_spacing.dart';
 import 'package:dolenae_mobile/src/app/theme/app_text_styles.dart';
 import 'package:dolenae_mobile/src/features/ai/domain/entities/ai_recommendation.dart';
 import 'package:dolenae_mobile/src/features/ai/presentation/widgets/ai_results_skeleton.dart';
+import 'package:dolenae_mobile/src/features/plan/presentation/widgets/add_to_plan_sheet.dart';
 import 'package:dolenae_mobile/src/shared/icons/app_icons.dart';
 import 'package:dolenae_mobile/src/shared/widgets/dn_app_bar.dart';
 import 'package:dolenae_mobile/src/shared/widgets/dn_buttons.dart';
 import 'package:dolenae_mobile/src/shared/widgets/dn_empty_state.dart';
 import 'package:dolenae_mobile/src/shared/widgets/dn_recommendation_card.dart';
-import 'package:dolenae_mobile/src/shared/widgets/dn_toast.dart';
 
 /// Layar AI Hasil (Node Figma: 68:771).
 ///
@@ -262,7 +262,7 @@ class _AiResultsBody extends StatelessWidget {
                     ? () => context.push('/destination/${item.destination.id}')
                     : () => onViewDetail!(item.destination.id),
                 onAdd: onAddDestination == null
-                    ? () => _showAddPending(context)
+                    ? () => showAddToPlanSheet(context, item.destination)
                     : () => onAddDestination!(item.destination.id),
               ),
             ),
@@ -270,14 +270,6 @@ class _AiResultsBody extends StatelessWidget {
           const SizedBox(height: AppSpacing.s2),
         ],
       ],
-    );
-  }
-
-  void _showAddPending(BuildContext context) {
-    showDnToast(
-      context,
-      'Fitur tambah destinasi segera hadir.',
-      type: DnToastType.info,
     );
   }
 }

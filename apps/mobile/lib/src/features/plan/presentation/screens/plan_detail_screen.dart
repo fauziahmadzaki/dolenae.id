@@ -8,6 +8,7 @@ import 'package:dolenae_mobile/src/app/theme/app_shadows.dart';
 import 'package:dolenae_mobile/src/app/theme/app_spacing.dart';
 import 'package:dolenae_mobile/src/app/theme/app_text_styles.dart';
 import 'package:dolenae_mobile/src/core/utils/formatters.dart';
+import 'package:dolenae_mobile/src/features/destinations/presentation/controllers/destinations_controller.dart';
 import 'package:dolenae_mobile/src/features/plan/domain/entities/trip_plan.dart';
 import 'package:dolenae_mobile/src/features/plan/presentation/controllers/plan_controller.dart';
 import 'package:dolenae_mobile/src/features/plan/presentation/widgets/plan_generating_skeleton.dart';
@@ -76,8 +77,16 @@ class _PlanDetailScreenState extends State<PlanDetailScreen> {
     );
     if (confirmed != true || !mounted) return;
 
-    await controller.deletePlan(plan.id);
-    if (!mounted) return;
+    final result = await controller.deletePlan(plan.id);
+    if (!mounted || result.isCancelled) return;
+    if (result.isFailed) {
+      showDnToast(
+        context,
+        result.message ?? 'Gagal menghapus rencana.',
+        type: DnToastType.gagal,
+      );
+      return;
+    }
     context.go('/plan');
     showDnToast(context, '${plan.title} dihapus', type: DnToastType.info);
   }
@@ -85,7 +94,7 @@ class _PlanDetailScreenState extends State<PlanDetailScreen> {
   @override
   Widget build(BuildContext context) {
     final controller = context.watch<PlanController>();
-    final plan = _findPlan(controller.plans, widget.planId);
+    final plan = controller.findPlanById(widget.planId);
 
     return Scaffold(
       backgroundColor: AppColors.canvas,
@@ -134,13 +143,6 @@ class _PlanDetailScreenState extends State<PlanDetailScreen> {
         ],
       ),
     );
-  }
-
-  TripPlan? _findPlan(List<TripPlan> plans, String id) {
-    for (final plan in plans) {
-      if (plan.id == id) return plan;
-    }
-    return null;
   }
 }
 
@@ -419,13 +421,81 @@ class _ItinerarySection extends StatelessWidget {
 
   final TripPlan plan;
 
+  Future<void> _addDestination(BuildContext context) async {
+    final controller = context.read<PlanController>();
+    final destinationsController = context.read<DestinationsController?>();
+    final returned = await context.push<Set<String>>(
+      '/plan/select-destination',
+      extra: plan.destinationIds.toSet(),
+    );
+    if (!context.mounted || returned == null || destinationsController == null) {
+      return;
+    }
+    final toAdd = destinationsController.items
+        .where(
+          (d) => returned.contains(d.id) && !plan.destinationIds.contains(d.id),
+        )
+        .toList(growable: false);
+    if (toAdd.isEmpty) return;
+
+    final result = await controller.addDestinationsToPlan(plan.id, toAdd);
+    if (!context.mounted || result.isCancelled) return;
+    if (result.isFailed) {
+      showDnToast(
+        context,
+        result.message ?? 'Gagal menambahkan destinasi.',
+        type: DnToastType.gagal,
+      );
+    } else {
+      showDnToast(
+        context,
+        '${toAdd.length} destinasi ditambahkan',
+        type: DnToastType.sukses,
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
+    final canRemoveItem = plan.destinationCount > 1;
+    final header = Row(
+      children: [
+        Expanded(child: Text('ITINERARY', style: AppTextStyles.overline)),
+        InkWell(
+          onTap: () => _addDestination(context),
+          borderRadius: BorderRadius.circular(AppRadius.md),
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(minHeight: 44),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.s3),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(
+                    AppIcons.plus,
+                    size: 16,
+                    color: AppColors.primary,
+                  ),
+                  const SizedBox(width: AppSpacing.s1),
+                  Text(
+                    'Tambah destinasi',
+                    style: AppTextStyles.labelSm.copyWith(
+                      color: AppColors.primary,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+
     if (plan.days.isEmpty || plan.isDraft) {
       return Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('ITINERARY', style: AppTextStyles.overline),
+          header,
           const SizedBox(height: AppSpacing.s2),
           Text(
             'Belum ada destinasi. Tambahkan destinasi supaya AI bisa menyusun '
@@ -439,20 +509,32 @@ class _ItinerarySection extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('ITINERARY', style: AppTextStyles.overline),
-        const SizedBox(height: AppSpacing.s3),
+        header,
+        const SizedBox(height: AppSpacing.s2),
         for (int index = 0; index < plan.days.length; index++)
-          _DayRow(day: plan.days[index], isLast: index == plan.days.length - 1),
+          _DayRow(
+            planId: plan.id,
+            day: plan.days[index],
+            isLast: index == plan.days.length - 1,
+            canRemoveItem: canRemoveItem,
+          ),
       ],
     );
   }
 }
 
 class _DayRow extends StatelessWidget {
-  const _DayRow({required this.day, required this.isLast});
+  const _DayRow({
+    required this.planId,
+    required this.day,
+    required this.isLast,
+    required this.canRemoveItem,
+  });
 
+  final String planId;
   final PlanDay day;
   final bool isLast;
+  final bool canRemoveItem;
 
   @override
   Widget build(BuildContext context) {
@@ -517,7 +599,11 @@ class _DayRow extends StatelessWidget {
                     )
                   else
                     for (final item in day.items) ...[
-                      _ItemCard(item: item),
+                      _ItemCard(
+                        planId: planId,
+                        item: item,
+                        canRemove: canRemoveItem && item.destinationId != null,
+                      ),
                       if (item != day.items.last)
                         const SizedBox(height: AppSpacing.s2),
                     ],
@@ -532,55 +618,106 @@ class _DayRow extends StatelessWidget {
 }
 
 class _ItemCard extends StatelessWidget {
-  const _ItemCard({required this.item});
+  const _ItemCard({
+    required this.planId,
+    required this.item,
+    required this.canRemove,
+  });
 
+  final String planId;
   final PlanItem item;
+  final bool canRemove;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(AppSpacing.s3),
-      decoration: BoxDecoration(
-        color: AppColors.canvasSubtle,
+    final destId = item.destinationId;
+    final tappable = destId != null && destId.isNotEmpty;
+
+    return Material(
+      color: AppColors.canvasSubtle,
+      borderRadius: BorderRadius.circular(AppRadius.md),
+      child: InkWell(
+        onTap: tappable ? () => context.push('/destination/$destId') : null,
         borderRadius: BorderRadius.circular(AppRadius.md),
-        border: Border.all(color: AppColors.hairline),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
+        child: Container(
+          width: double.infinity,
+          constraints: BoxConstraints(minHeight: tappable ? 48 : 0),
+          padding: const EdgeInsets.all(AppSpacing.s3),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(AppRadius.md),
+            border: Border.all(color: AppColors.hairline),
+          ),
+          child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Expanded(
-                child: Text(
-                  item.destinationName,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: AppTextStyles.labelSm,
-                ),
-              ),
-              if (item.costEstimate != null) ...[
-                const SizedBox(width: AppSpacing.s2),
-                Text(
-                  item.costEstimate!,
-                  style: AppTextStyles.caption.copyWith(
-                    color: AppColors.ink,
-                    fontWeight: FontWeight.w600,
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  Expanded(
+                    child: Text(
+                      item.destinationName,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: AppTextStyles.labelSm,
+                    ),
                   ),
-                ),
+                  if (item.costEstimate != null) ...[
+                    const SizedBox(width: AppSpacing.s2),
+                    Text(
+                      item.costEstimate!,
+                      style: AppTextStyles.caption.copyWith(
+                        color: AppColors.ink,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                  if (canRemove)
+                    IconButton(
+                      onPressed: () async {
+                        final res = await context
+                            .read<PlanController>()
+                            .removeDestinationFromPlan(planId, destId!);
+                        if (!context.mounted || res.isCancelled) return;
+                        if (res.isFailed) {
+                          showDnToast(
+                            context,
+                            res.message ?? 'Gagal menghapus destinasi.',
+                            type: DnToastType.gagal,
+                          );
+                        }
+                      },
+                      icon: const Icon(
+                        AppIcons.close,
+                        size: 16,
+                        color: AppColors.body,
+                      ),
+                      constraints: const BoxConstraints(
+                        minWidth: 44,
+                        minHeight: 44,
+                      ),
+                      tooltip: 'Hapus dari itinerary',
+                    )
+                  else if (tappable) ...[
+                    const SizedBox(width: AppSpacing.s1),
+                    const Icon(
+                      AppIcons.chevronRight,
+                      size: 16,
+                      color: AppColors.body,
+                    ),
+                  ],
+                ],
+              ),
+              if (item.metaLabel.isNotEmpty) ...[
+                const SizedBox(height: 2),
+                Text(item.metaLabel, style: AppTextStyles.caption),
+              ],
+              if (item.notes != null && item.notes!.trim().isNotEmpty) ...[
+                const SizedBox(height: AppSpacing.s1),
+                Text(item.notes!, style: AppTextStyles.caption),
               ],
             ],
           ),
-          if (item.metaLabel.isNotEmpty) ...[
-            const SizedBox(height: 2),
-            Text(item.metaLabel, style: AppTextStyles.caption),
-          ],
-          if (item.notes != null && item.notes!.trim().isNotEmpty) ...[
-            const SizedBox(height: AppSpacing.s1),
-            Text(item.notes!, style: AppTextStyles.caption),
-          ],
-        ],
+        ),
       ),
     );
   }
@@ -613,7 +750,7 @@ class _AiSummarySection extends StatelessWidget {
                 child: Text(
                   'RINGKASAN AI',
                   style: AppTextStyles.overline.copyWith(
-                    color: AppColors.accent,
+                    color: AppColors.primary,
                     fontWeight: FontWeight.w700,
                   ),
                 ),
@@ -644,7 +781,62 @@ class _AiSummarySection extends StatelessWidget {
             _BulletGroup(
               label: 'PERHATIAN',
               items: briefing.warnings,
-              color: AppColors.warning,
+              color: AppColors.danger,
+            ),
+          ],
+          if (plan.sources.isNotEmpty) ...[
+            const SizedBox(height: AppSpacing.s3),
+            const Divider(height: 1, color: AppColors.hairline),
+            const SizedBox(height: AppSpacing.s3),
+            Text(
+              'SUMBER DATA',
+              style: AppTextStyles.overline.copyWith(
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            const SizedBox(height: AppSpacing.s2),
+            Wrap(
+              spacing: AppSpacing.s2,
+              runSpacing: AppSpacing.s2,
+              children: [
+                for (final source in plan.sources)
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: AppSpacing.s2,
+                      vertical: AppSpacing.s1,
+                    ),
+                    decoration: BoxDecoration(
+                      color: AppColors.surface,
+                      borderRadius: BorderRadius.circular(AppRadius.pill),
+                      border: Border.all(color: AppColors.hairline),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          switch (source.type) {
+                            'route' => AppIcons.route,
+                            'support' => AppIcons.bedDouble,
+                            _ => AppIcons.mapPin,
+                          },
+                          size: 12,
+                          color: AppColors.primary,
+                        ),
+                        const SizedBox(width: AppSpacing.s1),
+                        Flexible(
+                          child: Text(
+                            '${source.typeLabel}: ${source.label}',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: AppTextStyles.caption.copyWith(
+                              color: AppColors.ink,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+              ],
             ),
           ],
         ],
@@ -655,7 +847,6 @@ class _AiSummarySection extends StatelessWidget {
   String _engineLabel(String engine) => switch (engine) {
     'gemini' => 'Gemini',
     'deterministic' => 'Data Dolenae',
-    'seed' => 'Contoh data',
     _ => 'Draft',
   };
 }
@@ -719,6 +910,13 @@ class _BudgetSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final estPerPerson = plan.estimatedChecklistCostPerPerson;
+    final estTotal = plan.estimatedChecklistCostTotal;
+    final targetPerPerson = plan.budgetPerPerson;
+    final overBudget = targetPerPerson > 0 && estPerPerson > targetPerPerson;
+    final diff = (estPerPerson - targetPerPerson).abs();
+    final statusColor = overBudget ? AppColors.danger : AppColors.success;
+
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(AppSpacing.s4),
@@ -732,12 +930,67 @@ class _BudgetSection extends StatelessWidget {
         children: [
           Text('ESTIMASI BIAYA', style: AppTextStyles.overline),
           const SizedBox(height: AppSpacing.s2),
-          _BudgetRow(label: 'Total', value: formatRupiah(plan.totalBudget)),
+          _BudgetRow(
+            label: 'Target budget total',
+            value: formatRupiah(plan.totalBudget),
+          ),
           const SizedBox(height: AppSpacing.s1),
           _BudgetRow(
-            label: 'Per orang (${plan.peopleCount})',
-            value: formatRupiah(plan.budgetPerPerson),
+            label: 'Target per orang (${plan.peopleCount})',
+            value: formatRupiah(targetPerPerson),
           ),
+          if (estPerPerson > 0) ...[
+            const SizedBox(height: AppSpacing.s3),
+            const Divider(height: 1, color: AppColors.hairline),
+            const SizedBox(height: AppSpacing.s3),
+            _BudgetRow(
+              label: 'Estimasi AI / orang',
+              value: formatRupiah(estPerPerson),
+            ),
+            const SizedBox(height: AppSpacing.s1),
+            _BudgetRow(
+              label: 'Estimasi AI total',
+              value: formatRupiah(estTotal),
+            ),
+            if (targetPerPerson > 0) ...[
+              const SizedBox(height: AppSpacing.s3),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: AppSpacing.s3,
+                  vertical: AppSpacing.s2,
+                ),
+                decoration: BoxDecoration(
+                  color: statusColor.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(AppRadius.md),
+                  border: Border.all(color: statusColor.withValues(alpha: 0.3)),
+                ),
+                child: Row(
+                  children: [
+                    Icon(
+                      overBudget ? AppIcons.alertTriangle : AppIcons.check,
+                      size: 16,
+                      color: statusColor,
+                    ),
+                    const SizedBox(width: AppSpacing.s2),
+                    Expanded(
+                      child: Text(
+                        overBudget
+                            ? 'Melebihi target ${formatRupiah(diff)} / orang'
+                            : diff == 0
+                            ? 'Sesuai target budget'
+                            : 'Dalam batas budget · sisa ${formatRupiah(diff)} / orang',
+                        style: AppTextStyles.caption.copyWith(
+                          color: statusColor,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ],
         ],
       ),
     );

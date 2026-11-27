@@ -50,16 +50,18 @@ void main() {
     expect(find.text('Lihat detail'), findsOneWidget);
   });
 
-  testWidgets('Tambah shows a placeholder toast', (tester) async {
+  testWidgets('Tambah membuka sheet Tambahkan ke rencana', (tester) async {
     await usePhone(tester);
+    final store = newStore();
+    await store.plan.load();
     await tester.pumpWidget(
-      wrapScreen(AiResultsScreen(result: _resultWithCard())),
+      wrapScreen(AiResultsScreen(result: _resultWithCard()), store: store),
     );
     await tester.pumpAndSettle();
 
     await tester.tap(find.text('Tambah'));
-    await tester.pump();
+    await tester.pumpAndSettle();
 
-    expect(find.text('Fitur tambah destinasi segera hadir.'), findsOneWidget);
+    expect(find.text('Tambah ke rencana'), findsOneWidget);
   });
 }

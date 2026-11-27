@@ -13,6 +13,7 @@ import 'package:dolenae_mobile/src/features/plan/domain/entities/plan_draft.dart
 import 'package:dolenae_mobile/src/features/plan/presentation/controllers/plan_controller.dart';
 import 'package:dolenae_mobile/src/features/plan/presentation/widgets/plan_generating_skeleton.dart';
 import 'package:dolenae_mobile/src/shared/widgets/dn_app_bar.dart';
+import 'package:dolenae_mobile/src/shared/widgets/dn_toast.dart';
 
 /// Argumen navigasi dari pemilihan destinasi ke layar generating.
 class PlanGenerationArgs {
@@ -41,17 +42,31 @@ class _PlanGeneratingScreenState extends State<PlanGeneratingScreen> {
 
   Future<void> _run() async {
     final controller = context.read<PlanController>();
-    final plan = await controller.createDraft(
+    final draftResult = await controller.createDraft(
       widget.args.draft,
       widget.args.destinations,
     );
-    if (plan == null) {
-      if (mounted) context.go('/plan');
+    if (!mounted || draftResult.isCancelled) return;
+    final plan = draftResult.plan;
+    if (draftResult.isFailed || plan == null) {
+      showDnToast(
+        context,
+        draftResult.message ?? controller.error ?? 'Gagal menyimpan rencana.',
+        type: DnToastType.gagal,
+      );
+      if (context.canPop()) {
+        context.pop();
+      } else {
+        context.go('/plan');
+      }
       return;
     }
 
     await controller.generateAi(plan.id);
-    if (mounted) context.go('/plan/${plan.id}');
+    if (!mounted) return;
+    if (controller.plans.any((p) => p.id == plan.id)) {
+      context.go('/plan/${plan.id}');
+    }
   }
 
   @override

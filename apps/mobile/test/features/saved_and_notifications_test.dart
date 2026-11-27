@@ -127,15 +127,19 @@ void main() {
       tester,
     ) async {
       await usePhone(tester);
-      await tester.pumpWidget(wrapScreen(const SavedPlansScreen()));
+      final store = newStore();
+      await store.plan.load();
+      await tester.pumpWidget(
+        wrapScreen(const SavedPlansScreen(), store: store),
+      );
       await tester.pumpAndSettle();
 
       expect(find.text('Daftar rencana'), findsOneWidget);
       expect(find.byType(DnPlanCard), findsWidgets);
-      for (final plan in SavedSeedData.plans) {
-        expect(find.text(plan.name), findsOneWidget);
+      for (final plan in store.plan.plans) {
+        expect(find.text(plan.title), findsOneWidget);
         expect(find.text(plan.dateRange), findsOneWidget);
-        expect(find.text(plan.statusLabel), findsOneWidget);
+        expect(find.text(plan.statusLabel), findsAtLeastNWidgets(1));
       }
     });
 
@@ -153,7 +157,8 @@ void main() {
     testWidgets('hapus melalui dialog konfirmasi', (tester) async {
       await usePhone(tester);
       final store = newStore();
-      final before = store.saved.savedPlans.length;
+      await store.plan.load();
+      final before = store.plan.plans.length;
 
       await tester.pumpWidget(
         wrapScreen(const SavedPlansScreen(), store: store),
@@ -166,7 +171,7 @@ void main() {
 
       await tester.tap(find.text('Hapus'));
       await tester.pumpAndSettle();
-      expect(store.saved.savedPlans.length, before - 1);
+      expect(store.plan.plans.length, before - 1);
     });
   });
 

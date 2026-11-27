@@ -38,6 +38,8 @@ class PlanItem {
   const PlanItem({
     this.destinationId,
     required this.destinationName,
+    this.routeId,
+    this.supportIds = const [],
     this.activity = 'Eksplor destinasi',
     this.startTime,
     this.costEstimate,
@@ -46,6 +48,8 @@ class PlanItem {
 
   final String? destinationId;
   final String destinationName;
+  final String? routeId;
+  final List<String> supportIds;
   final String activity;
   final String? startTime;
   final String? costEstimate;
@@ -85,6 +89,7 @@ class PlanDay {
 class TripPlan {
   const TripPlan({
     required this.id,
+    this.clientId,
     required this.title,
     required this.startDate,
     required this.endDate,
@@ -95,6 +100,7 @@ class TripPlan {
     this.days = const [],
     this.sources = const [],
     this.checklist = const [],
+    this.destinationIds = const [],
     this.originProvince = '',
     this.notice,
     this.aiWarning,
@@ -104,6 +110,7 @@ class TripPlan {
   });
 
   final String id;
+  final String? clientId;
   final String title;
   final DateTime startDate;
   final DateTime endDate;
@@ -114,6 +121,7 @@ class TripPlan {
   final List<PlanDay> days;
   final List<PlanSource> sources;
   final List<ChecklistItem> checklist;
+  final List<String> destinationIds;
 
   /// Provinsi asal user untuk estimasi transport antarprovinsi.
   final String originProvince;
@@ -130,10 +138,13 @@ class TripPlan {
   int get durationDays => endDate.difference(startDate).inDays + 1;
 
   int get destinationCount {
-    final keys = <String>{};
+    final keys = <String>{
+      for (final id in destinationIds)
+        if (id.trim().isNotEmpty) id.trim(),
+    };
     for (final day in days) {
       for (final item in day.items) {
-        final id = item.destinationId;
+        final id = item.destinationId?.trim();
         keys.add(id == null || id.isEmpty ? item.destinationName : id);
       }
     }
@@ -142,6 +153,19 @@ class TripPlan {
 
   int get budgetPerPerson =>
       peopleCount > 0 ? totalBudget ~/ peopleCount : totalBudget;
+
+  int get estimatedChecklistCostPerPerson {
+    var total = 0;
+    for (final item in checklist) {
+      if (!item.isOwned && (item.estimatedCost ?? 0) > 0) {
+        total += item.estimatedCost!;
+      }
+    }
+    return total;
+  }
+
+  int get estimatedChecklistCostTotal =>
+      estimatedChecklistCostPerPerson * (peopleCount > 0 ? peopleCount : 1);
 
   bool get hasAiSummary => summary.trim().isNotEmpty;
 
@@ -153,7 +177,8 @@ class TripPlan {
   double get checklistProgress =>
       checklistCount > 0 ? completedChecklistCount / checklistCount : 0;
 
-  bool get isDraft => days.every((day) => day.items.isEmpty);
+  bool get isDraft =>
+      days.every((day) => day.items.isEmpty) && destinationIds.isEmpty;
 
   PlanStatus get status {
     if (isDraft) return PlanStatus.draft;
@@ -205,6 +230,8 @@ class TripPlan {
   }
 
   TripPlan copyWith({
+    String? id,
+    String? clientId,
     String? title,
     DateTime? startDate,
     DateTime? endDate,
@@ -215,6 +242,7 @@ class TripPlan {
     List<PlanDay>? days,
     List<PlanSource>? sources,
     List<ChecklistItem>? checklist,
+    List<String>? destinationIds,
     String? originProvince,
     String? notice,
     bool clearNotice = false,
@@ -224,7 +252,8 @@ class TripPlan {
     String? note,
   }) {
     return TripPlan(
-      id: id,
+      id: id ?? this.id,
+      clientId: clientId ?? this.clientId,
       title: title ?? this.title,
       startDate: startDate ?? this.startDate,
       endDate: endDate ?? this.endDate,
@@ -235,6 +264,7 @@ class TripPlan {
       days: days ?? this.days,
       sources: sources ?? this.sources,
       checklist: checklist ?? this.checklist,
+      destinationIds: destinationIds ?? this.destinationIds,
       originProvince: originProvince ?? this.originProvince,
       notice: clearNotice ? null : (notice ?? this.notice),
       aiWarning: clearAiWarning ? null : (aiWarning ?? this.aiWarning),

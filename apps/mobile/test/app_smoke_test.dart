@@ -200,11 +200,11 @@ void main() {
       expect(find.text('Gunung Bromo'), findsOneWidget);
       expect(find.text('Gunung Prau'), findsOneWidget);
       expect(find.text('Gunung Papandayan'), findsOneWidget);
-      expect(find.text('Tambahkan 2 destinasi'), findsOneWidget);
+      expect(find.byType(FilledButton), findsOneWidget);
       // Tap unselected destination to toggle
       await tester.tap(find.text('Gunung Papandayan'));
       await tester.pump();
-      expect(find.text('Tambahkan 3 destinasi'), findsOneWidget);
+      expect(find.text('Tambahkan 1 destinasi'), findsOneWidget);
     },
   );
 

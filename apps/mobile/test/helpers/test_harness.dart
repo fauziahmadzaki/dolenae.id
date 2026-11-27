@@ -214,14 +214,23 @@ class _TestPlanRepository implements PlanRepository {
   Future<Result<List<TripPlan>>> load() async => Success(_plans);
 
   @override
-  Future<Result<void>> save(TripPlan plan) async {
+  Future<Result<TripPlan>> create(TripPlan plan) async {
+    final created = plan.id.isEmpty
+        ? plan.copyWith(id: 'plan-test-${_plans.length + 1}')
+        : plan;
+    _plans = [created, ..._plans];
+    return Success(created);
+  }
+
+  @override
+  Future<Result<TripPlan>> update(TripPlan plan) async {
     final index = _plans.indexWhere((item) => item.id == plan.id);
     if (index >= 0) {
       _plans[index] = plan;
     } else {
       _plans = [plan, ..._plans];
     }
-    return const Success(null);
+    return Success(plan);
   }
 
   @override

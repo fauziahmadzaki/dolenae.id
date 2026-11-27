@@ -58,7 +58,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       final plan = context.read<PlanController?>();
-      if (plan != null && plan.plans.isEmpty) {
+      if (plan != null && !plan.hasLoaded && !plan.isLoading) {
         unawaited(plan.load());
       }
     });

@@ -32,7 +32,7 @@ class DnStepper extends StatelessWidget {
     final canIncrease = enabled && value < max;
 
     return Container(
-      height: 48,
+      height: 54,
       padding: const EdgeInsets.all(4),
       decoration: BoxDecoration(
         color: enabled ? AppColors.canvasSubtle : AppColors.hairline,
@@ -87,8 +87,8 @@ class _StepButton extends StatelessWidget {
       onTap: enabled ? onTap : null,
       borderRadius: BorderRadius.circular(AppRadius.md),
       child: Container(
-        width: 40,
-        height: 40,
+        width: 44,
+        height: 44,
         decoration: BoxDecoration(
           color: enabled ? AppColors.surface : Colors.transparent,
           borderRadius: BorderRadius.circular(AppRadius.md),

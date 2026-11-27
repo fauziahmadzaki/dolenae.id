@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 
 import 'package:dolenae_mobile/src/core/result/result.dart';
@@ -7,10 +9,47 @@ import 'package:dolenae_mobile/src/features/ai/domain/repositories/ai_repository
 import 'package:dolenae_mobile/src/features/checklist/domain/entities/checklist_item.dart';
 import 'package:dolenae_mobile/src/features/destinations/domain/entities/destination.dart';
 import 'package:dolenae_mobile/src/features/plan/domain/entities/plan_draft.dart';
-import 'package:dolenae_mobile/src/features/plan/domain/entities/user_location.dart';
 import 'package:dolenae_mobile/src/features/plan/domain/entities/trip_plan.dart';
+import 'package:dolenae_mobile/src/features/plan/domain/entities/user_location.dart';
 import 'package:dolenae_mobile/src/features/plan/domain/repositories/location_repository.dart';
 import 'package:dolenae_mobile/src/features/plan/domain/repositories/plan_repository.dart';
+
+enum PlanActionStatus { success, cancelled, failed }
+
+class PlanActionResult {
+  const PlanActionResult._(this.status, [this.message]);
+
+  const PlanActionResult.success([String? message])
+    : this._(PlanActionStatus.success, message);
+  const PlanActionResult.cancelled() : this._(PlanActionStatus.cancelled);
+  const PlanActionResult.failed(String message)
+    : this._(PlanActionStatus.failed, message);
+
+  final PlanActionStatus status;
+  final String? message;
+
+  bool get isSuccess => status == PlanActionStatus.success;
+  bool get isCancelled => status == PlanActionStatus.cancelled;
+  bool get isFailed => status == PlanActionStatus.failed;
+}
+
+class PlanDraftResult {
+  const PlanDraftResult._(this.status, {this.plan, this.message});
+
+  const PlanDraftResult.success(TripPlan plan)
+    : this._(PlanActionStatus.success, plan: plan);
+  const PlanDraftResult.cancelled() : this._(PlanActionStatus.cancelled);
+  const PlanDraftResult.failed(String message)
+    : this._(PlanActionStatus.failed, message: message);
+
+  final PlanActionStatus status;
+  final TripPlan? plan;
+  final String? message;
+
+  bool get isSuccess => status == PlanActionStatus.success;
+  bool get isCancelled => status == PlanActionStatus.cancelled;
+  bool get isFailed => status == PlanActionStatus.failed;
+}
 
 class PlanController extends ChangeNotifier {
   PlanController(
@@ -23,22 +62,54 @@ class PlanController extends ChangeNotifier {
   final AiRepository _aiRepository;
   final LocationRepository _locationRepository;
 
+  static const int maxAiDestinations = 7;
+
   List<TripPlan> _plans = const [];
   bool _isLoading = false;
+  bool _hasLoaded = false;
+  int _loadEpoch = 0;
   String? _error;
   final Set<String> _generatingIds = {};
   final Set<String> _generatingChecklistIds = {};
+  final Map<String, Future<void>> _planQueues = {};
+  final Map<String, String> _idAliases = {};
 
   List<TripPlan> get plans => List.unmodifiable(_plans);
 
   bool get isLoading => _isLoading;
 
+  bool get hasLoaded => _hasLoaded;
+
   String? get error => _error;
 
-  bool isGenerating(String planId) => _generatingIds.contains(planId);
+  String resolvePlanId(String id) {
+    var current = id;
+    final visited = <String>{};
+    while (_idAliases.containsKey(current) && visited.add(current)) {
+      current = _idAliases[current]!;
+    }
+    for (final p in _plans) {
+      if (p.id == current) return current;
+    }
+    for (final p in _plans) {
+      if (p.clientId?.trim() == current) return p.id;
+    }
+    return current;
+  }
+
+  TripPlan? findPlanById(String id) {
+    final resolved = resolvePlanId(id);
+    for (final plan in _plans) {
+      if (plan.id == resolved) return plan;
+    }
+    return null;
+  }
+
+  bool isGenerating(String planId) =>
+      _generatingIds.contains(resolvePlanId(planId));
 
   bool isGeneratingChecklist(String planId) =>
-      _generatingChecklistIds.contains(planId);
+      _generatingChecklistIds.contains(resolvePlanId(planId));
 
   String? _userId;
 
@@ -48,50 +119,91 @@ class PlanController extends ChangeNotifier {
     final next = (normalized == null || normalized.isEmpty) ? null : normalized;
     if (next == _userId) return;
     _userId = next;
+    _loadEpoch++;
     _repository.setUserId(next);
     _plans = const [];
+    _hasLoaded = false;
+    _isLoading = false;
     _error = null;
     _generatingIds.clear();
     _generatingChecklistIds.clear();
+    _planQueues.clear();
+    _idAliases.clear();
     notifyListeners();
     await load();
   }
 
   Future<void> load() async {
     if (_isLoading) return;
+    final epoch = _loadEpoch;
     _isLoading = true;
     _error = null;
     notifyListeners();
 
-    final result = await _repository.load();
-    switch (result) {
-      case Success<List<TripPlan>>(:final value):
-        _plans = _sorted(value);
-      case Failure<List<TripPlan>>(:final failure):
-        _error = failure.message;
-    }
+    try {
+      final result = await _repository.load();
+      if (epoch != _loadEpoch) return;
 
-    _isLoading = false;
-    notifyListeners();
+      switch (result) {
+        case Success<List<TripPlan>>(:final value):
+          _plans = _sorted(value);
+          for (final p in _plans) {
+            final cid = p.clientId?.trim();
+            if (cid != null && cid.isNotEmpty && cid != p.id) {
+              _idAliases[cid] = p.id;
+            }
+          }
+        case Failure<List<TripPlan>>(:final failure):
+          _error = failure.message;
+      }
+    } catch (_) {
+      if (epoch != _loadEpoch) return;
+      _error = 'Daftar rencana gagal dimuat. Coba lagi.';
+    } finally {
+      if (epoch == _loadEpoch) {
+        _hasLoaded = true;
+        _isLoading = false;
+        notifyListeners();
+      }
+    }
   }
 
   Future<Result<UserLocation>> detectLocation() {
     return _locationRepository.detectCurrent();
   }
 
-  Future<void> updateOriginProvince(String planId, String province) async {
-    final plan = _planById(planId);
-    if (plan == null) return;
-    final updated = plan.copyWith(originProvince: province.trim());
-    _replace(updated);
-    await _repository.save(updated);
-    notifyListeners();
+  Future<PlanActionResult> updateOriginProvince(
+    String planId,
+    String province,
+  ) {
+    return _enqueuePlanOp(planId, () async {
+      final epoch = _loadEpoch;
+      final capturedUserId = _userId;
+      final plan = _planById(planId);
+      if (plan == null) {
+        return const PlanActionResult.failed('Rencana tidak ditemukan.');
+      }
+      final updated = plan.copyWith(originProvince: province.trim());
+      return _persistUpdate(
+        updated,
+        expectedEpoch: epoch,
+        expectedUserId: capturedUserId,
+      );
+    });
   }
 
-  Future<TripPlan?> createDraft(
+  Future<PlanDraftResult> createDraft(
     PlanDraft draft,
     List<Destination> destinations,
   ) async {
+    if (destinations.length > maxAiDestinations) {
+      const msg = 'Maksimal $maxAiDestinations destinasi untuk satu rencana.';
+      _error = msg;
+      notifyListeners();
+      return const PlanDraftResult.failed(msg);
+    }
+    final epoch = _loadEpoch;
+    final capturedUserId = _userId;
     final start = DateTime(
       draft.startDate.year,
       draft.startDate.month,
@@ -105,6 +217,7 @@ class PlanController extends ChangeNotifier {
       endDate: end,
       peopleCount: draft.peopleCount,
       totalBudget: draft.totalBudget,
+      destinationIds: [for (final d in destinations) d.id],
       days: _draftDays(destinations, draft.days),
       originProvince: draft.originProvince.trim(),
       note: draft.note,
@@ -112,31 +225,180 @@ class PlanController extends ChangeNotifier {
       createdAt: DateTime.now(),
     );
 
-    _plans = _sorted([plan, ..._plans]);
-    await _repository.save(plan);
-    notifyListeners();
-    return plan;
+    final result = await _repository.create(plan);
+    if (epoch != _loadEpoch || capturedUserId != _userId) {
+      return const PlanDraftResult.cancelled();
+    }
+
+    switch (result) {
+      case Success<TripPlan>(:final value):
+        _plans = _sorted([value, ..._plans]);
+        _error = null;
+        _hasLoaded = true;
+        notifyListeners();
+        return PlanDraftResult.success(value);
+      case Failure<TripPlan>(:final failure):
+        _error = failure.message;
+        notifyListeners();
+        return PlanDraftResult.failed(failure.message);
+    }
   }
 
-  Future<void> generateAi(String planId) async {
-    if (_generatingIds.contains(planId)) return;
-    final current = _planById(planId);
-    if (current == null) return;
+  /// Adds destinations to an existing plan and optionally refreshes AI itinerary.
+  Future<PlanActionResult> addDestinationsToPlan(
+    String planId,
+    List<Destination> destinations, {
+    bool regenerateAi = true,
+  }) {
+    return _enqueuePlanOp(planId, () async {
+      final epoch = _loadEpoch;
+      final capturedUserId = _userId;
+      final plan = _planById(planId);
+      if (plan == null) {
+        return const PlanActionResult.failed('Rencana tidak ditemukan.');
+      }
 
-    _generatingIds.add(planId);
-    _replace(current.copyWith(clearAiWarning: true, clearNotice: true));
+      final existingIds = {
+        for (final id in plan.destinationIds)
+          if (id.trim().isNotEmpty) id.trim(),
+        ..._destinationIds(plan),
+      };
+      final toAdd = [
+        for (final d in destinations)
+          if (!existingIds.contains(d.id)) d,
+      ];
+      if (toAdd.isEmpty) {
+        return const PlanActionResult.failed(
+          'Destinasi sudah ada di rencana ini.',
+        );
+      }
+      if (existingIds.length + toAdd.length > maxAiDestinations) {
+        return const PlanActionResult.failed(
+          'Maksimal $maxAiDestinations destinasi untuk satu rencana.',
+        );
+      }
+
+      final mergedIds = [...existingIds, for (final d in toAdd) d.id];
+      final newItems = [
+        for (final d in toAdd)
+          PlanItem(
+            destinationId: d.id,
+            destinationName: d.name,
+            notes: d.tagline.trim().isEmpty ? null : d.tagline,
+            costEstimate: d.priceFrom == null ? null : d.priceLabel,
+          ),
+      ];
+
+      final nextDays = plan.days.isEmpty
+          ? [
+              PlanDay(
+                day: 1,
+                title: toAdd.map((d) => d.name).join(', '),
+                items: newItems,
+              ),
+            ]
+          : [
+              for (var i = 0; i < plan.days.length; i++)
+                if (i == plan.days.length - 1)
+                  PlanDay(
+                    day: plan.days[i].day,
+                    title: plan.days[i].items.isEmpty
+                        ? toAdd.map((d) => d.name).join(', ')
+                        : plan.days[i].displayTitle,
+                    items: [...plan.days[i].items, ...newItems],
+                  )
+                else
+                  plan.days[i],
+            ];
+
+      final updated = plan.copyWith(destinationIds: mergedIds, days: nextDays);
+      final saveResult = await _persistUpdate(
+        updated,
+        expectedEpoch: epoch,
+        expectedUserId: capturedUserId,
+      );
+      if (!saveResult.isSuccess) return saveResult;
+
+      if (regenerateAi) {
+        await _generateAiInternal(planId, refresh: true);
+      }
+      if (epoch != _loadEpoch || capturedUserId != _userId) {
+        return const PlanActionResult.cancelled();
+      }
+      return const PlanActionResult.success();
+    });
+  }
+
+  /// Removes a destination from an existing plan.
+  Future<PlanActionResult> removeDestinationFromPlan(
+    String planId,
+    String destinationId,
+  ) {
+    return _enqueuePlanOp(planId, () async {
+      final epoch = _loadEpoch;
+      final capturedUserId = _userId;
+      final plan = _planById(planId);
+      if (plan == null) {
+        return const PlanActionResult.failed('Rencana tidak ditemukan.');
+      }
+
+      final nextIds = plan.destinationIds
+          .where((id) => id != destinationId)
+          .toList(growable: false);
+      final nextDays = [
+        for (final day in plan.days)
+          PlanDay(
+            day: day.day,
+            title: day.displayTitle,
+            items: day.items
+                .where((item) => item.destinationId != destinationId)
+                .toList(growable: false),
+          ),
+      ];
+
+      final updated = plan.copyWith(destinationIds: nextIds, days: nextDays);
+      return _persistUpdate(
+        updated,
+        expectedEpoch: epoch,
+        expectedUserId: capturedUserId,
+      );
+    });
+  }
+
+  Future<void> generateAi(String planId, {bool refresh = false}) {
+    return _enqueuePlanOp<void>(
+      planId,
+      () => _generateAiInternal(planId, refresh: refresh),
+      onCancelled: () {},
+    );
+  }
+
+  Future<void> _generateAiInternal(String planId, {bool refresh = false}) async {
+    final targetId = resolvePlanId(planId);
+    if (_generatingIds.contains(targetId)) return;
+    final epoch = _loadEpoch;
+    final capturedUserId = _userId;
+    final savedBaseline = _planById(targetId);
+    if (savedBaseline == null) return;
+
+    _generatingIds.add(targetId);
     notifyListeners();
 
-    final destinationIds = _destinationIds(current);
-    final preference = _preferenceFor(current);
+    final destinationIds = savedBaseline.destinationIds.isNotEmpty
+        ? savedBaseline.destinationIds
+        : _destinationIds(savedBaseline);
+    final preference = _preferenceFor(savedBaseline);
 
-    final result = await _aiRepository.run(preference);
-    final latest = _planById(planId) ?? current;
+    final result = await _aiRepository.run(preference, refresh: refresh);
+    if (epoch != _loadEpoch || capturedUserId != _userId) return;
+
+    final baseline = _planById(targetId) ?? savedBaseline;
+    TripPlan? candidate;
 
     switch (result) {
       case Success<AiResult>(:final value):
         final aiDays = value.itinerary?.days ?? const <AiItineraryDay>[];
-        final mappedDays = aiDays.isEmpty ? latest.days : _mapDays(aiDays);
+        final mappedDays = aiDays.isEmpty ? baseline.days : _mapDays(aiDays);
         final missing = destinationIds.where(
           (id) => !_usedDestinationIds(mappedDays).contains(id),
         );
@@ -146,179 +408,387 @@ class PlanController extends ChangeNotifier {
             ? 'Sebagian destinasi pilihan belum masuk itinerary AI.'
             : null;
 
-        _replace(
-          latest.copyWith(
-            summary: value.itinerary?.summary.isNotEmpty == true
-                ? value.itinerary!.summary
-                : value.summary,
-            briefing: _mapBriefing(value.briefing),
-            days: mappedDays,
-            sources: [
-              for (final source in value.sources)
-                PlanSource(
-                  type: source.type,
-                  id: source.id,
-                  label: source.label,
-                ),
-            ],
-            checklist: _mergeAiChecklist(
-              latest.checklist,
-              _aiChecklistSuggestions(value),
-            ),
-            notice: value.notice,
-            engine: value.kind,
-            aiWarning: warning,
-            clearAiWarning: warning == null,
+        candidate = baseline.copyWith(
+          destinationIds: destinationIds,
+          summary: value.itinerary?.summary.isNotEmpty == true
+              ? value.itinerary!.summary
+              : value.summary,
+          briefing: _mapBriefing(value.briefing),
+          days: mappedDays,
+          sources: [
+            for (final source in value.sources)
+              PlanSource(
+                type: source.type,
+                id: source.id,
+                label: source.label,
+              ),
+          ],
+          checklist: _mergeAiChecklist(
+            baseline.checklist,
+            _aiChecklistSuggestions(value),
           ),
+          notice: value.notice,
+          clearNotice: value.notice == null,
+          engine: value.kind,
+          aiWarning: warning,
+          clearAiWarning: warning == null,
         );
       case Failure<AiResult>(:final failure):
-        _replace(latest.copyWith(aiWarning: failure.message));
+        _replace(baseline.copyWith(aiWarning: failure.message));
+        _generatingIds.remove(targetId);
+        notifyListeners();
+        return;
     }
 
-    final updated = _planById(planId);
-    if (updated != null) await _repository.save(updated);
-    _generatingIds.remove(planId);
+    // Commit AI itinerary only after backend/local persistence succeeds;
+    // keep exact pre-AI baseline (including saved notice) on persistence failure.
+    final saveResult = await _repository.update(candidate);
+    if (epoch != _loadEpoch || capturedUserId != _userId) return;
+
+    String? resolvedId;
+    switch (saveResult) {
+      case Success<TripPlan>(:final value):
+        resolvedId = value.id;
+        _replace(value, previousId: candidate.id);
+        _error = null;
+      case Failure<TripPlan>(:final failure):
+        if (failure.code == 'PLAN_CLIENT_DELETED') {
+          _removeTombstonedPlan(candidate.id);
+        } else {
+          _replace(baseline.copyWith(aiWarning: failure.message));
+        }
+        _error = failure.message;
+    }
+    final nextResolved = resolvePlanId(targetId);
+    _generatingIds.remove(targetId);
+    _generatingIds.remove(candidate.id);
+    _generatingIds.remove(nextResolved);
+    if (resolvedId != null) {
+      _generatingIds.remove(resolvedId);
+    }
     notifyListeners();
   }
 
-  Future<void> retryAi(String planId) async {
-    final plan = _planById(planId);
-    if (plan == null) return;
-    _replace(plan.copyWith(clearAiWarning: true, clearNotice: true));
-    notifyListeners();
-    await generateAi(planId);
+  Future<void> retryAi(String planId) => generateAi(planId, refresh: true);
+
+  Future<PlanActionResult> addChecklistItem(String planId, ChecklistItem item) {
+    return _enqueuePlanOp(planId, () async {
+      final epoch = _loadEpoch;
+      final capturedUserId = _userId;
+      final plan = _planById(planId);
+      if (plan == null) {
+        return const PlanActionResult.failed('Rencana tidak ditemukan.');
+      }
+      final updated = plan.copyWith(checklist: [...plan.checklist, item]);
+      return _persistUpdate(
+        updated,
+        expectedEpoch: epoch,
+        expectedUserId: capturedUserId,
+      );
+    });
   }
 
-  Future<void> addChecklistItem(String planId, ChecklistItem item) async {
-    final plan = _planById(planId);
-    if (plan == null) return;
-    final updated = plan.copyWith(checklist: [...plan.checklist, item]);
-    _replace(updated);
-    await _repository.save(updated);
-    notifyListeners();
+  Future<PlanActionResult> toggleChecklistItem(String planId, String itemId) {
+    return _enqueuePlanOp(planId, () async {
+      final epoch = _loadEpoch;
+      final capturedUserId = _userId;
+      final plan = _planById(planId);
+      if (plan == null) {
+        return const PlanActionResult.failed('Rencana tidak ditemukan.');
+      }
+      final updated = plan.copyWith(
+        checklist: [
+          for (final item in plan.checklist)
+            if (item.id == itemId)
+              item.copyWith(isCompleted: !item.isCompleted)
+            else
+              item,
+        ],
+      );
+      return _persistUpdate(
+        updated,
+        expectedEpoch: epoch,
+        expectedUserId: capturedUserId,
+      );
+    });
   }
 
-  Future<void> toggleChecklistItem(String planId, String itemId) async {
-    final plan = _planById(planId);
-    if (plan == null) return;
-    final updated = plan.copyWith(
-      checklist: [
-        for (final item in plan.checklist)
-          if (item.id == itemId)
-            item.copyWith(isCompleted: !item.isCompleted)
-          else
-            item,
-      ],
-    );
-    _replace(updated);
-    await _repository.save(updated);
-    notifyListeners();
+  Future<PlanActionResult> toggleChecklistOwned(String planId, String itemId) {
+    return _enqueuePlanOp(planId, () async {
+      final epoch = _loadEpoch;
+      final capturedUserId = _userId;
+      final plan = _planById(planId);
+      if (plan == null) {
+        return const PlanActionResult.failed('Rencana tidak ditemukan.');
+      }
+      final updated = plan.copyWith(
+        checklist: [
+          for (final item in plan.checklist)
+            if (item.id == itemId)
+              item.copyWith(isOwned: !item.isOwned)
+            else
+              item,
+        ],
+      );
+      return _persistUpdate(
+        updated,
+        expectedEpoch: epoch,
+        expectedUserId: capturedUserId,
+      );
+    });
   }
 
-  Future<void> toggleChecklistOwned(String planId, String itemId) async {
-    final plan = _planById(planId);
-    if (plan == null) return;
-    final updated = plan.copyWith(
-      checklist: [
-        for (final item in plan.checklist)
-          if (item.id == itemId)
-            item.copyWith(isOwned: !item.isOwned)
-          else
-            item,
-      ],
-    );
-    _replace(updated);
-    await _repository.save(updated);
-    notifyListeners();
-  }
-
-  Future<void> selectChecklistAlternative(
+  Future<PlanActionResult> selectChecklistAlternative(
     String planId,
     String group,
     String itemId,
-  ) async {
-    final plan = _planById(planId);
-    if (plan == null) return;
-    final updated = plan.copyWith(
-      checklist: [
-        for (final item in plan.checklist)
-          if (item.alternativeGroup == group)
-            item.copyWith(isOwned: item.id != itemId)
-          else
-            item,
-      ],
-    );
-    _replace(updated);
-    await _repository.save(updated);
-    notifyListeners();
-  }
-
-  Future<void> markAllChecklistReady(String planId) async {
-    final plan = _planById(planId);
-    if (plan == null || plan.checklist.isEmpty) return;
-    final updated = plan.copyWith(
-      checklist: [
-        for (final item in plan.checklist) item.copyWith(isCompleted: true),
-      ],
-    );
-    _replace(updated);
-    await _repository.save(updated);
-    notifyListeners();
-  }
-
-  /// Returns an error message, or null when generation succeeded.
-  Future<String?> generateChecklist(String planId) async {
-    if (_generatingChecklistIds.contains(planId)) return null;
-    final plan = _planById(planId);
-    if (plan == null) return 'Rencana tidak ditemukan.';
-
-    _generatingChecklistIds.add(planId);
-    notifyListeners();
-
-    try {
-      final result = await _aiRepository.run(_preferenceFor(plan));
-      final latest = _planById(planId) ?? plan;
-
-      switch (result) {
-        case Success<AiResult>(:final value):
-          final merged = _mergeAiChecklist(
-            latest.checklist,
-            _aiChecklistSuggestions(value),
-          );
-          if (merged.length == latest.checklist.length) {
-            return 'Checklist AI sudah lengkap.';
-          }
-          final updated = latest.copyWith(checklist: merged);
-          _replace(updated);
-          await _repository.save(updated);
-          return null;
-        case Failure<AiResult>(:final failure):
-          return failure.message;
+  ) {
+    return _enqueuePlanOp(planId, () async {
+      final epoch = _loadEpoch;
+      final capturedUserId = _userId;
+      final plan = _planById(planId);
+      if (plan == null) {
+        return const PlanActionResult.failed('Rencana tidak ditemukan.');
       }
-    } finally {
-      _generatingChecklistIds.remove(planId);
+      final updated = plan.copyWith(
+        checklist: [
+          for (final item in plan.checklist)
+            if (item.alternativeGroup == group)
+              item.copyWith(isOwned: item.id != itemId)
+            else
+              item,
+        ],
+      );
+      return _persistUpdate(
+        updated,
+        expectedEpoch: epoch,
+        expectedUserId: capturedUserId,
+      );
+    });
+  }
+
+  Future<PlanActionResult> markAllChecklistReady(String planId) {
+    return _enqueuePlanOp(planId, () async {
+      final epoch = _loadEpoch;
+      final capturedUserId = _userId;
+      final plan = _planById(planId);
+      if (plan == null) {
+        return const PlanActionResult.failed('Rencana tidak ditemukan.');
+      }
+      if (plan.checklist.isEmpty) return const PlanActionResult.success();
+      final updated = plan.copyWith(
+        checklist: [
+          for (final item in plan.checklist) item.copyWith(isCompleted: true),
+        ],
+      );
+      return _persistUpdate(
+        updated,
+        expectedEpoch: epoch,
+        expectedUserId: capturedUserId,
+      );
+    });
+  }
+
+  /// Generates AI checklist suggestions and persists them.
+  Future<PlanActionResult> generateChecklist(String planId) {
+    return _enqueuePlanOp(planId, () async {
+      final targetId = resolvePlanId(planId);
+      if (_generatingChecklistIds.contains(targetId)) {
+        return const PlanActionResult.cancelled();
+      }
+      final epoch = _loadEpoch;
+      final capturedUserId = _userId;
+      final plan = _planById(targetId);
+      if (plan == null) {
+        return const PlanActionResult.failed('Rencana tidak ditemukan.');
+      }
+
+      _generatingChecklistIds.add(targetId);
       notifyListeners();
+
+      try {
+        final result = await _aiRepository.run(_preferenceFor(plan));
+        if (epoch != _loadEpoch || capturedUserId != _userId) {
+          return const PlanActionResult.cancelled();
+        }
+        final latest = _planById(targetId) ?? plan;
+
+        switch (result) {
+          case Success<AiResult>(:final value):
+            final merged = _mergeAiChecklist(
+              latest.checklist,
+              _aiChecklistSuggestions(value),
+            );
+            if (merged.length == latest.checklist.length) {
+              return const PlanActionResult.success(
+                'Checklist AI sudah lengkap.',
+              );
+            }
+            final updated = latest.copyWith(checklist: merged);
+            return await _persistUpdate(
+              updated,
+              expectedEpoch: epoch,
+              expectedUserId: capturedUserId,
+            );
+          case Failure<AiResult>(:final failure):
+            return PlanActionResult.failed(failure.message);
+        }
+      } finally {
+        if (epoch == _loadEpoch && capturedUserId == _userId) {
+          _generatingChecklistIds.remove(targetId);
+          _generatingChecklistIds.remove(plan.id);
+          _generatingChecklistIds.remove(resolvePlanId(targetId));
+          notifyListeners();
+        }
+      }
+    });
+  }
+
+  /// Deletes a plan from repository and local state.
+  Future<PlanActionResult> deletePlan(String planId) {
+    return _enqueuePlanOp(planId, () async {
+      final epoch = _loadEpoch;
+      final capturedUserId = _userId;
+      final targetId = resolvePlanId(planId);
+      final result = await _repository.delete(targetId);
+      if (epoch != _loadEpoch || capturedUserId != _userId) {
+        return const PlanActionResult.cancelled();
+      }
+      switch (result) {
+        case Success<void>():
+          _plans = _plans
+              .where((plan) => plan.id != targetId && plan.id != planId)
+              .toList();
+          _error = null;
+          notifyListeners();
+          return const PlanActionResult.success();
+        case Failure<void>(:final failure):
+          _error = failure.message;
+          notifyListeners();
+          return PlanActionResult.failed(failure.message);
+      }
+    });
+  }
+
+  Future<T> _enqueuePlanOp<T>(
+    String planId,
+    Future<T> Function() op, {
+    T Function()? onCancelled,
+  }) {
+    final enqueuedEpoch = _loadEpoch;
+    final enqueuedUserId = _userId;
+    final queueKey = resolvePlanId(planId);
+    final prev = _planQueues[queueKey] ?? Future<void>.value();
+    final completer = Completer<T>();
+    final next = prev.catchError((_) {}).then((_) async {
+      if (enqueuedEpoch != _loadEpoch || enqueuedUserId != _userId) {
+        if (onCancelled != null) {
+          completer.complete(onCancelled());
+        } else {
+          completer.complete(const PlanActionResult.cancelled() as T);
+        }
+        return;
+      }
+      try {
+        final value = await op();
+        completer.complete(value);
+      } catch (e, st) {
+        completer.completeError(e, st);
+      }
+    });
+    late final Future<void> entry;
+    entry = next.whenComplete(() {
+      if (identical(_planQueues[queueKey], entry)) {
+        _planQueues.remove(queueKey);
+      }
+    });
+    _planQueues[queueKey] = entry;
+    return completer.future;
+  }
+
+  Future<PlanActionResult> _persistUpdate(
+    TripPlan updated, {
+    bool notifyOnSuccess = true,
+    int? expectedEpoch,
+    String? expectedUserId,
+  }) async {
+    final epoch = expectedEpoch ?? _loadEpoch;
+    final capturedUserId = expectedUserId ?? _userId;
+    final previous = _planById(updated.id);
+    _replace(updated);
+    if (notifyOnSuccess) notifyListeners();
+
+    final result = await _repository.update(updated);
+    if (epoch != _loadEpoch || capturedUserId != _userId) {
+      return const PlanActionResult.cancelled();
+    }
+
+    switch (result) {
+      case Success<TripPlan>(:final value):
+        _replace(value, previousId: updated.id);
+        _error = null;
+        if (notifyOnSuccess) notifyListeners();
+        return const PlanActionResult.success();
+      case Failure<TripPlan>(:final failure):
+        if (failure.code == 'PLAN_CLIENT_DELETED') {
+          _removeTombstonedPlan(updated.id);
+        } else if (previous != null) {
+          _replace(previous);
+        }
+        _error = failure.message;
+        notifyListeners();
+        return PlanActionResult.failed(failure.message);
     }
   }
 
-  Future<void> deletePlan(String planId) async {
-    await _repository.delete(planId);
-    _plans = _plans.where((plan) => plan.id != planId).toList();
-    notifyListeners();
+  void _removeTombstonedPlan(String id) {
+    final resolved = resolvePlanId(id);
+    _plans = _plans
+        .where(
+          (p) =>
+              p.id != id &&
+              p.id != resolved &&
+              p.clientId?.trim() != id &&
+              p.clientId?.trim() != resolved,
+        )
+        .toList();
+    _idAliases.removeWhere(
+      (k, v) => k == id || k == resolved || v == id || v == resolved,
+    );
   }
 
-  TripPlan? _planById(String id) {
-    for (final plan in _plans) {
-      if (plan.id == id) return plan;
+  TripPlan? _planById(String id) => findPlanById(id);
+
+  void _replace(TripPlan plan, {String? previousId}) {
+    if (previousId != null && previousId != plan.id) {
+      _idAliases[previousId] = plan.id;
+      if (_generatingIds.remove(previousId)) {
+        _generatingIds.add(plan.id);
+      }
+      if (_generatingChecklistIds.remove(previousId)) {
+        _generatingChecklistIds.add(plan.id);
+      }
     }
-    return null;
-  }
-
-  void _replace(TripPlan plan) {
-    _plans = _sorted([
-      for (final item in _plans)
-        if (item.id == plan.id) plan else item,
-    ]);
+    final cid = plan.clientId?.trim();
+    if (cid != null && cid.isNotEmpty && cid != plan.id) {
+      _idAliases[cid] = plan.id;
+    }
+    final next = <TripPlan>[];
+    var inserted = false;
+    for (final item in _plans) {
+      if (item.id == plan.id || (previousId != null && item.id == previousId)) {
+        if (!inserted) {
+          next.add(plan);
+          inserted = true;
+        }
+      } else {
+        next.add(item);
+      }
+    }
+    if (!inserted) {
+      next.add(plan);
+    }
+    _plans = _sorted(next);
   }
 
   List<TripPlan> _sorted(List<TripPlan> plans) {
@@ -351,7 +821,7 @@ class PlanController extends ChangeNotifier {
       return PlanDay(
         day: index + 1,
         title: assigned.isEmpty
-            ? 'Hari bebas'
+            ? 'Hari ${index + 1}'
             : assigned.map((item) => item.name).join(', '),
         items: [
           for (final destination in assigned)
@@ -381,6 +851,8 @@ class PlanController extends ChangeNotifier {
               PlanItem(
                 destinationId: item.destinationId,
                 destinationName: item.destinationName,
+                routeId: item.routeId,
+                supportIds: item.supportIds,
                 activity: item.activity,
                 startTime: item.startTime,
                 costEstimate: item.costEstimate,
@@ -401,16 +873,40 @@ class PlanController extends ChangeNotifier {
   }
 
   AiPreference _preferenceFor(TripPlan plan) {
+    final ids = (plan.destinationIds.isNotEmpty
+            ? plan.destinationIds
+            : _destinationIds(plan))
+        .take(maxAiDestinations)
+        .toList(growable: false);
+    final province = _clampText(plan.originProvince, 80);
+    final title = _clampText(plan.title, 120);
+    final note = _clampText(plan.note, 500);
     return AiPreference(
-      destinationIds: _destinationIds(plan),
-      rawText: _destinationNames(plan).join(', '),
-      originProvince: plan.originProvince.trim().isEmpty
-          ? null
-          : plan.originProvince.trim(),
+      destinationIds: ids,
+      rawText: '',
+      originProvince: province.isEmpty ? null : province,
       durationDays: plan.durationDays.clamp(1, 7),
+      peopleCount: plan.peopleCount.clamp(1, 30),
+      startDate: _isoDate(plan.startDate),
+      planTitle: title.isEmpty ? null : title,
       budgetPerPerson: plan.totalBudget > 0 ? plan.budgetPerPerson : null,
-      note: plan.note.trim().isEmpty ? null : plan.note.trim(),
+      needsAccommodation: plan.durationDays > 1,
+      needsTransport: true,
+      note: note.isEmpty ? null : note,
     );
+  }
+
+  String _clampText(String value, int maxLength) {
+    final trimmed = value.trim();
+    if (trimmed.length <= maxLength) return trimmed;
+    return trimmed.substring(0, maxLength).trimRight();
+  }
+
+  String _isoDate(DateTime date) {
+    final y = date.year.toString().padLeft(4, '0');
+    final m = date.month.toString().padLeft(2, '0');
+    final d = date.day.toString().padLeft(2, '0');
+    return '$y-$m-$d';
   }
 
   List<AiChecklistItem> _aiChecklistSuggestions(AiResult value) {
@@ -504,18 +1000,6 @@ class PlanController extends ChangeNotifier {
       }
     }
     return ids.toList(growable: false);
-  }
-
-  List<String> _destinationNames(TripPlan plan) {
-    final names = <String>{};
-    for (final day in plan.days) {
-      for (final item in day.items) {
-        if (item.destinationName.trim().isNotEmpty) {
-          names.add(item.destinationName.trim());
-        }
-      }
-    }
-    return names.toList(growable: false);
   }
 
   Set<String> _usedDestinationIds(List<PlanDay> days) {

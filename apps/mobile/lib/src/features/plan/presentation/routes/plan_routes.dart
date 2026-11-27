@@ -1,8 +1,10 @@
+import 'package:flutter/widgets.dart';
 import 'package:go_router/go_router.dart';
+import 'package:provider/provider.dart';
 
 import 'package:dolenae_mobile/src/features/checklist/presentation/screens/add_checklist_item_screen.dart';
+import 'package:dolenae_mobile/src/features/destinations/presentation/controllers/destinations_controller.dart';
 import 'package:dolenae_mobile/src/features/plan/domain/entities/plan_draft.dart';
-import 'package:dolenae_mobile/src/features/plan/presentation/screens/create_plan_screen.dart';
 import 'package:dolenae_mobile/src/features/plan/presentation/screens/plan_checklist_screen.dart';
 import 'package:dolenae_mobile/src/features/plan/presentation/screens/plan_detail_screen.dart';
 import 'package:dolenae_mobile/src/features/plan/presentation/screens/plan_generating_screen.dart';
@@ -13,17 +15,44 @@ import 'package:dolenae_mobile/src/features/plan/presentation/screens/select_des
 import 'package:dolenae_mobile/src/features/plan/presentation/screens/select_facility_screen.dart';
 import 'package:dolenae_mobile/src/features/plan/presentation/screens/trip_plan_screen.dart';
 
+Widget _buildPlanNewRoute(BuildContext context, GoRouterState state) {
+  final extra = state.extra;
+  if (extra is PlanNewArgs) {
+    return PlanNewScreen(
+      initialDestinations: extra.initialDestinations,
+      initialName: extra.initialName,
+      initialNote: extra.initialNote,
+      initialOriginProvince: extra.initialOriginProvince,
+    );
+  }
+  final destId = state.uri.queryParameters['destinationId']?.trim();
+  if (destId != null && destId.isNotEmpty) {
+    final dest = context
+        .read<DestinationsController>()
+        .items
+        .where((d) => d.id == destId)
+        .toList(growable: false);
+    if (dest.isNotEmpty) {
+      return PlanNewScreen(
+        initialDestinations: dest,
+        initialName: 'Trip ${dest.first.name}',
+      );
+    }
+  }
+  return const PlanNewScreen();
+}
+
 final List<RouteBase> planRoutes = [
-  GoRoute(path: '/plan/create', builder: (_, _) => const CreatePlanScreen()),
+  GoRoute(path: '/plan/create', builder: _buildPlanNewRoute),
   GoRoute(
     path: '/plan/select-destination',
     builder: (_, state) {
-      final draft = state.extra is PlanDraft ? state.extra! as PlanDraft : null;
+      final extra = state.extra;
+      final draft = extra is PlanDraft ? extra : null;
+      final selectedIds = extra is Set<String> ? extra : const <String>{};
       return SelectDestinationScreen(
         draft: draft,
-        initialSelectedIds: draft == null
-            ? const {'dest-bromo', 'dest-prau'}
-            : const {},
+        initialSelectedIds: selectedIds,
       );
     },
   ),
@@ -33,7 +62,7 @@ final List<RouteBase> planRoutes = [
   ),
   GoRoute(path: '/plan/item', builder: (_, _) => const PlanItemDetailScreen()),
   GoRoute(path: '/plan/success', builder: (_, _) => const PlanSuccessScreen()),
-  GoRoute(path: '/plan/new', builder: (_, _) => const PlanNewScreen()),
+  GoRoute(path: '/plan/new', builder: _buildPlanNewRoute),
   GoRoute(
     path: '/plan/generating',
     builder: (_, state) {

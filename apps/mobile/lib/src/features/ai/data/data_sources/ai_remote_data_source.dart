@@ -72,22 +72,33 @@ class AiRemoteDataSource {
     return AiOptions.fromJson(data.cast<String, dynamic>());
   }
 
+  static String _clampText(String value, int maxLength) {
+    final trimmed = value.trim();
+    if (trimmed.length <= maxLength) return trimmed;
+    return trimmed.substring(0, maxLength).trimRight();
+  }
+
   Future<AiResult> generate(
     AiPreference preference, {
     bool refresh = false,
   }) async {
-    final note = preference.note?.trim() ?? '';
+    final destinationIds = preference.destinationIds
+        .map((id) => id.trim())
+        .where((id) => id.isNotEmpty)
+        .take(7)
+        .toList(growable: false);
+    final originProvince = _clampText(preference.originProvince ?? '', 80);
+    final rawText = _clampText(preference.rawText, 400);
+    final planTitle = _clampText(preference.planTitle ?? '', 120);
+    final note = _clampText(preference.note ?? '', 500);
     final difficulty = _difficultyValue(preference.difficulty);
     final body = await _client.post(
       '/ai/itineraries',
       timeout: _aiTimeout,
       body: {
-        if (preference.destinationIds.isNotEmpty)
-          'destinationIds': preference.destinationIds,
-        if (preference.originProvince?.trim().isNotEmpty ?? false)
-          'originProvince': preference.originProvince!.trim(),
-        if (preference.rawText.trim().isNotEmpty)
-          'rawText': preference.rawText.trim(),
+        if (destinationIds.isNotEmpty) 'destinationIds': destinationIds,
+        if (originProvince.isNotEmpty) 'originProvince': originProvince,
+        if (rawText.isNotEmpty) 'rawText': rawText,
         if (preference.regions.isNotEmpty) 'regions': preference.regions,
         if (preference.activities.isNotEmpty)
           'activities': preference.activities,
@@ -99,6 +110,11 @@ class AiRemoteDataSource {
           'budgetPerPerson': preference.budgetPerPerson,
         'needsAccommodation': preference.needsAccommodation,
         'needsTransport': preference.needsTransport,
+        if (preference.peopleCount != null)
+          'peopleCount': preference.peopleCount,
+        if (preference.startDate?.trim().isNotEmpty ?? false)
+          'startDate': preference.startDate!.trim(),
+        if (planTitle.isNotEmpty) 'planTitle': planTitle,
         if (note.isNotEmpty) 'note': note,
         if (refresh) 'refresh': true,
       },

@@ -4,6 +4,7 @@ class AiItineraryItem {
     this.destinationId,
     required this.destinationName,
     this.routeId,
+    this.supportIds = const [],
     required this.activity,
     this.startTime,
     this.costEstimate,
@@ -13,6 +14,7 @@ class AiItineraryItem {
   final String? destinationId;
   final String destinationName;
   final String? routeId;
+  final List<String> supportIds;
   final String activity;
   final String? startTime;
   final String? costEstimate;
@@ -23,6 +25,9 @@ class AiItineraryItem {
       destinationId: json['destinationId'] as String?,
       destinationName: json['destinationName'] as String? ?? 'Destinasi',
       routeId: json['routeId'] as String?,
+      supportIds: (json['supportIds'] as List? ?? const [])
+          .whereType<String>()
+          .toList(growable: false),
       activity: json['activity'] as String? ?? 'Eksplor destinasi',
       startTime: json['startTime'] as String?,
       costEstimate: json['costEstimate'] as String?,

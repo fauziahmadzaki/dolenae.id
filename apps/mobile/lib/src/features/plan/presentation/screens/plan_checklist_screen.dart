@@ -55,35 +55,53 @@ class _PlanChecklistScreenState extends State<PlanChecklistScreen> {
       '/plan/${widget.planId}/checklist/add',
     );
     if (item == null || !mounted) return;
-    await controller.addChecklistItem(widget.planId, item);
-    if (!mounted) return;
+    final result = await controller.addChecklistItem(widget.planId, item);
+    if (!mounted || result.isCancelled) return;
+    if (result.isFailed) {
+      showDnToast(
+        context,
+        result.message ?? 'Item gagal disimpan.',
+        type: DnToastType.gagal,
+      );
+      return;
+    }
     showDnToast(context, '${item.name} ditambahkan', type: DnToastType.sukses);
   }
 
   Future<void> _generate(PlanController controller) async {
-    final message = await controller.generateChecklist(widget.planId);
-    if (!mounted) return;
-    if (message == null) {
+    final result = await controller.generateChecklist(widget.planId);
+    if (!mounted || result.isCancelled) return;
+    if (result.isFailed) {
       showDnToast(
         context,
-        'Checklist AI ditambahkan',
-        type: DnToastType.sukses,
-        icon: AppIcons.sparkles,
+        result.message ?? 'Checklist AI gagal dibuat.',
+        type: DnToastType.gagal,
       );
+      return;
+    }
+    if (result.message != null) {
+      showDnToast(context, result.message!, type: DnToastType.info);
       return;
     }
     showDnToast(
       context,
-      message,
-      type: message == 'Checklist AI sudah lengkap.'
-          ? DnToastType.info
-          : DnToastType.gagal,
+      'Checklist AI ditambahkan',
+      type: DnToastType.sukses,
+      icon: AppIcons.sparkles,
     );
   }
 
   Future<void> _markAll(PlanController controller) async {
-    await controller.markAllChecklistReady(widget.planId);
-    if (!mounted) return;
+    final result = await controller.markAllChecklistReady(widget.planId);
+    if (!mounted || result.isCancelled) return;
+    if (result.isFailed) {
+      showDnToast(
+        context,
+        result.message ?? 'Gagal memperbarui checklist.',
+        type: DnToastType.gagal,
+      );
+      return;
+    }
     showDnToast(
       context,
       'Semua item ditandai siap',
@@ -92,10 +110,20 @@ class _PlanChecklistScreenState extends State<PlanChecklistScreen> {
     );
   }
 
+  Future<void> _handleChecklistAction(Future<PlanActionResult> action) async {
+    final result = await action;
+    if (!mounted || result.isCancelled || result.isSuccess) return;
+    showDnToast(
+      context,
+      result.message ?? 'Gagal memperbarui checklist.',
+      type: DnToastType.gagal,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final controller = context.watch<PlanController>();
-    final plan = _findPlan(controller.plans, widget.planId);
+    final plan = controller.findPlanById(widget.planId);
 
     return Scaffold(
       backgroundColor: AppColors.canvas,
@@ -164,15 +192,19 @@ class _PlanChecklistScreenState extends State<PlanChecklistScreen> {
                                               _selectedCategory,
                                         )
                                         .toList(growable: false),
-                              onToggle: (id) =>
-                                  controller.toggleChecklistItem(plan.id, id),
-                              onToggleOwned: (id) =>
-                                  controller.toggleChecklistOwned(plan.id, id),
+                              onToggle: (id) => _handleChecklistAction(
+                                controller.toggleChecklistItem(plan.id, id),
+                              ),
+                              onToggleOwned: (id) => _handleChecklistAction(
+                                controller.toggleChecklistOwned(plan.id, id),
+                              ),
                               onSelectAlternative: (group, id) =>
-                                  controller.selectChecklistAlternative(
-                                    plan.id,
-                                    group,
-                                    id,
+                                  _handleChecklistAction(
+                                    controller.selectChecklistAlternative(
+                                      plan.id,
+                                      group,
+                                      id,
+                                    ),
                                   ),
                             ),
                           ],
@@ -191,13 +223,6 @@ class _PlanChecklistScreenState extends State<PlanChecklistScreen> {
               ),
             ),
     );
-  }
-
-  TripPlan? _findPlan(List<TripPlan> plans, String id) {
-    for (final plan in plans) {
-      if (plan.id == id) return plan;
-    }
-    return null;
   }
 }
 

@@ -28,7 +28,7 @@ class _TripPlanScreenState extends State<TripPlanScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       final controller = context.read<PlanController>();
-      if (controller.plans.isEmpty && !controller.isLoading) {
+      if (!controller.hasLoaded && !controller.isLoading) {
         controller.load();
       }
     });
@@ -80,73 +80,105 @@ class _TripPlanScreenState extends State<TripPlanScreen> {
     }
 
     if (controller.error != null && controller.plans.isEmpty) {
-      return Padding(
-        padding: const EdgeInsets.all(AppSpacing.s5),
-        child: Center(
-          child: DnEmptyState(
-            variant: DnEmptyVariant.gagal,
-            body: controller.error!,
-            actionLabel: 'Coba lagi',
-            onAction: controller.load,
+      return RefreshIndicator(
+        color: AppColors.primary,
+        backgroundColor: AppColors.surface,
+        onRefresh: controller.load,
+        child: LayoutBuilder(
+          builder: (context, constraints) => SingleChildScrollView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            padding: const EdgeInsets.all(AppSpacing.s5),
+            child: ConstrainedBox(
+              constraints: BoxConstraints(
+                minHeight: constraints.maxHeight - AppSpacing.s5 * 2,
+              ),
+              child: Center(
+                child: DnEmptyState(
+                  variant: DnEmptyVariant.gagal,
+                  body: controller.error!,
+                  actionLabel: 'Coba lagi',
+                  onAction: controller.load,
+                ),
+              ),
+            ),
           ),
         ),
       );
     }
 
     if (controller.plans.isEmpty) {
-      return Padding(
-        padding: const EdgeInsets.all(AppSpacing.s5),
-        child: Center(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const DnEmptyState(
-                variant: DnEmptyVariant.belumAdaData,
-                title: 'Belum ada rencana',
-                body:
-                    'Susun rencana perjalanan pertamamu, lalu lihat '
-                    'itinerary dan estimasi biayanya di sini.',
+      return RefreshIndicator(
+        color: AppColors.primary,
+        backgroundColor: AppColors.surface,
+        onRefresh: controller.load,
+        child: LayoutBuilder(
+          builder: (context, constraints) => SingleChildScrollView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            padding: const EdgeInsets.all(AppSpacing.s5),
+            child: ConstrainedBox(
+              constraints: BoxConstraints(
+                minHeight: constraints.maxHeight - AppSpacing.s5 * 2,
               ),
-              const SizedBox(height: AppSpacing.s5),
-              DnPrimaryButton(
-                label: 'Buat rencana',
-                icon: AppIcons.plus,
-                onPressed: _createPlan,
+              child: Center(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const DnEmptyState(
+                      variant: DnEmptyVariant.belumAdaData,
+                      title: 'Belum ada rencana',
+                      body:
+                          'Susun rencana perjalanan pertamamu, lalu lihat '
+                          'itinerary dan estimasi biayanya di sini.',
+                    ),
+                    const SizedBox(height: AppSpacing.s5),
+                    DnPrimaryButton(
+                      label: 'Buat rencana',
+                      icon: AppIcons.plus,
+                      onPressed: _createPlan,
+                    ),
+                  ],
+                ),
               ),
-            ],
+            ),
           ),
         ),
       );
     }
 
-    return ListView.separated(
-      padding: const EdgeInsets.fromLTRB(
-        AppSpacing.s4,
-        AppSpacing.s4,
-        AppSpacing.s4,
-        AppSpacing.s5,
-      ),
-      itemCount: controller.plans.length + 1,
-      separatorBuilder: (_, _) => const SizedBox(height: AppSpacing.s3),
-      itemBuilder: (context, index) {
-        if (index == controller.plans.length) {
-          return Padding(
-            padding: const EdgeInsets.only(top: AppSpacing.s2),
-            child: DnOutlineButton(
-              label: 'Buat rencana baru',
-              icon: AppIcons.plus,
-              onPressed: _createPlan,
-            ),
-          );
-        }
+    return RefreshIndicator(
+      color: AppColors.primary,
+      backgroundColor: AppColors.surface,
+      onRefresh: controller.load,
+      child: ListView.separated(
+        physics: const AlwaysScrollableScrollPhysics(),
+        padding: const EdgeInsets.fromLTRB(
+          AppSpacing.s4,
+          AppSpacing.s4,
+          AppSpacing.s4,
+          AppSpacing.s5,
+        ),
+        itemCount: controller.plans.length + 1,
+        separatorBuilder: (_, _) => const SizedBox(height: AppSpacing.s3),
+        itemBuilder: (context, index) {
+          if (index == controller.plans.length) {
+            return Padding(
+              padding: const EdgeInsets.only(top: AppSpacing.s2),
+              child: DnOutlineButton(
+                label: 'Buat rencana baru',
+                icon: AppIcons.plus,
+                onPressed: _createPlan,
+              ),
+            );
+          }
 
-        final plan = controller.plans[index];
-        return PlanSummaryCard(
-          plan: plan,
-          generating: controller.isGenerating(plan.id),
-          onTap: () => context.push('/plan/${plan.id}'),
-        );
-      },
+          final plan = controller.plans[index];
+          return PlanSummaryCard(
+            plan: plan,
+            generating: controller.isGenerating(plan.id),
+            onTap: () => context.push('/plan/${plan.id}'),
+          );
+        },
+      ),
     );
   }
 }

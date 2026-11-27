@@ -15,6 +15,9 @@ class AiPreference {
     this.budgetPerPerson,
     this.needsAccommodation = false,
     this.needsTransport = false,
+    this.peopleCount,
+    this.startDate,
+    this.planTitle,
     this.note = '',
   });
 
@@ -34,6 +37,9 @@ class AiPreference {
   final int? budgetPerPerson;
   final bool needsAccommodation;
   final bool needsTransport;
+  final int? peopleCount;
+  final String? startDate;
+  final String? planTitle;
   final String? note;
 
   AiPreference copyWith({
@@ -51,6 +57,9 @@ class AiPreference {
     bool clearBudget = false,
     bool? needsAccommodation,
     bool? needsTransport,
+    int? peopleCount,
+    String? startDate,
+    String? planTitle,
     String? note,
   }) {
     return AiPreference(
@@ -67,6 +76,9 @@ class AiPreference {
           : (budgetPerPerson ?? this.budgetPerPerson),
       needsAccommodation: needsAccommodation ?? this.needsAccommodation,
       needsTransport: needsTransport ?? this.needsTransport,
+      peopleCount: peopleCount ?? this.peopleCount,
+      startDate: startDate ?? this.startDate,
+      planTitle: planTitle ?? this.planTitle,
       note: note ?? this.note,
     );
   }
@@ -82,7 +94,10 @@ class AiPreference {
       durationDays != null ||
       budgetPerPerson != null ||
       needsAccommodation ||
-      needsTransport;
+      needsTransport ||
+      peopleCount != null ||
+      (startDate?.trim().isNotEmpty ?? false) ||
+      (planTitle?.trim().isNotEmpty ?? false);
 }
 
 /// Satu rekomendasi beserta skor dan alasannya.

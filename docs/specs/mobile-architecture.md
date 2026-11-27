@@ -202,6 +202,20 @@ profil”; satu-satunya pintu ke `/profile/edit` adalah tombol tersebut.
 Filter lain dari `dev` (medan, tingkat kesulitan, fasilitas, dan urutan) tetap
 berjalan bersama pencarian kata kunci dan fallback kategori di atas.
 
+## Rencana Perjalanan (Plan) Per-Akun & Sinkronisasi
+
+- `PlanRepositoryImpl` memakai `PlanRemoteDataSource` (`/api/plans`) sebagai
+  sumber utama untuk akun terautentikasi dan `PlanLocalDataSource`
+  (`plan.list.v1.<userScope>`) sebagai cache offline (tanpa auto-seed
+  `PlanSeedData`; entri legacy `engine == 'seed'` dibersihkan saat baca,
+  sementara rencana non-seed lokal dimigrasikan secara idempoten).
+- `PlanController` menjaga konsistensi perpindahan akun dengan `hasLoaded` dan
+  penghitung `_loadEpoch` agar respons jaringan akun lama tidak menimpa state
+  akun baru.
+- Penambahan destinasi dari Detail Destinasi atau Hasil AI memakai
+  `showAddToPlanSheet` (atau langsung ke `/plan/new` saat akun belum memiliki
+  rencana).
+
 ## State management
 
 - Tetap memakai `provider` + `ChangeNotifier`. Tidak ada state library baru.

@@ -16,9 +16,9 @@ import 'package:dolenae_mobile/src/shared/widgets/dn_buttons.dart';
 class CreatePlanScreen extends StatefulWidget {
   const CreatePlanScreen({
     super.key,
-    this.initialName = 'Trip Bromo',
-    this.initialDestination = 'Gunung Bromo',
-    this.initialDateRange = '12 - 14 Jul 2026',
+    this.initialName = '',
+    this.initialDestination = '',
+    this.initialDateRange = '',
     this.initialPeopleCount = 2,
     this.onSelectDestination,
     this.onSelectDate,

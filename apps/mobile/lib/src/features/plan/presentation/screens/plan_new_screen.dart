@@ -6,15 +6,33 @@ import 'package:dolenae_mobile/src/app/theme/app_colors.dart';
 import 'package:dolenae_mobile/src/app/theme/app_radius.dart';
 import 'package:dolenae_mobile/src/app/theme/app_spacing.dart';
 import 'package:dolenae_mobile/src/app/theme/app_text_styles.dart';
+import 'package:dolenae_mobile/src/features/destinations/domain/entities/destination.dart';
 import 'package:dolenae_mobile/src/features/destinations/presentation/controllers/destinations_controller.dart';
 import 'package:dolenae_mobile/src/features/plan/domain/entities/plan_draft.dart';
 import 'package:dolenae_mobile/src/features/plan/presentation/controllers/plan_controller.dart';
+import 'package:dolenae_mobile/src/features/plan/presentation/screens/plan_generating_screen.dart';
 import 'package:dolenae_mobile/src/shared/icons/app_icons.dart';
 import 'package:dolenae_mobile/src/shared/widgets/dn_app_bar.dart';
 import 'package:dolenae_mobile/src/shared/widgets/dn_buttons.dart';
+import 'package:dolenae_mobile/src/shared/widgets/dn_chip.dart';
 import 'package:dolenae_mobile/src/shared/widgets/dn_date_field.dart';
 import 'package:dolenae_mobile/src/shared/widgets/dn_input.dart';
 import 'package:dolenae_mobile/src/shared/widgets/dn_stepper.dart';
+
+/// Optional pre-filled arguments when opening [PlanNewScreen] from a destination.
+class PlanNewArgs {
+  const PlanNewArgs({
+    this.initialDestinations = const [],
+    this.initialName = '',
+    this.initialNote = '',
+    this.initialOriginProvince = '',
+  });
+
+  final List<Destination> initialDestinations;
+  final String initialName;
+  final String initialNote;
+  final String initialOriginProvince;
+}
 
 /// Layar Tambah Rencana - Atur (Node Figma: 85:1439).
 ///
@@ -23,6 +41,7 @@ import 'package:dolenae_mobile/src/shared/widgets/dn_stepper.dart';
 class PlanNewScreen extends StatefulWidget {
   const PlanNewScreen({
     super.key,
+    this.initialDestinations = const [],
     this.initialName = '',
     this.initialNote = '',
     this.initialOriginProvince = '',
@@ -30,6 +49,7 @@ class PlanNewScreen extends StatefulWidget {
     this.onBack,
   });
 
+  final List<Destination> initialDestinations;
   final String initialName;
   final String initialNote;
   final String initialOriginProvince;
@@ -49,6 +69,9 @@ class _PlanNewScreenState extends State<PlanNewScreen> {
   late String _name = widget.initialName;
   late String _note = widget.initialNote;
   late String _originProvince = widget.initialOriginProvince;
+  late List<Destination> _selectedDestinations = widget.initialDestinations
+      .take(PlanController.maxAiDestinations)
+      .toList();
   late DateTime _startDate = DateTime.now().add(const Duration(days: 14));
   int _days = 2;
   int _people = 2;
@@ -135,18 +158,44 @@ class _PlanNewScreenState extends State<PlanNewScreen> {
       return;
     }
 
-    context.push(
-      '/plan/select-destination',
-      extra: PlanDraft(
-        name: payload.name,
-        startDate: _startDate,
-        days: payload.days,
-        peopleCount: payload.people,
-        totalBudget: payload.budget,
-        originProvince: _originProvince.trim(),
-        note: _note.trim(),
-      ),
+    final draft = PlanDraft(
+      name: payload.name,
+      startDate: _startDate,
+      days: payload.days,
+      peopleCount: payload.people,
+      totalBudget: payload.budget,
+      originProvince: _originProvince.trim(),
+      note: _note.trim(),
     );
+
+    if (_selectedDestinations.isNotEmpty) {
+      context.pushReplacement(
+        '/plan/generating',
+        extra: PlanGenerationArgs(
+          draft: draft,
+          destinations: _selectedDestinations,
+        ),
+      );
+      return;
+    }
+
+    context.push('/plan/select-destination', extra: draft);
+  }
+
+  Future<void> _editSelectedDestinations() async {
+    final ids = _selectedDestinations.map((d) => d.id).toSet();
+    final returned = await context.push<Set<String>>(
+      '/plan/select-destination',
+      extra: ids,
+    );
+    if (!mounted || returned == null) return;
+    final all = context.read<DestinationsController>().items;
+    setState(() {
+      _selectedDestinations = [
+        for (final d in all)
+          if (returned.contains(d.id)) d,
+      ].take(PlanController.maxAiDestinations).toList();
+    });
   }
 
   @override
@@ -175,6 +224,56 @@ class _PlanNewScreenState extends State<PlanNewScreen> {
                   AppSpacing.s5,
                 ),
                 children: [
+                  if (_selectedDestinations.isNotEmpty) ...[
+                    Container(
+                      padding: const EdgeInsets.all(AppSpacing.s4),
+                      decoration: BoxDecoration(
+                        color: AppColors.canvasSubtle,
+                        borderRadius: BorderRadius.circular(AppRadius.lg),
+                        border: Border.all(color: AppColors.hairline),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              const Icon(
+                                AppIcons.mapPin,
+                                size: 16,
+                                color: AppColors.primary,
+                              ),
+                              const SizedBox(width: AppSpacing.s2),
+                              Expanded(
+                                child: Text(
+                                  'Destinasi dipilih',
+                                  style: AppTextStyles.titleSm,
+                                ),
+                              ),
+                              DnGhostButton(
+                                label: 'Ubah',
+                                expand: false,
+                                onPressed: _editSelectedDestinations,
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: AppSpacing.s2),
+                          Wrap(
+                            spacing: AppSpacing.s2,
+                            runSpacing: AppSpacing.s2,
+                            children: [
+                              for (final d in _selectedDestinations)
+                                DnChip(
+                                  label: d.name,
+                                  active: true,
+                                  leading: AppIcons.mapPin,
+                                ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: AppSpacing.s4),
+                  ],
                   DnInput(
                     label: 'Nama rencana',
                     hint: 'Mis. Trip Bromo 3 hari',
@@ -356,7 +455,9 @@ class _PlanNewScreenState extends State<PlanNewScreen> {
                 border: Border(top: BorderSide(color: AppColors.hairline)),
               ),
               child: DnPrimaryButton(
-                label: 'Lanjut pilih destinasi',
+                label: _selectedDestinations.isNotEmpty
+                    ? 'Buat & susun rencana AI'
+                    : 'Lanjut pilih destinasi',
                 onPressed: _canSubmit ? _submit : null,
               ),
             ),

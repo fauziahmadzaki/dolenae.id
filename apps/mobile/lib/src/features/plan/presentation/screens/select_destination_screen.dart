@@ -25,7 +25,7 @@ class SelectDestinationScreen extends StatefulWidget {
   const SelectDestinationScreen({
     super.key,
     this.draft,
-    this.initialSelectedIds = const {'dest-bromo', 'dest-prau'},
+    this.initialSelectedIds = const {},
     this.onConfirm,
     this.onBack,
   });

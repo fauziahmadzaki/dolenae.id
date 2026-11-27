@@ -28,6 +28,7 @@ import 'package:dolenae_mobile/src/features/facilities/domain/repositories/facil
 import 'package:dolenae_mobile/src/features/notifications/data/repositories/notification_repository_impl.dart';
 import 'package:dolenae_mobile/src/features/notifications/domain/repositories/notification_repository.dart';
 import 'package:dolenae_mobile/src/features/plan/data/data_sources/plan_local_data_source.dart';
+import 'package:dolenae_mobile/src/features/plan/data/data_sources/plan_remote_data_source.dart';
 import 'package:dolenae_mobile/src/features/plan/data/repositories/location_repository_impl.dart';
 import 'package:dolenae_mobile/src/features/plan/data/repositories/plan_repository_impl.dart';
 import 'package:dolenae_mobile/src/features/plan/domain/repositories/location_repository.dart';
@@ -97,7 +98,10 @@ class AppDependencies {
         preferences: prefs,
       ),
       routeRepository: RouteRepositoryImpl(client),
-      planRepository: PlanRepositoryImpl(PlanLocalDataSource(prefs)),
+      planRepository: PlanRepositoryImpl(
+        PlanLocalDataSource(prefs),
+        PlanRemoteDataSource(client),
+      ),
       locationRepository: const LocationRepositoryImpl(),
       checklistRepository: ChecklistRepositoryImpl(),
     );

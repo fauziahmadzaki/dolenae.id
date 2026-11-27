@@ -44,9 +44,11 @@ class ApiClient {
     String path, {
     Map<String, String>? query,
     Duration? timeout,
+    String? bearerToken,
   }) {
+    final headers = _headers(bearerToken: bearerToken);
     return _send(
-      () => _http.get(_uri(path, query), headers: _headers()),
+      () => _http.get(_uri(path, query), headers: headers),
       timeout: timeout,
     );
   }
@@ -55,11 +57,28 @@ class ApiClient {
     String path, {
     Object? body,
     Duration? timeout,
+    String? bearerToken,
+  }) async {
+    final res = await postWithStatus(
+      path,
+      body: body,
+      timeout: timeout,
+      bearerToken: bearerToken,
+    );
+    return res.body;
+  }
+
+  Future<({int statusCode, Map<String, dynamic> body})> postWithStatus(
+    String path, {
+    Object? body,
+    Duration? timeout,
+    String? bearerToken,
   }) {
-    return _send(
+    final headers = _headers(bearerToken: bearerToken);
+    return _sendWithStatus(
       () => _http.post(
         _uri(path),
-        headers: _headers(),
+        headers: headers,
         body: body == null ? null : jsonEncode(body),
       ),
       timeout: timeout,
@@ -70,22 +89,40 @@ class ApiClient {
     String path, {
     Object? body,
     Duration? timeout,
+    String? bearerToken,
   }) {
+    final headers = _headers(bearerToken: bearerToken);
     return _send(
       () => _http.patch(
         _uri(path),
-        headers: _headers(),
+        headers: headers,
         body: body == null ? null : jsonEncode(body),
       ),
       timeout: timeout,
     );
   }
 
-  Map<String, String> _headers() => {
-    'Accept': 'application/json',
-    'Content-Type': 'application/json',
-    if (token != null && token!.isNotEmpty) 'Authorization': 'Bearer $token',
-  };
+  Future<Map<String, dynamic>> delete(
+    String path, {
+    Duration? timeout,
+    String? bearerToken,
+  }) {
+    final headers = _headers(bearerToken: bearerToken);
+    return _send(
+      () => _http.delete(_uri(path), headers: headers),
+      timeout: timeout,
+    );
+  }
+
+  Map<String, String> _headers({String? bearerToken}) {
+    final activeToken = bearerToken ?? token;
+    return {
+      'Accept': 'application/json',
+      'Content-Type': 'application/json',
+      if (activeToken != null && activeToken.isNotEmpty)
+        'Authorization': 'Bearer $activeToken',
+    };
+  }
 
   Uri _uri(String path, [Map<String, String>? query]) {
     final uri = Uri.parse('$baseUrl$path');
@@ -95,6 +132,14 @@ class ApiClient {
   }
 
   Future<Map<String, dynamic>> _send(
+    Future<http.Response> Function() request, {
+    Duration? timeout,
+  }) async {
+    final res = await _sendWithStatus(request, timeout: timeout);
+    return res.body;
+  }
+
+  Future<({int statusCode, Map<String, dynamic> body})> _sendWithStatus(
     Future<http.Response> Function() request, {
     Duration? timeout,
   }) async {
@@ -118,7 +163,7 @@ class ApiClient {
     final decoded = _decode(response);
     final success = decoded['success'] == true;
     if (response.statusCode >= 200 && response.statusCode < 300 && success) {
-      return decoded;
+      return (statusCode: response.statusCode, body: decoded);
     }
 
     final error = decoded['error'];

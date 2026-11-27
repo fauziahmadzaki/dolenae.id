@@ -17,6 +17,7 @@ import 'package:dolenae_mobile/src/shared/widgets/dn_section_header.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:dolenae_mobile/src/features/facilities/presentation/widgets/facilities_section.dart';
+import 'package:dolenae_mobile/src/features/plan/presentation/widgets/add_to_plan_sheet.dart';
 import 'package:dolenae_mobile/src/features/routes/presentation/widgets/routes_section.dart';
 
 
@@ -161,7 +162,7 @@ class _DestinationDetailScreenState extends State<DestinationDetailScreen> {
                 ),
               ),
             ),
-            _buildBottomCta(context),
+            _buildBottomCta(context, destination),
           ],
         ),
       ),
@@ -623,7 +624,7 @@ class _DestinationDetailScreenState extends State<DestinationDetailScreen> {
     );
   }
 
-  Widget _buildBottomCta(BuildContext context) {
+  Widget _buildBottomCta(BuildContext context, Destination destination) {
     return Container(
       padding: const EdgeInsets.all(AppSpacing.s4),
       decoration: const BoxDecoration(
@@ -647,7 +648,9 @@ class _DestinationDetailScreenState extends State<DestinationDetailScreen> {
             child: DnPrimaryButton(
               label: 'Tambah ke rencana',
               height: 48,
-              onPressed: widget.onAddToPlan ?? () => context.push('/plan/create'),
+              onPressed:
+                  widget.onAddToPlan ??
+                  () => showAddToPlanSheet(context, destination),
             ),
           ),
         ],

@@ -188,9 +188,9 @@ void main() {
         .checklist;
     final beforeLength = before.length;
 
-    final error = await store.plan.generateChecklist('plan-dieng-01');
+    final result = await store.plan.generateChecklist('plan-dieng-01');
 
-    expect(error, isNull);
+    expect(result.isSuccess, isTrue);
     final after = store.plan.plans
         .firstWhere((item) => item.id == 'plan-dieng-01')
         .checklist;
