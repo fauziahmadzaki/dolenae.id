@@ -17,3 +17,4 @@ export * from "./AiItinerary";
 export * from "./AppSetting";
 export * from "./Content";
 export * from "./GalleryPhoto";
+export * from "./TripPlan";

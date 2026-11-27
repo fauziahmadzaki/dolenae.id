@@ -1444,6 +1444,29 @@ class AiRetrievalService {
       (id) => !all.some((destination) => destination.id === id),
     );
 
+    let finalUnmatchedTerms = unmatchedTerms;
+    if (requestedIds.length > 0 && requestedDestinations.length > 0) {
+      const selectedHaystack = this.catalogHaystack(requestedDestinations);
+      const remainingAfterSelected = unmatchedTerms.filter(
+        (term) => !selectedHaystack.includes(term),
+      );
+      const strippedRaw = this.extractQueryTerms(
+        requestedDestinations.reduce(
+          (acc, dest) =>
+            acc.replace(
+              new RegExp(
+                `\\b${this.escapeRegex(this.normalize(dest.name))}\\b`,
+                "gi",
+              ),
+              " ",
+            ),
+          this.normalizeCasualIndonesian(rawText),
+        ),
+      );
+      finalUnmatchedTerms =
+        !rawText || strippedRaw.length === 0 ? [] : remainingAfterSelected;
+    }
+
     const present: DroppedFilter[] = [];
     if (effectiveInput.activities?.length) present.push("activities");
     if (effectiveInput.terrains?.length) present.push("terrains");
@@ -1607,6 +1630,12 @@ class AiRetrievalService {
           images: entry.destination.images,
           province: entry.destination.location.province,
           regency: entry.destination.location.regency,
+          latitude: entry.destination.location.latitude ?? null,
+          longitude: entry.destination.location.longitude ?? null,
+          accessPoint: entry.destination.location.accessPoint ?? null,
+          accessDescription: entry.destination.access?.description ?? null,
+          accessDuration: entry.destination.access?.duration ?? null,
+          accessTransport: entry.destination.access?.transport ?? [],
           difficulty: entry.destination.difficulty,
           elevationMeters: entry.destination.elevationMeters,
           bestSeason: entry.destination.bestSeason,
@@ -1630,8 +1659,8 @@ class AiRetrievalService {
         destinationIds.includes(route.destinationId),
       ),
       relaxed: relaxed.map((filter) => AiRetrievalService.FILTER_LABEL[filter]),
-      queryMatched: unmatchedTerms.length === 0,
-      unmatchedTerms,
+      queryMatched: finalUnmatchedTerms.length === 0,
+      unmatchedTerms: finalUnmatchedTerms,
       invalidDestinationIds,
     };
   }

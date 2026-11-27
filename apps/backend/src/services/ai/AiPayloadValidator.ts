@@ -23,14 +23,14 @@ const itemSchema = z.object({
   supportIds: z.array(z.string()).max(10).optional(),
   activity: z.string().trim().min(1).max(160),
   startTime: z.string().trim().max(20).optional(),
-  costEstimate: z.string().trim().max(40).optional(),
-  notes: z.string().trim().max(600).optional(),
+  costEstimate: z.string().trim().max(60).optional(),
+  notes: z.string().trim().max(800).optional(),
 });
 
 const payloadSchema = z.object({
   itinerary: z.object({
     title: z.string().trim().min(1).max(160),
-    summary: z.string().trim().min(1).max(1000),
+    summary: z.string().trim().min(1).max(1500),
     days: z
       .array(
         z.object({
@@ -167,22 +167,48 @@ class AiPayloadValidator {
       context.supports.map((support) => [support.id, support]),
     );
 
+    const hasExplicitDestinations =
+      (context.preference.destinationIds?.length ?? 0) > 0;
+    const rawDays = [...parsed.data.itinerary.days].sort((a, b) => a.day - b.day);
+    const expectedDays = context.preference.durationDays
+      ? Math.min(Math.max(context.preference.durationDays, 1), 7)
+      : null;
+
+    // Require consecutive day numbers 1..N with zero duplicates or gaps,
+    // and match requested durationDays when specified.
+    if (expectedDays != null && rawDays.length !== expectedDays) {
+      return null;
+    }
+    for (let i = 0; i < rawDays.length; i += 1) {
+      if (rawDays[i]!.day !== i + 1) {
+        return null;
+      }
+    }
+
     const sources = new Map<string, AiSource>();
     const addSource = (source: AiSource) =>
       sources.set(`${source.type}:${source.id}`, source);
 
-    const days = parsed.data.itinerary.days.map((day) => ({
+    let hasBrokenExplicitItem = false;
+    const days = rawDays.map((day) => ({
       ...day,
       items: day.items.map((item) => {
-        const destination = item.destinationId
-          ? destinationById.get(item.destinationId)
+        const rawDestId = item.destinationId?.trim() || null;
+        const destination = rawDestId
+          ? destinationById.get(rawDestId)
           : undefined;
+        if (rawDestId && !destination && hasExplicitDestinations) {
+          hasBrokenExplicitItem = true;
+        }
         const destinationId = destination?.id ?? null;
-        const route = item.routeId ? routeById.get(item.routeId) : undefined;
+
+        // Never attach catalog routeId/supportIds to an unverified stop.
+        const route =
+          destinationId && item.routeId
+            ? routeById.get(item.routeId)
+            : undefined;
         const routeId =
-          route && (!destinationId || route.destinationId === destinationId)
-            ? route.id
-            : null;
+          route && route.destinationId === destinationId ? route.id : null;
 
         if (destination) {
           addSource({
@@ -194,10 +220,12 @@ class AiPayloadValidator {
         if (route && routeId) {
           addSource({ type: "route", id: route.id, label: route.name });
         }
-        const supportIds = (item.supportIds ?? []).filter((id) => {
-          const support = supportById.get(id);
-          return Boolean(support) && (!destinationId || support!.destinationId === destinationId);
-        });
+        const supportIds = destinationId
+          ? (item.supportIds ?? []).filter((id) => {
+              const support = supportById.get(id);
+              return Boolean(support) && support!.destinationId === destinationId;
+            })
+          : [];
         for (const id of supportIds) {
           const support = supportById.get(id)!;
           addSource({ type: "support", id: support.id, label: support.name });
@@ -206,13 +234,14 @@ class AiPayloadValidator {
         return {
           ...item,
           destinationId,
-          destinationName: destination?.name ?? item.destinationName,
+          destinationName: destination?.name ?? "Destinasi rekomendasi",
           routeId,
           supportIds,
         };
       }),
     }));
 
+    if (hasBrokenExplicitItem) return null;
     if (days.every((day) => day.items.length === 0)) return null;
 
     // When retrieval found real destinations, reject an itinerary that ignores
@@ -224,7 +253,7 @@ class AiPayloadValidator {
 
     // Explicitly selected destinations are a hard requirement. If the model
     // drops one, fall back to the deterministic builder which schedules all.
-    if ((context.preference.destinationIds?.length ?? 0) > 0) {
+    if (hasExplicitDestinations) {
       const usedIds = new Set(
         days
           .flatMap((day) => day.items.map((item) => item.destinationId))
@@ -236,6 +265,38 @@ class AiPayloadValidator {
       if (missing) return null;
     }
 
+    // Build briefing.grounded strictly from verified catalog records (never
+    // trust freeform LLM prose under "DARI DATA DOLENAE").
+    const verifiedGrounded: string[] = [];
+    for (const source of sources.values()) {
+      if (source.type === "destination") {
+        const dest = destinationById.get(source.id);
+        if (dest) {
+          const season =
+            dest.bestSeason.length > 0
+              ? `, musim terbaik: ${dest.bestSeason.join(", ")}`
+              : "";
+          verifiedGrounded.push(
+            `${dest.name} (${dest.province}, tingkat ${dest.difficulty}${season}).`,
+          );
+        }
+      } else if (source.type === "route") {
+        const route = routeById.get(source.id);
+        if (route) {
+          verifiedGrounded.push(
+            `Jalur ${route.name}: ${route.totalDistanceKm} km, +${route.totalGainMeters} m, ±${route.estimatedDurationMinutes} menit.`,
+          );
+        }
+      } else if (source.type === "support") {
+        const support = supportById.get(source.id);
+        if (support) {
+          verifiedGrounded.push(
+            `Fasilitas ${support.name} (${support.category}${support.priceMin != null ? `, mulai Rp${support.priceMin.toLocaleString("id-ID")}` : ""}).`,
+          );
+        }
+      }
+    }
+
     const checklistItems = this.normalizeChecklistItems(parsed.data);
 
     return {
@@ -243,7 +304,11 @@ class AiPayloadValidator {
         ...parsed.data.itinerary,
         days,
       },
-      briefing: parsed.data.briefing,
+      briefing: {
+        grounded: verifiedGrounded,
+        general: parsed.data.briefing.general,
+        warnings: parsed.data.briefing.warnings,
+      },
       checklist: checklistItems.map((item) => item.name),
       checklistItems,
       sources: [...sources.values()],

@@ -5,11 +5,14 @@ import type {
   AiContextDestination,
   AiContextRoute,
   AiContextSupport,
+  AiItineraryDay,
+  AiItineraryItem,
   AiItineraryPayload,
   AiPreferenceInput,
   AiRecommendationCard,
   AiSource,
 } from "../../types/ai";
+import { haversineKm } from "../../utils/geo";
 
 interface ChecklistDraft {
   name: string;
@@ -96,11 +99,14 @@ class ItineraryService {
     };
 
     const picked: AiContextSupport[] = [];
-    if (preference.needsAccommodation) {
+    const includeAllCategories =
+      (preference.destinationIds?.length ?? 0) > 0 &&
+      (preference.durationDays ?? 1) > 1;
+    if (preference.needsAccommodation || includeAllCategories) {
       const stay = pickCategory("accommodation");
       if (stay) picked.push(stay);
     }
-    if (preference.needsTransport) {
+    if (preference.needsTransport || includeAllCategories) {
       const transport = pickCategory("transport");
       if (transport) picked.push(transport);
     }
@@ -405,47 +411,22 @@ class ItineraryService {
       };
     }
 
-    // Spread selected destinations over all requested days. With more
-    // destinations than days, several stops share one day; with fewer, the extra
-    // days stay empty for manual planning.
-    const basePerDay = Math.floor(destinations.length / requestedDays);
-    const extraDays = destinations.length % requestedDays;
-    let cursor = 0;
-    const days = Array.from({ length: requestedDays }, (_, index) => {
-      const count = basePerDay + (index < extraDays ? 1 : 0);
-      const assigned = destinations.slice(cursor, cursor + count);
-      cursor += count;
-
-      return {
-        day: index + 1,
-        title:
-          assigned.length > 0
-            ? assigned.map((destination) => destination.name).join(", ")
-            : "Hari bebas",
-        items: assigned.map((destination) => {
-          const route = this.bestRoute(context, destination.id);
-          const supports = this.pickSupports(
+    const hasExplicitDestinations =
+      (effectivePreference.destinationIds?.length ?? 0) > 0;
+    const days: AiItineraryDay[] =
+      hasExplicitDestinations && destinations.length < requestedDays
+        ? this.buildExplicitMultiDayPlan(
             context,
-            destination.id,
+            destinations,
+            requestedDays,
+            effectivePreference,
+          )
+        : this.buildStandardDays(
+            context,
+            destinations,
+            requestedDays,
             effectivePreference,
           );
-          const cost = this.estimateCost(destination, supports);
-          const routeNote = route
-            ? `${route.name}: ${route.totalDistanceKm} km, +${route.totalGainMeters} m, ±${route.estimatedDurationMinutes} menit.`
-            : undefined;
-
-          return {
-            destinationId: destination.id,
-            destinationName: destination.name,
-            routeId: route?.id ?? null,
-            activity: route ? `Ikuti jalur ${route.name}` : "Eksplor destinasi",
-            startTime: route ? "07:00" : "08:00",
-            costEstimate: cost ?? undefined,
-            notes: routeNote,
-          };
-        }),
-      };
-    });
 
     const grounded: string[] = [];
     const warnings: string[] = [...relaxedWarnings];
@@ -499,7 +480,7 @@ class ItineraryService {
       }
     }
 
-    if (destinations.length < requestedDays) {
+    if (!hasExplicitDestinations && destinations.length < requestedDays) {
       warnings.push(
         `Hanya ${destinations.length} destinasi yang cocok untuk ${requestedDays} hari; hari sisanya perlu ditambah manual.`,
       );
@@ -596,7 +577,7 @@ class ItineraryService {
           ? `Itinerary ${requestedDays} hari untuk budget hingga ${this.formatRupiah(effectivePreference.budgetPerPerson)}/orang mencakup ${destNames} (${destinations.length} destinasi)${lowestCost != null ? ` dengan estimasi fasilitas lokal mulai ${this.formatRupiah(lowestCost)}/orang` : ""}.`
           : `Itinerary ${requestedDays} hari${focusLabels.length > 0 ? ` (${focusLabels.slice(0, 3).join(" · ")})` : ""} disusun dari ${destinations.length} destinasi yang cocok dengan preferensimu: ${destNames}${lowestCost != null ? ` (estimasi fasilitas lokal mulai ${this.formatRupiah(lowestCost)}/orang)` : ""}.`;
 
-    return {
+    const basePayload: AiItineraryPayload = {
       itinerary: {
         title: isAlternative ? `Alternatif: ${baseTitle}` : baseTitle,
         summary,
@@ -611,6 +592,511 @@ class ItineraryService {
       checklistItems,
       sources,
       engine: "deterministic",
+    };
+
+    return this.applyPostReasoningChecks(
+      basePayload,
+      context,
+      effectivePreference,
+    );
+  }
+
+  private buildStandardDays(
+    context: AiContext,
+    destinations: AiContextDestination[],
+    requestedDays: number,
+    effectivePreference: AiPreferenceInput,
+  ): AiItineraryDay[] {
+    const basePerDay = Math.floor(destinations.length / requestedDays);
+    const extraDays = destinations.length % requestedDays;
+    let cursor = 0;
+
+    return Array.from({ length: requestedDays }, (_, index) => {
+      const count = basePerDay + (index < extraDays ? 1 : 0);
+      const assigned = destinations.slice(cursor, cursor + count);
+      cursor += count;
+
+      return {
+        day: index + 1,
+        title:
+          assigned.length > 0
+            ? assigned.map((destination) => destination.name).join(", ")
+            : "Hari bebas",
+        items: assigned.map((destination) => {
+          const route = this.bestRoute(context, destination.id);
+          const supports = this.pickSupports(
+            context,
+            destination.id,
+            effectivePreference,
+          );
+          const cost = this.estimateCost(destination, supports);
+          const routeNote = route
+            ? `${route.name}: ${route.totalDistanceKm} km, +${route.totalGainMeters} m, ±${route.estimatedDurationMinutes} menit.`
+            : undefined;
+
+          return {
+            destinationId: destination.id,
+            destinationName: destination.name,
+            routeId: route?.id ?? null,
+            supportIds: supports.map((support) => support.id),
+            activity: route ? `Ikuti jalur ${route.name}` : "Eksplor destinasi",
+            startTime: route ? "07:00" : "08:00",
+            costEstimate: cost ?? undefined,
+            notes: routeNote,
+          };
+        }),
+      };
+    });
+  }
+
+  private buildExplicitMultiDayPlan(
+    context: AiContext,
+    destinations: AiContextDestination[],
+    requestedDays: number,
+    effectivePreference: AiPreferenceInput,
+  ): AiItineraryDay[] {
+    const days: AiItineraryDay[] = [];
+    const baseDaysPerDest = Math.floor(requestedDays / destinations.length);
+    const extraDays = requestedDays % destinations.length;
+    let currentDay = 1;
+
+    destinations.forEach((destination, destIndex) => {
+      const span = baseDaysPerDest + (destIndex < extraDays ? 1 : 0);
+      const routes = context.routes.filter(
+        (route) => route.destinationId === destination.id,
+      );
+      const primaryRoute = this.bestRoute(context, destination.id);
+      const secondaryRoute = routes.find((r) => r.id !== primaryRoute?.id);
+      const supports = this.pickSupports(
+        context,
+        destination.id,
+        effectivePreference,
+      );
+      const transport = supports.find((s) => s.category === "transport");
+      const stay = supports.find((s) => s.category === "accommodation");
+      const food = supports.find((s) => s.category === "food");
+
+      const accessInfoParts = [
+        destination.accessPoint ? `Titik akses: ${destination.accessPoint}` : null,
+        destination.accessDuration
+          ? `durasi akses ±${destination.accessDuration}`
+          : null,
+        destination.accessTransport?.length
+          ? `transportasi: ${destination.accessTransport.join(", ")}`
+          : null,
+        destination.accessDescription ?? null,
+      ].filter(Boolean);
+      const accessNote =
+        accessInfoParts.length > 0
+          ? accessInfoParts.join(" · ")
+          : `Menuju basecamp ${destination.name} dan persiapan logistik.`;
+
+      if (span === 1) {
+        const cost = this.estimateCost(destination, supports);
+        const routeNote = primaryRoute
+          ? `${primaryRoute.name}: ${primaryRoute.totalDistanceKm} km, +${primaryRoute.totalGainMeters} m, ±${primaryRoute.estimatedDurationMinutes} menit.`
+          : accessNote;
+        days.push({
+          day: currentDay++,
+          title: destination.name,
+          items: [
+            {
+              destinationId: destination.id,
+              destinationName: destination.name,
+              routeId: primaryRoute?.id ?? null,
+              supportIds: supports.map((s) => s.id),
+              activity: primaryRoute
+                ? `Ikuti jalur ${primaryRoute.name}`
+                : `Eksplor ${destination.name}`,
+              startTime: "07:00",
+              costEstimate: cost ?? undefined,
+              notes: routeNote,
+            },
+          ],
+        });
+        return;
+      }
+
+      for (let offset = 0; offset < span; offset += 1) {
+        const dayNum = currentDay++;
+        if (offset === 0) {
+          const arrivalSupports = [transport, stay].filter(
+            (s): s is AiContextSupport => Boolean(s),
+          );
+          const arrivalItems: AiItineraryItem[] = [
+            {
+              destinationId: destination.id,
+              destinationName: destination.name,
+              routeId: null,
+              supportIds: transport ? [transport.id] : [],
+              activity: destination.accessPoint
+                ? `Tiba di ${destination.accessPoint} & persiapan`
+                : `Menuju ${destination.name} & persiapan`,
+              startTime: "08:00",
+              costEstimate:
+                transport?.priceMin != null
+                  ? this.formatRupiah(transport.priceMin)
+                  : undefined,
+              notes: accessNote,
+            },
+          ];
+          const restSupport = stay ?? food;
+          if (restSupport) {
+            arrivalItems.push({
+              destinationId: destination.id,
+              destinationName: destination.name,
+              routeId: null,
+              supportIds: [restSupport.id],
+              activity:
+                restSupport.category === "accommodation"
+                  ? `Check-in & istirahat (${restSupport.name})`
+                  : `Istirahat & makan lokal (${restSupport.name})`,
+              startTime: "13:00",
+              costEstimate:
+                restSupport.priceMin != null
+                  ? this.formatRupiah(restSupport.priceMin)
+                  : undefined,
+              notes: restSupport.locationLabel ?? "Persiapan fisik sebelum hari jalur utama.",
+            });
+          } else if (arrivalSupports.length === 0) {
+            arrivalItems.push({
+              destinationId: destination.id,
+              destinationName: destination.name,
+              routeId: null,
+              supportIds: [],
+              activity: `Orientasi area sekitar ${destination.name}`,
+              startTime: "14:00",
+              notes: "Cek kondisi cuaca, logistik air, dan registrasi pos masuk.",
+            });
+          }
+          days.push({
+            day: dayNum,
+            title: `Tiba & Orientasi ${destination.name}`,
+            items: arrivalItems,
+          });
+        } else if (offset === span - 1) {
+          const items: AiItineraryItem[] = [];
+          if (span === 2) {
+            const routeSupports = [food, transport].filter(
+              (s): s is AiContextSupport => Boolean(s),
+            );
+            items.push({
+              destinationId: destination.id,
+              destinationName: destination.name,
+              routeId: primaryRoute?.id ?? null,
+              supportIds: routeSupports.map((s) => s.id),
+              activity: primaryRoute
+                ? `Jalur utama: ${primaryRoute.name}`
+                : `Eksplorasi utama ${destination.name}`,
+              startTime: "06:00",
+              costEstimate: this.estimateCost(destination, routeSupports) ?? undefined,
+              notes: primaryRoute
+                ? `${primaryRoute.name}: ${primaryRoute.totalDistanceKm} km, +${primaryRoute.totalGainMeters} m, ±${primaryRoute.estimatedDurationMinutes} menit.`
+                : `Jelajah utama kawasan ${destination.name}.`,
+            });
+          } else if (food) {
+            items.push({
+              destinationId: destination.id,
+              destinationName: destination.name,
+              routeId: null,
+              supportIds: [food.id],
+              activity: `Sarapan & pagi santai (${food.name})`,
+              startTime: "07:00",
+              costEstimate:
+                food.priceMin != null
+                  ? this.formatRupiah(food.priceMin)
+                  : undefined,
+              notes: "Nikmati suasana pagi dan bereskan perlengkapan.",
+            });
+          }
+          items.push({
+            destinationId: destination.id,
+            destinationName: destination.name,
+            routeId: null,
+            supportIds: transport ? [transport.id] : [],
+            activity: `Evaluasi & perjalanan pulang dari ${destination.name}`,
+            startTime: span === 2 ? "13:00" : "10:00",
+            costEstimate:
+              span > 2 && transport?.priceMin != null
+                ? this.formatRupiah(transport.priceMin)
+                : undefined,
+            notes: "Pastikan seluruh sampah dibawa kembali dan cek barang bawaan.",
+          });
+          days.push({
+            day: dayNum,
+            title:
+              span === 2
+                ? `Jelajah Utama & Kepulangan ${destination.name}`
+                : `Pagi Santai & Kepulangan ${destination.name}`,
+            items,
+          });
+        } else {
+          const activeRoute = offset === 1 ? primaryRoute : secondaryRoute ?? primaryRoute;
+          const daySupports = [food, stay].filter(
+            (s): s is AiContextSupport => Boolean(s),
+          );
+          days.push({
+            day: dayNum,
+            title:
+              offset === 1
+                ? `Eksplorasi Utama ${destination.name}`
+                : `Eksplorasi Sekitar ${destination.name}`,
+            items: [
+              {
+                destinationId: destination.id,
+                destinationName: destination.name,
+                routeId: activeRoute?.id ?? null,
+                supportIds: daySupports.map((s) => s.id),
+                activity: activeRoute
+                  ? `Ikuti jalur ${activeRoute.name}`
+                  : `Eksplorasi kawasan ${destination.name}`,
+                startTime: offset === 1 ? "06:00" : "07:00",
+                costEstimate: this.estimateCost(destination, daySupports) ?? undefined,
+                notes: activeRoute
+                  ? `${activeRoute.name}: ${activeRoute.totalDistanceKm} km, +${activeRoute.totalGainMeters} m, ±${activeRoute.estimatedDurationMinutes} menit.`
+                  : `Jelajah area sekitar ${destination.name} sesuai kondisi cuaca.`,
+              },
+            ],
+          });
+        }
+      }
+    });
+
+    return days;
+  }
+
+  private static readonly MONTH_NAMES_ID = [
+    "Januari",
+    "Februari",
+    "Maret",
+    "April",
+    "Mei",
+    "Juni",
+    "Juli",
+    "Agustus",
+    "September",
+    "Oktober",
+    "November",
+    "Desember",
+  ] as const;
+
+  private static readonly MONTH_ALIASES: Array<[RegExp, number]> = [
+    [/\bjan(?:uari|uary)?\b/i, 1],
+    [/\bfeb(?:ruari|ruary)?\b/i, 2],
+    [/\bmar(?:et|ch)?\b/i, 3],
+    [/\bapr(?:il)?\b/i, 4],
+    [/\b(?:mei|may)\b/i, 5],
+    [/\bjun(?:i|e)?\b/i, 6],
+    [/\bjul(?:i|y)?\b/i, 7],
+    [/\b(?:agu(?:stus)?|agt|aug(?:ust)?)\b/i, 8],
+    [/\bsep(?:t(?:ember)?)?\b/i, 9],
+    [/\b(?:okt(?:ober)?|oct(?:ober)?)\b/i, 10],
+    [/\bnov(?:ember)?\b/i, 11],
+    [/\b(?:des(?:ember)?|dec(?:ember)?)\b/i, 12],
+  ];
+
+  private parseMonthToken(token: string): number | null {
+    for (const [pattern, month] of ItineraryService.MONTH_ALIASES) {
+      if (pattern.test(token)) return month;
+    }
+    return null;
+  }
+
+  private isMonthInBestSeason(month: number, bestSeason: string[]): boolean | null {
+    if (bestSeason.length === 0) return null;
+    let parsedAny = false;
+    for (const raw of bestSeason) {
+      const normalized = raw.trim().toLowerCase();
+      if (normalized.includes("sepanjang tahun")) return true;
+      const parts = normalized.split(/\s*[-–—]|s\.?d\.?|\bto\b|\bhingga\b|\bsampai\b\s*/i);
+      if (parts.length >= 2) {
+        const start = this.parseMonthToken(parts[0]!);
+        const end = this.parseMonthToken(parts[1]!);
+        if (start != null && end != null) {
+          parsedAny = true;
+          const inRange =
+            start <= end
+              ? month >= start && month <= end
+              : month >= start || month <= end;
+          if (inRange) return true;
+        }
+      } else {
+        const single = this.parseMonthToken(normalized);
+        if (single != null) {
+          parsedAny = true;
+          if (single === month) return true;
+        }
+      }
+    }
+    return parsedAny ? false : null;
+  }
+
+  private computeChecklistPerPerson(items: AiChecklistItem[]): number {
+    const selectedGroups = new Set<string>();
+    let total = 0;
+    for (const item of items) {
+      if (item.estimatedCost == null || item.estimatedCost <= 0) continue;
+      if (item.selected === false) continue;
+      if (item.alternativeGroup) {
+        if (selectedGroups.has(item.alternativeGroup)) continue;
+        selectedGroups.add(item.alternativeGroup);
+      }
+      total += item.estimatedCost;
+    }
+    return total;
+  }
+
+  /**
+   * Apply deterministic geographic, season, and budget feasibility checks to
+   * both Gemini and deterministic outputs.
+   */
+  applyPostReasoningChecks(
+    payload: AiItineraryPayload,
+    context: AiContext,
+    preference: AiPreferenceInput,
+  ): AiItineraryPayload {
+    const grounded = [...payload.briefing.grounded];
+    const general = [...payload.briefing.general];
+    const warnings = [...payload.briefing.warnings];
+    let summary = payload.itinerary.summary;
+    const requestedDays = Math.min(
+      Math.max(preference.durationDays ?? payload.itinerary.days.length ?? 2, 1),
+      7,
+    );
+
+    // 1. Geographic distance & cross-province feasibility (using actual
+    // scheduled itinerary order and raw unrounded Haversine distance > 150 km).
+    const destinationById = new Map(
+      context.destinations.map((dest) => [dest.id, dest]),
+    );
+    const scheduledDestinations: typeof context.destinations = [];
+    const sortedDays = [...payload.itinerary.days].sort((a, b) => a.day - b.day);
+    for (const day of sortedDays) {
+      for (const item of day.items) {
+        const dest = item.destinationId
+          ? destinationById.get(item.destinationId)
+          : undefined;
+        if (!dest) continue;
+        if (scheduledDestinations.at(-1)?.id !== dest.id) {
+          scheduledDestinations.push(dest);
+        }
+      }
+    }
+    const destinations =
+      scheduledDestinations.length > 0 ? scheduledDestinations : context.destinations;
+    let addedDistanceSummary = false;
+    for (let i = 1; i < destinations.length; i += 1) {
+      const prev = destinations[i - 1]!;
+      const next = destinations[i]!;
+      const prevProv = this.normalizeProvince(prev.province);
+      const nextProv = this.normalizeProvince(next.province);
+      const differentProvinces =
+        prevProv.length > 0 && nextProv.length > 0 && prevProv !== nextProv;
+      const rawDistKm =
+        prev.latitude != null &&
+        prev.longitude != null &&
+        next.latitude != null &&
+        next.longitude != null
+          ? haversineKm(
+              { latitude: prev.latitude, longitude: prev.longitude },
+              { latitude: next.latitude, longitude: next.longitude },
+            )
+          : null;
+      const distKm = rawDistKm != null ? Math.round(rawDistKm) : null;
+
+      if (
+        (rawDistKm != null && rawDistKm > 150) ||
+        (differentProvinces && requestedDays <= destinations.length)
+      ) {
+        const distPart = distKm != null ? ` sekitar ${distKm} km` : "";
+        const provPart = differentProvinces
+          ? ` (lintas provinsi ${prev.province} → ${next.province})`
+          : "";
+        const msg = `Jarak ${prev.name} ke ${next.name}${distPart}${provPart} cukup jauh untuk durasi ${requestedDays} hari; pertimbangkan waktu tempuh dan jeda transit.`;
+        if (!warnings.some((w) => w.includes(prev.name) && w.includes(next.name))) {
+          warnings.push(msg);
+        }
+        if (!addedDistanceSummary && !/jarak|waktu tempuh|lintas provinsi/i.test(summary)) {
+          summary = `${summary} Pertimbangkan waktu tempuh antarwilayah${distKm != null ? ` (±${distKm} km)` : ""}.`;
+          addedDistanceSummary = true;
+        }
+      }
+    }
+
+    // 2. Season vs startDate reasoning
+    if (preference.startDate && /^\d{4}-\d{2}-\d{2}$/.test(preference.startDate)) {
+      const month = Number(preference.startDate.slice(5, 7));
+      const monthName = ItineraryService.MONTH_NAMES_ID[month - 1];
+      if (monthName) {
+        for (const destination of destinations) {
+          const match = this.isMonthInBestSeason(month, destination.bestSeason);
+          if (match === true) {
+            const note = `Jadwal ${monthName} sesuai musim terbaik ${destination.name} (${destination.bestSeason.join(", ")}).`;
+            if (!grounded.some((g) => g.includes(destination.name) && g.includes(monthName))) {
+              grounded.push(note);
+            }
+          } else if (match === false) {
+            const warn = `Jadwal ${monthName} berada di luar musim terbaik ${destination.name} (${destination.bestSeason.join(", ")}); waspadai hujan dan jalur licin.`;
+            if (!warnings.some((w) => w.includes(destination.name) && w.includes(monthName))) {
+              warnings.push(warn);
+            }
+          }
+        }
+      }
+    }
+
+    // 3. Budget vs estimated checklist cost reasoning
+    // Only catalog-verified minimum ticket + support prices belong in grounded;
+    // checklist-derived estimates (which may reflect model suggestions) go to general.
+    const people = Math.max(1, preference.peopleCount ?? 1);
+    const catalogMinPerPerson = destinations.reduce((sum, dest) => {
+      const supportPrices = context.supports
+        .filter((s) => s.destinationId === dest.id && s.priceMin != null && s.priceMin > 0)
+        .map((s) => s.priceMin!);
+      const minSupport = supportPrices.length > 0 ? Math.min(...supportPrices) : 0;
+      return sum + minSupport;
+    }, 0);
+    if (catalogMinPerPerson > 0) {
+      const catalogLine = `Harga mulai fasilitas katalog terdaftar (minimum per destinasi) total sekitar ${this.formatRupiah(catalogMinPerPerson)} (tarif mengikuti satuan tiap fasilitas di katalog Dolenae).`;
+      if (!grounded.some((g) => g.includes("fasilitas katalog terdaftar"))) {
+        grounded.push(catalogLine);
+      }
+    }
+
+    const estimatedPerPerson = this.computeChecklistPerPerson(
+      payload.checklistItems,
+    );
+    if (estimatedPerPerson > 0) {
+      const totalAll = estimatedPerPerson * people;
+      const budgetLine = `Estimasi biaya persiapan & fasilitas lokal sekitar ${this.formatRupiah(estimatedPerPerson)}/orang${people > 1 ? ` (${this.formatRupiah(totalAll)} untuk ${people} orang)` : ""}.`;
+      if (!general.some((g) => g.includes("Estimasi biaya persiapan"))) {
+        general.push(budgetLine);
+      }
+      if (
+        preference.budgetPerPerson != null &&
+        preference.budgetPerPerson > 0 &&
+        estimatedPerPerson > preference.budgetPerPerson
+      ) {
+        const diff = estimatedPerPerson - preference.budgetPerPerson;
+        const overrunWarn = `Estimasi biaya (${this.formatRupiah(estimatedPerPerson)}/orang) melebihi budget (${this.formatRupiah(preference.budgetPerPerson)}/orang) sebesar ${this.formatRupiah(diff)}; pilih alternatif lebih hemat atau tandai perlengkapan yang sudah dimiliki.`;
+        if (!warnings.some((w) => w.includes("melebihi budget"))) {
+          warnings.push(overrunWarn);
+        }
+      }
+    }
+
+    return {
+      ...payload,
+      itinerary: {
+        ...payload.itinerary,
+        summary,
+      },
+      briefing: {
+        ...payload.briefing,
+        grounded: [...new Set(grounded)],
+        general: [...new Set(general)],
+        warnings: [...new Set(warnings)],
+      },
     };
   }
 

@@ -56,7 +56,7 @@ class AiService {
     return createHash("sha256")
       // Bump when the prompt/retrieval contract changes so older cached rows do
       // not bypass new grounding/notice rules.
-      .update("ai-v9:")
+      .update("ai-v10:")
       .update(JSON.stringify(input, Object.keys(input).sort()))
       .digest("hex");
   }
@@ -229,6 +229,12 @@ class AiService {
         checklist: checklistItems.map((item) => item.name),
       };
     }
+
+    result = itineraryService.applyPostReasoningChecks(
+      result,
+      context,
+      effectivePreference,
+    );
 
     result = {
       ...result,

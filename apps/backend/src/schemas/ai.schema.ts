@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { isValidIsoCalendarDate } from "./plan.schema";
 
 const stringList = (maxItems: number, maxLength: number) =>
   z
@@ -28,6 +29,15 @@ export const aiItinerarySchema = z.object({
     .optional(),
   needsAccommodation: z.boolean().optional(),
   needsTransport: z.boolean().optional(),
+  peopleCount: z.coerce.number().int().min(1).max(30).optional(),
+  startDate: z
+    .string()
+    .trim()
+    .refine(isValidIsoCalendarDate, {
+      message: "Tanggal mulai harus berformat YYYY-MM-DD yang valid",
+    })
+    .optional(),
+  planTitle: z.string().trim().max(120).optional(),
   note: z.string().trim().max(500).optional(),
   /** Skip the 24h response cache when the user explicitly asks again. */
   refresh: z.boolean().optional(),

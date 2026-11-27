@@ -197,6 +197,27 @@ Akses publik untuk visualisasi peta & elevasi (tanpa autentikasi, hanya untuk de
 - `facilities` (dulu `travel_supports`) menyimpan `price_min`/`price_max` (integer) untuk estimasi
   budget itinerary.
 
+#### Skema Tabel `trip_plans` & Endpoint `/api/plans`
+Rencana perjalanan disimpan per-akun di PostgreSQL (tabel `trip_plans`),
+terpisah dari cache AI:
+- Kolom utama: `id` (uuid PK), `user_id` (uuid FK `users(id)` `ON DELETE CASCADE`),
+  `title` (varchar(160)), `start_date` (`date`), `end_date` (`date`),
+  `people_count` (integer), `total_budget` (integer), `origin_province` (varchar(100)),
+  `note` (text), `summary` (text), `briefing_json` (jsonb), `days_json` (jsonb),
+  `sources_json` (jsonb), `checklist_json` (jsonb),
+  `destination_ids` (`text[]`), `notice` (text), `ai_warning` (text),
+  `engine` (`varchar(30)`: `'draft' | 'gemini' | 'deterministic'`),
+  `created_at`, `updated_at` (timestamptz).
+  Constraint: `trip_plans_date_range_check` (`end_date >= start_date`).
+- Tabel tombstone `trip_plan_deletions` (`user_id`, `client_id` PK, `deleted_at`)
+  mencatat penghapusan `client_id` secara atomik bersama `POST /api/plans`.
+- Endpoint `/api/plans` (wajib JWT auth, terisolasi per `userId`):
+  - `GET /api/plans` — daftar rencana milik user aktif (urut terbaru).
+  - `POST /api/plans` — buat rencana/draft baru (409 jika `client_id` sudah di-tombstone).
+  - `DELETE /api/plans/client/:clientId` — catat tombstone `client_id` & hapus baris terkait secara atomik.
+  - `GET /api/plans/:id`, `PATCH /api/plans/:id`, `DELETE /api/plans/:id` —
+    baca, perbarui (termasuk hasil itinerary AI & checklist), dan hapus rencana.
+
 ## Relasi Ringkas
 
 ```

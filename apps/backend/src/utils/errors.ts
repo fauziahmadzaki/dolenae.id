@@ -45,8 +45,12 @@ export class NotFoundError extends AppError {
 }
 
 export class ConflictError extends AppError {
-  constructor(message = "Resource sudah ada", details?: unknown) {
-    super(409, "CONFLICT", message, { details });
+  constructor(
+    message = "Resource sudah ada",
+    details?: unknown,
+    code = "CONFLICT",
+  ) {
+    super(409, code, message, { details });
   }
 }
 

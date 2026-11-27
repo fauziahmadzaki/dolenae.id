@@ -1011,4 +1011,44 @@ describe("AI retrieval relaxation", () => {
       "Gunung Semeru",
     ]);
   });
+
+  it("keeps queryMatched true and populates geography/access fields for explicit destinationIds", async () => {
+    list.mockResolvedValue({
+      items: [
+        {
+          ...destination,
+          id: "23232323-2323-4232-a232-000000000003",
+          name: "Gunung Bromo",
+          location: {
+            province: "Jawa Timur",
+            regency: "Probolinggo",
+            district: null,
+            latitude: -7.9425,
+            longitude: 112.953,
+            accessPoint: "Cemoro Lawang",
+          },
+          access: {
+            description: "Lewat jalur Probolinggo",
+            transport: ["Jeep", "Motor"],
+            duration: "2 jam",
+            distanceKm: 45,
+          },
+        },
+      ],
+      meta: {},
+    } as never);
+
+    const context = await aiRetrieval.build({
+      destinationIds: ["23232323-2323-4232-a232-000000000003"],
+      rawText: "Gunung Bromo",
+      durationDays: 2,
+    });
+
+    expect(context.queryMatched).toBe(true);
+    expect(context.unmatchedTerms).toEqual([]);
+    expect(context.destinations[0]?.latitude).toBe(-7.9425);
+    expect(context.destinations[0]?.longitude).toBe(112.953);
+    expect(context.destinations[0]?.accessPoint).toBe("Cemoro Lawang");
+    expect(context.destinations[0]?.accessTransport).toEqual(["Jeep", "Motor"]);
+  });
 });

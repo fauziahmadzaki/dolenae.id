@@ -1565,4 +1565,484 @@ describe("AI itinerary", () => {
       "Air Terjun Tumpak Sewu",
     ]);
   });
+
+  it("allocates 3 grounded non-empty days for 1 explicit destination without bogus 'hari bebas' warning", () => {
+    const explicitContext: AiContext = {
+      ...context,
+      preference: { destinationIds: [destinationId], durationDays: 3 },
+      destinations: [
+        {
+          ...context.destinations[0]!,
+          accessPoint: "Pos Ranupani",
+          accessDescription: "Jalan beraspal hingga pos",
+          accessDuration: "2 jam",
+          accessTransport: ["Jeep", "Ojek"],
+        },
+      ],
+    };
+
+    const result = itineraryService.build(explicitContext, {
+      destinationIds: [destinationId],
+      durationDays: 3,
+    });
+
+    expect(result.itinerary.days).toHaveLength(3);
+    for (const day of result.itinerary.days) {
+      expect(day.title).not.toBe("Hari bebas");
+      expect(day.items.length).toBeGreaterThan(0);
+      expect(day.items[0]?.destinationId).toBe(destinationId);
+    }
+    expect(
+      result.itinerary.days.some((day) =>
+        day.items.some((item) => item.routeId === routeId),
+      ),
+    ).toBe(true);
+    expect(
+      result.itinerary.days.some((day) =>
+        day.items.some((item) => (item.supportIds?.length ?? 0) > 0),
+      ),
+    ).toBe(true);
+    expect(result.briefing.warnings.join(" ")).not.toContain(
+      "hari sisanya perlu ditambah manual",
+    );
+  });
+
+  it("emits geographic distance warning for cross-province destinations > 150 km apart", () => {
+    const secondId = "99999999-9999-4999-a999-999999999999";
+    const geoContext: AiContext = {
+      ...context,
+      preference: { destinationIds: [destinationId, secondId], durationDays: 2 },
+      destinations: [
+        {
+          ...context.destinations[0]!,
+          name: "Gunung Bromo",
+          province: "Jawa Timur",
+          latitude: -7.9425,
+          longitude: 112.953,
+        },
+        {
+          ...context.destinations[0]!,
+          id: secondId,
+          name: "Gunung Rinjani",
+          slug: "gunung-rinjani",
+          province: "Nusa Tenggara Barat",
+          latitude: -8.4113,
+          longitude: 116.4573,
+        },
+      ],
+    };
+
+    const result = itineraryService.build(geoContext, {
+      destinationIds: [destinationId, secondId],
+      durationDays: 2,
+    });
+
+    expect(result.briefing.warnings.join(" ")).toMatch(/km/i);
+    expect(result.briefing.warnings.join(" ")).toContain("lintas provinsi");
+    expect(result.itinerary.summary).toMatch(/waktu tempuh/i);
+  });
+
+  it("evaluates startDate against bestSeason (in-season vs off-season)", () => {
+    const inSeason = itineraryService.build(context, {
+      destinationIds: [destinationId],
+      durationDays: 1,
+      startDate: "2026-06-15",
+    });
+    expect(inSeason.briefing.grounded.join(" ")).toContain("Juni");
+    expect(inSeason.briefing.grounded.join(" ")).toContain("sesuai musim terbaik");
+
+    const offSeason = itineraryService.build(context, {
+      destinationIds: [destinationId],
+      durationDays: 1,
+      startDate: "2026-01-15",
+    });
+    expect(offSeason.briefing.warnings.join(" ")).toContain("Januari");
+    expect(offSeason.briefing.warnings.join(" ")).toContain("di luar musim terbaik");
+  });
+
+  it("evaluates budget overrun and within-budget with peopleCount", () => {
+    const overrun = itineraryService.build(context, {
+      destinationIds: [destinationId],
+      durationDays: 2,
+      peopleCount: 3,
+      budgetPerPerson: 100000,
+      needsAccommodation: true,
+      needsTransport: true,
+    });
+    expect(overrun.briefing.general.join(" ")).toContain("untuk 3 orang");
+    expect(overrun.briefing.warnings.join(" ")).toContain("melebihi budget");
+
+    const within = itineraryService.build(context, {
+      destinationIds: [destinationId],
+      durationDays: 2,
+      peopleCount: 2,
+      budgetPerPerson: 2000000,
+      needsAccommodation: true,
+      needsTransport: true,
+    });
+    expect(within.briefing.general.join(" ")).toContain("untuk 2 orang");
+    expect(within.briefing.warnings.join(" ")).not.toContain("melebihi budget");
+  });
+
+  it("uses ai-v10 cache prefix to invalidate older cached rows", async () => {
+    const { aiRepository } = await import("../../src/repositories/AiRepository");
+    const findRecentSpy = vi
+      .spyOn(aiRepository, "findRecent")
+      .mockResolvedValue(undefined);
+    const countSinceSpy = vi
+      .spyOn(aiRepository, "countSince")
+      .mockResolvedValue(0);
+    const saveSpy = vi
+      .spyOn(aiRepository, "save")
+      .mockResolvedValue({} as never);
+    const { aiRetrieval } = await import("../../src/services/ai/RetrievalService");
+    vi.spyOn(aiRetrieval, "build").mockResolvedValue({
+      ...context,
+      preference: {
+        ...context.preference,
+        durationDays: 1,
+        peopleCount: 1,
+        budgetPerPerson: 500000,
+      },
+    });
+    vi.spyOn(geminiService, "generate").mockResolvedValue(null);
+    vi.spyOn(settingsService, "getGeminiConfig").mockResolvedValue({
+      apiKey: null,
+      model: AppConfig.load().aiModel,
+    });
+
+    await aiService.generate("11111111-1111-4111-a111-111111111111", {
+      destinationIds: [destinationId],
+      durationDays: 2,
+      startDate: "2026-06-15",
+      peopleCount: 2,
+    });
+
+    expect(findRecentSpy).toHaveBeenCalledTimes(1);
+    expect(countSinceSpy).toHaveBeenCalledTimes(1);
+    expect(saveSpy).toHaveBeenCalledTimes(1);
+    const firstHash = saveSpy.mock.calls[0]?.[0]?.requestHash;
+    expect(firstHash).toMatch(/^[0-9a-f]{64}$/);
+  });
+
+  it("rejects mismatched or duplicate days, unknown explicit destinationId, and unverified grounded prose", async () => {
+    const { aiPayloadValidator } = await import(
+      "../../src/services/ai/AiPayloadValidator"
+    );
+
+    const baseRaw = {
+      itinerary: {
+        title: "Trip Test",
+        summary: "Ringkasan",
+        days: [
+          {
+            day: 1,
+            title: "Hari 1",
+            items: [
+              {
+                destinationId,
+                destinationName: "Gunung Bromo",
+                routeId,
+                supportIds: [supportId],
+                activity: "Mendaki",
+              },
+            ],
+          },
+        ],
+      },
+      briefing: {
+        grounded: ["Klaim halusinasi bebas LLM"],
+        general: ["Bawa jas hujan"],
+        warnings: [],
+      },
+      checklist: ["Jaket"],
+    };
+
+    // 3-day explicit request cannot pass with 1 day
+    expect(
+      aiPayloadValidator.validate(
+        baseRaw,
+        { ...context, preference: { ...context.preference, durationDays: 3 } },
+        "gemini",
+      ),
+    ).toBeNull();
+
+    // Duplicate day numbers [1, 1] rejected
+    expect(
+      aiPayloadValidator.validate(
+        {
+          ...baseRaw,
+          itinerary: {
+            ...baseRaw.itinerary,
+            days: [baseRaw.itinerary.days[0], baseRaw.itinerary.days[0]],
+          },
+        },
+        { ...context, preference: { ...context.preference, durationDays: 2 } },
+        "gemini",
+      ),
+    ).toBeNull();
+
+    // Unknown destinationId in explicit request triggers fallback instead of keeping catalog refs
+    expect(
+      aiPayloadValidator.validate(
+        {
+          ...baseRaw,
+          itinerary: {
+            ...baseRaw.itinerary,
+            days: [
+              {
+                day: 1,
+                title: "Hari 1",
+                items: [
+                  {
+                    destinationId: "dest-unknown",
+                    destinationName: "Tempat Fiktif",
+                    routeId,
+                    supportIds: [supportId],
+                    activity: "Eksplor",
+                  },
+                ],
+              },
+            ],
+          },
+        },
+        { ...context, preference: { ...context.preference, durationDays: 1 } },
+        "gemini",
+      ),
+    ).toBeNull();
+
+    // Verified payload replaces LLM grounded prose with catalog-verified facts
+    const valid = aiPayloadValidator.validate(
+      baseRaw,
+      { ...context, preference: { ...context.preference, durationDays: 1 } },
+      "gemini",
+    );
+    expect(valid).not.toBeNull();
+    expect(valid!.briefing.grounded.join(" ")).not.toContain(
+      "Klaim halusinasi bebas LLM",
+    );
+    expect(valid!.briefing.grounded.join(" ")).toContain("Gunung Uji");
+  });
+
+  it("parses full English months, checks raw Haversine > 150 km, and follows scheduled itinerary order", () => {
+    const destA = {
+      ...context.destinations[0]!,
+      id: "dest-a",
+      name: "Puncak A",
+      province: "Jawa Timur",
+      bestSeason: ["January - February"],
+      latitude: -7.9425,
+      longitude: 112.953,
+    };
+    // ~150.4 km north-east (same province, raw > 150)
+    const destB = {
+      ...context.destinations[0]!,
+      id: "dest-b",
+      name: "Puncak B",
+      province: "Jawa Timur",
+      bestSeason: ["January - February"],
+      latitude: -6.5895,
+      longitude: 112.953,
+    };
+    const destC = {
+      ...context.destinations[0]!,
+      id: "dest-c",
+      name: "Puncak C",
+      province: "Jawa Timur",
+      bestSeason: ["January - February"],
+      latitude: -7.9425,
+      longitude: 112.953,
+    };
+
+    const checked = itineraryService.applyPostReasoningChecks(
+      {
+        itinerary: {
+          title: "Urutan Jadwal",
+          summary: "Trip ringkas.",
+          days: [
+            {
+              day: 1,
+              title: "Hari 1",
+              items: [
+                { destinationId: "dest-a", destinationName: "Puncak A", activity: "A" },
+              ],
+            },
+            {
+              day: 2,
+              title: "Hari 2",
+              items: [
+                { destinationId: "dest-c", destinationName: "Puncak C", activity: "C" },
+              ],
+            },
+            {
+              day: 3,
+              title: "Hari 3",
+              items: [
+                { destinationId: "dest-b", destinationName: "Puncak B", activity: "B" },
+              ],
+            },
+          ],
+        },
+        briefing: { grounded: [], general: [], warnings: [] },
+        checklist: [],
+        checklistItems: [],
+        sources: [],
+        engine: "deterministic",
+        model: null,
+      },
+      {
+        ...context,
+        destinations: [destA, destB, destC],
+      },
+      {
+        destinationIds: ["dest-a", "dest-b", "dest-c"],
+        durationDays: 3,
+        startDate: "2026-02-10",
+      },
+    );
+
+    // Scheduled leg is A->C (~0 km), then C->B (~150.4 km > 150)
+    expect(checked.briefing.grounded.join(" ")).toContain("sesuai musim terbaik");
+    expect(checked.briefing.warnings.join(" ")).toContain("Puncak C ke Puncak B");
+    expect(checked.briefing.warnings.join(" ")).not.toContain("Puncak A ke Puncak B");
+  });
+
+  it("keeps Gemini checklist-derived prices out of briefing.grounded during post-processing", async () => {
+    const { aiPayloadValidator } = await import(
+      "../../src/services/ai/AiPayloadValidator"
+    );
+    const llmPayload = {
+      itinerary: {
+        title: "Trip Uji",
+        summary: "Ringkasan",
+        days: [
+          {
+            day: 1,
+            title: "Hari 1",
+            items: [
+              {
+                destinationId,
+                destinationName: "Gunung Uji",
+                routeId,
+                supportIds: [supportId],
+                activity: "Mendaki",
+              },
+            ],
+          },
+        ],
+      },
+      briefing: {
+        grounded: ["Klaim harga bebas LLM Rp9.999.999"],
+        general: [],
+        warnings: [],
+      },
+      checklist: ["Sewa Helikopter"],
+      checklistItems: [
+        {
+          name: "Sewa Helikopter",
+          category: "biaya",
+          estimatedCost: 7777777,
+        },
+      ],
+    };
+
+    const validated = aiPayloadValidator.validate(
+      llmPayload,
+      { ...context, preference: { ...context.preference, durationDays: 1 } },
+      "gemini",
+    );
+    expect(validated).not.toBeNull();
+
+    const result = itineraryService.applyPostReasoningChecks(
+      validated!,
+      context,
+      {
+        destinationIds: [destinationId],
+        durationDays: 1,
+        peopleCount: 1,
+        budgetPerPerson: 500000,
+      },
+    );
+
+    expect(result.briefing.grounded.join(" ")).not.toContain("7.777.777");
+    expect(result.briefing.grounded.join(" ")).not.toContain("9.999.999");
+    expect(result.briefing.grounded.join(" ")).toContain("fasilitas katalog");
+    expect(result.briefing.general.join(" ")).toContain("7.777.777");
+    expect(result.briefing.warnings.join(" ")).toContain("melebihi budget");
+  });
+
+  it("AiService.generate keeps fabricated Gemini checklist prices out of briefing.grounded", async () => {
+    const { aiRepository } = await import("../../src/repositories/AiRepository");
+    vi.spyOn(aiRepository, "findRecent").mockResolvedValue(undefined);
+    vi.spyOn(aiRepository, "countSince").mockResolvedValue(0);
+    vi.spyOn(aiRepository, "save").mockResolvedValue({} as never);
+    const { aiRetrieval } = await import("../../src/services/ai/RetrievalService");
+    vi.spyOn(aiRetrieval, "build").mockResolvedValue({
+      ...context,
+      preference: {
+        ...context.preference,
+        durationDays: 1,
+        peopleCount: 1,
+        budgetPerPerson: 500000,
+      },
+    });
+    vi.spyOn(settingsService, "getGeminiConfig").mockResolvedValue({
+      apiKey: "AIzaTestKey",
+      model: "gemini-3.5-flash-lite",
+      source: "db",
+    });
+    vi.spyOn(geminiService, "generate").mockResolvedValue({
+      itinerary: {
+        title: "Trip Uji",
+        summary: "Ringkasan",
+        days: [
+          {
+            day: 1,
+            title: "Hari 1",
+            items: [
+              {
+                destinationId,
+                destinationName: "Gunung Uji",
+                routeId,
+                supportIds: [supportId],
+                activity: "Mendaki",
+              },
+            ],
+          },
+        ],
+      },
+      briefing: {
+        grounded: ["Gunung Uji (Jawa Timur, tingkat menengah)."],
+        general: [],
+        warnings: [],
+      },
+      checklist: ["Sewa Helikopter"],
+      checklistItems: [
+        {
+          name: "Sewa Helikopter",
+          category: "biaya",
+          estimatedCost: 8888888,
+        },
+      ],
+      sources: [{ type: "destination", id: destinationId, label: "Gunung Uji" }],
+      engine: "gemini",
+      model: "gemini-3.5-flash-lite",
+    });
+
+    const result = await aiService.generate(
+      "11111111-1111-4111-a111-111111111111",
+      {
+        destinationIds: [destinationId],
+        durationDays: 1,
+        peopleCount: 1,
+        budgetPerPerson: 500000,
+      },
+    );
+
+    expect(result.briefing.grounded.join(" ")).not.toContain("8.888.888");
+    expect(result.briefing.grounded.join(" ")).not.toContain("9.178.888");
+    expect(result.briefing.grounded.join(" ")).toContain("fasilitas katalog");
+    expect(result.briefing.general.join(" ")).toContain("9.178.888");
+    expect(result.briefing.warnings.join(" ")).toContain("melebihi budget");
+  });
 });

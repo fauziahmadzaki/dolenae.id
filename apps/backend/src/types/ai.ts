@@ -30,6 +30,9 @@ export interface AiPreferenceInput {
   preferLowCost?: boolean;
   needsAccommodation?: boolean;
   needsTransport?: boolean;
+  peopleCount?: number;
+  startDate?: string;
+  planTitle?: string;
   note?: string;
 }
 
@@ -41,6 +44,12 @@ export interface AiContextDestination {
   images: string[];
   province: string | null;
   regency: string | null;
+  latitude?: number | null;
+  longitude?: number | null;
+  accessPoint?: string | null;
+  accessDescription?: string | null;
+  accessDuration?: string | null;
+  accessTransport?: string[];
   difficulty: Difficulty;
   elevationMeters: number | null;
   bestSeason: string[];
@@ -93,6 +102,7 @@ export interface AiItineraryItem {
   destinationId: string | null;
   destinationName: string;
   routeId: string | null;
+  supportIds?: string[];
   activity: string;
   startTime?: string;
   costEstimate?: string;
