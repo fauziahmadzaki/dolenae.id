@@ -176,6 +176,60 @@ class DestinationRepository {
 
     return { items: rows, total: Number(totalRow?.value ?? 0) };
   }
+
+  async listPublishedGeoTargets(): Promise<
+    {
+      id: string;
+      name: string;
+      province: string | null;
+      district: string | null;
+      latitude: string | null;
+      longitude: string | null;
+    }[]
+  > {
+    return this.db
+      .select({
+        id: destinations.id,
+        name: destinations.name,
+        province: destinations.province,
+        district: destinations.district,
+        latitude: destinations.latitude,
+        longitude: destinations.longitude,
+      })
+      .from(destinations)
+      .where(eq(destinations.status, "published"))
+      .orderBy(asc(destinations.name), asc(destinations.id));
+  }
+
+  async findPublishedGeoTargetsByIds(ids: string[]): Promise<
+    {
+      id: string;
+      name: string;
+      province: string | null;
+      district: string | null;
+      latitude: string | null;
+      longitude: string | null;
+    }[]
+  > {
+    const uniqueIds = [...new Set(ids.filter((id) => id.length > 0))];
+    if (uniqueIds.length === 0) return [];
+    return this.db
+      .select({
+        id: destinations.id,
+        name: destinations.name,
+        province: destinations.province,
+        district: destinations.district,
+        latitude: destinations.latitude,
+        longitude: destinations.longitude,
+      })
+      .from(destinations)
+      .where(
+        and(
+          eq(destinations.status, "published"),
+          inArray(destinations.id, uniqueIds),
+        ),
+      );
+  }
 }
 
 export const destinationRepository = new DestinationRepository();

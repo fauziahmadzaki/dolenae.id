@@ -10,6 +10,7 @@ import { createRequire } from "node:module";
 import { mkdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { gzipSync } from "node:zlib";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const outDir = resolve(here, "../src/data/regions");
@@ -57,19 +58,47 @@ for (const province of collection) {
   }
 }
 
-// Average the village coordinates per district to get a usable centroid.
+// Average the village coordinates per district to get a usable centroid,
+// and build a compact adm4 village lookup grouped by 8-char adm3 code.
+const ADM4_RE = /^\d{2}\.\d{2}\.\d{2}\.\d{4}$/;
 const sums = new Map();
-for (const village of villages) {
-  const lat = Number(village.latitude);
-  const lng = Number(village.longitude);
-  if (!Number.isFinite(lat) || !Number.isFinite(lng)) continue;
+const villagesByDistrict = {};
+let villageCount = 0;
 
-  const code = String(village.code).slice(0, 8);
-  const entry = sums.get(code) ?? { lat: 0, lng: 0, count: 0 };
+for (const village of villages) {
+  const code = String(village.code ?? "").trim();
+  const latRaw = String(village.latitude ?? "").trim();
+  const lngRaw = String(village.longitude ?? "").trim();
+  if (!ADM4_RE.test(code) || !latRaw || !lngRaw) {
+    continue;
+  }
+  const lat = Number(latRaw);
+  const lng = Number(lngRaw);
+  if (
+    !Number.isFinite(lat) ||
+    !Number.isFinite(lng) ||
+    lat < -90 ||
+    lat > 90 ||
+    lng < -180 ||
+    lng > 180
+  ) {
+    continue;
+  }
+
+  const adm3 = code.slice(0, 8);
+  const suffix = code.slice(9, 13);
+  const entry = sums.get(adm3) ?? { lat: 0, lng: 0, count: 0 };
   entry.lat += lat;
   entry.lng += lng;
   entry.count += 1;
-  sums.set(code, entry);
+  sums.set(adm3, entry);
+
+  (villagesByDistrict[adm3] ??= []).push([
+    suffix,
+    Number(lat.toFixed(4)),
+    Number(lng.toFixed(4)),
+  ]);
+  villageCount += 1;
 }
 
 const centroids = [];
@@ -98,6 +127,13 @@ for (const [file, data] of Object.entries(files)) {
   console.log(`${file}: ${data.length} entri, ${(size / 1024).toFixed(1)} KB`);
 }
 
+const villagesTarget = join(outDir, "villages.json.gz");
+writeFileSync(villagesTarget, gzipSync(JSON.stringify(villagesByDistrict)));
+const { size: villagesSize } = statSync(villagesTarget);
 console.log(
-  `Selesai: ${provinces.length} provinsi, ${regencies.length} kabupaten/kota, ${districts.length} kecamatan, ${centroids.length} centroid.`,
+  `villages.json.gz: ${villageCount} desa, ${(villagesSize / 1024).toFixed(1)} KB`,
+);
+
+console.log(
+  `Selesai: ${provinces.length} provinsi, ${regencies.length} kabupaten/kota, ${districts.length} kecamatan, ${centroids.length} centroid, ${villageCount} desa.`,
 );

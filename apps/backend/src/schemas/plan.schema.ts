@@ -101,6 +101,7 @@ const basePlanShape = {
   days: z.array(daySchema).max(30),
   sources: z.array(sourceSchema).max(50),
   checklist: z.array(checklistItemSchema).max(100),
+  checklistReady: z.boolean(),
 };
 
 export const planIdParamsSchema = z.object({
@@ -134,6 +135,7 @@ export const createPlanSchema = z
     days: basePlanShape.days.default([]),
     sources: basePlanShape.sources.default([]),
     checklist: basePlanShape.checklist.default([]),
+    checklistReady: basePlanShape.checklistReady.default(false),
   })
   .superRefine((data, ctx) => {
     const duration = planDurationDays(data.startDate, data.endDate);

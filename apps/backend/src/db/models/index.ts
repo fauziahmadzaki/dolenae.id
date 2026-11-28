@@ -18,3 +18,4 @@ export * from "./AppSetting";
 export * from "./Content";
 export * from "./GalleryPhoto";
 export * from "./TripPlan";
+export * from "./SavedDestination";

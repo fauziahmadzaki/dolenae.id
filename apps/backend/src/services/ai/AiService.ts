@@ -9,6 +9,8 @@ import type {
   AiPreferenceInput,
 } from "../../types/ai";
 import { AppError } from "../../utils/errors";
+import type { DestinationGeoTarget } from "../../types/weather";
+import { bmkgService } from "../BmkgService";
 import { destinationService } from "../DestinationService";
 import { geminiService } from "./GeminiService";
 import { itineraryService } from "./ItineraryService";
@@ -99,6 +101,91 @@ class AiService {
     };
   }
 
+  /**
+   * Append live BMKG weather/earthquake warnings for matched destinations
+   * without mutating the stored AI cache row or failing if BMKG is offline.
+   */
+  async attachLiveBmkgWarnings(
+    result: AiItineraryPayload,
+    context?: AiContext,
+  ): Promise<AiItineraryPayload> {
+    const BMKG_ENRICH_TIMEOUT_MS = 2000;
+    const deadlineController = new AbortController();
+    const timer = setTimeout(
+      () => deadlineController.abort(),
+      BMKG_ENRICH_TIMEOUT_MS,
+    );
+
+    try {
+      let targets: DestinationGeoTarget[] = [];
+      if (context?.destinations.length) {
+        targets = context.destinations.map((d) => ({
+          id: d.id,
+          name: d.name,
+          province: d.province ?? "",
+          district: d.regency ?? "",
+          latitude: d.latitude ?? null,
+          longitude: d.longitude ?? null,
+        }));
+      } else if ((result.recommendations?.length ?? 0) > 0) {
+        const recIds = [
+          ...new Set(
+            (result.recommendations ?? []).map((r) => r.destinationId),
+          ),
+        ];
+        targets = await Promise.race([
+          destinationService.findPublishedGeoTargetsByIds(recIds),
+          new Promise<DestinationGeoTarget[]>((resolve) => {
+            deadlineController.signal.addEventListener(
+              "abort",
+              () => resolve([]),
+              { once: true },
+            );
+          }),
+        ]);
+      }
+
+      if (targets.length === 0 || deadlineController.signal.aborted) {
+        return result;
+      }
+
+      const feed = await Promise.race([
+        bmkgService.getAlertsFeed(targets, {
+          signal: deadlineController.signal,
+        }),
+        new Promise<null>((resolve) => {
+          if (deadlineController.signal.aborted) {
+            resolve(null);
+            return;
+          }
+          deadlineController.signal.addEventListener(
+            "abort",
+            () => resolve(null),
+            { once: true },
+          );
+        }),
+      ]);
+      if (!feed || feed.items.length === 0) return result;
+
+      const liveLines = feed.items.map((item) =>
+        item.body.endsWith("Sumber: BMKG")
+          ? `${item.title}: ${item.body}`
+          : `${item.title}: ${item.body} Sumber: BMKG`,
+      );
+      return {
+        ...result,
+        briefing: {
+          ...result.briefing,
+          warnings: [...new Set([...result.briefing.warnings, ...liveLines])],
+        },
+      };
+    } catch {
+      return result;
+    } finally {
+      clearTimeout(timer);
+    }
+  }
+
   /** Preference options derived from destinations currently in the catalog. */
   async getOptions(): Promise<AiOptions> {
     const list = await destinationService.list({
@@ -155,7 +242,9 @@ class AiService {
         cacheSince,
       );
       if (cached) {
-        return cached.resultJson as AiItineraryPayload;
+        return this.attachLiveBmkgWarnings(
+          cached.resultJson as AiItineraryPayload,
+        );
       }
     }
 
@@ -256,7 +345,7 @@ class AiService {
       })
       .catch(() => undefined);
 
-    return result;
+    return this.attachLiveBmkgWarnings(result, context);
   }
 }
 

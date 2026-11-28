@@ -18,6 +18,7 @@ import type {
 } from "../types/destination";
 import { buildMeta, toPagination, type PaginationQuery } from "../utils/pagination";
 import type { ApiMeta } from "../types/api";
+import type { DestinationGeoTarget } from "../types/weather";
 import { BadRequestError, ConflictError, NotFoundError } from "../utils/errors";
 import { slugify } from "../utils/slug";
 import { categoryService } from "./CategoryService";
@@ -36,6 +37,32 @@ const AMENITY_BY_FACILITY_TYPE: Record<string, string> = {
 };
 
 class DestinationService {
+  async listPublishedGeoTargets(): Promise<DestinationGeoTarget[]> {
+    const rows = await destinationRepository.listPublishedGeoTargets();
+    return rows.map((row) => ({
+      id: row.id,
+      name: row.name,
+      province: row.province ?? "",
+      district: row.district ?? "",
+      latitude: this.toNumber(row.latitude),
+      longitude: this.toNumber(row.longitude),
+    }));
+  }
+
+  async findPublishedGeoTargetsByIds(
+    ids: string[],
+  ): Promise<DestinationGeoTarget[]> {
+    const rows = await destinationRepository.findPublishedGeoTargetsByIds(ids);
+    return rows.map((row) => ({
+      id: row.id,
+      name: row.name,
+      province: row.province ?? "",
+      district: row.district ?? "",
+      latitude: this.toNumber(row.latitude),
+      longitude: this.toNumber(row.longitude),
+    }));
+  }
+
   private toNumber(value: string | null): number | null {
     return value === null ? null : Number(value);
   }
@@ -147,22 +174,13 @@ class DestinationService {
     return this.mapFacilityCounts(counts);
   }
 
-  async list(
-    query: PaginationQuery & {
-      difficulty?: Difficulty;
-      status?: DestinationStatus;
-      categoryId?: string;
-    },
-  ): Promise<{ items: PublicDestination[]; meta: ApiMeta }> {
-    const pagination = toPagination(query);
-    const { items, total } = await destinationRepository.list({
-      ...pagination,
-      difficulty: query.difficulty,
-      status: query.status,
-      categoryId: query.categoryId,
-    });
-    const destinationIds = items.map((row) => row.id);
-    // One pivot query and one facility-count query for the whole page.
+  /** Batch-hydrate DestinationRow entries with categories and published facility counts. */
+  async hydratePublicDestinations(
+    rows: DestinationRow[],
+  ): Promise<PublicDestination[]> {
+    if (rows.length === 0) return [];
+    const destinationIds = rows.map((row) => row.id);
+    // One pivot query and one facility-count query for the whole batch.
     const [links, facilityRows] = await Promise.all([
       destinationRepository.findCategoryLinks(destinationIds),
       facilityRepository.countPublishedTypesByDestinations(destinationIds),
@@ -184,25 +202,44 @@ class DestinationService {
       facilityCountsByDestination.set(row.destinationId, list);
     }
 
-    // One lookup for every category referenced on this page.
-    const categoryRows = await categoryRepository.findByIds([
-      ...new Set(links.map((link) => link.categoryId)),
-    ]);
+    // One lookup for every category referenced in this batch.
+    const uniqueCategoryIds = [...new Set(links.map((link) => link.categoryId))];
+    const categoryRows =
+      uniqueCategoryIds.length > 0
+        ? await categoryRepository.findByIds(uniqueCategoryIds)
+        : [];
     const categoryById = new Map(
       categoryRows.map((row) => [row.id, categoryService.toPublicCategory(row)]),
     );
 
+    return rows.map((row) => {
+      const categoryIds = linked.get(row.id) ?? [];
+      const categories = categoryIds
+        .map((categoryId) => categoryById.get(categoryId))
+        .filter((category): category is PublicCategory => Boolean(category));
+      const facilities = this.mapFacilityCounts(
+        facilityCountsByDestination.get(row.id) ?? [],
+      );
+      return this.toPublicDestination(row, categoryIds, categories, facilities);
+    });
+  }
+
+  async list(
+    query: PaginationQuery & {
+      difficulty?: Difficulty;
+      status?: DestinationStatus;
+      categoryId?: string;
+    },
+  ): Promise<{ items: PublicDestination[]; meta: ApiMeta }> {
+    const pagination = toPagination(query);
+    const { items, total } = await destinationRepository.list({
+      ...pagination,
+      difficulty: query.difficulty,
+      status: query.status,
+      categoryId: query.categoryId,
+    });
     return {
-      items: items.map((row) => {
-        const categoryIds = linked.get(row.id) ?? [];
-        const categories = categoryIds
-          .map((categoryId) => categoryById.get(categoryId))
-          .filter((category): category is PublicCategory => Boolean(category));
-        const facilities = this.mapFacilityCounts(
-          facilityCountsByDestination.get(row.id) ?? [],
-        );
-        return this.toPublicDestination(row, categoryIds, categories, facilities);
-      }),
+      items: await this.hydratePublicDestinations(items),
       meta: buildMeta(total, query.page, query.limit),
     };
   }

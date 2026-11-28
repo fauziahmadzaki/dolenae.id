@@ -64,6 +64,7 @@ function makeRow(overrides: Partial<TripPlanRow> = {}): TripPlanRow {
         estimatedCost: null,
       },
     ],
+    checklistReady: false,
     createdAt: new Date("2026-06-01T00:00:00Z"),
     updatedAt: new Date("2026-06-01T00:00:00Z"),
     ...overrides,
@@ -534,5 +535,310 @@ describe("Trip plans API (/api/plans)", () => {
         endDate: "2026-07-12",
       })
       .expect(201);
+  });
+
+  it("supports full manual edit on PATCH /api/plans/:id, validates bounds (422), and enforces IDOR isolation (404)", async () => {
+    const store = new Map<string, TripPlanRow>([[PLAN_ID, makeRow()]]);
+
+    vi.spyOn(planRepository, "updateForUserLocked").mockImplementation(
+      async (id, userId, buildPatch) => {
+        const row = store.get(id);
+        if (!row || row.userId !== userId) return null;
+        const patch = buildPatch(row);
+        const updated: TripPlanRow = {
+          ...row,
+          ...patch,
+          updatedAt: new Date("2026-06-02T00:00:00Z"),
+        };
+        store.set(id, updated);
+        return updated;
+      },
+    );
+
+    const res = await request(app)
+      .patch(`/api/plans/${PLAN_ID}`)
+      .set("Authorization", `Bearer ${tokenA}`)
+      .send({
+        title: "Ekspedisi Ijen Baru",
+        startDate: "2026-08-01",
+        endDate: "2026-08-03",
+        peopleCount: 4,
+        totalBudget: 3500000,
+        originProvince: "Jawa Barat",
+        note: "Bawa senter dan jas hujan",
+        destinationIds: [DEST_2],
+        days: [
+          {
+            day: 1,
+            title: "Kawah Ijen",
+            items: [
+              {
+                destinationId: DEST_2,
+                destinationName: "Kawah Ijen",
+                activity: "Pendakian malam",
+              },
+            ],
+          },
+          { day: 2, title: "Hari 2", items: [] },
+          { day: 3, title: "Hari 3", items: [] },
+        ],
+        sources: [{ type: "destination", id: DEST_2, label: "Kawah Ijen" }],
+      })
+      .expect(200);
+
+    expect(res.body.data.title).toBe("Ekspedisi Ijen Baru");
+    expect(res.body.data.startDate).toBe("2026-08-01");
+    expect(res.body.data.endDate).toBe("2026-08-03");
+    expect(res.body.data.peopleCount).toBe(4);
+    expect(res.body.data.totalBudget).toBe(3500000);
+    expect(res.body.data.originProvince).toBe("Jawa Barat");
+    expect(res.body.data.note).toBe("Bawa senter dan jas hujan");
+    expect(res.body.data.destinationIds).toEqual([DEST_2]);
+    expect(res.body.data.days).toHaveLength(3);
+    expect(res.body.data.sources).toEqual([
+      { type: "destination", id: DEST_2, label: "Kawah Ijen" },
+    ]);
+
+    // Validation bounds -> 422
+    for (const invalidBody of [
+      { peopleCount: 0 },
+      { peopleCount: 31 },
+      { totalBudget: -1 },
+      { totalBudget: 1_000_000_001 },
+      { startDate: "2026-08-01", endDate: "2026-09-05" },
+    ]) {
+      await request(app)
+        .patch(`/api/plans/${PLAN_ID}`)
+        .set("Authorization", `Bearer ${tokenA}`)
+        .send(invalidBody)
+        .expect(422);
+    }
+
+    // IDOR isolation -> 404
+    await request(app)
+      .patch(`/api/plans/${PLAN_ID}`)
+      .set("Authorization", `Bearer ${tokenB}`)
+      .send({ title: "Unauthorized Edit" })
+      .expect(404);
+  });
+
+  it("supports checklistReady defaults, toggling, validation, and cross-account isolation", async () => {
+    const store = new Map<string, TripPlanRow>();
+
+    vi.spyOn(planRepository, "createWithLimitForUser").mockImplementation(
+      async (userId, _limit, input) => {
+        const id =
+          input.title === "Rencana Siap"
+            ? "66666666-6666-4666-a666-666666666666"
+            : PLAN_ID;
+        const row = makeRow({
+          id,
+          userId,
+          title: input.title,
+          checklistJson: input.checklistJson ?? [],
+          checklistReady: input.checklistReady ?? false,
+        });
+        store.set(id, row);
+        return { status: "created", row };
+      },
+    );
+    vi.spyOn(planRepository, "updateForUserLocked").mockImplementation(
+      async (id, userId, buildPatch) => {
+        const existing = store.get(id);
+        if (!existing || existing.userId !== userId) return null;
+        const patch = buildPatch(existing);
+        const updated: TripPlanRow = {
+          ...existing,
+          ...patch,
+          updatedAt: new Date("2026-06-02T00:00:00Z"),
+        };
+        store.set(id, updated);
+        return updated;
+      },
+    );
+
+    const createDefault = await request(app)
+      .post("/api/plans")
+      .set("Authorization", `Bearer ${tokenA}`)
+      .send({
+        title: "Rencana Default",
+        startDate: "2026-07-10",
+        endDate: "2026-07-12",
+      })
+      .expect(201);
+    expect(createDefault.body.data.checklistReady).toBe(false);
+
+    const createReady = await request(app)
+      .post("/api/plans")
+      .set("Authorization", `Bearer ${tokenA}`)
+      .send({
+        title: "Rencana Siap",
+        startDate: "2026-07-10",
+        endDate: "2026-07-12",
+        checklistReady: true,
+      })
+      .expect(201);
+    expect(createReady.body.data.checklistReady).toBe(true);
+
+    const patchTrue = await request(app)
+      .patch(`/api/plans/${PLAN_ID}`)
+      .set("Authorization", `Bearer ${tokenA}`)
+      .send({ checklistReady: true })
+      .expect(200);
+    expect(patchTrue.body.data.checklistReady).toBe(true);
+
+    const patchFalse = await request(app)
+      .patch(`/api/plans/${PLAN_ID}`)
+      .set("Authorization", `Bearer ${tokenA}`)
+      .send({ checklistReady: false })
+      .expect(200);
+    expect(patchFalse.body.data.checklistReady).toBe(false);
+
+    for (const badValue of ["yes", 1]) {
+      await request(app)
+        .patch(`/api/plans/${PLAN_ID}`)
+        .set("Authorization", `Bearer ${tokenA}`)
+        .send({ checklistReady: badValue })
+        .expect(422);
+    }
+
+    await request(app)
+      .patch(`/api/plans/${PLAN_ID}`)
+      .set("Authorization", `Bearer ${tokenB}`)
+      .send({ checklistReady: true })
+      .expect(404);
+  });
+
+  it("enforces checklistReady consistency with checklist items on create and patch", async () => {
+    const store = new Map<string, TripPlanRow>();
+    let seq = 0;
+
+    vi.spyOn(planRepository, "createWithLimitForUser").mockImplementation(
+      async (userId, _limit, input) => {
+        const id = `77777777-7777-4777-a777-77777777770${++seq}`;
+        const row = makeRow({
+          id,
+          userId,
+          title: input.title,
+          checklistJson: input.checklistJson ?? [],
+          checklistReady: input.checklistReady ?? false,
+        });
+        store.set(id, row);
+        return { status: "created", row };
+      },
+    );
+    vi.spyOn(planRepository, "updateForUserLocked").mockImplementation(
+      async (id, userId, buildPatch) => {
+        const existing = store.get(id);
+        if (!existing || existing.userId !== userId) return null;
+        const patch = buildPatch(existing);
+        const updated: TripPlanRow = {
+          ...existing,
+          ...patch,
+          updatedAt: new Date("2026-06-02T00:00:00Z"),
+        };
+        store.set(id, updated);
+        return updated;
+      },
+    );
+
+    // 1. POST checklistReady: true with incomplete item -> 422
+    await request(app)
+      .post("/api/plans")
+      .set("Authorization", `Bearer ${tokenA}`)
+      .send({
+        title: "Belum Selesai",
+        startDate: "2026-07-10",
+        endDate: "2026-07-12",
+        checklistReady: true,
+        checklist: [
+          { name: "Jaket", category: "perlengkapan", isCompleted: false },
+        ],
+      })
+      .expect(422);
+
+    // 1b. POST checklistReady: true with empty [] or all completed -> 201
+    const createdEmpty = await request(app)
+      .post("/api/plans")
+      .set("Authorization", `Bearer ${tokenA}`)
+      .send({
+        title: "Kosong Siap",
+        startDate: "2026-07-10",
+        endDate: "2026-07-12",
+        checklistReady: true,
+        checklist: [],
+      })
+      .expect(201);
+    expect(createdEmpty.body.data.checklistReady).toBe(true);
+
+    const createdDone = await request(app)
+      .post("/api/plans")
+      .set("Authorization", `Bearer ${tokenA}`)
+      .send({
+        title: "Lengkap Siap",
+        startDate: "2026-07-10",
+        endDate: "2026-07-12",
+        checklistReady: true,
+        checklist: [
+          { name: "Jaket", category: "perlengkapan", isCompleted: true },
+        ],
+      })
+      .expect(201);
+    expect(createdDone.body.data.checklistReady).toBe(true);
+
+    // 2. PATCH checklistReady: true with incomplete item from existing row or payload -> 422
+    const planIncomplete = await request(app)
+      .post("/api/plans")
+      .set("Authorization", `Bearer ${tokenA}`)
+      .send({
+        title: "Ada Item Belum Selesai",
+        startDate: "2026-07-10",
+        endDate: "2026-07-12",
+        checklist: [
+          { name: "Tenda", category: "perlengkapan", isCompleted: false },
+        ],
+      })
+      .expect(201);
+
+    await request(app)
+      .patch(`/api/plans/${planIncomplete.body.data.id}`)
+      .set("Authorization", `Bearer ${tokenA}`)
+      .send({ checklistReady: true })
+      .expect(422);
+
+    await request(app)
+      .patch(`/api/plans/${createdDone.body.data.id}`)
+      .set("Authorization", `Bearer ${tokenA}`)
+      .send({
+        checklistReady: true,
+        checklist: [
+          { name: "Jaket", category: "perlengkapan", isCompleted: false },
+        ],
+      })
+      .expect(422);
+
+    // 3. PATCH checklist-only with incomplete item on ready plan -> 200 & checklistReady: false
+    const patchReset = await request(app)
+      .patch(`/api/plans/${createdDone.body.data.id}`)
+      .set("Authorization", `Bearer ${tokenA}`)
+      .send({
+        checklist: [
+          { name: "Jaket", category: "perlengkapan", isCompleted: false },
+        ],
+      })
+      .expect(200);
+    expect(patchReset.body.data.checklistReady).toBe(false);
+
+    // 4. PATCH checklist-only with all items completed on unready plan -> 200 & checklistReady: false
+    const patchAllDoneNotReady = await request(app)
+      .patch(`/api/plans/${planIncomplete.body.data.id}`)
+      .set("Authorization", `Bearer ${tokenA}`)
+      .send({
+        checklist: [
+          { name: "Tenda", category: "perlengkapan", isCompleted: true },
+        ],
+      })
+      .expect(200);
+    expect(patchAllDoneNotReady.body.data.checklistReady).toBe(false);
   });
 });

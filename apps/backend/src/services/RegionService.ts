@@ -1,16 +1,22 @@
 import { readFileSync } from "node:fs";
+import { gunzipSync } from "node:zlib";
 import type {
   DistrictSummary,
   RegencySummary,
   RegionSummary,
   ReverseRegion,
 } from "../types/region";
+import { haversineKm } from "../utils/geo";
 
 interface Centroid {
   code: string;
   lat: number;
   lng: number;
 }
+
+type VillageTuple = [string, number, number];
+
+const ADM4_RE = /^\d{2}\.\d{2}\.\d{2}\.\d{4}$/;
 
 function loadJson<T>(file: string): T {
   const url = new URL(`../data/regions/${file}`, import.meta.url);
@@ -33,22 +39,26 @@ class RegionService {
   private readonly provinceByCode = new Map(
     this.provinceRows.map((row) => [row.code, row]),
   );
+  private villagesByDistrict: Record<string, VillageTuple[]> | null = null;
 
-  private haversineKm(
+  private loadVillages(): Record<string, VillageTuple[]> {
+    if (this.villagesByDistrict) return this.villagesByDistrict;
+    const url = new URL("../data/regions/villages.json.gz", import.meta.url);
+    const json = gunzipSync(readFileSync(url)).toString("utf8");
+    this.villagesByDistrict = JSON.parse(json) as Record<string, VillageTuple[]>;
+    return this.villagesByDistrict;
+  }
+
+  private distanceKm(
     fromLat: number,
     fromLng: number,
     toLat: number,
     toLng: number,
   ): number {
-    const rad = Math.PI / 180;
-    const dLat = (toLat - fromLat) * rad;
-    const dLng = (toLng - fromLng) * rad;
-    const a =
-      Math.sin(dLat / 2) ** 2 +
-      Math.cos(fromLat * rad) *
-        Math.cos(toLat * rad) *
-        Math.sin(dLng / 2) ** 2;
-    return 6371 * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    return haversineKm(
+      { latitude: fromLat, longitude: fromLng },
+      { latitude: toLat, longitude: toLng },
+    );
   }
 
   private toSummary(row: RegionSummary): RegionSummary {
@@ -90,7 +100,7 @@ class RegionService {
     let bestKm = Number.POSITIVE_INFINITY;
 
     for (const centroid of this.centroids) {
-      const km = this.haversineKm(lat, lng, centroid.lat, centroid.lng);
+      const km = this.distanceKm(lat, lng, centroid.lat, centroid.lng);
       if (km < bestKm) {
         bestKm = km;
         best = centroid;
@@ -112,6 +122,63 @@ class RegionService {
       district: this.toSummary(district),
       distanceKm: Number(bestKm.toFixed(1)),
     };
+  }
+
+  /**
+   * Resolve up to `limit` nearest Kemendagri `adm4` village codes from `(lat, lng)`
+   * by scanning the 2 nearest district centroids' village buckets.
+   */
+  resolveAdm4Candidates(lat: number, lng: number, limit = 3): string[] {
+    if (!Number.isFinite(lat) || !Number.isFinite(lng) || limit <= 0) {
+      return [];
+    }
+
+    let first: { code: string; km: number } | undefined;
+    let second: { code: string; km: number } | undefined;
+
+    for (const centroid of this.centroids) {
+      const km = this.distanceKm(lat, lng, centroid.lat, centroid.lng);
+      if (!first || km < first.km) {
+        second = first;
+        first = { code: centroid.code, km };
+      } else if (!second || km < second.km) {
+        second = { code: centroid.code, km };
+      }
+    }
+
+    const districtCodes = [
+      ...(first ? [first.code] : []),
+      ...(second ? [second.code] : []),
+    ];
+    if (districtCodes.length === 0) return [];
+
+    const villagesMap = this.loadVillages();
+    const candidates: { adm4: string; km: number }[] = [];
+
+    for (const adm3 of districtCodes) {
+      const bucket = villagesMap[adm3];
+      if (!bucket) continue;
+      for (const [suffix, vLat, vLng] of bucket) {
+        const adm4 = `${adm3}.${suffix}`;
+        if (!ADM4_RE.test(adm4)) continue;
+        candidates.push({
+          adm4,
+          km: this.distanceKm(lat, lng, vLat, vLng),
+        });
+      }
+    }
+
+    candidates.sort((a, b) => a.km - b.km);
+
+    const unique: string[] = [];
+    const seen = new Set<string>();
+    for (const item of candidates) {
+      if (seen.has(item.adm4)) continue;
+      seen.add(item.adm4);
+      unique.push(item.adm4);
+      if (unique.length >= limit) break;
+    }
+    return unique;
   }
 }
 

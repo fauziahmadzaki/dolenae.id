@@ -36,6 +36,7 @@ class PlanService {
       days: row.daysJson ?? [],
       sources: row.sourcesJson ?? [],
       checklist: row.checklistJson ?? [],
+      checklistReady: Boolean(row.checklistReady),
       createdAt: row.createdAt.toISOString(),
       updatedAt: row.updatedAt.toISOString(),
     };
@@ -81,6 +82,15 @@ class PlanService {
     userId: string,
     body: CreatePlanBody,
   ): Promise<{ plan: PublicTripPlan; created: boolean }> {
+    if (
+      body.checklistReady === true &&
+      body.checklist.some((item) => !item.isCompleted)
+    ) {
+      throw new ValidationError(
+        "Rencana hanya dapat ditandai siap bila semua item checklist selesai",
+      );
+    }
+
     const destinationIds = this.reconcileDestinationIds(
       body.destinationIds,
       body.days,
@@ -108,6 +118,7 @@ class PlanService {
         daysJson: body.days,
         sourcesJson: body.sources,
         checklistJson: body.checklist,
+        checklistReady: body.checklistReady,
       },
     );
 
@@ -170,6 +181,24 @@ class PlanService {
         if (body.days !== undefined) patch.daysJson = body.days;
         if (body.sources !== undefined) patch.sourcesJson = body.sources;
         if (body.checklist !== undefined) patch.checklistJson = body.checklist;
+        const nextChecklist = body.checklist ?? existing.checklistJson ?? [];
+        const hasIncomplete = nextChecklist.some((item) => !item.isCompleted);
+        if (body.checklistReady === true) {
+          if (hasIncomplete) {
+            throw new ValidationError(
+              "Rencana hanya dapat ditandai siap bila semua item checklist selesai",
+            );
+          }
+          patch.checklistReady = true;
+        } else if (body.checklistReady === false) {
+          patch.checklistReady = false;
+        } else if (
+          body.checklist !== undefined &&
+          existing.checklistReady &&
+          hasIncomplete
+        ) {
+          patch.checklistReady = false;
+        }
 
         if (body.destinationIds !== undefined && body.days !== undefined) {
           patch.destinationIds = this.reconcileDestinationIds(

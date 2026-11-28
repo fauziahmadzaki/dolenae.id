@@ -77,6 +77,7 @@ export interface PublicTripPlan {
   days: TripPlanDay[];
   sources: TripPlanSource[];
   checklist: TripPlanChecklistItem[];
+  checklistReady: boolean;
   createdAt: string;
   updatedAt: string;
 }

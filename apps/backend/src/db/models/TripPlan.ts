@@ -1,5 +1,6 @@
 import { sql } from "drizzle-orm";
 import {
+  boolean,
   check,
   date,
   index,
@@ -60,6 +61,7 @@ export const tripPlans = pgTable(
       .$type<TripPlanChecklistItem[]>()
       .notNull()
       .default([]),
+    checklistReady: boolean("checklist_ready").notNull().default(false),
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
       .defaultNow(),

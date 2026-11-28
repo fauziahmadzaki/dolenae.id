@@ -11,10 +11,12 @@ import { healthRouter } from "./health.route";
 import { planRouter } from "./plan.route";
 import { regionRouter } from "./region.route";
 import { routeBuilderRouter } from "./route.route";
+import { savedDestinationRouter } from "./saved-destination.route";
 import { statsRouter } from "./stats.route";
 import { supportRouter } from "./support.route";
 import { uploadRouter } from "./upload.route";
 import { userRouter } from "./user.route";
+import { weatherRouter } from "./weather.route";
 
 /** Main API router, mounted at `/api`. Add domain routes here. */
 export const apiRouter = Router();
@@ -28,6 +30,7 @@ apiRouter.use("/regions", regionRouter);
 apiRouter.use("/uploads", uploadRouter);
 apiRouter.use("/ai", aiRouter);
 apiRouter.use("/plans", planRouter);
+apiRouter.use("/saved-destinations", savedDestinationRouter);
 apiRouter.use("/admin/ai", aiAdminRouter);
 apiRouter.use("/admin/stats", statsRouter);
 apiRouter.use("/admin/contents", adminContentRouter);
@@ -36,3 +39,4 @@ apiRouter.use("/contents", contentRouter);
 apiRouter.use("/", routeBuilderRouter);
 apiRouter.use("/", facilityRouter);
 apiRouter.use("/", supportRouter);
+apiRouter.use("/", weatherRouter);
