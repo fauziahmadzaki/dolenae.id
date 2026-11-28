@@ -6,6 +6,11 @@ import { difficultyLabels } from "~/features/destinations/schema";
 import { categoryLabels, type Facility } from "~/features/facilities/types";
 import { CatalogMedia } from "~/features/public/catalog-media";
 import { container, PublicShell } from "~/features/public/page-shell";
+import {
+  DestinationWeatherAlerts,
+  DestinationWeatherCard,
+} from "~/features/weather/destination-weather-aside";
+import { parseDestinationWeather } from "~/features/weather/types";
 import { get } from "~/lib/api/server";
 import { ApiError } from "~/lib/api/types";
 import { cn } from "~/lib/cn";
@@ -18,12 +23,15 @@ export default async function DestinationPage({ params }: { params: Promise<{ id
   const { id } = await params;
   if (!z.uuid().safeParse(id).success) notFound();
 
-  const [destination, facilities] = await Promise.all([
+  const [destination, facilities, weather] = await Promise.all([
     get<DestinationDetail>(`/destinations/${id}`).then((result) => result.data).catch((error: unknown) => {
       if (error instanceof ApiError && error.status === 404) notFound();
       return null;
     }),
     get<Facility[]>(`/destinations/${id}/facilities?limit=6`).then((result) => result.data).catch(() => null),
+    get<unknown>(`/destinations/${id}/weather`, {
+      signal: AbortSignal.timeout(3500),
+    }).then((result) => parseDestinationWeather(result.data)).catch(() => null),
   ]);
 
   if (!destination) {
@@ -124,6 +132,7 @@ export default async function DestinationPage({ params }: { params: Promise<{ id
           </section>
         </div>
         <aside className="space-y-4">
+          <DestinationWeatherAlerts weather={weather} />
           <section className="space-y-3 rounded-2xl border border-hairline bg-canvas-subtle p-6">
             <h2 className="text-xl font-bold">Info kunjungan</h2>
             <dl className="space-y-3 border-t border-hairline pt-4 text-sm">
@@ -132,6 +141,7 @@ export default async function DestinationPage({ params }: { params: Promise<{ id
               <div className="flex justify-between gap-4"><dt>Pemandu</dt><dd className="font-semibold text-ink">{guideRequired ? "Wajib" : "Tidak wajib"}</dd></div>
             </dl>
           </section>
+          <DestinationWeatherCard weather={weather} />
           <section className="space-y-2 rounded-xl border border-hairline bg-canvas-subtle p-5">
             <h2 className="font-sans font-semibold">Butuh bantuan akses?</h2>
             <p className="text-sm">Temukan panduan persiapan perjalanan Dolenae.</p>
