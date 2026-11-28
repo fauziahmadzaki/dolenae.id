@@ -125,6 +125,7 @@ class _BerandaScreenState extends State<BerandaScreen> {
                   if (destinationsController != null)
                     destinationsController.refresh(),
                   context.read<CategoriesController>().load(refresh: true),
+                  context.read<NotificationsController>().load(),
                   if (destinations.isNotEmpty)
                     context.read<FacilitiesController>().loadFirstAvailable(
                       destinations.take(6).map((item) => item.id),

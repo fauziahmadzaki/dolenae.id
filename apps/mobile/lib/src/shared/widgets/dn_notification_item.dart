@@ -26,6 +26,7 @@ class DnNotificationItem extends StatelessWidget {
     NotificationKind.checklist => AppIcons.squareCheck,
     NotificationKind.usulan => AppIcons.messageSquare,
     NotificationKind.sistem => AppIcons.info,
+    NotificationKind.peringatan => AppIcons.alertTriangle,
   };
 
   /// Label waktu ringkas, mis. "2 jam lalu".
@@ -76,7 +77,11 @@ class DnNotificationItem extends StatelessWidget {
               child: Icon(
                 _icon,
                 size: 18,
-                color: unread ? AppColors.primary : AppColors.body,
+                color: notification.kind == NotificationKind.peringatan
+                    ? (notification.isDanger
+                          ? AppColors.danger
+                          : AppColors.warning)
+                    : (unread ? AppColors.primary : AppColors.body),
               ),
             ),
             const SizedBox(width: AppSpacing.s3),

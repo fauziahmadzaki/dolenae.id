@@ -95,6 +95,7 @@ class _PlanDetailScreenState extends State<PlanDetailScreen> {
   Widget build(BuildContext context) {
     final controller = context.watch<PlanController>();
     final plan = controller.findPlanById(widget.planId);
+    final generating = plan != null && controller.isGenerating(plan.id);
 
     return Scaffold(
       backgroundColor: AppColors.canvas,
@@ -104,14 +105,40 @@ class _PlanDetailScreenState extends State<PlanDetailScreen> {
         onBack: _back,
         trailing: plan == null
             ? null
-            : IconButton(
-                onPressed: () => _confirmDelete(controller, plan),
-                icon: const Icon(
-                  AppIcons.delete,
-                  color: AppColors.onPrimary,
-                  size: 22,
-                ),
-                tooltip: 'Hapus rencana',
+            : Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  IconButton(
+                    onPressed: generating
+                        ? null
+                        : () => context.push('/plan/${plan.id}/edit'),
+                    icon: Icon(
+                      AppIcons.edit,
+                      color: generating
+                          ? AppColors.onPrimary.withValues(alpha: 0.4)
+                          : AppColors.onPrimary,
+                      size: 22,
+                    ),
+                    tooltip: 'Ubah rencana',
+                    constraints: const BoxConstraints(
+                      minWidth: 44,
+                      minHeight: 44,
+                    ),
+                  ),
+                  IconButton(
+                    onPressed: () => _confirmDelete(controller, plan),
+                    icon: const Icon(
+                      AppIcons.delete,
+                      color: AppColors.onPrimary,
+                      size: 22,
+                    ),
+                    tooltip: 'Hapus rencana',
+                    constraints: const BoxConstraints(
+                      minWidth: 44,
+                      minHeight: 44,
+                    ),
+                  ),
+                ],
               ),
       ),
       body: Column(
@@ -267,6 +294,17 @@ class _SummaryCard extends StatelessWidget {
               ),
             ],
           ),
+          if (plan.note.trim().isNotEmpty) ...[
+            const SizedBox(height: AppSpacing.s3),
+            const Divider(height: 1, color: AppColors.hairline),
+            const SizedBox(height: AppSpacing.s3),
+            Text('Catatan', style: AppTextStyles.caption),
+            const SizedBox(height: AppSpacing.s1),
+            Text(
+              plan.note.trim(),
+              style: AppTextStyles.bodySm.copyWith(color: AppColors.ink),
+            ),
+          ],
         ],
       ),
     );
@@ -283,7 +321,7 @@ class _PreparationCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final total = plan.checklistCount;
     final done = plan.completedChecklistCount;
-    final ready = total > 0 && done == total;
+    final ready = plan.checklistReady;
 
     return Material(
       color: AppColors.canvasSubtle,
@@ -318,7 +356,38 @@ class _PreparationCard extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('Checklist persiapan', style: AppTextStyles.titleSm),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            'Checklist persiapan',
+                            style: AppTextStyles.titleSm,
+                          ),
+                        ),
+                        if (ready) ...[
+                          const SizedBox(width: AppSpacing.s2),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: AppSpacing.s2,
+                              vertical: 3,
+                            ),
+                            decoration: BoxDecoration(
+                              color: AppColors.success,
+                              borderRadius: BorderRadius.circular(
+                                AppRadius.pill,
+                              ),
+                            ),
+                            child: Text(
+                              'Siap',
+                              style: AppTextStyles.overline.copyWith(
+                                color: AppColors.onPrimary,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
                     const SizedBox(height: 2),
                     Text(
                       total == 0

@@ -16,14 +16,16 @@ class DnDateField extends StatelessWidget {
     this.placeholder = 'Pilih tanggal',
     this.icon = AppIcons.calendar,
     this.errorText,
+    this.enabled = true,
   });
 
   final String? label;
   final String value;
-  final VoidCallback onTap;
+  final VoidCallback? onTap;
   final String placeholder;
   final IconData icon;
   final String? errorText;
+  final bool enabled;
 
   @override
   Widget build(BuildContext context) {
@@ -36,13 +38,13 @@ class DnDateField extends StatelessWidget {
           const SizedBox(height: AppSpacing.s2),
         ],
         InkWell(
-          onTap: onTap,
+          onTap: enabled ? onTap : null,
           borderRadius: BorderRadius.circular(AppRadius.md),
           child: Container(
             height: 52,
             padding: const EdgeInsets.symmetric(horizontal: AppSpacing.s4),
             decoration: BoxDecoration(
-              color: AppColors.canvasSubtle,
+              color: enabled ? AppColors.canvasSubtle : AppColors.hairline,
               borderRadius: BorderRadius.circular(AppRadius.md),
               border: Border.all(
                 color: errorText != null ? AppColors.danger : AppColors.hairline,
@@ -56,7 +58,7 @@ class DnDateField extends StatelessWidget {
                   child: Text(
                     filled ? value : placeholder,
                     style: AppTextStyles.body.copyWith(
-                      color: filled ? AppColors.ink : AppColors.borderStrong,
+                      color: filled ? AppColors.ink : AppColors.body,
                     ),
                   ),
                 ),

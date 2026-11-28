@@ -63,6 +63,7 @@ class PlanController extends ChangeNotifier {
   final LocationRepository _locationRepository;
 
   static const int maxAiDestinations = 7;
+  static const int maxChecklistItems = 100;
 
   List<TripPlan> _plans = const [];
   bool _isLoading = false;
@@ -75,6 +76,9 @@ class PlanController extends ChangeNotifier {
   final Map<String, String> _idAliases = {};
 
   List<TripPlan> get plans => List.unmodifiable(_plans);
+
+  int get readyChecklistCount =>
+      _plans.where((plan) => plan.checklistReady).length;
 
   bool get isLoading => _isLoading;
 
@@ -183,13 +187,403 @@ class PlanController extends ChangeNotifier {
       if (plan == null) {
         return const PlanActionResult.failed('Rencana tidak ditemukan.');
       }
-      final updated = plan.copyWith(originProvince: province.trim());
+    final updated = plan.copyWith(originProvince: province.trim());
       return _persistUpdate(
         updated,
         expectedEpoch: epoch,
         expectedUserId: capturedUserId,
       );
     });
+  }
+
+  /// Memperbarui metadata dan daftar destinasi rencana secara manual tanpa memicu AI.
+  Future<PlanActionResult> updatePlan(
+    String planId, {
+    required String title,
+    required DateTime startDate,
+    required DateTime endDate,
+    required int peopleCount,
+    required int totalBudget,
+    required String originProvince,
+    required String note,
+    List<String>? destinationIds,
+    List<Destination>? selectedDestinations,
+  }) {
+    if (isGenerating(planId)) {
+      return Future.value(
+        const PlanActionResult.failed('Tunggu AI selesai menyusun rencana.'),
+      );
+    }
+    return _enqueuePlanOp(planId, () async {
+      final epoch = _loadEpoch;
+      final capturedUserId = _userId;
+      final plan = _planById(planId);
+      if (plan == null) {
+        return const PlanActionResult.failed('Rencana tidak ditemukan.');
+      }
+      if (isGenerating(plan.id)) {
+        return const PlanActionResult.failed(
+          'Tunggu AI selesai menyusun rencana.',
+        );
+      }
+
+      final trimmedTitle = title.trim();
+      if (trimmedTitle.isEmpty) {
+        return const PlanActionResult.failed('Nama rencana wajib diisi.');
+      }
+      if (trimmedTitle.length > 160) {
+        return const PlanActionResult.failed(
+          'Nama rencana maksimal 160 karakter.',
+        );
+      }
+
+      final start = DateTime(startDate.year, startDate.month, startDate.day);
+      final end = DateTime(endDate.year, endDate.month, endDate.day);
+      final nextDuration =
+          DateTime.utc(end.year, end.month, end.day)
+              .difference(DateTime.utc(start.year, start.month, start.day))
+              .inDays +
+          1;
+      if (nextDuration < 1) {
+        return const PlanActionResult.failed(
+          'Tanggal selesai harus sama atau setelah tanggal mulai.',
+        );
+      }
+      if (nextDuration > 30) {
+        return const PlanActionResult.failed(
+          'Durasi rencana maksimal 30 hari.',
+        );
+      }
+      if (peopleCount < 1 || peopleCount > 30) {
+        return const PlanActionResult.failed(
+          'Jumlah orang harus antara 1 sampai 30.',
+        );
+      }
+      if (totalBudget < 0) {
+        return const PlanActionResult.failed(
+          'Estimasi budget tidak boleh negatif.',
+        );
+      }
+      if (totalBudget > 1000000000) {
+        return const PlanActionResult.failed(
+          'Estimasi budget maksimal Rp1.000.000.000.',
+        );
+      }
+
+      final trimmedOrigin = originProvince.trim();
+      if (trimmedOrigin.length > 100) {
+        return const PlanActionResult.failed(
+          'Lokasi asal maksimal 100 karakter.',
+        );
+      }
+      final trimmedNote = note.trim();
+      if (trimmedNote.length > 1000) {
+        return const PlanActionResult.failed(
+          'Catatan maksimal 1000 karakter.',
+        );
+      }
+
+      final existingOrderedIds = collectOrderedDestinationIds(plan);
+      final existingIdSet = existingOrderedIds.toSet();
+      final nextDestIds = destinationIds == null
+          ? existingOrderedIds
+          : normalizeDestinationIds(destinationIds);
+
+      if (nextDestIds.length > 20) {
+        return const PlanActionResult.failed(
+          'Maksimal 20 destinasi dalam satu rencana.',
+        );
+      }
+      final addsNewDestination = nextDestIds.any(
+        (id) => !existingIdSet.contains(id),
+      );
+      if (addsNewDestination && nextDestIds.length > maxAiDestinations) {
+        return const PlanActionResult.failed(
+          'Maksimal $maxAiDestinations destinasi untuk satu rencana.',
+        );
+      }
+
+      final reconciled = reconcileSchedule(
+        plan: plan,
+        nextDuration: nextDuration,
+        nextDestinationIds: nextDestIds,
+        selectedDestinations: selectedDestinations ?? const [],
+      );
+      if (reconciled.capacityExceeded) {
+        return const PlanActionResult.failed(
+          'Jumlah aktivitas melebihi kapasitas maksimal 20 item per hari. Tambah jumlah hari atau kurangi destinasi.',
+        );
+      }
+
+      final updated = plan.copyWith(
+        title: trimmedTitle,
+        startDate: start,
+        endDate: end,
+        peopleCount: peopleCount,
+        totalBudget: totalBudget,
+        originProvince: trimmedOrigin,
+        note: trimmedNote,
+        destinationIds: reconciled.destinationIds,
+        days: reconciled.days,
+        sources: reconciled.sources,
+      );
+
+      return _persistUpdate(
+        updated,
+        expectedEpoch: epoch,
+        expectedUserId: capturedUserId,
+      );
+    });
+  }
+
+  /// Mengumpulkan ID destinasi unik (berurutan) dari `destinationIds` dan `days`.
+  static List<String> collectOrderedDestinationIds(TripPlan plan) {
+    final seen = <String>{};
+    final ordered = <String>[];
+    void addId(String? raw) {
+      final trimmed = raw?.trim() ?? '';
+      if (trimmed.isNotEmpty && seen.add(trimmed)) {
+        ordered.add(trimmed);
+      }
+    }
+
+    for (final id in plan.destinationIds) {
+      addId(id);
+    }
+    for (final day in plan.days) {
+      for (final item in day.items) {
+        addId(item.destinationId);
+      }
+    }
+    return ordered;
+  }
+
+  /// Menormalkan dan menduplikasi daftar ID destinasi non-kosong.
+  static List<String> normalizeDestinationIds(List<String> rawIds) {
+    final seen = <String>{};
+    final result = <String>[];
+    for (final raw in rawIds) {
+      final trimmed = raw.trim();
+      if (trimmed.isNotEmpty && seen.add(trimmed)) {
+        result.add(trimmed);
+      }
+    }
+    return result;
+  }
+
+  /// Merekonsiliasi `destinationIds`, `days`, dan `sources` secara deterministik
+  /// saat durasi atau pilihan destinasi diubah manual.
+  static ({
+    List<String> destinationIds,
+    List<PlanDay> days,
+    List<PlanSource> sources,
+    bool capacityExceeded,
+  })
+  reconcileSchedule({
+    required TripPlan plan,
+    required int nextDuration,
+    required List<String> nextDestinationIds,
+    List<Destination> selectedDestinations = const [],
+  }) {
+    const maxItemsPerDay = 20;
+    final existingOrderedIds = collectOrderedDestinationIds(plan);
+    final existingIdSet = existingOrderedIds.toSet();
+    final nextIdSet = nextDestinationIds.toSet();
+    final removedIds = existingIdSet.difference(nextIdSet);
+    final addedIds = nextDestinationIds
+        .where((id) => !existingIdSet.contains(id))
+        .toList(growable: false);
+
+    final destById = <String, Destination>{
+      for (final d in selectedDestinations)
+        if (d.id.trim().isNotEmpty) d.id.trim(): d,
+    };
+
+    PlanItem buildItem(String id) {
+      final d = destById[id];
+      if (d == null) {
+        return PlanItem(destinationId: id, destinationName: 'Destinasi');
+      }
+      return PlanItem(
+        destinationId: d.id,
+        destinationName: d.name,
+        notes: d.tagline.trim().isEmpty ? null : d.tagline,
+        costEstimate: d.priceFrom == null ? null : d.priceLabel,
+      );
+    }
+
+    final filteredDays = <PlanDay>[];
+    for (final day in plan.days) {
+      final remaining = day.items
+          .where((item) {
+            final id = item.destinationId?.trim();
+            if (id == null || id.isEmpty) return true;
+            return !removedIds.contains(id);
+          })
+          .toList(growable: false);
+
+      final lostItems = remaining.length != day.items.length;
+      final rawTitle = day.title.trim();
+      final oldAutoTitle = day.items
+          .map((e) => e.destinationName)
+          .join(', ');
+      final removedNames = day.items
+          .where((item) {
+            final id = item.destinationId?.trim();
+            return id != null && id.isNotEmpty && removedIds.contains(id);
+          })
+          .map((e) => e.destinationName.trim())
+          .where((name) => name.isNotEmpty)
+          .toSet();
+
+      final shouldRefreshTitle =
+          rawTitle.isEmpty ||
+          rawTitle == 'Hari' ||
+          (lostItems &&
+              (rawTitle == oldAutoTitle || removedNames.contains(rawTitle)));
+
+      final nextTitle = shouldRefreshTitle
+          ? (remaining.isEmpty
+                ? 'Hari ${day.day}'
+                : remaining.map((e) => e.destinationName).join(', '))
+          : rawTitle;
+
+      filteredDays.add(
+        PlanDay(day: day.day, title: nextTitle, items: remaining),
+      );
+    }
+
+    final filteredSources = plan.sources
+        .where(
+          (source) =>
+              !(source.type == 'destination' &&
+                  removedIds.contains(source.id.trim())),
+        )
+        .toList(growable: false);
+
+    if (filteredDays.isEmpty && nextDestinationIds.isEmpty) {
+      return (
+        destinationIds: nextDestinationIds,
+        days: const [],
+        sources: filteredSources,
+        capacityExceeded: false,
+      );
+    }
+
+    final workingDays = <({String title, List<PlanItem> items})>[];
+
+    if (filteredDays.isEmpty && nextDestinationIds.isNotEmpty) {
+      final base = nextDestinationIds.length ~/ nextDuration;
+      final extra = nextDestinationIds.length % nextDuration;
+      var cursor = 0;
+      for (var i = 0; i < nextDuration; i++) {
+        final count = base + (i < extra ? 1 : 0);
+        final assignedIds = nextDestinationIds.skip(cursor).take(count);
+        cursor += count;
+        final items = [for (final id in assignedIds) buildItem(id)];
+        workingDays.add((
+          title: items.isEmpty
+              ? 'Hari ${i + 1}'
+              : items.map((e) => e.destinationName).join(', '),
+          items: items,
+        ));
+      }
+    } else if (filteredDays.length <= nextDuration) {
+      for (final day in filteredDays) {
+        workingDays.add((title: day.displayTitle, items: [...day.items]));
+      }
+      for (var k = filteredDays.length + 1; k <= nextDuration; k++) {
+        workingDays.add((title: 'Hari $k', items: <PlanItem>[]));
+      }
+    } else {
+      for (var i = 0; i < nextDuration; i++) {
+        final day = filteredDays[i];
+        workingDays.add((title: day.displayTitle, items: [...day.items]));
+      }
+      for (var i = nextDuration; i < filteredDays.length; i++) {
+        for (final item in filteredDays[i].items) {
+          final targetIndex = workingDays.lastIndexWhere(
+            (day) => day.items.length < maxItemsPerDay,
+          );
+          if (targetIndex < 0) {
+            return (
+              destinationIds: List.unmodifiable(nextDestinationIds),
+              days: plan.days,
+              sources: List.unmodifiable(filteredSources),
+              capacityExceeded: true,
+            );
+          }
+          workingDays[targetIndex].items.add(item);
+        }
+      }
+    }
+
+    final presentDestIds = <String>{
+      for (final day in workingDays)
+        for (final item in day.items)
+          if (item.destinationId != null &&
+              item.destinationId!.trim().isNotEmpty)
+            item.destinationId!.trim(),
+    };
+
+    for (final addedId in addedIds) {
+      if (presentDestIds.contains(addedId)) continue;
+      final item = buildItem(addedId);
+      presentDestIds.add(addedId);
+
+      var targetIndex = workingDays.indexWhere((day) => day.items.isEmpty);
+      if (targetIndex < 0) {
+        targetIndex = workingDays.lastIndexWhere(
+          (day) => day.items.length < maxItemsPerDay,
+        );
+      }
+      if (targetIndex < 0) {
+        return (
+          destinationIds: List.unmodifiable(nextDestinationIds),
+          days: plan.days,
+          sources: List.unmodifiable(filteredSources),
+          capacityExceeded: true,
+        );
+      }
+
+      final targetDay = workingDays[targetIndex];
+      final oldTitle = targetDay.title.trim();
+      final isGenericTitle =
+          oldTitle.isEmpty || RegExp(r'^Hari \d+$').hasMatch(oldTitle);
+      final updatedTitle = targetDay.items.isEmpty && isGenericTitle
+          ? item.destinationName
+          : targetDay.title;
+
+      targetDay.items.add(item);
+      workingDays[targetIndex] = (title: updatedTitle, items: targetDay.items);
+    }
+
+    if (workingDays.any((day) => day.items.length > maxItemsPerDay)) {
+      return (
+        destinationIds: List.unmodifiable(nextDestinationIds),
+        days: plan.days,
+        sources: List.unmodifiable(filteredSources),
+        capacityExceeded: true,
+      );
+    }
+
+    final normalizedDays = [
+      for (var i = 0; i < workingDays.length; i++)
+        PlanDay(
+          day: i + 1,
+          title: RegExp(r'^Hari \d+$').hasMatch(workingDays[i].title.trim())
+              ? 'Hari ${i + 1}'
+              : workingDays[i].title,
+          items: List.unmodifiable(workingDays[i].items),
+        ),
+    ];
+
+    return (
+      destinationIds: List.unmodifiable(nextDestinationIds),
+      days: List.unmodifiable(normalizedDays),
+      sources: List.unmodifiable(filteredSources),
+      capacityExceeded: false,
+    );
   }
 
   Future<PlanDraftResult> createDraft(
@@ -408,6 +802,11 @@ class PlanController extends ChangeNotifier {
             ? 'Sebagian destinasi pilihan belum masuk itinerary AI.'
             : null;
 
+        final mergedChecklist = _mergeAiChecklist(
+          baseline.checklist,
+          _aiChecklistSuggestions(value),
+        );
+        final addedChecklist = mergedChecklist.length > baseline.checklist.length;
         candidate = baseline.copyWith(
           destinationIds: destinationIds,
           summary: value.itinerary?.summary.isNotEmpty == true
@@ -423,10 +822,8 @@ class PlanController extends ChangeNotifier {
                 label: source.label,
               ),
           ],
-          checklist: _mergeAiChecklist(
-            baseline.checklist,
-            _aiChecklistSuggestions(value),
-          ),
+          checklist: mergedChecklist,
+          checklistReady: addedChecklist ? false : baseline.checklistReady,
           notice: value.notice,
           clearNotice: value.notice == null,
           engine: value.kind,
@@ -479,7 +876,15 @@ class PlanController extends ChangeNotifier {
       if (plan == null) {
         return const PlanActionResult.failed('Rencana tidak ditemukan.');
       }
-      final updated = plan.copyWith(checklist: [...plan.checklist, item]);
+      if (plan.checklist.length >= maxChecklistItems) {
+        return const PlanActionResult.failed(
+          'Maksimal $maxChecklistItems item checklist dalam satu rencana.',
+        );
+      }
+      final updated = plan.copyWith(
+        checklist: [...plan.checklist, item],
+        checklistReady: item.isCompleted ? plan.checklistReady : false,
+      );
       return _persistUpdate(
         updated,
         expectedEpoch: epoch,
@@ -496,14 +901,21 @@ class PlanController extends ChangeNotifier {
       if (plan == null) {
         return const PlanActionResult.failed('Rencana tidak ditemukan.');
       }
+      var uncheckedAny = false;
+      final nextChecklist = [
+        for (final item in plan.checklist)
+          if (item.id == itemId)
+            () {
+              final nextCompleted = !item.isCompleted;
+              if (!nextCompleted) uncheckedAny = true;
+              return item.copyWith(isCompleted: nextCompleted);
+            }()
+          else
+            item,
+      ];
       final updated = plan.copyWith(
-        checklist: [
-          for (final item in plan.checklist)
-            if (item.id == itemId)
-              item.copyWith(isCompleted: !item.isCompleted)
-            else
-              item,
-        ],
+        checklist: nextChecklist,
+        checklistReady: uncheckedAny ? false : plan.checklistReady,
       );
       return _persistUpdate(
         updated,
@@ -568,6 +980,16 @@ class PlanController extends ChangeNotifier {
   }
 
   Future<PlanActionResult> markAllChecklistReady(String planId) {
+    if (isGenerating(planId)) {
+      return Future.value(
+        const PlanActionResult.failed('Tunggu AI selesai menyusun rencana.'),
+      );
+    }
+    if (isGeneratingChecklist(planId)) {
+      return Future.value(
+        const PlanActionResult.failed('Tunggu AI selesai menyusun checklist.'),
+      );
+    }
     return _enqueuePlanOp(planId, () async {
       final epoch = _loadEpoch;
       final capturedUserId = _userId;
@@ -575,12 +997,66 @@ class PlanController extends ChangeNotifier {
       if (plan == null) {
         return const PlanActionResult.failed('Rencana tidak ditemukan.');
       }
-      if (plan.checklist.isEmpty) return const PlanActionResult.success();
+      if (isGenerating(plan.id)) {
+        return const PlanActionResult.failed(
+          'Tunggu AI selesai menyusun rencana.',
+        );
+      }
+      if (isGeneratingChecklist(plan.id)) {
+        return const PlanActionResult.failed(
+          'Tunggu AI selesai menyusun checklist.',
+        );
+      }
+      if (plan.checklistReady &&
+          plan.checklist.every((item) => item.isCompleted)) {
+        return const PlanActionResult.success();
+      }
       final updated = plan.copyWith(
+        checklistReady: true,
         checklist: [
           for (final item in plan.checklist) item.copyWith(isCompleted: true),
         ],
       );
+      return _persistUpdate(
+        updated,
+        expectedEpoch: epoch,
+        expectedUserId: capturedUserId,
+      );
+    });
+  }
+
+  Future<PlanActionResult> unmarkChecklistReady(String planId) {
+    if (isGenerating(planId)) {
+      return Future.value(
+        const PlanActionResult.failed('Tunggu AI selesai menyusun rencana.'),
+      );
+    }
+    if (isGeneratingChecklist(planId)) {
+      return Future.value(
+        const PlanActionResult.failed('Tunggu AI selesai menyusun checklist.'),
+      );
+    }
+    return _enqueuePlanOp(planId, () async {
+      final epoch = _loadEpoch;
+      final capturedUserId = _userId;
+      final plan = _planById(planId);
+      if (plan == null) {
+        return const PlanActionResult.failed('Rencana tidak ditemukan.');
+      }
+      if (isGenerating(plan.id)) {
+        return const PlanActionResult.failed(
+          'Tunggu AI selesai menyusun rencana.',
+        );
+      }
+      if (isGeneratingChecklist(plan.id)) {
+        return const PlanActionResult.failed(
+          'Tunggu AI selesai menyusun checklist.',
+        );
+      }
+      if (!plan.checklistReady) {
+        return const PlanActionResult.success();
+      }
+      final updated = plan.copyWith(checklistReady: false);
       return _persistUpdate(
         updated,
         expectedEpoch: epoch,
@@ -602,6 +1078,11 @@ class PlanController extends ChangeNotifier {
       if (plan == null) {
         return const PlanActionResult.failed('Rencana tidak ditemukan.');
       }
+      if (plan.checklist.length >= maxChecklistItems) {
+        return const PlanActionResult.failed(
+          'Maksimal $maxChecklistItems item checklist dalam satu rencana.',
+        );
+      }
 
       _generatingChecklistIds.add(targetId);
       notifyListeners();
@@ -615,6 +1096,11 @@ class PlanController extends ChangeNotifier {
 
         switch (result) {
           case Success<AiResult>(:final value):
+            if (latest.checklist.length >= maxChecklistItems) {
+              return const PlanActionResult.failed(
+                'Maksimal $maxChecklistItems item checklist dalam satu rencana.',
+              );
+            }
             final merged = _mergeAiChecklist(
               latest.checklist,
               _aiChecklistSuggestions(value),
@@ -624,7 +1110,10 @@ class PlanController extends ChangeNotifier {
                 'Checklist AI sudah lengkap.',
               );
             }
-            final updated = latest.copyWith(checklist: merged);
+            final updated = latest.copyWith(
+              checklist: merged,
+              checklistReady: false,
+            );
             return await _persistUpdate(
               updated,
               expectedEpoch: epoch,
@@ -930,6 +1419,7 @@ class PlanController extends ChangeNotifier {
     var index = 0;
 
     for (final suggestion in suggestions) {
+      if (existing.length + added.length >= maxChecklistItems) break;
       final name = suggestion.name.trim();
       final key = name.toLowerCase();
       if (name.isEmpty || names.contains(key)) continue;

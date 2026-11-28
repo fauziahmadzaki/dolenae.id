@@ -22,6 +22,7 @@ import 'package:dolenae_mobile/src/features/plan/presentation/controllers/plan_c
 import 'package:dolenae_mobile/src/features/routes/presentation/controllers/routes_controller.dart';
 import 'package:dolenae_mobile/src/features/saved/presentation/controllers/saved_controller.dart';
 import 'package:dolenae_mobile/src/features/settings/presentation/controllers/settings_controller.dart';
+import 'package:dolenae_mobile/src/features/weather/presentation/controllers/weather_controller.dart';
 
 class DolenaeApp extends StatefulWidget {
   const DolenaeApp({
@@ -52,6 +53,7 @@ class _DolenaeAppState extends State<DolenaeApp> {
   late final RoutesController _routes;
   late final PlanController _plan;
   late final ChecklistController _checklist;
+  late final WeatherController _weather;
   late final GoRouter _router;
   String? _activeUserId;
 
@@ -75,6 +77,7 @@ class _DolenaeAppState extends State<DolenaeApp> {
     _notifications = NotificationsController(
       dependencies.notificationRepository,
     );
+    unawaited(_notifications.load());
     _saved = SavedController(dependencies.savedRepository);
     _ai = AiController(repository: dependencies.aiRepository);
     _explore = ExploreController(dependencies.exploreRepository);
@@ -86,9 +89,10 @@ class _DolenaeAppState extends State<DolenaeApp> {
       dependencies.locationRepository,
     );
     _checklist = ChecklistController(dependencies.checklistRepository);
+    _weather = WeatherController(dependencies.weatherRepository);
 
     _activeUserId = _auth.session?.user.id;
-    _saved.setUserId(_activeUserId);
+    unawaited(_saved.setUserId(_activeUserId));
     unawaited(_plan.setUserId(_activeUserId));
     _auth.addListener(_handleAuthChanged);
 
@@ -101,7 +105,7 @@ class _DolenaeAppState extends State<DolenaeApp> {
     final next = _auth.session?.user.id;
     if (next == _activeUserId) return;
     _activeUserId = next;
-    _saved.setUserId(next);
+    unawaited(_saved.setUserId(next));
     unawaited(_plan.setUserId(next));
   }
 
@@ -121,6 +125,7 @@ class _DolenaeAppState extends State<DolenaeApp> {
     _routes.dispose();
     _plan.dispose();
     _checklist.dispose();
+    _weather.dispose();
     widget.dependencies.database.close();
     super.dispose();
   }
@@ -141,6 +146,7 @@ class _DolenaeAppState extends State<DolenaeApp> {
         ChangeNotifierProvider.value(value: _routes),
         ChangeNotifierProvider.value(value: _plan),
         ChangeNotifierProvider.value(value: _checklist),
+        ChangeNotifierProvider.value(value: _weather),
       ],
       child: MaterialApp.router(
         title: 'Dolenae.id',

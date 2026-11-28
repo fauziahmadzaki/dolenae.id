@@ -815,9 +815,9 @@ void main() {
           greaterThanOrEqualTo(44),
         );
 
-        await tester.tap(find.text('Tandai semua siap'));
+        await tester.tap(find.text('Tandai siap'));
         await tester.pumpAndSettle();
-        expect(find.text('Semua item ditandai siap'), findsNothing);
+        expect(find.text('Rencana ditandai siap'), findsNothing);
         expect(find.textContaining('Gagal'), findsOneWidget);
       },
     );

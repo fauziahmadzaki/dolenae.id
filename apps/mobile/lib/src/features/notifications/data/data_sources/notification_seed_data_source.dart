@@ -6,13 +6,23 @@ abstract final class NotificationSeedData {
 
   static DateTime _ago(Duration duration) => now.subtract(duration);
 
+  static DateTime _todayRecent() {
+    final candidate = now.subtract(const Duration(hours: 2));
+    if (candidate.year == now.year &&
+        candidate.month == now.month &&
+        candidate.day == now.day) {
+      return candidate;
+    }
+    return DateTime(now.year, now.month, now.day);
+  }
+
   static final items = <AppNotification>[
     AppNotification(
       id: 'notif-1',
       kind: NotificationKind.rekomendasi,
       title: 'Rekomendasi baru untuk rencanamu',
       body: 'Ada 3 destinasi yang cocok dengan preferensi 2 hari dan budget 500rb.',
-      createdAt: _ago(const Duration(hours: 2)),
+      createdAt: _todayRecent(),
       href: '/ai/results',
     ),
     AppNotification(

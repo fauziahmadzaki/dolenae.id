@@ -218,6 +218,18 @@ terpisah dari cache AI:
   - `GET /api/plans/:id`, `PATCH /api/plans/:id`, `DELETE /api/plans/:id` —
     baca, perbarui (termasuk hasil itinerary AI & checklist), dan hapus rencana.
 
+#### Skema Tabel `saved_destinations` & Endpoint `/api/saved-destinations`
+Destinasi tersimpan (bookmark) disimpan per-akun di PostgreSQL (tabel `saved_destinations`):
+- Kolom utama: `user_id` (uuid FK `users(id)` `ON DELETE CASCADE`),
+  `destination_id` (uuid FK `destinations(id)` `ON DELETE CASCADE`),
+  `created_at` (timestamptz, default `now()`).
+  Primary key komposit: `(user_id, destination_id)`; index: `saved_destinations_user_created_idx (user_id, created_at)`.
+- Batas per-akun: maksimal `200` destinasi tersimpan berstatus `published` (`422` bila penuh); hanya destinasi berstatus `published` yang dapat disimpan, dihitung ke kuota, atau dikembalikan (`404` bila tidak ada/non-published). Jika destinasi yang sebelumnya tersimpan berubah ke `draft`/`archived` lalu diterbitkan kembali (`published`), baris bookmark tetap terjaga dan otomatis muncul kembali di `GET`; bookmark yang sudah ada tetap dapat dibaca dan dihapus walau jumlah aktif melebihi `200`, sedangkan penyimpanan baru mensyaratkan jumlah aktif `< 200`. Akun yang tidak ditemukan saat transaksi (`FOR UPDATE` / FK `23503`) mengembalikan `401`.
+- Endpoint `/api/saved-destinations` (wajib JWT auth, terisolasi per `userId`):
+  - `GET /api/saved-destinations` — daftar `PublicSavedDestination[]` (`{ id, destinationId, savedAt, destination }`) terurut terbaru dulu, dengan `destination` terhidrasi batch (kategori + hitungan fasilitas terbit).
+  - `PUT /api/saved-destinations/:destinationId` — simpan destinasi secara idempoten (`201` baru, `200` sudah ada).
+  - `DELETE /api/saved-destinations/:destinationId` — hapus destinasi tersimpan secara idempoten (`200 { deleted: true, destinationId }`).
+
 ## Relasi Ringkas
 
 ```

@@ -7,6 +7,7 @@ import 'package:dolenae_mobile/src/features/destinations/presentation/controller
 import 'package:dolenae_mobile/src/features/plan/domain/entities/plan_draft.dart';
 import 'package:dolenae_mobile/src/features/plan/presentation/screens/plan_checklist_screen.dart';
 import 'package:dolenae_mobile/src/features/plan/presentation/screens/plan_detail_screen.dart';
+import 'package:dolenae_mobile/src/features/plan/presentation/screens/plan_edit_screen.dart';
 import 'package:dolenae_mobile/src/features/plan/presentation/screens/plan_generating_screen.dart';
 import 'package:dolenae_mobile/src/features/plan/presentation/screens/plan_item_detail_screen.dart';
 import 'package:dolenae_mobile/src/features/plan/presentation/screens/plan_new_screen.dart';
@@ -48,6 +49,13 @@ final List<RouteBase> planRoutes = [
     path: '/plan/select-destination',
     builder: (_, state) {
       final extra = state.extra;
+      if (extra is SelectDestinationArgs) {
+        return SelectDestinationScreen(
+          initialSelectedIds: extra.initialSelectedIds,
+          isEditMode: extra.isEditMode,
+          allowEmpty: extra.allowEmpty,
+        );
+      }
       final draft = extra is PlanDraft ? extra : null;
       final selectedIds = extra is Set<String> ? extra : const <String>{};
       return SelectDestinationScreen(
@@ -78,6 +86,11 @@ final List<RouteBase> planRoutes = [
     builder: (_, state) =>
         PlanDetailScreen(planId: state.pathParameters['id'] ?? ''),
     routes: [
+      GoRoute(
+        path: 'edit',
+        builder: (_, state) =>
+            PlanEditScreen(planId: state.pathParameters['id'] ?? ''),
+      ),
       GoRoute(
         path: 'checklist',
         builder: (_, state) =>

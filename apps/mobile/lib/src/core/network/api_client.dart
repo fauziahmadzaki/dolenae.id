@@ -85,6 +85,38 @@ class ApiClient {
     );
   }
 
+  Future<Map<String, dynamic>> put(
+    String path, {
+    Object? body,
+    Duration? timeout,
+    String? bearerToken,
+  }) async {
+    final res = await putWithStatus(
+      path,
+      body: body,
+      timeout: timeout,
+      bearerToken: bearerToken,
+    );
+    return res.body;
+  }
+
+  Future<({int statusCode, Map<String, dynamic> body})> putWithStatus(
+    String path, {
+    Object? body,
+    Duration? timeout,
+    String? bearerToken,
+  }) {
+    final headers = _headers(bearerToken: bearerToken);
+    return _sendWithStatus(
+      () => _http.put(
+        _uri(path),
+        headers: headers,
+        body: body == null ? null : jsonEncode(body),
+      ),
+      timeout: timeout,
+    );
+  }
+
   Future<Map<String, dynamic>> patch(
     String path, {
     Object? body,

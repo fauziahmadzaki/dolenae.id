@@ -1,24 +1,32 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
+import 'package:dolenae_mobile/src/core/error/app_failure.dart';
+import 'package:dolenae_mobile/src/core/result/result.dart';
+import 'package:dolenae_mobile/src/features/auth/presentation/controllers/auth_controller.dart';
 import 'package:dolenae_mobile/src/features/destinations/presentation/controllers/destinations_controller.dart';
 import 'package:dolenae_mobile/src/app/theme/app_colors.dart';
 import 'package:dolenae_mobile/src/app/theme/app_radius.dart';
 import 'package:dolenae_mobile/src/app/theme/app_spacing.dart';
 import 'package:dolenae_mobile/src/app/theme/app_text_styles.dart';
 import 'package:dolenae_mobile/src/features/destinations/domain/entities/destination.dart';
+import 'package:dolenae_mobile/src/features/saved/presentation/controllers/saved_controller.dart';
 import 'package:dolenae_mobile/src/shared/icons/app_icons.dart';
 import 'package:dolenae_mobile/src/shared/widgets/dn_buttons.dart';
 import 'package:dolenae_mobile/src/shared/widgets/dn_chip.dart';
 import 'package:dolenae_mobile/src/shared/widgets/dn_difficulty_badge.dart';
 import 'package:dolenae_mobile/src/shared/widgets/dn_remote_image.dart';
 import 'package:dolenae_mobile/src/shared/widgets/dn_section_header.dart';
+import 'package:dolenae_mobile/src/shared/widgets/dn_toast.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:dolenae_mobile/src/features/facilities/presentation/widgets/facilities_section.dart';
 import 'package:dolenae_mobile/src/features/plan/presentation/widgets/add_to_plan_sheet.dart';
 import 'package:dolenae_mobile/src/features/routes/presentation/widgets/routes_section.dart';
+import 'package:dolenae_mobile/src/features/weather/presentation/widgets/destination_weather_section.dart';
 
 
 /// Tombol zoom `+`/`-` dan recenter di bawah peta (`65:215`).
@@ -95,6 +103,23 @@ class _DestinationDetailScreenState extends State<DestinationDetailScreen> {
   final _mapController = MapController();
 
   @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final auth = context.read<AuthController?>();
+      final saved = context.read<SavedController?>();
+      if (auth?.isAuthenticated == true &&
+          saved != null &&
+          !saved.hasLoaded &&
+          !saved.isLoading &&
+          saved.error == null) {
+        unawaited(saved.loadDestinations());
+      }
+    });
+  }
+
+  @override
   void dispose() {
     _mapController.dispose();
     super.dispose();
@@ -103,7 +128,10 @@ class _DestinationDetailScreenState extends State<DestinationDetailScreen> {
   @override
   Widget build(BuildContext context) {
     final controller = context.watch<DestinationsController>();
-    final destination = controller.find(widget.destinationId);
+    final savedController = context.watch<SavedController?>();
+    final destination =
+        controller.find(widget.destinationId) ??
+        savedController?.findSavedDestination(widget.destinationId);
     if (destination == null) {
       return Scaffold(
         backgroundColor: AppColors.canvas,
@@ -147,6 +175,8 @@ class _DestinationDetailScreenState extends State<DestinationDetailScreen> {
                     _buildTitleSection(destination),
                     const SizedBox(height: AppSpacing.s3),
                     _buildSpecsSection(destination),
+                    const SizedBox(height: AppSpacing.s3),
+                    DestinationWeatherSection(destinationId: destination.id),
                     const SizedBox(height: AppSpacing.s4),
                     _buildAccessSection(destination),
                     const SizedBox(height: AppSpacing.s4),
@@ -169,68 +199,210 @@ class _DestinationDetailScreenState extends State<DestinationDetailScreen> {
     );
   }
 
+  Future<void> _handleBookmarkTap(Destination destination, bool isSaved) async {
+    if (widget.onBookmark != null) {
+      widget.onBookmark!();
+      return;
+    }
+    final saved = context.read<SavedController?>();
+    if (saved == null) return;
+    final auth = context.read<AuthController?>();
+    if (auth != null && !auth.isAuthenticated) {
+      showDnToast(
+        context,
+        'Masuk terlebih dahulu untuk menyimpan destinasi',
+        type: DnToastType.info,
+      );
+      return;
+    }
+    if (isSaved) {
+      final result = await saved.removeSavedDestination(destination.id);
+      if (!mounted) return;
+      switch (result) {
+        case Success():
+          showDnToast(
+            context,
+            '${destination.name} dihapus dari tersimpan',
+            type: DnToastType.info,
+            icon: AppIcons.bookmark,
+          );
+        case Failure(:final failure):
+          if (failure is AuthFailure || failure.code == 'AUTH_REQUIRED') {
+            showDnToast(
+              context,
+              'Masuk terlebih dahulu untuk menyimpan destinasi',
+              type: DnToastType.info,
+            );
+          } else {
+            showDnToast(
+              context,
+              'Gagal memperbarui destinasi tersimpan. Coba lagi.',
+              type: DnToastType.gagal,
+            );
+          }
+      }
+      return;
+    }
+
+    final result = await saved.saveDestination(destination);
+    if (!mounted) return;
+    switch (result) {
+      case Success():
+        showDnToast(
+          context,
+          '${destination.name} disimpan ke daftar tersimpan',
+          type: DnToastType.sukses,
+          icon: AppIcons.bookmarkCheck,
+        );
+      case Failure(:final failure):
+        if (failure is AuthFailure || failure.code == 'AUTH_REQUIRED') {
+          showDnToast(
+            context,
+            'Masuk terlebih dahulu untuk menyimpan destinasi',
+            type: DnToastType.info,
+          );
+        } else {
+          showDnToast(
+            context,
+            'Gagal memperbarui destinasi tersimpan. Coba lagi.',
+            type: DnToastType.gagal,
+          );
+        }
+    }
+  }
+
   Widget _buildAppBar(BuildContext context, Destination destination) {
-    return Container(
+    final savedController = context.watch<SavedController?>();
+    final isAuthenticated =
+        context.watch<AuthController?>()?.isAuthenticated ?? false;
+    final isSaved =
+        savedController?.isDestinationSaved(destination.id) ?? false;
+    final isMutating = savedController?.isMutating(destination.id) ?? false;
+    final isInitialPending =
+        savedController != null &&
+        (savedController.isInitialSyncPending ||
+            (isAuthenticated &&
+                savedController.requiresInitialLoad &&
+                !savedController.hasLoaded &&
+                savedController.error == null));
+    final isBusy = isMutating || isInitialPending;
+    final bookmarkLabel = isMutating
+        ? 'Memperbarui status simpan'
+        : isInitialPending
+        ? 'Memuat status simpan'
+        : isSaved
+        ? 'Hapus dari tersimpan'
+        : 'Simpan destinasi';
+    final bookmarkBg = isSaved ? AppColors.accent : AppColors.primaryHover;
+    final bookmarkIconColor =
+        isSaved ? AppColors.onAccent : AppColors.onPrimary;
+
+    return Material(
       color: AppColors.primary,
-      padding: EdgeInsets.only(
-        top: MediaQuery.of(context).padding.top + 6,
-        bottom: 10,
-        left: 12,
-        right: 12,
-      ),
-      child: Row(
-        children: [
-          Material(
-            color: AppColors.primaryHover,
-            shape: const CircleBorder(),
-            child: InkWell(
-              customBorder: const CircleBorder(),
-              onTap:
-                  widget.onBack ??
-                  () {
-                    if (context.canPop()) {
-                      context.pop();
-                    } else {
-                      context.go('/home');
-                    }
-                  },
-              child: const SizedBox(
-                width: 36,
-                height: 36,
-                child: Icon(
-                  AppIcons.chevronLeft,
-                  color: AppColors.onPrimary,
-                  size: 20,
+      child: Padding(
+        padding: EdgeInsets.only(
+          top: MediaQuery.of(context).padding.top + 2,
+          bottom: 6,
+          left: 12,
+          right: 12,
+        ),
+        child: Row(
+          children: [
+            Semantics(
+              button: true,
+              label: 'Kembali',
+              child: Tooltip(
+                message: 'Kembali',
+                child: SizedBox(
+                  width: 44,
+                  height: 44,
+                  child: InkWell(
+                    customBorder: const CircleBorder(),
+                    onTap:
+                        widget.onBack ??
+                        () {
+                          if (context.canPop()) {
+                            context.pop();
+                          } else {
+                            context.go('/home');
+                          }
+                        },
+                    child: Center(
+                      child: Ink(
+                        width: 36,
+                        height: 36,
+                        decoration: const BoxDecoration(
+                          color: AppColors.primaryHover,
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(
+                          AppIcons.chevronLeft,
+                          color: AppColors.onPrimary,
+                          size: 20,
+                        ),
+                      ),
+                    ),
+                  ),
                 ),
               ),
             ),
-          ),
-          const SizedBox(width: AppSpacing.s3),
-          Expanded(
-            child: Text(
-              destination.name,
-              style: AppTextStyles.title.copyWith(color: AppColors.onPrimary),
-              overflow: TextOverflow.ellipsis,
+            const SizedBox(width: AppSpacing.s3),
+            Expanded(
+              child: Text(
+                destination.name,
+                style: AppTextStyles.title.copyWith(color: AppColors.onPrimary),
+                overflow: TextOverflow.ellipsis,
+              ),
             ),
-          ),
-          Material(
-            color: AppColors.primaryHover,
-            shape: const CircleBorder(),
-            child: InkWell(
-              customBorder: const CircleBorder(),
-              onTap: widget.onBookmark,
-              child: const SizedBox(
-                width: 36,
-                height: 36,
-                child: Icon(
-                  AppIcons.bookmark,
-                  color: AppColors.onPrimary,
-                  size: 18,
+            Semantics(
+              button: true,
+              toggled: isBusy ? null : isSaved,
+              enabled: !isBusy,
+              label: bookmarkLabel,
+              child: Tooltip(
+                message: bookmarkLabel,
+                child: SizedBox(
+                  width: 44,
+                  height: 44,
+                  child: InkWell(
+                    customBorder: const CircleBorder(),
+                    onTap: isBusy
+                        ? null
+                        : () => _handleBookmarkTap(destination, isSaved),
+                    child: Center(
+                      child: Ink(
+                        width: 36,
+                        height: 36,
+                        decoration: BoxDecoration(
+                          color: bookmarkBg,
+                          shape: BoxShape.circle,
+                        ),
+                        child: isBusy
+                            ? const Center(
+                                child: SizedBox(
+                                  width: 16,
+                                  height: 16,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    color: AppColors.onPrimary,
+                                  ),
+                                ),
+                              )
+                            : Icon(
+                                isSaved
+                                    ? AppIcons.bookmarkCheck
+                                    : AppIcons.bookmark,
+                                color: bookmarkIconColor,
+                                size: 18,
+                              ),
+                      ),
+                    ),
+                  ),
                 ),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

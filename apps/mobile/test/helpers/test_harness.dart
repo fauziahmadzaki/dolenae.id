@@ -35,8 +35,11 @@ import 'package:dolenae_mobile/src/features/plan/domain/repositories/location_re
 import 'package:dolenae_mobile/src/features/plan/domain/repositories/plan_repository.dart';
 import 'package:dolenae_mobile/src/features/plan/presentation/controllers/plan_controller.dart';
 import 'package:dolenae_mobile/src/features/checklist/presentation/screens/add_checklist_item_screen.dart';
+import 'package:dolenae_mobile/src/features/plan/domain/entities/plan_draft.dart';
 import 'package:dolenae_mobile/src/features/plan/presentation/screens/plan_checklist_screen.dart';
 import 'package:dolenae_mobile/src/features/plan/presentation/screens/plan_detail_screen.dart';
+import 'package:dolenae_mobile/src/features/plan/presentation/screens/plan_edit_screen.dart';
+import 'package:dolenae_mobile/src/features/plan/presentation/screens/select_destination_screen.dart';
 import 'package:dolenae_mobile/src/features/plan/presentation/screens/trip_plan_screen.dart';
 import 'package:dolenae_mobile/src/features/routes/domain/entities/route_graph.dart';
 import 'package:dolenae_mobile/src/features/routes/domain/repositories/route_repository.dart';
@@ -45,6 +48,9 @@ import 'package:dolenae_mobile/src/features/saved/data/repositories/saved_reposi
 import 'package:dolenae_mobile/src/features/saved/presentation/controllers/saved_controller.dart';
 import 'package:dolenae_mobile/src/features/settings/data/repositories/settings_repository_impl.dart';
 import 'package:dolenae_mobile/src/features/settings/presentation/controllers/settings_controller.dart';
+import 'package:dolenae_mobile/src/features/weather/domain/entities/destination_weather.dart';
+import 'package:dolenae_mobile/src/features/weather/domain/repositories/weather_repository.dart';
+import 'package:dolenae_mobile/src/features/weather/presentation/controllers/weather_controller.dart';
 import 'package:dolenae_mobile/src/app/theme/app_theme.dart';
 import 'package:dolenae_mobile/src/shared/widgets/dn_input.dart';
 import 'package:flutter/material.dart';
@@ -135,6 +141,7 @@ class TestStores {
     AuthRepository? authRepository,
     String? rememberedEmail,
     CategoryRepository? categoryRepository,
+    WeatherRepository? weatherRepository,
     List<TripPlan>? plans,
     List<Destination>? destinations,
   }) : auth = AuthController(
@@ -165,7 +172,10 @@ class TestStores {
          AiRepositoryImpl(),
          const _TestLocationRepository(),
        ),
-       checklist = ChecklistController(ChecklistRepositoryImpl());
+       checklist = ChecklistController(ChecklistRepositoryImpl()),
+       weather = WeatherController(
+         weatherRepository ?? const _TestWeatherRepository(),
+       );
 
   final AuthController auth;
   final CategoriesController categoriesController;
@@ -179,6 +189,7 @@ class TestStores {
   final RoutesController routes;
   final PlanController plan;
   final ChecklistController checklist;
+  final WeatherController weather;
 }
 
 /// Buat controller baru untuk assert terhadap perubahan state di layar.
@@ -348,6 +359,25 @@ Widget wrapScreen(Widget child, {TestStores? store}) {
         builder: (_, _) => const _StubScreen(),
       ),
       GoRoute(path: '/plan', builder: (_, _) => const TripPlanScreen()),
+      GoRoute(
+        path: '/plan/select-destination',
+        builder: (_, state) {
+          final extra = state.extra;
+          if (extra is SelectDestinationArgs) {
+            return SelectDestinationScreen(
+              initialSelectedIds: extra.initialSelectedIds,
+              isEditMode: extra.isEditMode,
+              allowEmpty: extra.allowEmpty,
+            );
+          }
+          final draft = extra is PlanDraft ? extra : null;
+          final selectedIds = extra is Set<String> ? extra : const <String>{};
+          return SelectDestinationScreen(
+            draft: draft,
+            initialSelectedIds: selectedIds,
+          );
+        },
+      ),
       GoRoute(path: '/checklist', builder: (_, _) => const _StubScreen()),
       GoRoute(
         path: '/notifications',
@@ -358,6 +388,11 @@ Widget wrapScreen(Widget child, {TestStores? store}) {
         builder: (_, state) =>
             PlanDetailScreen(planId: state.pathParameters['id'] ?? ''),
         routes: [
+          GoRoute(
+            path: 'edit',
+            builder: (_, state) =>
+                PlanEditScreen(planId: state.pathParameters['id'] ?? ''),
+          ),
           GoRoute(
             path: 'checklist',
             builder: (_, state) =>
@@ -390,6 +425,7 @@ Widget wrapScreen(Widget child, {TestStores? store}) {
       ChangeNotifierProvider.value(value: stores.routes),
       ChangeNotifierProvider.value(value: stores.plan),
       ChangeNotifierProvider.value(value: stores.checklist),
+      ChangeNotifierProvider.value(value: stores.weather),
     ],
     child: MaterialApp.router(
       debugShowCheckedModeBanner: false,
@@ -517,6 +553,15 @@ class _TestAuthRepository implements AuthRepository {
 
   @override
   Future<void> writeRememberedEmail(String? email) async {}
+}
+
+class _TestWeatherRepository implements WeatherRepository {
+  const _TestWeatherRepository();
+
+  @override
+  Future<Result<DestinationWeather>> getDestinationWeather(
+    String destinationId,
+  ) async => Success(DestinationWeather.unavailable(destinationId));
 }
 
 /// Placeholder untuk navigasi yang tidak sedang diuji.

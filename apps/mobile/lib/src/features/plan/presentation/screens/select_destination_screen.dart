@@ -17,6 +17,19 @@ import 'package:dolenae_mobile/src/shared/widgets/dn_buttons.dart';
 import 'package:dolenae_mobile/src/shared/widgets/dn_icon_circle.dart';
 import 'package:dolenae_mobile/src/shared/widgets/dn_toast.dart';
 
+/// Argumen opsional untuk membuka [SelectDestinationScreen] dalam mode edit.
+class SelectDestinationArgs {
+  const SelectDestinationArgs({
+    this.initialSelectedIds = const {},
+    this.isEditMode = false,
+    this.allowEmpty = false,
+  });
+
+  final Set<String> initialSelectedIds;
+  final bool isEditMode;
+  final bool allowEmpty;
+}
+
 /// Layar Pilih Destinasi (Node Figma: 84:1221).
 ///
 /// Memungkinkan wisatawan mencari dan memilih multi-destinasi
@@ -26,6 +39,8 @@ class SelectDestinationScreen extends StatefulWidget {
     super.key,
     this.draft,
     this.initialSelectedIds = const {},
+    this.isEditMode = false,
+    this.allowEmpty = false,
     this.onConfirm,
     this.onBack,
   });
@@ -33,6 +48,8 @@ class SelectDestinationScreen extends StatefulWidget {
   /// Diisi saat layar dipakai sebagai langkah pembuatan rencana baru.
   final PlanDraft? draft;
   final Set<String> initialSelectedIds;
+  final bool isEditMode;
+  final bool allowEmpty;
   final ValueChanged<Set<String>>? onConfirm;
   final VoidCallback? onBack;
 
@@ -98,7 +115,7 @@ class _SelectDestinationScreenState extends State<SelectDestinationScreen> {
     }
 
     if (context.canPop()) {
-      context.pop(_selectedIds);
+      context.pop(Set<String>.from(_selectedIds));
     } else {
       context.go('/plan');
     }
@@ -112,7 +129,9 @@ class _SelectDestinationScreenState extends State<SelectDestinationScreen> {
           d.regency.toLowerCase().contains(_query.toLowerCase());
     }).toList();
 
-    final ctaLabel = _selectedIds.isEmpty
+    final ctaLabel = widget.isEditMode
+        ? 'Simpan destinasi (${_selectedIds.length})'
+        : _selectedIds.isEmpty
         ? 'Pilih destinasi'
         : widget.draft != null
         ? 'Susun rencana (${_selectedIds.length})'
@@ -296,7 +315,9 @@ class _SelectDestinationScreenState extends State<SelectDestinationScreen> {
       child: DnPrimaryButton(
         label: ctaLabel,
         height: 48,
-        onPressed: _selectedIds.isEmpty ? null : _handleConfirm,
+        onPressed: (_selectedIds.isNotEmpty || (widget.isEditMode && widget.allowEmpty))
+            ? _handleConfirm
+            : null,
       ),
     );
   }

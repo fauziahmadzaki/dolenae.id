@@ -23,6 +23,7 @@ class DnPlanCard extends StatelessWidget {
     this.completed,
     this.total,
     this.onTap,
+    this.onEdit,
     this.onMore,
   });
 
@@ -35,6 +36,7 @@ class DnPlanCard extends StatelessWidget {
   final int? completed;
   final int? total;
   final VoidCallback? onTap;
+  final VoidCallback? onEdit;
   final VoidCallback? onMore;
 
   bool get _hasProgress => completed != null && total != null && total! > 0;
@@ -58,7 +60,12 @@ class DnPlanCard extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Expanded(
-                  child: Text(name, style: AppTextStyles.titleSm),
+                  child: Text(
+                    name,
+                    style: AppTextStyles.titleSm,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
                 ),
                 if (statusLabel != null) ...[
                   const SizedBox(width: AppSpacing.s2),
@@ -86,16 +93,42 @@ class DnPlanCard extends StatelessWidget {
                     ),
                   ),
                 ],
-                if (onMore != null) ...[
+                if (onEdit != null || onMore != null) ...[
                   const SizedBox(width: AppSpacing.s1),
-                  IconButton(
-                    onPressed: onMore,
-                    icon: const Icon(
-                      AppIcons.delete,
-                      size: 18,
-                      color: AppColors.body,
-                    ),
-                    tooltip: 'Hapus rencana',
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      if (onEdit != null)
+                        IconButton(
+                          onPressed: onEdit,
+                          icon: const Icon(
+                            AppIcons.edit,
+                            size: 18,
+                            color: AppColors.body,
+                          ),
+                          tooltip: 'Ubah rencana',
+                          constraints: const BoxConstraints(
+                            minWidth: 44,
+                            minHeight: 44,
+                          ),
+                          padding: EdgeInsets.zero,
+                        ),
+                      if (onMore != null)
+                        IconButton(
+                          onPressed: onMore,
+                          icon: const Icon(
+                            AppIcons.delete,
+                            size: 18,
+                            color: AppColors.body,
+                          ),
+                          tooltip: 'Hapus rencana',
+                          constraints: const BoxConstraints(
+                            minWidth: 44,
+                            minHeight: 44,
+                          ),
+                          padding: EdgeInsets.zero,
+                        ),
+                    ],
                   ),
                 ],
               ],

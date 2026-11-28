@@ -35,11 +35,15 @@ import 'package:dolenae_mobile/src/features/plan/domain/repositories/location_re
 import 'package:dolenae_mobile/src/features/plan/domain/repositories/plan_repository.dart';
 import 'package:dolenae_mobile/src/features/routes/data/repositories/route_repository_impl.dart';
 import 'package:dolenae_mobile/src/features/routes/domain/repositories/route_repository.dart';
+import 'package:dolenae_mobile/src/features/saved/data/data_sources/saved_destination_local_data_source.dart';
+import 'package:dolenae_mobile/src/features/saved/data/data_sources/saved_destination_remote_data_source.dart';
 import 'package:dolenae_mobile/src/features/saved/data/repositories/saved_repository_impl.dart';
 import 'package:dolenae_mobile/src/features/saved/domain/repositories/saved_repository.dart';
 import 'package:dolenae_mobile/src/features/settings/data/data_sources/settings_local_data_source.dart';
 import 'package:dolenae_mobile/src/features/settings/data/repositories/settings_repository_impl.dart';
 import 'package:dolenae_mobile/src/features/settings/domain/repositories/settings_repository.dart';
+import 'package:dolenae_mobile/src/features/weather/data/repositories/weather_repository_impl.dart';
+import 'package:dolenae_mobile/src/features/weather/domain/repositories/weather_repository.dart';
 
 /// Composition root: the only place that builds concrete data sources.
 class AppDependencies {
@@ -59,6 +63,7 @@ class AppDependencies {
     required this.planRepository,
     required this.locationRepository,
     required this.checklistRepository,
+    required this.weatherRepository,
   });
 
   factory AppDependencies.create({
@@ -89,8 +94,14 @@ class AppDependencies {
       settingsRepository: SettingsRepositoryImpl(
         local: SettingsLocalDataSource(prefs),
       ),
-      notificationRepository: NotificationRepositoryImpl(),
-      savedRepository: SavedRepositoryImpl(),
+      notificationRepository: NotificationRepositoryImpl(
+        api: client,
+        preferences: prefs,
+      ),
+      savedRepository: SavedRepositoryImpl(
+        local: SavedDestinationLocalDataSource(prefs),
+        remote: SavedDestinationRemoteDataSource(client),
+      ),
       aiRepository: AiRepositoryImpl(AiRemoteDataSource(client)),
       exploreRepository: ExploreRepositoryImpl(),
       facilityRepository: FacilityRepositoryImpl(
@@ -104,6 +115,7 @@ class AppDependencies {
       ),
       locationRepository: const LocationRepositoryImpl(),
       checklistRepository: ChecklistRepositoryImpl(),
+      weatherRepository: WeatherRepositoryImpl(client),
     );
   }
 
@@ -122,4 +134,5 @@ class AppDependencies {
   final PlanRepository planRepository;
   final LocationRepository locationRepository;
   final ChecklistRepository checklistRepository;
+  final WeatherRepository weatherRepository;
 }

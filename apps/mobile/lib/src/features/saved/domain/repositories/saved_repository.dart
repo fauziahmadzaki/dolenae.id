@@ -1,3 +1,4 @@
+import 'package:dolenae_mobile/src/core/result/result.dart';
 import 'package:dolenae_mobile/src/features/destinations/domain/entities/destination.dart';
 import 'package:dolenae_mobile/src/features/facilities/domain/entities/facility_proposal.dart';
 import 'package:dolenae_mobile/src/features/saved/domain/entities/saved_item.dart';
@@ -15,11 +16,17 @@ abstract interface class SavedRepository {
 
   List<FacilityProposal> get proposals;
 
+  bool get requiresInitialLoad;
+
   bool isDestinationSaved(String destinationId);
 
-  void toggleDestination(Destination destination);
+  Future<Result<List<SavedDestination>>> loadDestinations({bool refresh = false});
 
-  void removeDestination(String destinationId);
+  Future<Result<bool>> saveDestination(Destination destination);
+
+  Future<Result<bool>> toggleDestination(Destination destination);
+
+  Future<Result<void>> removeDestination(String destinationId);
 
   void removePlan(String planId);
 

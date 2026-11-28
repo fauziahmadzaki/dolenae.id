@@ -322,7 +322,7 @@ void main() {
     addTearDown(() => tester.binding.setSurfaceSize(null));
     final stores = TestStores();
     await stores.plan.load();
-    stores.saved.toggleSavedDestination(stores.destinations.items.first);
+    await stores.saved.toggleSavedDestination(stores.destinations.items.first);
 
     await tester.pumpWidget(wrapScreen(const ProfileScreen(), store: stores));
     await tester.pumpAndSettle();
@@ -341,7 +341,11 @@ void main() {
 
     expectStat('Tersimpan', stores.saved.savedDestinations.length);
     expectStat('Rencana', stores.plan.plans.length);
-    expectStat('Checklist', stores.checklist.items.length);
+    expectStat('Checklist', stores.plan.readyChecklistCount);
+
+    await stores.plan.markAllChecklistReady(stores.plan.plans.first.id);
+    await tester.pumpAndSettle();
+    expectStat('Checklist', 1);
   });
 
   testWidgets('Profil memuat rencana saat halaman dibuka langsung', (

@@ -80,6 +80,9 @@ abstract final class PlanModel {
                 )
                 .toList(growable: false)
           : const [],
+      checklistReady: json['checklistReady'] is bool
+          ? json['checklistReady'] as bool
+          : false,
     );
   }
 
@@ -146,6 +149,7 @@ abstract final class PlanModel {
       'checklist': [
         for (final item in plan.checklist.take(100)) _checklistToJson(item),
       ],
+      'checklistReady': plan.checklistReady,
     };
   }
 
@@ -314,8 +318,15 @@ abstract final class PlanModel {
   }
 
   static String _clamp(String value, int maxLength) {
+    if (maxLength <= 0) return '';
     if (value.length <= maxLength) return value;
-    return value.substring(0, maxLength);
+    var end = maxLength;
+    if (end > 0 &&
+        value.codeUnitAt(end - 1) >= 0xD800 &&
+        value.codeUnitAt(end - 1) <= 0xDBFF) {
+      end -= 1;
+    }
+    return value.substring(0, end);
   }
 
   static List<String> _strings(Object? value) {

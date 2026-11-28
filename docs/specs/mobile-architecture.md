@@ -187,17 +187,20 @@ Endpoint yang dipakai mobile:
 
 Angka **Tersimpan**, **Rencana**, dan **Checklist** berturut-turut diambil dari
 `SavedController.savedDestinations`, `PlanController.plans`, dan
-`ChecklistController.items` — sama dengan halaman tujuan masing-masing. Tidak
+`PlanController.readyChecklistCount` (jumlah rencana yang sudah ditekan tombol
+**Tandai siap** oleh user, bukan jumlah item checklist yang tercentang). Tidak
 ada angka contoh statis. Profil meminta `PlanController.load()` bila rencana
-masih kosong agar halaman yang dibuka langsung tidak menampilkan nol sebelum
+belum dimuat agar halaman yang dibuka langsung tidak menampilkan nol sebelum
 data selesai dimuat.
 
 Menu **Perjalanan** mengarah ke halaman yang memang memiliki data:
 “Destinasi tersimpan” → `/saved/destinations`, “Rencana” → `/plan`, dan
-“Checklist” → `/checklist`. Tidak ada menu yang mengarah ke daftar
-`savedPlans`/`savedChecklists` yang tidak pernah diisi. Menu “Edit profil” di
-grup **AKUN & KEAMANAN** dihapus karena tujuannya sama dengan tombol “Ubah
-profil”; satu-satunya pintu ke `/profile/edit` adalah tombol tersebut.
+“Checklist” → `/checklist` (`PlanChecklistsScreen`, menampilkan daftar rencana
+perjalanan beserta status kesiapan; mengetuk kartu rencana langsung membuka
+`/plan/:id/checklist`). Tidak ada menu yang mengarah ke daftar `savedPlans`/
+`savedChecklists` yang tidak pernah diisi. Menu “Edit profil” di grup
+**AKUN & KEAMANAN** dihapus karena tujuannya sama dengan tombol “Ubah profil”;
+satu-satunya pintu ke `/profile/edit` adalah tombol tersebut.
 
 Filter lain dari `dev` (medan, tingkat kesulitan, fasilitas, dan urutan) tetap
 berjalan bersama pencarian kata kunci dan fallback kategori di atas.
@@ -215,6 +218,45 @@ berjalan bersama pencarian kata kunci dan fallback kategori di atas.
 - Penambahan destinasi dari Detail Destinasi atau Hasil AI memakai
   `showAddToPlanSheet` (atau langsung ke `/plan/new` saat akun belum memiliki
   rencana).
+- Edit manual rencana tersimpan memakai `PlanEditScreen` (`/plan/:id/edit`) yang
+  diakses dari `PlanDetailScreen` dan kartu dinamis `SavedPlansScreen`
+  (`DnPlanCard`), memanggil `PlanController.updatePlan` dengan rekonsiliasi
+  deterministik untuk `destinationIds`, `days`, dan `sources` tanpa memicu ulang
+  AI, serta memakai `SelectDestinationScreen` mode edit (`SelectDestinationArgs`).
+- Status kesiapan checklist per rencana (`TripPlan.checklistReady`) disinkronkan
+  ke server (`checklist_ready` di `trip_plans`) dan cache lokal per akun.
+  Menekan **Tandai siap** di `PlanChecklistScreen` memanggil
+  `PlanController.markAllChecklistReady` (`checklistReady: true` dan menandai
+  semua item selesai), sedangkan **Batalkan siap** memanggil
+  `PlanController.unmarkChecklistReady` (`checklistReady: false` tanpa menghapus
+  centang item). Membatalkan centang item atau menambah item baru yang belum
+  selesai otomatis mereset `checklistReady` ke `false`.
+
+## Destinasi Tersimpan (`saved`) Per-Akun & Sinkronisasi
+
+- `SavedRepositoryImpl` tidak lagi memuat `SavedSeedData.destinations` —
+  daftar destinasi tersimpan selalu dimulai kosong (`[]`) untuk akun baru maupun
+  guest.
+- Untuk akun terautentikasi, `SavedRepositoryImpl` memakai
+  `SavedDestinationRemoteDataSource` (`/api/saved-destinations`) sebagai sumber
+  kebenaran dan `SavedDestinationLocalDataSource`
+  (`saved.destinations.v1.<userScope>`) sebagai cache offline per akun (fallback
+  hanya untuk error non-401, dan tetap mengembalikan `Failure` saat refresh
+  gagal agar banner error tetap tampil di atas daftar cache; error `401`
+  langsung mengosongkan state memori sesi aktif). Mutasi simpan/hapus memakai
+  aksi eksplisit (`saveDestination` / `removeDestination`) tanpa state
+  optimistik palsu: memori dan cache lokal baru diperbarui setelah server
+  mengembalikan sukses.
+- `SavedController` memakai lock mutasi per-destinasi (`isMutating`), berbagi
+  Future aktif pada `loadDestinations` agar `RefreshIndicator` menunggu hasil
+  yang sama, serta penghitung `_epoch` pada `setUserId` agar respons akun
+  sebelumnya tidak menimpa akun aktif.
+- Tombol bookmark kanan atas pada `DestinationDetailScreen` (dinonaktifkan saat
+  sinkronisasi awal berjalan, dengan fallback objek bookmark dari
+  `SavedController.findSavedDestination` bila belum ada di katalog lokal) dan
+  layar `SavedDestinationsScreen` terhubung ke `SavedController`, menampilkan
+  gambar nyata `DnRemoteImage`, target sentuh `>= 44x44 dp`, serta 4 state layar
+  (loading, kosong, terisi, error penuh/banner).
 
 ## State management
 

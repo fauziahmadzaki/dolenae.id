@@ -180,6 +180,7 @@ class _SavedPlansScreenState extends State<SavedPlansScreen> {
             onTap: widget.onOpenPlan == null
                 ? () => context.push('/plan/${plan.id}')
                 : () => widget.onOpenPlan!(plan.id),
+            onEdit: () => context.push('/plan/${plan.id}/edit'),
             onMore: () async {
               final confirmed = await showDnDialog(
                 context,

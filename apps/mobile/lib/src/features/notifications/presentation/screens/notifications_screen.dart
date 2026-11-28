@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
@@ -15,7 +17,7 @@ import 'package:dolenae_mobile/src/shared/widgets/dn_notification_item.dart';
 ///
 /// Dua grup: hari ini dan sebelumnya. Membuka notifikasi menandainya terbaca;
 /// aksi di AppBar menandai semuanya terbaca sekaligus.
-class NotificationsScreen extends StatelessWidget {
+class NotificationsScreen extends StatefulWidget {
   const NotificationsScreen({
     super.key,
     this.items,
@@ -31,16 +33,32 @@ class NotificationsScreen extends StatelessWidget {
   final VoidCallback? onBack;
 
   @override
+  State<NotificationsScreen> createState() => _NotificationsScreenState();
+}
+
+class _NotificationsScreenState extends State<NotificationsScreen> {
+  @override
+  void initState() {
+    super.initState();
+    if (widget.items == null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        unawaited(context.read<NotificationsController>().load());
+      });
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     final store = context.watch<NotificationsController>();
-    final all = items ?? store.notifications;
+    final all = widget.items ?? store.notifications;
     final today = all.where((item) => item.isToday).toList();
     final earlier = all.where((item) => !item.isToday).toList();
     final unread = all.where((item) => !item.read).length;
-    final markAll = onMarkAllRead ?? store.markAllNotificationsRead;
+    final markAll = widget.onMarkAllRead ?? store.markAllNotificationsRead;
 
     void open(AppNotification notification) {
-      final handler = onOpen;
+      final handler = widget.onOpen;
       if (handler != null) {
         handler(notification);
         return;
@@ -62,7 +80,7 @@ class NotificationsScreen extends StatelessWidget {
         showBack: true,
         plainBack: true,
         onBack:
-            onBack ??
+            widget.onBack ??
             () {
               if (context.canPop()) {
                 context.pop();

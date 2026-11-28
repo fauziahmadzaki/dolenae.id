@@ -114,7 +114,7 @@ class _DnInputState extends State<DnInput> {
           decoration: InputDecoration(
             hintText: widget.hint.isEmpty ? null : widget.hint,
             hintStyle: AppTextStyles.body.copyWith(
-              color: AppColors.borderStrong,
+              color: AppColors.body,
             ),
             errorText: widget.errorText,
             errorStyle: AppTextStyles.caption.copyWith(color: AppColors.danger),

@@ -44,7 +44,7 @@ void main() {
   setUpAll(useTestFonts);
 
   group('Layar Destinasi Tersimpan', () {
-    testWidgets('menampilkan kartu untuk setiap destinasi tersimpan', (
+    testWidgets('awal kosong menampilkan ajakan menjelajah (tanpa data dummy)', (
       tester,
     ) async {
       await usePhone(tester);
@@ -52,9 +52,26 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('Destinasi tersimpan'), findsOneWidget);
-      for (final item in SavedSeedData.destinations) {
-        expect(find.text(item.destination.name), findsOneWidget);
-      }
+      expect(find.text('Belum ada destinasi'), findsOneWidget);
+      expect(find.text('Jelajahi destinasi'), findsOneWidget);
+    });
+
+    testWidgets('menampilkan kartu untuk setiap destinasi tersimpan', (
+      tester,
+    ) async {
+      await usePhone(tester);
+      final store = newStore();
+      await store.saved.toggleSavedDestination(store.destinations.items.first);
+      await store.saved.toggleSavedDestination(store.destinations.items[1]);
+
+      await tester.pumpWidget(
+        wrapScreen(const SavedDestinationsScreen(), store: store),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Destinasi tersimpan'), findsOneWidget);
+      expect(find.text(store.destinations.items.first.name), findsOneWidget);
+      expect(find.text(store.destinations.items[1].name), findsOneWidget);
     });
 
     testWidgets('daftar kosong memunculkan ajakan menjelajah', (tester) async {
@@ -71,6 +88,8 @@ void main() {
     testWidgets('hapus lewat ikon mengeluarkan dari store', (tester) async {
       await usePhone(tester);
       final store = newStore();
+      await store.saved.toggleSavedDestination(store.destinations.items.first);
+      await store.saved.toggleSavedDestination(store.destinations.items[1]);
       final first = store.saved.savedDestinations.first;
       final before = store.saved.savedDestinations.length;
 

@@ -26,7 +26,9 @@ abstract final class AppIcons {
   static const IconData chrome = Icons.language;
   static const IconData clock = Icons.access_time_outlined;
   static const IconData close = Icons.close;
+  static const IconData cloud = Icons.cloud_outlined;
   static const IconData cloudOff = Icons.cloud_off_outlined;
+  static const IconData cloudRain = Icons.water_drop_outlined;
   static const IconData compass = Icons.explore_outlined;
   static const IconData database = Icons.storage_outlined;
   static const IconData delete = Icons.delete_outline;

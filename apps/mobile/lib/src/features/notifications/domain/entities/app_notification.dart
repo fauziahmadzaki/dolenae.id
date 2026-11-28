@@ -1,5 +1,12 @@
 /// Kelompok notifikasi (subset `packages/types/src/notification.ts`).
-enum NotificationKind { rekomendasi, rencana, checklist, usulan, sistem }
+enum NotificationKind {
+  rekomendasi,
+  rencana,
+  checklist,
+  usulan,
+  sistem,
+  peringatan,
+}
 
 /// Notifikasi aplikasi untuk travelers.
 class AppNotification {
@@ -11,6 +18,7 @@ class AppNotification {
     required this.createdAt,
     this.read = false,
     this.href,
+    this.isDanger = false,
   });
 
   final String id;
@@ -22,6 +30,9 @@ class AppNotification {
 
   /// Tujuan saat notifikasi diklik, mis. `/plan`.
   final String? href;
+
+  /// Penanda tingkat bahaya untuk [NotificationKind.peringatan].
+  final bool isDanger;
 
   bool get isToday {
     final now = DateTime.now();
@@ -36,6 +47,7 @@ class AppNotification {
     NotificationKind.checklist => 'Checklist',
     NotificationKind.usulan => 'Usulan',
     NotificationKind.sistem => 'Sistem',
+    NotificationKind.peringatan => 'Peringatan',
   };
 
   AppNotification copyWith({bool? read}) {
@@ -47,6 +59,7 @@ class AppNotification {
       createdAt: createdAt,
       read: read ?? this.read,
       href: href,
+      isDanger: isDanger,
     );
   }
 }

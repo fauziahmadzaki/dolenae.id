@@ -22,23 +22,28 @@ class DestinationModel {
   }
 
   Destination toEntity() {
-    final location = (json['location'] as Map?)?.cast<String, dynamic>() ?? {};
-    final access = (json['access'] as Map?)?.cast<String, dynamic>() ?? {};
+    final location = _stringMap(json['location']);
+    final access = _stringMap(json['access']);
     final transports = _stringList(access['transport']);
     final distanceKm = access['distanceKm'];
+    final distanceText = access['distance'];
 
     return Destination(
-      id: json['id'] as String? ?? '',
-      slug: json['slug'] as String? ?? '',
-      name: json['name'] as String? ?? 'Destinasi',
-      tagline: json['tagline'] as String? ?? '',
+      id: json['id'] is String ? json['id'] as String : '',
+      slug: json['slug'] is String ? json['slug'] as String : '',
+      name: json['name'] is String ? json['name'] as String : 'Destinasi',
+      tagline: json['tagline'] is String ? json['tagline'] as String : '',
       elevationM: (json['elevationMeters'] as num?)?.toInt(),
-      regency: location['regency'] as String? ?? '',
-      province: location['province'] as String? ?? '',
+      regency: location['regency'] is String ? location['regency'] as String : '',
+      province:
+          location['province'] is String ? location['province'] as String : '',
       priceFrom: null,
-      difficulty: _difficulty(json['difficulty'] as String?),
+      difficulty: _difficulty(
+        json['difficulty'] is String ? json['difficulty'] as String : null,
+      ),
       bestSeason: _join(_stringList(json['bestSeason'])),
-      guideRequired: json['guideRequired'] as bool?,
+      guideRequired:
+          json['guideRequired'] is bool ? json['guideRequired'] as bool : null,
       images: _stringList(json['images']),
       categoryIds: _stringList(json['categoryIds']),
       latitude: (location['latitude'] as num?)?.toDouble(),
@@ -46,17 +51,35 @@ class DestinationModel {
       terrain: _stringList(json['terrain']),
       activities: _stringList(json['activities']),
       tags: _stringList(json['tags']),
-      accessDescription: access['description'] as String?,
+      accessDescription:
+          access['description'] is String ? access['description'] as String : null,
       accessTransportModes: transports,
-      accessTravelTime: access['duration'] as String?,
+      accessTravelTime:
+          access['duration'] is String ? access['duration'] as String : null,
       accessDistance: distanceKm is num
           ? '${_compactNumber(distanceKm)} km dari kota terdekat'
+          : (distanceText is String && distanceText.trim().isNotEmpty)
+          ? distanceText.trim()
           : null,
-      accessPointName: location['accessPoint'] as String?,
+      accessPointName: location['accessPoint'] is String
+          ? location['accessPoint'] as String
+          : null,
       facilities: _countMap(json['facilities']),
       rating: (json['rating'] as num?)?.toDouble(),
     );
   }
+}
+
+Map<String, dynamic> _stringMap(Object? value) {
+  if (value is! Map) return const {};
+  final result = <String, dynamic>{};
+  for (final entry in value.entries) {
+    final key = entry.key;
+    if (key is String) {
+      result[key] = entry.value;
+    }
+  }
+  return result;
 }
 
 DifficultyLevel? _difficulty(String? value) {

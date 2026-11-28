@@ -29,6 +29,7 @@ class PlanChecklistScreen extends StatefulWidget {
 
 class _PlanChecklistScreenState extends State<PlanChecklistScreen> {
   ChecklistCategory? _selectedCategory;
+  bool _isUpdatingReady = false;
 
   @override
   void initState() {
@@ -36,7 +37,7 @@ class _PlanChecklistScreenState extends State<PlanChecklistScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       final controller = context.read<PlanController>();
-      if (controller.plans.isEmpty && !controller.isLoading) {
+      if (!controller.hasLoaded && !controller.isLoading) {
         controller.load();
       }
     });
@@ -91,23 +92,53 @@ class _PlanChecklistScreenState extends State<PlanChecklistScreen> {
     );
   }
 
-  Future<void> _markAll(PlanController controller) async {
-    final result = await controller.markAllChecklistReady(widget.planId);
-    if (!mounted || result.isCancelled) return;
-    if (result.isFailed) {
+  Future<void> _markReady(PlanController controller) async {
+    if (_isUpdatingReady) return;
+    setState(() => _isUpdatingReady = true);
+    try {
+      final result = await controller.markAllChecklistReady(widget.planId);
+      if (!mounted || result.isCancelled) return;
+      if (result.isFailed) {
+        showDnToast(
+          context,
+          result.message ?? 'Gagal memperbarui checklist.',
+          type: DnToastType.gagal,
+        );
+        return;
+      }
       showDnToast(
         context,
-        result.message ?? 'Gagal memperbarui checklist.',
-        type: DnToastType.gagal,
+        'Rencana ditandai siap',
+        type: DnToastType.sukses,
+        icon: AppIcons.squareCheck,
       );
-      return;
+    } finally {
+      if (mounted) setState(() => _isUpdatingReady = false);
     }
-    showDnToast(
-      context,
-      'Semua item ditandai siap',
-      type: DnToastType.sukses,
-      icon: AppIcons.squareCheck,
-    );
+  }
+
+  Future<void> _unmarkReady(PlanController controller) async {
+    if (_isUpdatingReady) return;
+    setState(() => _isUpdatingReady = true);
+    try {
+      final result = await controller.unmarkChecklistReady(widget.planId);
+      if (!mounted || result.isCancelled) return;
+      if (result.isFailed) {
+        showDnToast(
+          context,
+          result.message ?? 'Gagal memperbarui checklist.',
+          type: DnToastType.gagal,
+        );
+        return;
+      }
+      showDnToast(
+        context,
+        'Status siap dibatalkan',
+        type: DnToastType.info,
+      );
+    } finally {
+      if (mounted) setState(() => _isUpdatingReady = false);
+    }
   }
 
   Future<void> _handleChecklistAction(Future<PlanActionResult> action) async {
@@ -133,18 +164,35 @@ class _PlanChecklistScreenState extends State<PlanChecklistScreen> {
         onBack: _back,
       ),
       body: plan == null
-          ? Padding(
-              padding: const EdgeInsets.all(AppSpacing.s5),
-              child: Center(
-                child: DnEmptyState(
-                  variant: DnEmptyVariant.belumAdaData,
-                  title: 'Rencana tidak ditemukan',
-                  body: 'Checklist tidak bisa dimuat.',
-                  actionLabel: 'Kembali',
-                  onAction: _back,
-                ),
-              ),
-            )
+          ? (controller.isLoading || (!controller.hasLoaded && controller.error == null)
+                ? const Center(
+                    child: CircularProgressIndicator(color: AppColors.primary),
+                  )
+                : controller.error != null
+                ? Padding(
+                    padding: const EdgeInsets.all(AppSpacing.s5),
+                    child: Center(
+                      child: DnEmptyState(
+                        variant: DnEmptyVariant.gagal,
+                        title: 'Gagal memuat checklist',
+                        body: controller.error!,
+                        actionLabel: 'Coba lagi',
+                        onAction: controller.load,
+                      ),
+                    ),
+                  )
+                : Padding(
+                    padding: const EdgeInsets.all(AppSpacing.s5),
+                    child: Center(
+                      child: DnEmptyState(
+                        variant: DnEmptyVariant.belumAdaData,
+                        title: 'Rencana tidak ditemukan',
+                        body: 'Checklist tidak bisa dimuat.',
+                        actionLabel: 'Kembali',
+                        onAction: _back,
+                      ),
+                    ),
+                  ))
           : SafeArea(
               top: false,
               child: Column(
@@ -213,12 +261,15 @@ class _PlanChecklistScreenState extends State<PlanChecklistScreen> {
                       ),
                     ),
                   ),
-                  if (plan.checklist.isNotEmpty)
-                    _BottomAction(
-                      allReady:
-                          plan.completedChecklistCount == plan.checklistCount,
-                      onPressed: () => _markAll(controller),
-                    ),
+                  _BottomAction(
+                    checklistReady: plan.checklistReady,
+                    isBusy:
+                        _isUpdatingReady ||
+                        controller.isGenerating(plan.id) ||
+                        controller.isGeneratingChecklist(plan.id),
+                    onMarkReady: () => _markReady(controller),
+                    onCancelReady: () => _unmarkReady(controller),
+                  ),
                 ],
               ),
             ),
@@ -272,13 +323,38 @@ class _ProgressCard extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: AppSpacing.s2),
-              Text(
-                total == 0 ? 'Belum ada item' : '$done/$total siap',
-                style: AppTextStyles.labelSm.copyWith(
-                  color: total > 0 && done == total
-                      ? AppColors.success
-                      : AppColors.accent,
-                ),
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (plan.checklistReady) ...[
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: AppSpacing.s2,
+                        vertical: 3,
+                      ),
+                      decoration: BoxDecoration(
+                        color: AppColors.success,
+                        borderRadius: BorderRadius.circular(AppRadius.pill),
+                      ),
+                      child: Text(
+                        'Siap',
+                        style: AppTextStyles.overline.copyWith(
+                          color: AppColors.onPrimary,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: AppSpacing.s2),
+                  ],
+                  Text(
+                    total == 0 ? 'Belum ada item' : '$done/$total siap',
+                    style: AppTextStyles.labelSm.copyWith(
+                      color: plan.checklistReady || (total > 0 && done == total)
+                          ? AppColors.success
+                          : AppColors.accent,
+                    ),
+                  ),
+                ],
               ),
             ],
           ),
@@ -294,9 +370,7 @@ class _ProgressCard extends StatelessWidget {
               minHeight: 8,
               backgroundColor: AppColors.canvas,
               valueColor: AlwaysStoppedAnimation<Color>(
-                done == total && total > 0
-                    ? AppColors.success
-                    : AppColors.primary,
+                plan.checklistReady ? AppColors.success : AppColors.primary,
               ),
             ),
           ),
@@ -657,29 +731,46 @@ class _CostToggle extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Text(
-          label,
-          style: AppTextStyles.caption.copyWith(
-            fontSize: 11,
-            color: active ? color : AppColors.body,
-            fontWeight: active ? FontWeight.w600 : FontWeight.w400,
+    return Semantics(
+      toggled: active,
+      button: true,
+      label: label,
+      child: InkWell(
+        onTap: onChanged,
+        borderRadius: BorderRadius.circular(AppRadius.sm),
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(minWidth: 44, minHeight: 44),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                label,
+                style: AppTextStyles.caption.copyWith(
+                  fontSize: 11,
+                  color: active ? color : AppColors.body,
+                  fontWeight: active ? FontWeight.w600 : FontWeight.w400,
+                ),
+              ),
+              ExcludeSemantics(
+                child: IgnorePointer(
+                  child: SizedBox(
+                    height: 26,
+                    child: Transform.scale(
+                      scale: 0.75,
+                      child: Switch.adaptive(
+                        value: active,
+                        activeThumbColor: color,
+                        activeTrackColor: color.withValues(alpha: 0.35),
+                        onChanged: (_) {},
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ],
           ),
         ),
-        SizedBox(
-          height: 26,
-          child: Transform.scale(
-            scale: 0.75,
-            child: Switch.adaptive(
-              value: active,
-              activeThumbColor: color,
-              activeTrackColor: color.withValues(alpha: 0.35),
-              onChanged: (_) => onChanged(),
-            ),
-          ),
-        ),
-      ],
+      ),
     );
   }
 }
@@ -701,10 +792,17 @@ class _EmptyChecklist extends StatelessWidget {
 }
 
 class _BottomAction extends StatelessWidget {
-  const _BottomAction({required this.allReady, required this.onPressed});
+  const _BottomAction({
+    required this.checklistReady,
+    required this.isBusy,
+    required this.onMarkReady,
+    required this.onCancelReady,
+  });
 
-  final bool allReady;
-  final VoidCallback onPressed;
+  final bool checklistReady;
+  final bool isBusy;
+  final VoidCallback onMarkReady;
+  final VoidCallback onCancelReady;
 
   @override
   Widget build(BuildContext context) {
@@ -714,11 +812,46 @@ class _BottomAction extends StatelessWidget {
         color: AppColors.canvas,
         border: Border(top: BorderSide(color: AppColors.hairline)),
       ),
-      child: DnPrimaryButton(
-        label: allReady ? 'Semua siap' : 'Tandai semua siap',
-        icon: AppIcons.squareCheck,
-        onPressed: allReady ? null : onPressed,
-      ),
+      child: checklistReady
+          ? Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Row(
+                  children: [
+                    const Icon(
+                      AppIcons.badgeCheck,
+                      size: 18,
+                      color: AppColors.success,
+                    ),
+                    const SizedBox(width: AppSpacing.s2),
+                    Expanded(
+                      child: Text(
+                        'Sudah ditandai siap',
+                        style: AppTextStyles.label.copyWith(
+                          color: AppColors.ink,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: AppSpacing.s2),
+                DnOutlineButton(
+                  label: 'Batalkan siap',
+                  icon: AppIcons.close,
+                  height: 44,
+                  foreground: AppColors.primary,
+                  borderColor: AppColors.borderStrong,
+                  onPressed: isBusy ? null : onCancelReady,
+                ),
+              ],
+            )
+          : DnPrimaryButton(
+              label: 'Tandai siap',
+              icon: AppIcons.squareCheck,
+              height: 48,
+              onPressed: isBusy ? null : onMarkReady,
+            ),
     );
   }
 }

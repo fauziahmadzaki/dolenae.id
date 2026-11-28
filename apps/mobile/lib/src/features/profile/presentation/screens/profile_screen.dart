@@ -6,7 +6,6 @@ import 'package:provider/provider.dart';
 
 import 'package:dolenae_mobile/src/features/auth/presentation/controllers/auth_controller.dart';
 import 'package:dolenae_mobile/src/features/auth/presentation/widgets/logout_confirmation.dart';
-import 'package:dolenae_mobile/src/features/checklist/presentation/controllers/checklist_controller.dart';
 import 'package:dolenae_mobile/src/features/plan/presentation/controllers/plan_controller.dart';
 import 'package:dolenae_mobile/src/features/saved/presentation/controllers/saved_controller.dart';
 import 'package:dolenae_mobile/src/app/theme/app_colors.dart';
@@ -61,6 +60,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
       if (plan != null && !plan.hasLoaded && !plan.isLoading) {
         unawaited(plan.load());
       }
+      final saved = context.read<SavedController?>();
+      final isLoggedIn = context.read<AuthController?>()?.session != null;
+      if (isLoggedIn &&
+          saved != null &&
+          !saved.hasLoaded &&
+          !saved.isLoading &&
+          saved.error == null) {
+        unawaited(saved.loadDestinations());
+      }
     });
   }
 
@@ -89,11 +97,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final savedTotal =
         context.watch<SavedController?>()?.savedDestinations.length ??
         widget.savedCount;
-    final planTotal =
-        context.watch<PlanController?>()?.plans.length ?? widget.planCount;
+    final planController = context.watch<PlanController?>();
+    final planTotal = planController?.plans.length ?? widget.planCount;
     final checklistTotal =
-        context.watch<ChecklistController?>()?.items.length ??
-        widget.checklistCount;
+        planController?.readyChecklistCount ?? widget.checklistCount;
 
     return Scaffold(
       backgroundColor: AppColors.canvas,
@@ -395,7 +402,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       _MenuItem(
         icon: AppIcons.squareCheck,
         title: 'Checklist',
-        onTap: () => context.go('/checklist'),
+        onTap: () => context.push('/checklist'),
       ),
     ]);
   }

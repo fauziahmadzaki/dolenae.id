@@ -100,6 +100,7 @@ class TripPlan {
     this.days = const [],
     this.sources = const [],
     this.checklist = const [],
+    this.checklistReady = false,
     this.destinationIds = const [],
     this.originProvince = '',
     this.notice,
@@ -121,6 +122,7 @@ class TripPlan {
   final List<PlanDay> days;
   final List<PlanSource> sources;
   final List<ChecklistItem> checklist;
+  final bool checklistReady;
   final List<String> destinationIds;
 
   /// Provinsi asal user untuk estimasi transport antarprovinsi.
@@ -135,7 +137,12 @@ class TripPlan {
   final String note;
   final DateTime? createdAt;
 
-  int get durationDays => endDate.difference(startDate).inDays + 1;
+  int get durationDays {
+    final start = DateTime.utc(startDate.year, startDate.month, startDate.day);
+    final end = DateTime.utc(endDate.year, endDate.month, endDate.day);
+    final days = end.difference(start).inDays + 1;
+    return days < 1 ? 1 : days;
+  }
 
   int get destinationCount {
     final keys = <String>{
@@ -149,6 +156,31 @@ class TripPlan {
       }
     }
     return keys.length;
+  }
+
+  List<String> get destinationNames {
+    final seen = <String>{};
+    final names = <String>[];
+    void addName(String raw) {
+      final trimmed = raw.trim();
+      if (trimmed.isEmpty) return;
+      final key = trimmed.toLowerCase();
+      if (seen.add(key)) {
+        names.add(trimmed);
+      }
+    }
+
+    for (final day in days) {
+      for (final item in day.items) {
+        addName(item.destinationName);
+      }
+    }
+    for (final source in sources) {
+      if (source.type == 'destination') {
+        addName(source.label);
+      }
+    }
+    return List.unmodifiable(names);
   }
 
   int get budgetPerPerson =>
@@ -219,6 +251,11 @@ class TripPlan {
     final startMonth = months[startDate.month - 1];
     final endMonth = months[endDate.month - 1];
 
+    if (startDate.year == endDate.year &&
+        startDate.month == endDate.month &&
+        startDate.day == endDate.day) {
+      return '${startDate.day} $startMonth ${startDate.year}';
+    }
     if (startDate.year == endDate.year && startDate.month == endDate.month) {
       return '${startDate.day}–${endDate.day} $startMonth ${startDate.year}';
     }
@@ -242,6 +279,7 @@ class TripPlan {
     List<PlanDay>? days,
     List<PlanSource>? sources,
     List<ChecklistItem>? checklist,
+    bool? checklistReady,
     List<String>? destinationIds,
     String? originProvince,
     String? notice,
@@ -264,6 +302,7 @@ class TripPlan {
       days: days ?? this.days,
       sources: sources ?? this.sources,
       checklist: checklist ?? this.checklist,
+      checklistReady: checklistReady ?? this.checklistReady,
       destinationIds: destinationIds ?? this.destinationIds,
       originProvince: originProvince ?? this.originProvince,
       notice: clearNotice ? null : (notice ?? this.notice),
